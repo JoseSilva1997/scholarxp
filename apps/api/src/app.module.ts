@@ -12,6 +12,7 @@ import { DailyQuestModule } from './daily-quest/daily-quest.module';
 import { ModuleUnitModule } from './module-unit/module-unit.module';
 import { PracticeSessionModule } from './practice-session/practice-session.module';
 import { ModuleUnitQuestionGroupModule } from './module-unit-question-group/module-unit-question-group.module';
+import { ModuleUnitUserProgressModule } from './module-unit-user-progress/module-unit-user-progress.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { ModuleUnitQuestionGroupModule } from './module-unit-question-group/modu
     ModuleUnitModule,
     PracticeSessionModule,
     ModuleUnitQuestionGroupModule,
+    ModuleUnitUserProgressModule,
   ],
   controllers: [TestController],
 })
