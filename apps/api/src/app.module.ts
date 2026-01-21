@@ -5,6 +5,7 @@ import { TestController } from './test/test.controller';
 import { InstitutionModule } from './institution/institution.module';
 import { UsersModule } from './users/users.module';
 import { LtiIdentityModule } from './lti-identity/lti-identity.module';
+import { AvatarModule } from './avatar/avatar.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { LtiIdentityModule } from './lti-identity/lti-identity.module';
     InstitutionModule,
     UsersModule,
     LtiIdentityModule,
+    AvatarModule,
   ],
   controllers: [TestController],
 })
