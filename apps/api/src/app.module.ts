@@ -8,6 +8,7 @@ import { LtiIdentityModule } from './lti-identity/lti-identity.module';
 import { AvatarModule } from './avatar/avatar.module';
 import { ModuleModule } from './module/module.module';
 import { UserModuleModule } from './user-module/user-module.module';
+import { DailyQuestModule } from './daily-quest/daily-quest.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { UserModuleModule } from './user-module/user-module.module';
     AvatarModule,
     ModuleModule,
     UserModuleModule,
+    DailyQuestModule,
   ],
   controllers: [TestController],
 })
