@@ -4,6 +4,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { TestController } from './test/test.controller';
 import { InstitutionModule } from './institution/institution.module';
 import { UsersModule } from './users/users.module';
+import { LtiIdentityModule } from './lti-identity/lti-identity.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { UsersModule } from './users/users.module';
     PrismaModule,
     InstitutionModule,
     UsersModule,
+    LtiIdentityModule,
   ],
   controllers: [TestController],
 })
