@@ -9,6 +9,7 @@ import { AvatarModule } from './avatar/avatar.module';
 import { ModuleModule } from './module/module.module';
 import { UserModuleModule } from './user-module/user-module.module';
 import { DailyQuestModule } from './daily-quest/daily-quest.module';
+import { ModuleUnitModule } from './module-unit/module-unit.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { DailyQuestModule } from './daily-quest/daily-quest.module';
     ModuleModule,
     UserModuleModule,
     DailyQuestModule,
+    ModuleUnitModule,
   ],
   controllers: [TestController],
 })
