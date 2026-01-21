@@ -14,6 +14,7 @@ import { PracticeSessionModule } from './practice-session/practice-session.modul
 import { ModuleUnitQuestionGroupModule } from './module-unit-question-group/module-unit-question-group.module';
 import { ModuleUnitUserProgressModule } from './module-unit-user-progress/module-unit-user-progress.module';
 import { QuestionUnitModule } from './question-unit/question-unit.module';
+import { QuestionContentModule } from './question-content/question-content.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { QuestionUnitModule } from './question-unit/question-unit.module';
     ModuleUnitQuestionGroupModule,
     ModuleUnitUserProgressModule,
     QuestionUnitModule,
+    QuestionContentModule,
   ],
   controllers: [TestController],
 })
