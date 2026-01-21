@@ -1,0 +1,250 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Institution {
+  id              Int           @id @default(autoincrement())
+  name            String
+  lmsPlatform     String        @map("lms_platform")
+  lmsIssuerUrl    String        @map("lms_issuer_url")
+  lmsClientId     String        @map("lms_client_id")
+  lmsDeploymentId String        @map("lms_deployment_id")
+  jwksUrl         String        @map("jwks_url")
+  authTokenUrl    String        @map("auth_token_url")
+  authRequestUrl  String        @map("auth_request_url")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  ltiIdentities   LtiIdentity[]
+  modules         Module[]
+
+  @@unique([lmsIssuerUrl, lmsClientId, lmsDeploymentId])
+  @@map("institutions")
+}
+
+model LtiIdentity {
+  id            Int         @id @default(autoincrement())
+  institutionId Int         @map("institution_id")
+  userId        Int         @map("user_id")
+  ltiUserId     String      @map("lti_user_id")
+  institution   Institution @relation(fields: [institutionId], references: [id])
+  user          User        @relation(fields: [userId], references: [id])
+
+  @@map("lti_identity")
+}
+
+model User {
+  id               Int                      @id @default(autoincrement())
+  firstName        String                   @map("first_name")
+  lastName         String                   @map("last_name")
+  email            String                   @unique
+  globalRole       GlobalRole               @default(student) @map("global_role")
+  createdAt        DateTime                 @default(now()) @map("created_at")
+  avatars          Avatar[]
+  dailyQuests      DailyQuest[]
+  ltiIdentities    LtiIdentity[]
+  userProgress     ModuleUnitUserProgress[]
+  practiceSessions PracticeSession[]
+  questionAttempts QuestionAttempt[]
+  userModules      UserModule[]
+
+  @@map("users")
+}
+
+model Avatar {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @map("user_id")
+  level      Int
+  currentExp Int      @map("current_exp")
+  createdAt  DateTime @default(now()) @map("created_at")
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@map("avatars")
+}
+
+model Module {
+  id               Int               @id @default(autoincrement())
+  institutionId    Int               @map("institution_id")
+  ltiContextId     String            @map("lti_context_id")
+  resourceLinkId   String            @map("resource_link_id")
+  variantContext   String            @map("variant_context")
+  title            String
+  description      String?
+  createdAt        DateTime          @default(now()) @map("created_at")
+  dailyQuests      DailyQuest[]
+  moduleUnits      ModuleUnit[]
+  institution      Institution       @relation(fields: [institutionId], references: [id])
+  practiceSessions PracticeSession[]
+  userModules      UserModule[]
+
+  @@unique([institutionId, ltiContextId])
+  @@unique([institutionId, resourceLinkId])
+  @@map("modules")
+}
+
+model UserModule {
+  id              Int      @id @default(autoincrement())
+  moduleId        Int      @map("module_id")
+  userId          Int      @map("user_id")
+  roleInModule    String   @map("role_in_module")
+  userModuleLevel Int      @map("user_module_level")
+  currentExp      Int      @map("current_exp")
+  createdAt       DateTime @default(now()) @map("created_at")
+  module          Module   @relation(fields: [moduleId], references: [id])
+  user            User     @relation(fields: [userId], references: [id])
+
+  @@unique([moduleId, userId])
+  @@map("user_modules")
+}
+
+model DailyQuest {
+  id          Int      @id @default(autoincrement())
+  moduleId    Int      @map("module_id")
+  userId      Int      @map("user_id")
+  type        String
+  expGranted  Int      @map("exp_granted")
+  isCompleted Boolean  @default(false) @map("is_completed")
+  generatedAt DateTime @default(now()) @map("generated_at")
+  module      Module   @relation(fields: [moduleId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@map("daily_quests")
+}
+
+model PracticeSession {
+  id        Int       @id @default(autoincrement())
+  moduleId  Int       @map("module_id")
+  userId    Int       @map("user_id")
+  startTime DateTime  @map("start_time")
+  endTime   DateTime? @map("end_time")
+  module    Module    @relation(fields: [moduleId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@map("practice_sessions")
+}
+
+model ModuleUnit {
+  id               Int                       @id @default(autoincrement())
+  moduleId         Int                       @map("module_id")
+  variantContext   String                    @map("variant_context")
+  title            String
+  questionCount    Int                       @map("question_count")
+  status           ModuleUnitStatus          @default(draft)
+  sortOrder        Int                       @map("sort_order")
+  createdAt        DateTime                  @default(now()) @map("created_at")
+  module           Module                    @relation(fields: [moduleId], references: [id])
+  questionGroups   ModuleUnitQuestionGroup[]
+  userProgress     ModuleUnitUserProgress[]
+  questionAttempts QuestionAttempt[]
+  questionUnits    QuestionUnit[]
+
+  @@map("module_unit")
+}
+
+model ModuleUnitQuestionGroup {
+  id            Int            @id @default(autoincrement())
+  moduleUnitId  Int            @map("module_unit_id")
+  name          String
+  sortOrder     Int            @map("sort_order")
+  moduleUnit    ModuleUnit     @relation(fields: [moduleUnitId], references: [id])
+  questionUnits QuestionUnit[]
+
+  @@map("module_unit_question_groups")
+}
+
+model ModuleUnitUserProgress {
+  id                  Int        @id @default(autoincrement())
+  moduleUnitId        Int        @map("module_unit_id")
+  studentId           Int        @map("student_id")
+  currentMasteryScore Float      @map("current_mastery_score")
+  isCompleted         Boolean    @default(false) @map("is_completed")
+  noOfCorrectAnswers  Int        @map("no_of_correct_answers")
+  completedAt         DateTime?  @map("completed_at")
+  lastPracticedAt     DateTime?  @map("last_practiced_at")
+  moduleUnit          ModuleUnit @relation(fields: [moduleUnitId], references: [id])
+  student             User       @relation(fields: [studentId], references: [id])
+
+  @@map("module_unit_user_progress")
+}
+
+model QuestionUnit {
+  id              Int                     @id @default(autoincrement())
+  coreQuestionId  Int                     @map("core_question_id")
+  moduleUnitId    Int                     @map("module_unit_id")
+  questionGroupId Int                     @map("question_group_id")
+  title           String
+  createdAt       DateTime                @default(now()) @map("created_at")
+  updatedAt       DateTime                @updatedAt @map("updated_at")
+  attempts        QuestionAttempt[]
+  coreQuestion    QuestionContent         @relation("CoreQuestion", fields: [coreQuestionId], references: [id])
+  moduleUnit      ModuleUnit              @relation(fields: [moduleUnitId], references: [id])
+  questionGroup   ModuleUnitQuestionGroup @relation(fields: [questionGroupId], references: [id])
+  variants        QuestionVariant[]
+
+  @@map("question_unit")
+}
+
+model QuestionContent {
+  id               Int               @id @default(autoincrement())
+  type             String
+  questionStem     String            @map("question_stem")
+  questionData     Json              @map("question_data")
+  hint             String?
+  difficultyScore  Float             @map("difficulty_score")
+  source           String
+  status           String
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  questionAttempts QuestionAttempt[]
+  questionUnits    QuestionUnit[]    @relation("CoreQuestion")
+  variants         QuestionVariant[]
+
+  @@map("question_content")
+}
+
+model QuestionVariant {
+  id             Int             @id @default(autoincrement())
+  questionUnitId Int             @map("question_unit_id")
+  contentId      Int             @map("content_id")
+  variantLabel   String          @map("variant_label")
+  content        QuestionContent @relation(fields: [contentId], references: [id])
+  questionUnit   QuestionUnit    @relation(fields: [questionUnitId], references: [id])
+
+  @@map("question_variant")
+}
+
+model QuestionAttempt {
+  id            Int             @id @default(autoincrement())
+  moduleUnitId  Int             @map("module_unit_id")
+  studentId     Int             @map("student_id")
+  questionId    Int             @map("question_id")
+  contentId     Int             @map("content_id")
+  practiceMode  String          @map("practice_mode")
+  isCorrect     Boolean         @map("is_correct")
+  timeTakenMs   Int             @map("time_taken_ms")
+  hintsUsed     Int             @default(0) @map("hints_used")
+  studentAnswer Json            @map("student_answer")
+  attemptedAt   DateTime        @default(now()) @map("attempted_at")
+  content       QuestionContent @relation(fields: [contentId], references: [id])
+  moduleUnit    ModuleUnit      @relation(fields: [moduleUnitId], references: [id])
+  question      QuestionUnit    @relation(fields: [questionId], references: [id])
+  student       User            @relation(fields: [studentId], references: [id])
+
+  @@map("question_attempts")
+}
+
+enum GlobalRole {
+  admin
+  institution_admin
+  instructor
+  student
+}
+
+enum ModuleUnitStatus {
+  draft
+  locked
+  live
+  archived
+}
