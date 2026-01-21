@@ -7,6 +7,7 @@ import { UsersModule } from './users/users.module';
 import { LtiIdentityModule } from './lti-identity/lti-identity.module';
 import { AvatarModule } from './avatar/avatar.module';
 import { ModuleModule } from './module/module.module';
+import { UserModuleModule } from './user-module/user-module.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { ModuleModule } from './module/module.module';
     LtiIdentityModule,
     AvatarModule,
     ModuleModule,
+    UserModuleModule,
   ],
   controllers: [TestController],
 })
