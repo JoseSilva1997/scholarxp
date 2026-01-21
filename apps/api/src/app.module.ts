@@ -10,6 +10,7 @@ import { ModuleModule } from './module/module.module';
 import { UserModuleModule } from './user-module/user-module.module';
 import { DailyQuestModule } from './daily-quest/daily-quest.module';
 import { ModuleUnitModule } from './module-unit/module-unit.module';
+import { PracticeSessionModule } from './practice-session/practice-session.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { ModuleUnitModule } from './module-unit/module-unit.module';
     UserModuleModule,
     DailyQuestModule,
     ModuleUnitModule,
+    PracticeSessionModule,
   ],
   controllers: [TestController],
 })
