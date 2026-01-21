@@ -13,6 +13,7 @@ import { ModuleUnitModule } from './module-unit/module-unit.module';
 import { PracticeSessionModule } from './practice-session/practice-session.module';
 import { ModuleUnitQuestionGroupModule } from './module-unit-question-group/module-unit-question-group.module';
 import { ModuleUnitUserProgressModule } from './module-unit-user-progress/module-unit-user-progress.module';
+import { QuestionUnitModule } from './question-unit/question-unit.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { ModuleUnitUserProgressModule } from './module-unit-user-progress/module
     PracticeSessionModule,
     ModuleUnitQuestionGroupModule,
     ModuleUnitUserProgressModule,
+    QuestionUnitModule,
   ],
   controllers: [TestController],
 })
