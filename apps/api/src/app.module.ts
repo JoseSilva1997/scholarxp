@@ -15,6 +15,7 @@ import { ModuleUnitQuestionGroupModule } from './module-unit-question-group/modu
 import { ModuleUnitUserProgressModule } from './module-unit-user-progress/module-unit-user-progress.module';
 import { QuestionUnitModule } from './question-unit/question-unit.module';
 import { QuestionContentModule } from './question-content/question-content.module';
+import { QuestionVariantModule } from './question-variant/question-variant.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { QuestionContentModule } from './question-content/question-content.modul
     ModuleUnitUserProgressModule,
     QuestionUnitModule,
     QuestionContentModule,
+    QuestionVariantModule,
   ],
   controllers: [TestController],
 })
