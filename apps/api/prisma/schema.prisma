@@ -29,8 +29,8 @@ model LtiIdentity {
   institutionId Int         @map("institution_id")
   userId        Int         @map("user_id")
   ltiUserId     String      @map("lti_user_id")
-  institution   Institution @relation(fields: [institutionId], references: [id])
-  user          User        @relation(fields: [userId], references: [id])
+  institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("lti_identity")
 }
@@ -59,7 +59,7 @@ model Avatar {
   level      Int
   currentExp Int      @map("current_exp")
   createdAt  DateTime @default(now()) @map("created_at")
-  user       User     @relation(fields: [userId], references: [id])
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("avatars")
 }
@@ -73,9 +73,9 @@ model Module {
   title            String
   description      String?
   createdAt        DateTime          @default(now()) @map("created_at")
+  institution      Institution       @relation(fields: [institutionId], references: [id], onDelete: Cascade)
   dailyQuests      DailyQuest[]
   moduleUnits      ModuleUnit[]
-  institution      Institution       @relation(fields: [institutionId], references: [id])
   practiceSessions PracticeSession[]
   userModules      UserModule[]
 
@@ -92,8 +92,8 @@ model UserModule {
   userModuleLevel Int      @map("user_module_level")
   currentExp      Int      @map("current_exp")
   createdAt       DateTime @default(now()) @map("created_at")
-  module          Module   @relation(fields: [moduleId], references: [id])
-  user            User     @relation(fields: [userId], references: [id])
+  module          Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([moduleId, userId])
   @@map("user_modules")
@@ -107,34 +107,34 @@ model DailyQuest {
   expGranted  Int      @map("exp_granted")
   isCompleted Boolean  @default(false) @map("is_completed")
   generatedAt DateTime @default(now()) @map("generated_at")
-  module      Module   @relation(fields: [moduleId], references: [id])
-  user        User     @relation(fields: [userId], references: [id])
+  module      Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("daily_quests")
 }
 
 model PracticeSession {
   id        Int       @id @default(autoincrement())
-  moduleId  Int       @map("module_id")
-  userId    Int       @map("user_id")
+  moduleId  Int?      @map("module_id")
+  userId    Int?      @map("user_id")
   startTime DateTime  @map("start_time")
   endTime   DateTime? @map("end_time")
-  module    Module    @relation(fields: [moduleId], references: [id])
-  user      User      @relation(fields: [userId], references: [id])
+  module    Module?   @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@map("practice_sessions")
 }
 
 model ModuleUnit {
   id               Int                       @id @default(autoincrement())
-  moduleId         Int                       @map("module_id")
+  moduleId         Int?                      @map("module_id")
   variantContext   String                    @map("variant_context")
   title            String
   questionCount    Int                       @map("question_count")
   status           ModuleUnitStatus          @default(draft)
   sortOrder        Int                       @map("sort_order")
   createdAt        DateTime                  @default(now()) @map("created_at")
-  module           Module                    @relation(fields: [moduleId], references: [id])
+  module           Module?                   @relation(fields: [moduleId], references: [id], onDelete: SetNull)
   questionGroups   ModuleUnitQuestionGroup[]
   userProgress     ModuleUnitUserProgress[]
   questionAttempts QuestionAttempt[]
@@ -148,7 +148,7 @@ model ModuleUnitQuestionGroup {
   moduleUnitId  Int            @map("module_unit_id")
   name          String
   sortOrder     Int            @map("sort_order")
-  moduleUnit    ModuleUnit     @relation(fields: [moduleUnitId], references: [id])
+  moduleUnit    ModuleUnit     @relation(fields: [moduleUnitId], references: [id], onDelete: Cascade)
   questionUnits QuestionUnit[]
 
   @@map("module_unit_question_groups")
@@ -157,31 +157,30 @@ model ModuleUnitQuestionGroup {
 model ModuleUnitUserProgress {
   id                  Int        @id @default(autoincrement())
   moduleUnitId        Int        @map("module_unit_id")
-  studentId           Int        @map("student_id")
+  studentId           Int?       @map("student_id")
   currentMasteryScore Float      @map("current_mastery_score")
   isCompleted         Boolean    @default(false) @map("is_completed")
   noOfCorrectAnswers  Int        @map("no_of_correct_answers")
   completedAt         DateTime?  @map("completed_at")
   lastPracticedAt     DateTime?  @map("last_practiced_at")
-  moduleUnit          ModuleUnit @relation(fields: [moduleUnitId], references: [id])
-  student             User       @relation(fields: [studentId], references: [id])
+  moduleUnit          ModuleUnit @relation(fields: [moduleUnitId], references: [id], onDelete: Cascade)
+  student             User?      @relation(fields: [studentId], references: [id], onDelete: SetNull)
 
   @@map("module_unit_user_progress")
 }
 
 model QuestionUnit {
-  id              Int                     @id @default(autoincrement())
-  coreQuestionId  Int                     @map("core_question_id")
-  moduleUnitId    Int                     @map("module_unit_id")
-  questionGroupId Int                     @map("question_group_id")
+  id              Int                       @id @default(autoincrement())
+  moduleUnitId    Int?                      @map("module_unit_id")
+  questionGroupId Int?                      @map("question_group_id")
   title           String
-  createdAt       DateTime                @default(now()) @map("created_at")
-  updatedAt       DateTime                @updatedAt @map("updated_at")
+  createdAt       DateTime                  @default(now()) @map("created_at")
+  updatedAt       DateTime                  @updatedAt @map("updated_at")
+  moduleUnit      ModuleUnit?               @relation(fields: [moduleUnitId], references: [id], onDelete: Cascade)
+  questionGroup   ModuleUnitQuestionGroup?  @relation(fields: [questionGroupId], references: [id], onDelete: SetNull)
   attempts        QuestionAttempt[]
-  coreQuestion    QuestionContent         @relation("CoreQuestion", fields: [coreQuestionId], references: [id])
-  moduleUnit      ModuleUnit              @relation(fields: [moduleUnitId], references: [id])
-  questionGroup   ModuleUnitQuestionGroup @relation(fields: [questionGroupId], references: [id])
-  variants        QuestionVariant[]
+  contents        QuestionContent[]
+  variants        QuestionVariant[]        
 
   @@map("question_unit")
 }
@@ -189,6 +188,8 @@ model QuestionUnit {
 model QuestionContent {
   id               Int               @id @default(autoincrement())
   type             String
+  questionUnitId   Int               @map("question_unit_id")
+  isCore           Boolean           @default(false) @map("is_core")
   questionStem     String            @map("question_stem")
   questionData     Json              @map("question_data")
   hint             String?
@@ -197,9 +198,9 @@ model QuestionContent {
   status           String
   createdAt        DateTime          @default(now()) @map("created_at")
   updatedAt        DateTime          @updatedAt @map("updated_at")
+  questionUnit     QuestionUnit      @relation(fields: [questionUnitId], references: [id], onDelete: Cascade)
   questionAttempts QuestionAttempt[]
-  questionUnits    QuestionUnit[]    @relation("CoreQuestion")
-  variants         QuestionVariant[]
+  variantMetadata  QuestionVariant?
 
   @@map("question_content")
 }
@@ -207,18 +208,18 @@ model QuestionContent {
 model QuestionVariant {
   id             Int             @id @default(autoincrement())
   questionUnitId Int             @map("question_unit_id")
-  contentId      Int             @map("content_id")
+  contentId      Int             @unique @map("content_id")
   variantLabel   String          @map("variant_label")
-  content        QuestionContent @relation(fields: [contentId], references: [id])
-  questionUnit   QuestionUnit    @relation(fields: [questionUnitId], references: [id])
+  content        QuestionContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  questionUnit   QuestionUnit    @relation(fields: [questionUnitId], references: [id], onDelete: Cascade)
 
   @@map("question_variant")
 }
 
 model QuestionAttempt {
   id            Int             @id @default(autoincrement())
-  moduleUnitId  Int             @map("module_unit_id")
-  studentId     Int             @map("student_id")
+  moduleUnitId  Int?            @map("module_unit_id")
+  studentId     Int?            @map("student_id")
   questionId    Int             @map("question_id")
   contentId     Int             @map("content_id")
   practiceMode  String          @map("practice_mode")
@@ -227,10 +228,10 @@ model QuestionAttempt {
   hintsUsed     Int             @default(0) @map("hints_used")
   studentAnswer Json            @map("student_answer")
   attemptedAt   DateTime        @default(now()) @map("attempted_at")
-  content       QuestionContent @relation(fields: [contentId], references: [id])
-  moduleUnit    ModuleUnit      @relation(fields: [moduleUnitId], references: [id])
-  question      QuestionUnit    @relation(fields: [questionId], references: [id])
-  student       User            @relation(fields: [studentId], references: [id])
+  content       QuestionContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  moduleUnit    ModuleUnit?     @relation(fields: [moduleUnitId], references: [id], onDelete: SetNull)
+  question      QuestionUnit    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  student       User?           @relation(fields: [studentId], references: [id], onDelete: SetNull)
 
   @@map("question_attempts")
 }
