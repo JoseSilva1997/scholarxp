@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsObject, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsInt, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString } from 'class-validator';
 
 export class CreateQuestionContentDto {
   @IsString()
@@ -12,6 +12,14 @@ export class CreateQuestionContentDto {
   @IsObject()
   @IsNotEmpty()
   questionData: Record<string, any>;
+
+  @IsInt()
+  @IsNotEmpty()
+  questionUnitId: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isCore?: boolean;
 
   @IsString()
   @IsOptional()

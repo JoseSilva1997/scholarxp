@@ -1,32 +1,38 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { PrismaModule } from '../prisma/prisma.module';
 import { PrismaService } from '../prisma/prisma.service';
 import { TestController } from './test.controller';
 
-describe('TestController (integration)', () => {
+describe('TestController', () => {
   let controller: TestController;
-  let prisma: PrismaService;
-
-  beforeAll(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      imports: [PrismaModule],
-      controllers: [TestController],
-    }).compile();
-
-    controller = module.get<TestController>(TestController);
-    prisma = module.get<PrismaService>(PrismaService);
-  });
+  const prisma = {
+    user: {
+      count: jest.fn(),
+    },
+  } as unknown as PrismaService;
 
   beforeEach(async () => {
-    await prisma.$executeRawUnsafe('TRUNCATE TABLE "users" RESTART IDENTITY CASCADE;');
+    jest.resetAllMocks();
+    const moduleRef: TestingModule = await Test.createTestingModule({
+      controllers: [TestController],
+      providers: [{ provide: PrismaService, useValue: prisma }],
+    }).compile();
+
+    controller = moduleRef.get<TestController>(TestController);
   });
 
-  afterAll(async () => {
-    await prisma.$disconnect();
+  it('returns the user count from Prisma', async () => {
+    (prisma as any).user.count.mockResolvedValue(3);
+
+    const result = await controller.test();
+
+    expect((prisma as any).user.count).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({ users: 3 });
   });
 
-  it('returns user count', async () => {
-    const response = await controller.test();
-    expect(typeof response.users).toBe('number');
+  it('propagates Prisma errors', async () => {
+    const error = new Error('db unavailable');
+    (prisma as any).user.count.mockRejectedValue(error);
+
+    await expect(controller.test()).rejects.toThrow(error);
   });
 });

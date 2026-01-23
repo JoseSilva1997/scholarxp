@@ -1,117 +1,96 @@
-import { randomUUID } from 'crypto';
-import { Test, TestingModule } from '@nestjs/testing';
-import { PrismaModule } from '../prisma/prisma.module';
+import { NotFoundException } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
+import { createPrismaMock } from '../testing/test-helpers';
 import { PrismaService } from '../prisma/prisma.service';
 import { QuestionAttemptService } from './question-attempt.service';
 
-describe('QuestionAttemptService (integration)', () => {
+describe('QuestionAttemptService', () => {
+  let prisma: jest.Mocked<PrismaService>;
   let service: QuestionAttemptService;
-  let prisma: PrismaService;
-  const createdIds: number[] = [];
+  const modelKey = 'questionAttempt';
+  const id = 10;
+  const baseDto = {
+    userId: 1,
+    questionVariantId: 2,
+    isCorrect: true,
+    score: 0.8,
+    attemptedAt: '2024-01-01T00:00:00.000Z',
+  };
 
-  beforeAll(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      imports: [PrismaModule],
-      providers: [QuestionAttemptService],
+  beforeEach(async () => {
+    prisma = createPrismaMock(modelKey);
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        QuestionAttemptService,
+        { provide: PrismaService, useValue: prisma },
+      ],
     }).compile();
 
-    service = module.get<QuestionAttemptService>(QuestionAttemptService);
-    prisma = module.get<PrismaService>(PrismaService);
+    service = moduleRef.get(QuestionAttemptService);
   });
 
-  afterEach(async () => {
-    if (createdIds.length) {
-      await prisma.questionAttempt.deleteMany({
-        where: { id: { in: createdIds.splice(0, createdIds.length) } },
-      });
-    }
+  afterEach(() => jest.resetAllMocks());
+
+  it('creates an attempt converting attemptedAt to Date', async () => {
+    const created = { id, ...baseDto };
+    (prisma as any)[modelKey].create.mockResolvedValue(created);
+
+    const result = await service.create(baseDto);
+
+    expect((prisma as any)[modelKey].create).toHaveBeenCalledWith({
+      data: { ...baseDto, attemptedAt: new Date(baseDto.attemptedAt) },
+    });
+    expect(result).toEqual(created);
   });
 
-  afterAll(async () => prisma.$disconnect());
+  it('findOne returns the record when it exists', async () => {
+    const existing = { id, ...baseDto };
+    (prisma as any)[modelKey].findUnique.mockResolvedValue(existing);
 
-  it('creates and retrieves attempts', async () => {
-    const unique = randomUUID();
-    const institution = await prisma.institution.create({
-      data: {
-        name: `QAInst-${unique}`,
-        lmsPlatform: 'canvas',
-        lmsIssuerUrl: `https://issuer/${unique}`,
-        lmsClientId: `client-${unique}`,
-        lmsDeploymentId: `deploy-${unique}`,
-        jwksUrl: `https://issuer/${unique}/jwks`,
-        authTokenUrl: `https://issuer/${unique}/token`,
-        authRequestUrl: `https://issuer/${unique}/auth`,
-      },
-    });
-    const moduleRow = await prisma.module.create({
-      data: {
-        institutionId: institution.id,
-        ltiContextId: `context-${unique}`,
-        resourceLinkId: `resource-${unique}`,
-        variantContext: `variant-${unique}`,
-        title: 'Module',
-        description: null,
-      },
-    });
-    const moduleUnit = await prisma.moduleUnit.create({
-      data: {
-        moduleId: moduleRow.id,
-        variantContext: `variant-${unique}`,
-        title: 'Unit',
-        questionCount: 1,
-        status: 'draft',
-        sortOrder: 1,
-      },
-    });
-    const questionGroup = await prisma.moduleUnitQuestionGroup.create({
-      data: {
-        moduleUnitId: moduleUnit.id,
-        name: 'Group',
-        sortOrder: 1,
-      },
-    });
-    const coreContent = await prisma.questionContent.create({
-      data: {
-        type: 'mcq',
-        questionStem: 'stem',
-        questionData: { options: [] },
-        difficultyScore: 0.5,
-        source: 'test',
-        status: 'draft',
-      },
-    });
-    const questionUnit = await prisma.questionUnit.create({
-      data: {
-        coreQuestionId: coreContent.id,
-        moduleUnitId: moduleUnit.id,
-        questionGroupId: questionGroup.id,
-        title: 'Q Unit',
-      },
-    });
-    const student = await prisma.user.create({
-      data: {
-        firstName: 'QA',
-        lastName: 'Student',
-        email: `qa-${unique}@example.com`,
-        globalRole: 'student',
-      },
-    });
+    const result = await service.findOne(id);
 
-    const created = await service.create({
-      moduleUnitId: moduleUnit.id,
-      studentId: student.id,
-      questionId: questionUnit.id,
-      contentId: coreContent.id,
-      practiceMode: 'practice',
-      isCorrect: true,
-      timeTakenMs: 1200,
-      hintsUsed: 0,
-      studentAnswer: { choice: 'A' },
-      attemptedAt: new Date().toISOString(),
-    });
-    createdIds.push(created.id);
+    expect((prisma as any)[modelKey].findUnique).toHaveBeenCalledWith({ where: { id } });
+    expect(result).toEqual(existing);
+  });
 
-    const found = await service.findOne(created.id);
-    expect(found.studentId).toBe(student.id);
+  it('findOne throws NotFoundException when missing', async () => {
+    (prisma as any)[modelKey].findUnique.mockResolvedValue(null);
+
+    await expect(service.findOne(id)).rejects.toThrow(NotFoundException);
+  });
+
+  it('update converts attemptedAt when provided', async () => {
+    const updateDto = { score: 0.9, attemptedAt: '2024-02-01T00:00:00.000Z' };
+    const updated = { id, ...baseDto, ...updateDto };
+    (prisma as any)[modelKey].findUnique.mockResolvedValue({ id, ...baseDto });
+    (prisma as any)[modelKey].update.mockResolvedValue(updated);
+
+    const result = await service.update(id, updateDto);
+
+    expect((prisma as any)[modelKey].update).toHaveBeenCalledWith({
+      where: { id },
+      data: { ...updateDto, attemptedAt: new Date(updateDto.attemptedAt) },
+    });
+    expect(result).toEqual(updated);
+  });
+
+  it('update omits attemptedAt when not provided', async () => {
+    const updateDto = { score: 0.95 };
+    (prisma as any)[modelKey].findUnique.mockResolvedValue({ id, ...baseDto });
+    (prisma as any)[modelKey].update.mockResolvedValue({ id, ...baseDto, ...updateDto });
+
+    await service.update(id, updateDto);
+
+    expect((prisma as any)[modelKey].update).toHaveBeenCalledWith({
+      where: { id },
+      data: { ...updateDto, attemptedAt: undefined },
+    });
+  });
+
+  it('remove throws when missing', async () => {
+    (prisma as any)[modelKey].findUnique.mockResolvedValue(null);
+
+    await expect(service.remove(id)).rejects.toThrow(NotFoundException);
+    expect((prisma as any)[modelKey].delete).not.toHaveBeenCalled();
   });
 });

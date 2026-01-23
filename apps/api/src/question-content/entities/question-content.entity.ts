@@ -3,6 +3,8 @@ export class QuestionContent {
   type: string;
   questionStem: string;
   questionData: Record<string, any>;
+  questionUnitId: number;
+  isCore: boolean;
   hint: string | null;
   difficultyScore: number;
   source: string;

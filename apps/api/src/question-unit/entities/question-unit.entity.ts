@@ -1,8 +1,7 @@
 export class QuestionUnit {
   id: number;
-  coreQuestionId: number;
-  moduleUnitId: number;
-  questionGroupId: number;
+  moduleUnitId: number | null;
+  questionGroupId: number | null;
   title: string;
   createdAt: Date;
   updatedAt: Date;

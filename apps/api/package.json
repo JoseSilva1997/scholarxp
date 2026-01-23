@@ -81,6 +81,10 @@
     "testEnvironment": "node",
     "setupFiles": [
       "<rootDir>/../test/setup-env.ts"
-    ]
+    ],
+    "setupFilesAfterEnv": [
+      "<rootDir>/../test/setup-transactions.ts"
+    ],
+    "maxWorkers": 1
   }
 }

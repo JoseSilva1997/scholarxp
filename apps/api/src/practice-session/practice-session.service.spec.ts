@@ -1,76 +1,116 @@
-import { randomUUID } from 'crypto';
-import { Test, TestingModule } from '@nestjs/testing';
-import { PrismaModule } from '../prisma/prisma.module';
+import { NotFoundException } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
+import { createPrismaMock } from '../testing/test-helpers';
 import { PrismaService } from '../prisma/prisma.service';
 import { PracticeSessionService } from './practice-session.service';
 
-describe('PracticeSessionService (integration)', () => {
+describe('PracticeSessionService', () => {
+  let prisma: jest.Mocked<PrismaService>;
   let service: PracticeSessionService;
-  let prisma: PrismaService;
-  const createdIds: number[] = [];
+  const modelKey = 'practiceSession';
+  const id = 7;
+  const baseDto = {
+    moduleId: 1,
+    userId: 2,
+    startTime: '2024-01-01T10:00:00.000Z',
+    endTime: '2024-01-01T11:00:00.000Z',
+  };
 
-  beforeAll(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      imports: [PrismaModule],
-      providers: [PracticeSessionService],
+  beforeEach(async () => {
+    prisma = createPrismaMock(modelKey);
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        PracticeSessionService,
+        { provide: PrismaService, useValue: prisma },
+      ],
     }).compile();
 
-    service = module.get<PracticeSessionService>(PracticeSessionService);
-    prisma = module.get<PrismaService>(PrismaService);
+    service = moduleRef.get(PracticeSessionService);
   });
 
-  afterEach(async () => {
-    if (createdIds.length) {
-      await prisma.practiceSession.deleteMany({
-        where: { id: { in: createdIds.splice(0, createdIds.length) } },
-      });
-    }
+  afterEach(() => jest.resetAllMocks());
+
+  it('create converts start/end time strings to Date', async () => {
+    const created = { id, ...baseDto };
+    (prisma as any)[modelKey].create.mockResolvedValue(created);
+
+    const result = await service.create(baseDto);
+
+    expect((prisma as any)[modelKey].create).toHaveBeenCalledWith({
+      data: {
+        moduleId: baseDto.moduleId,
+        userId: baseDto.userId,
+        startTime: new Date(baseDto.startTime),
+        endTime: new Date(baseDto.endTime),
+      },
+    });
+    expect(result).toEqual(created);
   });
 
-  afterAll(async () => prisma.$disconnect());
+  it('create allows null endTime', async () => {
+    const dto = { ...baseDto, endTime: null };
+    (prisma as any)[modelKey].create.mockResolvedValue({ id, ...dto });
 
-  it('creates and retrieves practice sessions', async () => {
-    const unique = randomUUID();
-    const institution = await prisma.institution.create({
+    await service.create(dto);
+
+    expect((prisma as any)[modelKey].create).toHaveBeenCalledWith({
       data: {
-        name: `PSInst-${unique}`,
-        lmsPlatform: 'canvas',
-        lmsIssuerUrl: `https://issuer/${unique}`,
-        lmsClientId: `client-${unique}`,
-        lmsDeploymentId: `deploy-${unique}`,
-        jwksUrl: `https://issuer/${unique}/jwks`,
-        authTokenUrl: `https://issuer/${unique}/token`,
-        authRequestUrl: `https://issuer/${unique}/auth`,
+        moduleId: dto.moduleId,
+        userId: dto.userId,
+        startTime: new Date(dto.startTime),
+        endTime: null,
       },
     });
-    const moduleRow = await prisma.module.create({
+  });
+
+  it('findOne returns the record when it exists', async () => {
+    const existing = { id, ...baseDto };
+    (prisma as any)[modelKey].findUnique.mockResolvedValue(existing);
+
+    const result = await service.findOne(id);
+
+    expect((prisma as any)[modelKey].findUnique).toHaveBeenCalledWith({ where: { id } });
+    expect(result).toEqual(existing);
+  });
+
+  it('update converts provided timestamps and preserves undefined fields', async () => {
+    const updateDto = { startTime: '2024-02-01T10:00:00.000Z', endTime: null };
+    (prisma as any)[modelKey].findUnique.mockResolvedValue({ id, ...baseDto });
+    (prisma as any)[modelKey].update.mockResolvedValue({ id, ...baseDto, ...updateDto });
+
+    await service.update(id, updateDto);
+
+    expect((prisma as any)[modelKey].update).toHaveBeenCalledWith({
+      where: { id },
       data: {
-        institutionId: institution.id,
-        ltiContextId: `context-${unique}`,
-        resourceLinkId: `resource-${unique}`,
-        variantContext: `variant-${unique}`,
-        title: 'Module',
-        description: null,
+        startTime: new Date(updateDto.startTime),
+        endTime: null,
       },
     });
-    const user = await prisma.user.create({
+  });
+
+  it('update leaves start/end undefined when omitted', async () => {
+    const updateDto = { moduleId: 5, userId: 6 } as any;
+    (prisma as any)[modelKey].findUnique.mockResolvedValue({ id, ...baseDto });
+    (prisma as any)[modelKey].update.mockResolvedValue({ id, ...baseDto, ...updateDto });
+
+    await service.update(id, updateDto);
+
+    expect((prisma as any)[modelKey].update).toHaveBeenCalledWith({
+      where: { id },
       data: {
-        firstName: 'PS',
-        lastName: 'User',
-        email: `ps-${unique}@example.com`,
-        globalRole: 'student',
+        moduleId: 5,
+        userId: 6,
+        startTime: undefined,
+        endTime: undefined,
       },
     });
+  });
 
-    const created = await service.create({
-      moduleId: moduleRow.id,
-      userId: user.id,
-      startTime: new Date().toISOString(),
-      endTime: null,
-    });
-    createdIds.push(created.id);
+  it('remove throws when record is missing', async () => {
+    (prisma as any)[modelKey].findUnique.mockResolvedValue(null);
 
-    const found = await service.findOne(created.id);
-    expect(found.userId).toBe(user.id);
+    await expect(service.remove(id)).rejects.toThrow(NotFoundException);
+    expect((prisma as any)[modelKey].delete).not.toHaveBeenCalled();
   });
 });

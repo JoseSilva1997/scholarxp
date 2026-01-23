@@ -1,17 +1,13 @@
-import { IsInt, IsNotEmpty, IsString } from 'class-validator';
+import { IsInt, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateQuestionUnitDto {
   @IsInt()
-  @IsNotEmpty()
-  coreQuestionId: number;
+  @IsOptional()
+  moduleUnitId?: number;
 
   @IsInt()
-  @IsNotEmpty()
-  moduleUnitId: number;
-
-  @IsInt()
-  @IsNotEmpty()
-  questionGroupId: number;
+  @IsOptional()
+  questionGroupId?: number;
 
   @IsString()
   @IsNotEmpty()
