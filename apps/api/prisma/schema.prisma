@@ -32,6 +32,7 @@ model LtiIdentity {
   institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
   user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([institutionId, ltiUserId])
   @@map("lti_identity")
 }
 
