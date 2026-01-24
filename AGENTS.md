@@ -35,6 +35,7 @@ ScholarXP is an LMS-launched study companion that helps students practice course
 - Run unit tests: `pnpm --filter api test`.
 - Run e2e tests: `pnpm --filter api test:e2e`.
 - Coverage: `pnpm --filter api test:cov`.
+- Prisma service unit tests should use `createPrismaMock()` from `apps/api/src/testing/test-helpers.ts` (jest-mock-extended deep mocks). When using `mockResolvedValue`, return objects must include all required Prisma model fields (e.g., `createdAt`, `updatedAt`, or non-nullable fields) so TypeScript type checks pass. Prefer mocking Prisma methods directly (e.g., `prisma.user.findUnique.mockResolvedValue(...)`) and inject the mock with `useValue` in `Test.createTestingModule()`.
 
 ## Commit & Pull Request Guidelines
 - Commit messages follow short, sentence-case, past-tense summaries (e.g., "Added QuestionUnit service" or "Updated prisma schema").

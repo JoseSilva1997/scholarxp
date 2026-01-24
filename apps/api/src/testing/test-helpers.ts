@@ -1,19 +1,11 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import { PrismaService } from '../prisma/prisma.service';
 
-type PrismaModelMock = Record<string, jest.Mock>;
+export type PrismaMock = DeepMockProxy<PrismaService>;
 
-export const createPrismaMock = (
-  modelName: string,
-  methods: string[] = ['create', 'findMany', 'findUnique', 'update', 'delete'],
-) => {
-  const model: PrismaModelMock = {};
-  methods.forEach((method) => {
-    model[method] = jest.fn();
-  });
-  return { [modelName]: model } as unknown as jest.Mocked<PrismaService>;
-};
+export const createPrismaMock = (_modelName?: string, _methods?: string[]) => mockDeep<PrismaService>();
 
 interface CrudServiceTestConfig<TCreate, TUpdate> {
   name: string;
@@ -28,7 +20,7 @@ interface CrudServiceTestConfig<TCreate, TUpdate> {
 
 export function runCrudServiceTests<TCreate, TUpdate>(config: CrudServiceTestConfig<TCreate, TUpdate>) {
   describe(config.name, () => {
-    let prisma: jest.Mocked<PrismaService>;
+    let prisma: PrismaMock;
     let moduleRef: TestingModule;
     let service: any;
 

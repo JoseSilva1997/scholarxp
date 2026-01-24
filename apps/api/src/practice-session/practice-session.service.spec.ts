@@ -1,11 +1,11 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { createPrismaMock } from '../testing/test-helpers';
+import { createPrismaMock, PrismaMock } from '../testing/test-helpers';
 import { PrismaService } from '../prisma/prisma.service';
 import { PracticeSessionService } from './practice-session.service';
 
 describe('PracticeSessionService', () => {
-  let prisma: jest.Mocked<PrismaService>;
+  let prisma: PrismaMock;
   let service: PracticeSessionService;
   const modelKey = 'practiceSession';
   const id = 7;
@@ -15,6 +15,8 @@ describe('PracticeSessionService', () => {
     startTime: '2024-01-01T10:00:00.000Z',
     endTime: '2024-01-01T11:00:00.000Z',
   };
+  const startTimeDate = new Date(baseDto.startTime);
+  const endTimeDate = new Date(baseDto.endTime);
 
   beforeEach(async () => {
     prisma = createPrismaMock(modelKey);
@@ -31,7 +33,7 @@ describe('PracticeSessionService', () => {
   afterEach(() => jest.resetAllMocks());
 
   it('create converts start/end time strings to Date', async () => {
-    const created = { id, ...baseDto };
+    const created = { id, ...baseDto, startTime: startTimeDate, endTime: endTimeDate };
     (prisma as any)[modelKey].create.mockResolvedValue(created);
 
     const result = await service.create(baseDto);
@@ -40,8 +42,8 @@ describe('PracticeSessionService', () => {
       data: {
         moduleId: baseDto.moduleId,
         userId: baseDto.userId,
-        startTime: new Date(baseDto.startTime),
-        endTime: new Date(baseDto.endTime),
+        startTime: startTimeDate,
+        endTime: endTimeDate,
       },
     });
     expect(result).toEqual(created);
@@ -49,7 +51,7 @@ describe('PracticeSessionService', () => {
 
   it('create allows null endTime', async () => {
     const dto = { ...baseDto, endTime: null };
-    (prisma as any)[modelKey].create.mockResolvedValue({ id, ...dto });
+    (prisma as any)[modelKey].create.mockResolvedValue({ id, ...dto, startTime: startTimeDate });
 
     await service.create(dto);
 
@@ -64,7 +66,7 @@ describe('PracticeSessionService', () => {
   });
 
   it('findOne returns the record when it exists', async () => {
-    const existing = { id, ...baseDto };
+    const existing = { id, ...baseDto, startTime: startTimeDate, endTime: endTimeDate };
     (prisma as any)[modelKey].findUnique.mockResolvedValue(existing);
 
     const result = await service.findOne(id);
@@ -75,8 +77,19 @@ describe('PracticeSessionService', () => {
 
   it('update converts provided timestamps and preserves undefined fields', async () => {
     const updateDto = { startTime: '2024-02-01T10:00:00.000Z', endTime: null };
-    (prisma as any)[modelKey].findUnique.mockResolvedValue({ id, ...baseDto });
-    (prisma as any)[modelKey].update.mockResolvedValue({ id, ...baseDto, ...updateDto });
+    (prisma as any)[modelKey].findUnique.mockResolvedValue({
+      id,
+      ...baseDto,
+      startTime: startTimeDate,
+      endTime: endTimeDate,
+    });
+    (prisma as any)[modelKey].update.mockResolvedValue({
+      id,
+      ...baseDto,
+      ...updateDto,
+      startTime: new Date(updateDto.startTime),
+      endTime: null,
+    });
 
     await service.update(id, updateDto);
 
@@ -91,8 +104,19 @@ describe('PracticeSessionService', () => {
 
   it('update leaves start/end undefined when omitted', async () => {
     const updateDto = { moduleId: 5, userId: 6 } as any;
-    (prisma as any)[modelKey].findUnique.mockResolvedValue({ id, ...baseDto });
-    (prisma as any)[modelKey].update.mockResolvedValue({ id, ...baseDto, ...updateDto });
+    (prisma as any)[modelKey].findUnique.mockResolvedValue({
+      id,
+      ...baseDto,
+      startTime: startTimeDate,
+      endTime: endTimeDate,
+    });
+    (prisma as any)[modelKey].update.mockResolvedValue({
+      id,
+      ...baseDto,
+      ...updateDto,
+      startTime: startTimeDate,
+      endTime: endTimeDate,
+    });
 
     await service.update(id, updateDto);
 
