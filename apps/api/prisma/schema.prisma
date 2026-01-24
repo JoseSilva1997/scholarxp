@@ -161,6 +161,7 @@ model ModuleUnitQuestionGroup {
   moduleUnit    ModuleUnit     @relation(fields: [moduleUnitId], references: [id], onDelete: Cascade)
   questionUnits QuestionUnit[]
 
+  @@unique([moduleUnitId, name])
   @@map("module_unit_question_groups")
 }
 

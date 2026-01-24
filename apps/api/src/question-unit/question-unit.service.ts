@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateQuestionUnitDto } from './dto/create-question-unit.dto';
 import { UpdateQuestionUnitDto } from './dto/update-question-unit.dto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -7,8 +7,33 @@ import { PrismaService } from '../prisma/prisma.service';
 export class QuestionUnitService {
   constructor(private readonly prisma: PrismaService) {}
 
-  create(createQuestionUnitDto: CreateQuestionUnitDto) {
-    return this.prisma.questionUnit.create({ data: createQuestionUnitDto });
+  async create(createQuestionUnitDto: CreateQuestionUnitDto) {
+    const data = { ...createQuestionUnitDto };
+
+    if (!data.questionGroupId) {
+      if (!data.moduleUnitId) {
+        throw new BadRequestException('moduleUnitId is required when questionGroupId is not provided');
+      }
+
+      const defaultGroup = await this.prisma.moduleUnitQuestionGroup.upsert({
+        where: {
+          moduleUnitId_name: {
+            moduleUnitId: data.moduleUnitId,
+            name: 'default',
+          },
+        },
+        update: {},
+        create: {
+          moduleUnitId: data.moduleUnitId,
+          name: 'default',
+          sortOrder: 1,
+        },
+      });
+
+      data.questionGroupId = defaultGroup.id;
+    }
+
+    return this.prisma.questionUnit.create({ data });
   }
 
   findAll() {
