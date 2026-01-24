@@ -12,4 +12,7 @@ export class CreateQuestionUnitDto {
   @IsString()
   @IsNotEmpty()
   title: string;
+
+  @IsOptional()
+  sortOrder?: number;
 }

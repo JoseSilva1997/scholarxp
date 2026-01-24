@@ -21,7 +21,7 @@ describe('QuestionUnitService', () => {
 
   it('create uses provided questionGroupId when present', async () => {
     const dto = { moduleUnitId: 1, questionGroupId: 2, title: 'Unit title' };
-    const created = { id: 1, ...dto, createdAt: new Date(), updatedAt: new Date() };
+    const created = { id: 1, ...dto, sortOrder: 0, createdAt: new Date(), updatedAt: new Date() };
     prisma.questionUnit.create.mockResolvedValue(created);
 
     const result = await service.create(dto);
@@ -33,7 +33,14 @@ describe('QuestionUnitService', () => {
   it('create assigns default group when questionGroupId is missing', async () => {
     const dto = { moduleUnitId: 5, title: 'Unit title' };
     const defaultGroup = { id: 10, moduleUnitId: 5, name: 'default', sortOrder: 1 };
-    const created = { id: 1, ...dto, questionGroupId: defaultGroup.id, createdAt: new Date(), updatedAt: new Date() };
+    const created = {
+      id: 1,
+      ...dto,
+      questionGroupId: defaultGroup.id,
+      sortOrder: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
     prisma.moduleUnitQuestionGroup.upsert.mockResolvedValue(defaultGroup as any);
     prisma.questionUnit.create.mockResolvedValue(created);
 

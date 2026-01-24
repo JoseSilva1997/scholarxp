@@ -3,6 +3,7 @@ export class QuestionUnit {
   moduleUnitId: number | null;
   questionGroupId: number | null;
   title: string;
+  sortOrder: number;
   createdAt: Date;
   updatedAt: Date;
 }

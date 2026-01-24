@@ -185,6 +185,7 @@ model QuestionUnit {
   moduleUnitId    Int?                      @map("module_unit_id")
   questionGroupId Int?                      @map("question_group_id")
   title           String
+  sortOrder       Float                     @default(0) @map("sort_order")
   createdAt       DateTime                  @default(now()) @map("created_at")
   updatedAt       DateTime                  @updatedAt @map("updated_at")
   moduleUnit      ModuleUnit?               @relation(fields: [moduleUnitId], references: [id], onDelete: Cascade)
