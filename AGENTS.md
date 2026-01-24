@@ -6,6 +6,7 @@ ScholarXP is an LMS-launched study companion that helps students practice course
 ## Architecture Notes (high level)
 - Monorepo managed with `pnpm-workspace.yaml`. Workspaces live in `apps/*` and `packages/*`.
 - Primary service is the NestJS API in `apps/api`.
+- LMS-launched via LTI 1.3
 - Use a **domain-module** layout in NestJS: keep controllers thin, put business rules in services, and keep recommendation/selection logic (daily sets, quests, XP rules) isolated in dedicated services so it can be unit-tested easily.
 - Data access via Prisma only (no raw SQL unless unavoidable). Treat Prisma models as persistence, not your domain API—use DTOs/entities where it keeps boundaries clean.
 

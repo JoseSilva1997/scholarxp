@@ -12,6 +12,7 @@ runCrudControllerTests({
     roleInModule: 'student',
     userModuleLevel: 1,
     currentExp: 0,
+    enrolledVia: 'invite' as any,
   },
   updateDto: {
     currentExp: 100,

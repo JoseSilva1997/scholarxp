@@ -2,16 +2,16 @@ import { IsInt, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateModuleDto {
   @IsInt()
-  @IsNotEmpty()
-  institutionId: number;
+  @IsOptional()
+  institutionId?: number;
 
   @IsString()
-  @IsNotEmpty()
-  ltiContextId: string;
+  @IsOptional()
+  ltiContextId?: string;
 
   @IsString()
-  @IsNotEmpty()
-  resourceLinkId: string;
+  @IsOptional()
+  resourceLinkId?: string;
 
   @IsString()
   @IsNotEmpty()
@@ -24,4 +24,8 @@ export class CreateModuleDto {
   @IsString()
   @IsOptional()
   description?: string | null;
+
+  @IsInt()
+  @IsOptional()
+  createdByUserId?: number;
 }

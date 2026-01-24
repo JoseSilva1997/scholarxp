@@ -39,9 +39,13 @@ model User {
   id               Int                      @id @default(autoincrement())
   firstName        String                   @map("first_name")
   lastName         String                   @map("last_name")
-  email            String                   @unique
+  email            String?                  @unique
   globalRole       GlobalRole               @default(student) @map("global_role")
   createdAt        DateTime                 @default(now()) @map("created_at")
+  authIdentities   AuthIdentity[]
+  password         UserPassword?
+  createdModules   Module[]
+  createdInvites   ModuleInvite[]
   avatars          Avatar[]
   dailyQuests      DailyQuest[]
   ltiIdentities    LtiIdentity[]
@@ -66,15 +70,18 @@ model Avatar {
 
 model Module {
   id               Int               @id @default(autoincrement())
-  institutionId    Int               @map("institution_id")
-  ltiContextId     String            @map("lti_context_id")
-  resourceLinkId   String            @map("resource_link_id")
+  institutionId    Int?              @map("institution_id")
+  ltiContextId     String?            @map("lti_context_id")
+  resourceLinkId   String?            @map("resource_link_id")
   variantContext   String            @map("variant_context")
   title            String
   description      String?
+  createdByUserId  Int?              @map("created_by_user_id")
   createdAt        DateTime          @default(now()) @map("created_at")
-  institution      Institution       @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  institution      Institution?      @relation(fields: [institutionId], references: [id], onDelete: SetNull)
+  createdBy        User?             @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
   dailyQuests      DailyQuest[]
+  invites          ModuleInvite[]
   moduleUnits      ModuleUnit[]
   practiceSessions PracticeSession[]
   userModules      UserModule[]
@@ -91,6 +98,7 @@ model UserModule {
   roleInModule    String   @map("role_in_module")
   userModuleLevel Int      @map("user_module_level")
   currentExp      Int      @map("current_exp")
+  enrolledVia     EnrollmentSource @default(invite) @map("enrolled_via")
   createdAt       DateTime @default(now()) @map("created_at")
   module          Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -236,11 +244,70 @@ model QuestionAttempt {
   @@map("question_attempts")
 }
 
+model AuthIdentity {
+  id             Int          @id @default(autoincrement())
+  userId         Int          @map("user_id")
+  provider       AuthProvider
+  providerUserId String       @map("provider_user_id")
+  email          String?
+  createdAt      DateTime     @default(now()) @map("created_at")
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+  @@map("auth_identity")
+}
+
+model UserPassword {
+  userId       Int      @id @map("user_id")
+  passwordHash String   @map("password_hash")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_password")
+}
+
+model ModuleInvite {
+  id              Int        @id @default(autoincrement())
+  moduleId        Int        @map("module_id")
+  createdByUserId Int        @map("created_by_user_id")
+  type            InviteType
+  tokenHash       String     @map("token_hash")
+  emailLock       String?    @map("email_lock")
+  maxUses         Int?       @map("max_uses")
+  uses            Int        @default(0)
+  expiresAt       DateTime?  @map("expires_at")
+  revokedAt       DateTime?  @map("revoked_at")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  module          Module     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  createdBy       User       @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+
+  @@map("module_invites")
+}
+
 enum GlobalRole {
   admin
   institution_admin
   instructor
   student
+}
+
+enum AuthProvider {
+  google
+  microsoft
+  local
+  lti
+}
+
+enum InviteType {
+  link
+  code
+}
+
+enum EnrollmentSource {
+  lti
+  invite
+  admin
+  csv
 }
 
 enum ModuleUnitStatus {

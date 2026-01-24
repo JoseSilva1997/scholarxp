@@ -11,8 +11,8 @@ export class CreateUserDto {
   lastName: string;
 
   @IsEmail()
-  @IsNotEmpty()
-  email: string;
+  @IsOptional()
+  email?: string;
 
   @IsEnum(GlobalRole)
   @IsOptional()

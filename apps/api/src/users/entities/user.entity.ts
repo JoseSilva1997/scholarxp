@@ -4,7 +4,7 @@ export class User {
   id: number;
   firstName: string;
   lastName: string;
-  email: string;
+  email: string | null;
   globalRole: GlobalRole;
   createdAt: Date;
 }
