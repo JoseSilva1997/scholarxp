@@ -1,11 +1,20 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Work+Sans:wght@300;400;600&display=swap');
+
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Work Sans', system-ui, sans-serif;
   line-height: 1.5;
   font-weight: 400;
+  color: #e2e8f0;
+  background-color: #0b1120;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  --accent: #f97316;
+  --text-on-accent: #0f172a;
+  --card: rgba(15, 23, 42, 0.82);
+  --glass: rgba(30, 41, 59, 0.6);
+  --border-soft: rgba(148, 163, 184, 0.2);
+  --text-primary: #f8fafc;
+  --text-muted: rgba(226, 232, 240, 0.7);
+  --shadow-soft: 0 12px 30px rgba(15, 23, 42, 0.35);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -13,56 +22,39 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
   min-height: 100vh;
+  background: radial-gradient(circle at top, rgba(249, 115, 22, 0.16), transparent 55%),
+    radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.15), transparent 45%),
+    #0b1120;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+h1,
+h2,
+button {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
 }
 
 button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  font-weight: 600;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+#root {
+  min-height: 100vh;
+}
+
+input,
+button {
+  font-family: inherit;
+}
+
+input:focus,
+button:focus {
+  outline: 2px solid rgba(249, 115, 22, 0.6);
+  outline-offset: 2px;
 }
