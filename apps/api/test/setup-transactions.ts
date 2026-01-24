@@ -5,11 +5,11 @@ if (process.env.SKIP_PRISMA_TX === 'true') {
   afterAll(() => undefined);
 } else {
   // Integration-style tests can opt in by unsetting SKIP_PRISMA_TX.
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+
   const { PrismaClient } = require('@prisma/client');
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+
   const { PrismaPg } = require('@prisma/adapter-pg');
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+
   const { Pool } = require('pg');
 
   const url = process.env.DATABASE_URL;

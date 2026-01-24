@@ -1,15 +1,29 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { ModuleUnitQuestionGroupService } from './module-unit-question-group.service';
 import { CreateModuleUnitQuestionGroupDto } from './dto/create-module-unit-question-group.dto';
 import { UpdateModuleUnitQuestionGroupDto } from './dto/update-module-unit-question-group.dto';
 
 @Controller('module-unit-question-group')
 export class ModuleUnitQuestionGroupController {
-  constructor(private readonly moduleUnitQuestionGroupService: ModuleUnitQuestionGroupService) {}
+  constructor(
+    private readonly moduleUnitQuestionGroupService: ModuleUnitQuestionGroupService,
+  ) {}
 
   @Post()
-  create(@Body() createModuleUnitQuestionGroupDto: CreateModuleUnitQuestionGroupDto) {
-    return this.moduleUnitQuestionGroupService.create(createModuleUnitQuestionGroupDto);
+  create(
+    @Body() createModuleUnitQuestionGroupDto: CreateModuleUnitQuestionGroupDto,
+  ) {
+    return this.moduleUnitQuestionGroupService.create(
+      createModuleUnitQuestionGroupDto,
+    );
   }
 
   @Get()
@@ -23,8 +37,14 @@ export class ModuleUnitQuestionGroupController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateModuleUnitQuestionGroupDto: UpdateModuleUnitQuestionGroupDto) {
-    return this.moduleUnitQuestionGroupService.update(+id, updateModuleUnitQuestionGroupDto);
+  update(
+    @Param('id') id: string,
+    @Body() updateModuleUnitQuestionGroupDto: UpdateModuleUnitQuestionGroupDto,
+  ) {
+    return this.moduleUnitQuestionGroupService.update(
+      +id,
+      updateModuleUnitQuestionGroupDto,
+    );
   }
 
   @Delete(':id')

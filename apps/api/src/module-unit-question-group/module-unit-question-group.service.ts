@@ -8,7 +8,9 @@ export class ModuleUnitQuestionGroupService {
   constructor(private readonly prisma: PrismaService) {}
 
   create(createModuleUnitQuestionGroupDto: CreateModuleUnitQuestionGroupDto) {
-    return this.prisma.moduleUnitQuestionGroup.create({ data: createModuleUnitQuestionGroupDto });
+    return this.prisma.moduleUnitQuestionGroup.create({
+      data: createModuleUnitQuestionGroupDto,
+    });
   }
 
   findAll() {
@@ -19,7 +21,10 @@ export class ModuleUnitQuestionGroupService {
     return this.getOrThrow(id);
   }
 
-  async update(id: number, updateModuleUnitQuestionGroupDto: UpdateModuleUnitQuestionGroupDto) {
+  async update(
+    id: number,
+    updateModuleUnitQuestionGroupDto: UpdateModuleUnitQuestionGroupDto,
+  ) {
     await this.getOrThrow(id);
     return this.prisma.moduleUnitQuestionGroup.update({
       where: { id },
@@ -33,7 +38,9 @@ export class ModuleUnitQuestionGroupService {
   }
 
   private async getOrThrow(id: number) {
-    const record = await this.prisma.moduleUnitQuestionGroup.findUnique({ where: { id } });
+    const record = await this.prisma.moduleUnitQuestionGroup.findUnique({
+      where: { id },
+    });
     if (!record) {
       throw new NotFoundException(`ModuleUnitQuestionGroup ${id} not found`);
     }

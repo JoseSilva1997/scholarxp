@@ -5,7 +5,8 @@ import { PrismaService } from '../prisma/prisma.service';
 
 export type PrismaMock = DeepMockProxy<PrismaService>;
 
-export const createPrismaMock = (_modelName?: string, _methods?: string[]) => mockDeep<PrismaService>();
+export const createPrismaMock = (_modelName?: string, _methods?: string[]) =>
+  mockDeep<PrismaService>();
 
 interface CrudServiceTestConfig<TCreate, TUpdate> {
   name: string;
@@ -18,14 +19,18 @@ interface CrudServiceTestConfig<TCreate, TUpdate> {
   formatUpdateData?: (dto: TUpdate) => any;
 }
 
-export function runCrudServiceTests<TCreate, TUpdate>(config: CrudServiceTestConfig<TCreate, TUpdate>) {
+export function runCrudServiceTests<TCreate, TUpdate>(
+  config: CrudServiceTestConfig<TCreate, TUpdate>,
+) {
   describe(config.name, () => {
     let prisma: PrismaMock;
     let moduleRef: TestingModule;
     let service: any;
 
-    const toCreateData = (dto: TCreate) => (config.formatCreateData ? config.formatCreateData(dto) : dto);
-    const toUpdateData = (dto: TUpdate) => (config.formatUpdateData ? config.formatUpdateData(dto) : dto);
+    const toCreateData = (dto: TCreate) =>
+      config.formatCreateData ? config.formatCreateData(dto) : dto;
+    const toUpdateData = (dto: TUpdate) =>
+      config.formatUpdateData ? config.formatUpdateData(dto) : dto;
 
     const id = 42;
     const existing = { id, name: `${config.entityLabel}-${id}` };
@@ -33,7 +38,10 @@ export function runCrudServiceTests<TCreate, TUpdate>(config: CrudServiceTestCon
     beforeEach(async () => {
       prisma = createPrismaMock(config.modelName);
       moduleRef = await Test.createTestingModule({
-        providers: [config.service, { provide: PrismaService, useValue: prisma }],
+        providers: [
+          config.service,
+          { provide: PrismaService, useValue: prisma },
+        ],
       }).compile();
 
       service = moduleRef.get(config.service);
@@ -49,7 +57,9 @@ export function runCrudServiceTests<TCreate, TUpdate>(config: CrudServiceTestCon
 
       const result = await service.create(config.createDto);
 
-      expect((prisma as any)[config.modelName].create).toHaveBeenCalledWith({ data: toCreateData(config.createDto) });
+      expect((prisma as any)[config.modelName].create).toHaveBeenCalledWith({
+        data: toCreateData(config.createDto),
+      });
       expect(result).toEqual(created);
     });
 
@@ -68,7 +78,9 @@ export function runCrudServiceTests<TCreate, TUpdate>(config: CrudServiceTestCon
 
       const result = await service.findOne(id);
 
-      expect((prisma as any)[config.modelName].findUnique).toHaveBeenCalledWith({ where: { id } });
+      expect((prisma as any)[config.modelName].findUnique).toHaveBeenCalledWith(
+        { where: { id } },
+      );
       expect(result).toEqual(existing);
     });
 
@@ -76,7 +88,9 @@ export function runCrudServiceTests<TCreate, TUpdate>(config: CrudServiceTestCon
       (prisma as any)[config.modelName].findUnique.mockResolvedValue(null);
 
       await expect(service.findOne(id)).rejects.toThrow(NotFoundException);
-      expect((prisma as any)[config.modelName].findUnique).toHaveBeenCalledWith({ where: { id } });
+      expect((prisma as any)[config.modelName].findUnique).toHaveBeenCalledWith(
+        { where: { id } },
+      );
     });
 
     it('update checks existence then updates with DTO', async () => {
@@ -86,7 +100,9 @@ export function runCrudServiceTests<TCreate, TUpdate>(config: CrudServiceTestCon
 
       const result = await service.update(id, config.updateDto);
 
-      expect((prisma as any)[config.modelName].findUnique).toHaveBeenCalledWith({ where: { id } });
+      expect((prisma as any)[config.modelName].findUnique).toHaveBeenCalledWith(
+        { where: { id } },
+      );
       expect((prisma as any)[config.modelName].update).toHaveBeenCalledWith({
         where: { id },
         data: toUpdateData(config.updateDto),
@@ -97,7 +113,9 @@ export function runCrudServiceTests<TCreate, TUpdate>(config: CrudServiceTestCon
     it('update rethrows NotFoundException when missing', async () => {
       (prisma as any)[config.modelName].findUnique.mockResolvedValue(null);
 
-      await expect(service.update(id, config.updateDto)).rejects.toThrow(NotFoundException);
+      await expect(service.update(id, config.updateDto)).rejects.toThrow(
+        NotFoundException,
+      );
       expect((prisma as any)[config.modelName].update).not.toHaveBeenCalled();
     });
 
@@ -108,8 +126,12 @@ export function runCrudServiceTests<TCreate, TUpdate>(config: CrudServiceTestCon
 
       const result = await service.remove(id);
 
-      expect((prisma as any)[config.modelName].findUnique).toHaveBeenCalledWith({ where: { id } });
-      expect((prisma as any)[config.modelName].delete).toHaveBeenCalledWith({ where: { id } });
+      expect((prisma as any)[config.modelName].findUnique).toHaveBeenCalledWith(
+        { where: { id } },
+      );
+      expect((prisma as any)[config.modelName].delete).toHaveBeenCalledWith({
+        where: { id },
+      });
       expect(result).toEqual(removed);
     });
 
@@ -132,7 +154,9 @@ interface CrudControllerTestConfig<TCreate, TUpdate> {
   baseId?: number;
 }
 
-export function runCrudControllerTests<TCreate, TUpdate>(config: CrudControllerTestConfig<TCreate, TUpdate>) {
+export function runCrudControllerTests<TCreate, TUpdate>(
+  config: CrudControllerTestConfig<TCreate, TUpdate>,
+) {
   describe(config.name, () => {
     let controller: any;
     let service: {
@@ -217,7 +241,9 @@ export function runCrudControllerTests<TCreate, TUpdate>(config: CrudControllerT
     it('propagates service errors', async () => {
       service.findOne.mockRejectedValue(new NotFoundException());
 
-      await expect(controller.findOne(String(baseId))).rejects.toThrow(NotFoundException);
+      await expect(controller.findOne(String(baseId))).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 }

@@ -33,7 +33,9 @@ export class InstitutionService {
   }
 
   private async getInstitutionOrThrow(id: number) {
-    const institution = await this.prisma.institution.findUnique({ where: { id } });
+    const institution = await this.prisma.institution.findUnique({
+      where: { id },
+    });
     if (!institution) {
       throw new NotFoundException(`Institution ${id} not found`);
     }

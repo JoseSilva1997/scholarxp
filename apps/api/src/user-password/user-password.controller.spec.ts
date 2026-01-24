@@ -89,6 +89,8 @@ describe('UserPasswordController', () => {
   it('propagates service errors', async () => {
     service.findOne.mockRejectedValue(new NotFoundException());
 
-    await expect(controller.findOne(String(userId))).rejects.toThrow(NotFoundException);
+    await expect(controller.findOne(String(userId))).rejects.toThrow(
+      NotFoundException,
+    );
   });
 });

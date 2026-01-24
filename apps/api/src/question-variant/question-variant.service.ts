@@ -8,7 +8,9 @@ export class QuestionVariantService {
   constructor(private readonly prisma: PrismaService) {}
 
   create(createQuestionVariantDto: CreateQuestionVariantDto) {
-    return this.prisma.questionVariant.create({ data: createQuestionVariantDto });
+    return this.prisma.questionVariant.create({
+      data: createQuestionVariantDto,
+    });
   }
 
   findAll() {
@@ -33,7 +35,9 @@ export class QuestionVariantService {
   }
 
   private async getOrThrow(id: number) {
-    const record = await this.prisma.questionVariant.findUnique({ where: { id } });
+    const record = await this.prisma.questionVariant.findUnique({
+      where: { id },
+    });
     if (!record) {
       throw new NotFoundException(`QuestionVariant ${id} not found`);
     }

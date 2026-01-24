@@ -8,7 +8,9 @@ export class ModuleUnitUserProgressService {
   constructor(private readonly prisma: PrismaService) {}
 
   create(createModuleUnitUserProgressDto: CreateModuleUnitUserProgressDto) {
-    return this.prisma.moduleUnitUserProgress.create({ data: createModuleUnitUserProgressDto });
+    return this.prisma.moduleUnitUserProgress.create({
+      data: createModuleUnitUserProgressDto,
+    });
   }
 
   findAll() {
@@ -19,7 +21,10 @@ export class ModuleUnitUserProgressService {
     return this.getOrThrow(id);
   }
 
-  async update(id: number, updateModuleUnitUserProgressDto: UpdateModuleUnitUserProgressDto) {
+  async update(
+    id: number,
+    updateModuleUnitUserProgressDto: UpdateModuleUnitUserProgressDto,
+  ) {
     await this.getOrThrow(id);
     return this.prisma.moduleUnitUserProgress.update({
       where: { id },
@@ -33,7 +38,9 @@ export class ModuleUnitUserProgressService {
   }
 
   private async getOrThrow(id: number) {
-    const record = await this.prisma.moduleUnitUserProgress.findUnique({ where: { id } });
+    const record = await this.prisma.moduleUnitUserProgress.findUnique({
+      where: { id },
+    });
     if (!record) {
       throw new NotFoundException(`ModuleUnitUserProgress ${id} not found`);
     }

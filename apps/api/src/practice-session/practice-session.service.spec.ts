@@ -33,7 +33,12 @@ describe('PracticeSessionService', () => {
   afterEach(() => jest.resetAllMocks());
 
   it('create converts start/end time strings to Date', async () => {
-    const created = { id, ...baseDto, startTime: startTimeDate, endTime: endTimeDate };
+    const created = {
+      id,
+      ...baseDto,
+      startTime: startTimeDate,
+      endTime: endTimeDate,
+    };
     (prisma as any)[modelKey].create.mockResolvedValue(created);
 
     const result = await service.create(baseDto);
@@ -51,7 +56,11 @@ describe('PracticeSessionService', () => {
 
   it('create allows null endTime', async () => {
     const dto = { ...baseDto, endTime: null };
-    (prisma as any)[modelKey].create.mockResolvedValue({ id, ...dto, startTime: startTimeDate });
+    (prisma as any)[modelKey].create.mockResolvedValue({
+      id,
+      ...dto,
+      startTime: startTimeDate,
+    });
 
     await service.create(dto);
 
@@ -66,12 +75,19 @@ describe('PracticeSessionService', () => {
   });
 
   it('findOne returns the record when it exists', async () => {
-    const existing = { id, ...baseDto, startTime: startTimeDate, endTime: endTimeDate };
+    const existing = {
+      id,
+      ...baseDto,
+      startTime: startTimeDate,
+      endTime: endTimeDate,
+    };
     (prisma as any)[modelKey].findUnique.mockResolvedValue(existing);
 
     const result = await service.findOne(id);
 
-    expect((prisma as any)[modelKey].findUnique).toHaveBeenCalledWith({ where: { id } });
+    expect((prisma as any)[modelKey].findUnique).toHaveBeenCalledWith({
+      where: { id },
+    });
     expect(result).toEqual(existing);
   });
 

@@ -8,7 +8,9 @@ export class QuestionContentService {
   constructor(private readonly prisma: PrismaService) {}
 
   create(createQuestionContentDto: CreateQuestionContentDto) {
-    return this.prisma.questionContent.create({ data: createQuestionContentDto });
+    return this.prisma.questionContent.create({
+      data: createQuestionContentDto,
+    });
   }
 
   findAll() {
@@ -33,7 +35,9 @@ export class QuestionContentService {
   }
 
   private async getOrThrow(id: number) {
-    const record = await this.prisma.questionContent.findUnique({ where: { id } });
+    const record = await this.prisma.questionContent.findUnique({
+      where: { id },
+    });
     if (!record) {
       throw new NotFoundException(`QuestionContent ${id} not found`);
     }

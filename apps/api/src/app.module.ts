@@ -20,6 +20,7 @@ import { QuestionUnitModule } from './question-unit/question-unit.module';
 import { QuestionContentModule } from './question-content/question-content.module';
 import { QuestionVariantModule } from './question-variant/question-variant.module';
 import { QuestionAttemptModule } from './question-attempt/question-attempt.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { QuestionAttemptModule } from './question-attempt/question-attempt.modul
     QuestionContentModule,
     QuestionVariantModule,
     QuestionAttemptModule,
+    AuthModule,
   ],
   controllers: [TestController],
 })

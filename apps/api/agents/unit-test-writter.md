@@ -19,6 +19,7 @@ If the user does not name file(s), ask them to specify exact paths and do not pr
 - Mock external dependencies (Prisma, HTTP, config, logger, queues, etc.).
 - Avoid real database/network calls.
 - Keep tests small and focused on behavior.
+- Prisma service unit tests should use `createPrismaMock()` from `apps/api/src/testing/test-helpers.ts` (jest-mock-extended deep mocks). When using `mockResolvedValue`, return objects must include all required Prisma model fields (e.g., `createdAt`, `updatedAt`, or non-nullable fields) so TypeScript type checks pass. Prefer mocking Prisma methods directly (e.g., `prisma.user.findUnique.mockResolvedValue(...)`) and inject the mock with `useValue` in `Test.createTestingModule()`.
 
 ## Conventions
 - File naming: `feature-name.spec.ts` colocated with the file under test.

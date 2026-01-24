@@ -33,7 +33,9 @@ export class UserPasswordService {
   }
 
   private async getOrThrow(userId: number) {
-    const record = await this.prisma.userPassword.findUnique({ where: { userId } });
+    const record = await this.prisma.userPassword.findUnique({
+      where: { userId },
+    });
     if (!record) {
       throw new NotFoundException(`UserPassword ${userId} not found`);
     }

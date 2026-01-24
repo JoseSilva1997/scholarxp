@@ -43,7 +43,9 @@ export class QuestionAttemptService {
   }
 
   private async getOrThrow(id: number) {
-    const record = await this.prisma.questionAttempt.findUnique({ where: { id } });
+    const record = await this.prisma.questionAttempt.findUnique({
+      where: { id },
+    });
     if (!record) {
       throw new NotFoundException(`QuestionAttempt ${id} not found`);
     }

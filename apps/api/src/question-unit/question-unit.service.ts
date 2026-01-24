@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateQuestionUnitDto } from './dto/create-question-unit.dto';
 import { UpdateQuestionUnitDto } from './dto/update-question-unit.dto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -12,7 +16,9 @@ export class QuestionUnitService {
 
     if (!data.questionGroupId) {
       if (!data.moduleUnitId) {
-        throw new BadRequestException('moduleUnitId is required when questionGroupId is not provided');
+        throw new BadRequestException(
+          'moduleUnitId is required when questionGroupId is not provided',
+        );
       }
 
       const defaultGroup = await this.prisma.moduleUnitQuestionGroup.upsert({

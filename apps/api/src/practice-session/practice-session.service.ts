@@ -35,7 +35,12 @@ export class PracticeSessionService {
       data: {
         ...rest,
         startTime: startTime ? new Date(startTime) : undefined,
-        endTime: endTime !== undefined ? (endTime ? new Date(endTime) : null) : undefined,
+        endTime:
+          endTime !== undefined
+            ? endTime
+              ? new Date(endTime)
+              : null
+            : undefined,
       },
     });
   }
@@ -46,7 +51,9 @@ export class PracticeSessionService {
   }
 
   private async getOrThrow(id: number) {
-    const record = await this.prisma.practiceSession.findUnique({ where: { id } });
+    const record = await this.prisma.practiceSession.findUnique({
+      where: { id },
+    });
     if (!record) {
       throw new NotFoundException(`PracticeSession ${id} not found`);
     }

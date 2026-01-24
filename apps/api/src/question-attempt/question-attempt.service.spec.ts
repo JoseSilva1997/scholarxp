@@ -54,7 +54,9 @@ describe('QuestionAttemptService', () => {
 
     const result = await service.findOne(id);
 
-    expect(prisma.questionAttempt.findUnique).toHaveBeenCalledWith({ where: { id } });
+    expect(prisma.questionAttempt.findUnique).toHaveBeenCalledWith({
+      where: { id },
+    });
     expect(result).toEqual(existing);
   });
 
@@ -65,9 +67,21 @@ describe('QuestionAttemptService', () => {
   });
 
   it('update converts attemptedAt when provided', async () => {
-    const updateDto = { timeTakenMs: 900, attemptedAt: '2024-02-01T00:00:00.000Z' };
-    const updated = { id, ...baseDto, ...updateDto, attemptedAt: new Date(updateDto.attemptedAt) };
-    prisma.questionAttempt.findUnique.mockResolvedValue({ id, ...baseDto, attemptedAt: attemptedAtDate });
+    const updateDto = {
+      timeTakenMs: 900,
+      attemptedAt: '2024-02-01T00:00:00.000Z',
+    };
+    const updated = {
+      id,
+      ...baseDto,
+      ...updateDto,
+      attemptedAt: new Date(updateDto.attemptedAt),
+    };
+    prisma.questionAttempt.findUnique.mockResolvedValue({
+      id,
+      ...baseDto,
+      attemptedAt: attemptedAtDate,
+    });
     prisma.questionAttempt.update.mockResolvedValue(updated);
 
     const result = await service.update(id, updateDto);
@@ -81,8 +95,17 @@ describe('QuestionAttemptService', () => {
 
   it('update omits attemptedAt when not provided', async () => {
     const updateDto = { timeTakenMs: 1100 };
-    prisma.questionAttempt.findUnique.mockResolvedValue({ id, ...baseDto, attemptedAt: attemptedAtDate });
-    prisma.questionAttempt.update.mockResolvedValue({ id, ...baseDto, ...updateDto, attemptedAt: attemptedAtDate });
+    prisma.questionAttempt.findUnique.mockResolvedValue({
+      id,
+      ...baseDto,
+      attemptedAt: attemptedAtDate,
+    });
+    prisma.questionAttempt.update.mockResolvedValue({
+      id,
+      ...baseDto,
+      ...updateDto,
+      attemptedAt: attemptedAtDate,
+    });
 
     await service.update(id, updateDto);
 

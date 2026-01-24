@@ -17,7 +17,10 @@ describe('UserPasswordService', () => {
   beforeEach(async () => {
     prisma = createPrismaMock('userPassword');
     moduleRef = await Test.createTestingModule({
-      providers: [UserPasswordService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        UserPasswordService,
+        { provide: PrismaService, useValue: prisma },
+      ],
     }).compile();
 
     service = moduleRef.get(UserPasswordService);
@@ -30,7 +33,9 @@ describe('UserPasswordService', () => {
 
     const result = await service.create(createDto);
 
-    expect(prisma.userPassword.create).toHaveBeenCalledWith({ data: createDto });
+    expect(prisma.userPassword.create).toHaveBeenCalledWith({
+      data: createDto,
+    });
     expect(result).toEqual(existing);
   });
 
@@ -52,7 +57,9 @@ describe('UserPasswordService', () => {
 
     const result = await service.findOne(userId);
 
-    expect(prisma.userPassword.findUnique).toHaveBeenCalledWith({ where: { userId } });
+    expect(prisma.userPassword.findUnique).toHaveBeenCalledWith({
+      where: { userId },
+    });
     expect(result).toEqual(existing);
   });
 
@@ -60,7 +67,9 @@ describe('UserPasswordService', () => {
     prisma.userPassword.findUnique.mockResolvedValue(null);
 
     await expect(service.findOne(userId)).rejects.toThrow(NotFoundException);
-    expect(prisma.userPassword.findUnique).toHaveBeenCalledWith({ where: { userId } });
+    expect(prisma.userPassword.findUnique).toHaveBeenCalledWith({
+      where: { userId },
+    });
   });
 
   it('update checks existence then updates with DTO', async () => {
@@ -70,15 +79,22 @@ describe('UserPasswordService', () => {
 
     const result = await service.update(userId, updateDto);
 
-    expect(prisma.userPassword.findUnique).toHaveBeenCalledWith({ where: { userId } });
-    expect(prisma.userPassword.update).toHaveBeenCalledWith({ where: { userId }, data: updateDto });
+    expect(prisma.userPassword.findUnique).toHaveBeenCalledWith({
+      where: { userId },
+    });
+    expect(prisma.userPassword.update).toHaveBeenCalledWith({
+      where: { userId },
+      data: updateDto,
+    });
     expect(result).toEqual(updated);
   });
 
   it('update rethrows NotFoundException when missing', async () => {
     prisma.userPassword.findUnique.mockResolvedValue(null);
 
-    await expect(service.update(userId, updateDto)).rejects.toThrow(NotFoundException);
+    await expect(service.update(userId, updateDto)).rejects.toThrow(
+      NotFoundException,
+    );
     expect(prisma.userPassword.update).not.toHaveBeenCalled();
   });
 
@@ -89,8 +105,12 @@ describe('UserPasswordService', () => {
 
     const result = await service.remove(userId);
 
-    expect(prisma.userPassword.findUnique).toHaveBeenCalledWith({ where: { userId } });
-    expect(prisma.userPassword.delete).toHaveBeenCalledWith({ where: { userId } });
+    expect(prisma.userPassword.findUnique).toHaveBeenCalledWith({
+      where: { userId },
+    });
+    expect(prisma.userPassword.delete).toHaveBeenCalledWith({
+      where: { userId },
+    });
     expect(result).toEqual(removed);
   });
 

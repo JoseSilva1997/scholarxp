@@ -1,5 +1,11 @@
 import { EnrollmentSource } from '@prisma/client';
-import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class CreateUserModuleDto {
   @IsInt()

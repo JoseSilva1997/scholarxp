@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateAvatarDto } from './dto/create-avatar.dto';
 import { UpdateAvatarDto } from './dto/update-avatar.dto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -19,9 +23,13 @@ export class AvatarService {
       throw new BadRequestException('Only students can have avatars');
     }
 
-    const existing = await this.prisma.avatar.findUnique({ where: { userId: createAvatarDto.userId } });
+    const existing = await this.prisma.avatar.findUnique({
+      where: { userId: createAvatarDto.userId },
+    });
     if (existing) {
-      throw new BadRequestException(`Avatar already exists for user ${createAvatarDto.userId}`);
+      throw new BadRequestException(
+        `Avatar already exists for user ${createAvatarDto.userId}`,
+      );
     }
 
     return this.prisma.avatar.create({ data: createAvatarDto });

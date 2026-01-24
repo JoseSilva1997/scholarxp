@@ -28,7 +28,11 @@ describe('AvatarService', () => {
   it('create allows students without existing avatars', async () => {
     prisma.user.findUnique.mockResolvedValue({ globalRole: 'student' } as any);
     prisma.avatar.findUnique.mockResolvedValue(null);
-    prisma.avatar.create.mockResolvedValue({ id: 1, ...createDto, createdAt: now });
+    prisma.avatar.create.mockResolvedValue({
+      id: 1,
+      ...createDto,
+      createdAt: now,
+    });
 
     const result = await service.create(createDto);
 
@@ -36,15 +40,21 @@ describe('AvatarService', () => {
       where: { id: userId },
       select: { globalRole: true },
     });
-    expect(prisma.avatar.findUnique).toHaveBeenCalledWith({ where: { userId } });
+    expect(prisma.avatar.findUnique).toHaveBeenCalledWith({
+      where: { userId },
+    });
     expect(prisma.avatar.create).toHaveBeenCalledWith({ data: createDto });
     expect(result).toEqual({ id: 1, ...createDto, createdAt: now });
   });
 
   it('create rejects non-students', async () => {
-    prisma.user.findUnique.mockResolvedValue({ globalRole: 'instructor' } as any);
+    prisma.user.findUnique.mockResolvedValue({
+      globalRole: 'instructor',
+    } as any);
 
-    await expect(service.create(createDto)).rejects.toThrow(BadRequestException);
+    await expect(service.create(createDto)).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it('create rejects when user is missing', async () => {
@@ -57,7 +67,9 @@ describe('AvatarService', () => {
     prisma.user.findUnique.mockResolvedValue({ globalRole: 'student' } as any);
     prisma.avatar.findUnique.mockResolvedValue({ id: 2, userId } as any);
 
-    await expect(service.create(createDto)).rejects.toThrow(BadRequestException);
+    await expect(service.create(createDto)).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it('findAll delegates to Prisma model', async () => {
@@ -74,7 +86,11 @@ describe('AvatarService', () => {
   });
 
   it('findOne returns the record when found', async () => {
-    prisma.avatar.findUnique.mockResolvedValue({ id: 1, ...createDto, createdAt: now });
+    prisma.avatar.findUnique.mockResolvedValue({
+      id: 1,
+      ...createDto,
+      createdAt: now,
+    });
 
     const result = await service.findOne(1);
 
@@ -90,25 +106,52 @@ describe('AvatarService', () => {
 
   it('update checks existence then updates with DTO', async () => {
     const updateDto = { level: 3 };
-    prisma.avatar.findUnique.mockResolvedValue({ id: 1, ...createDto, createdAt: now });
-    prisma.avatar.update.mockResolvedValue({ id: 1, ...createDto, ...updateDto, createdAt: now });
+    prisma.avatar.findUnique.mockResolvedValue({
+      id: 1,
+      ...createDto,
+      createdAt: now,
+    });
+    prisma.avatar.update.mockResolvedValue({
+      id: 1,
+      ...createDto,
+      ...updateDto,
+      createdAt: now,
+    });
 
     const result = await service.update(1, updateDto);
 
     expect(prisma.avatar.findUnique).toHaveBeenCalledWith({ where: { id: 1 } });
-    expect(prisma.avatar.update).toHaveBeenCalledWith({ where: { id: 1 }, data: updateDto });
-    expect(result).toEqual({ id: 1, ...createDto, ...updateDto, createdAt: now });
+    expect(prisma.avatar.update).toHaveBeenCalledWith({
+      where: { id: 1 },
+      data: updateDto,
+    });
+    expect(result).toEqual({
+      id: 1,
+      ...createDto,
+      ...updateDto,
+      createdAt: now,
+    });
   });
 
   it('update rethrows NotFoundException when missing', async () => {
     prisma.avatar.findUnique.mockResolvedValue(null);
 
-    await expect(service.update(1, { level: 3 })).rejects.toThrow(NotFoundException);
+    await expect(service.update(1, { level: 3 })).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   it('remove checks existence then deletes', async () => {
-    prisma.avatar.findUnique.mockResolvedValue({ id: 1, ...createDto, createdAt: now });
-    prisma.avatar.delete.mockResolvedValue({ id: 1, ...createDto, createdAt: now });
+    prisma.avatar.findUnique.mockResolvedValue({
+      id: 1,
+      ...createDto,
+      createdAt: now,
+    });
+    prisma.avatar.delete.mockResolvedValue({
+      id: 1,
+      ...createDto,
+      createdAt: now,
+    });
 
     const result = await service.remove(1);
 

@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { LtiIdentityService } from './lti-identity.service';
 import { CreateLtiIdentityDto } from './dto/create-lti-identity.dto';
 import { UpdateLtiIdentityDto } from './dto/update-lti-identity.dto';
@@ -23,7 +31,10 @@ export class LtiIdentityController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateLtiIdentityDto: UpdateLtiIdentityDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateLtiIdentityDto: UpdateLtiIdentityDto,
+  ) {
     return this.ltiIdentityService.update(+id, updateLtiIdentityDto);
   }
 

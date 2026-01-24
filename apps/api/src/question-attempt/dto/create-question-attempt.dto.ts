@@ -1,4 +1,11 @@
-import { IsBoolean, IsDateString, IsInt, IsNotEmpty, IsObject, IsString } from 'class-validator';
+import {
+  IsBoolean,
+  IsDateString,
+  IsInt,
+  IsNotEmpty,
+  IsObject,
+  IsString,
+} from 'class-validator';
 
 export class CreateQuestionAttemptDto {
   @IsInt()

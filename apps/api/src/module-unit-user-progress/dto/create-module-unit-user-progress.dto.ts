@@ -1,4 +1,10 @@
-import { IsBoolean, IsInt, IsNotEmpty, IsOptional, IsNumber } from 'class-validator';
+import {
+  IsBoolean,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsNumber,
+} from 'class-validator';
 
 export class CreateModuleUnitUserProgressDto {
   @IsInt()

@@ -1,11 +1,21 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { QuestionVariantService } from './question-variant.service';
 import { CreateQuestionVariantDto } from './dto/create-question-variant.dto';
 import { UpdateQuestionVariantDto } from './dto/update-question-variant.dto';
 
 @Controller('question-variant')
 export class QuestionVariantController {
-  constructor(private readonly questionVariantService: QuestionVariantService) {}
+  constructor(
+    private readonly questionVariantService: QuestionVariantService,
+  ) {}
 
   @Post()
   create(@Body() createQuestionVariantDto: CreateQuestionVariantDto) {
@@ -23,7 +33,10 @@ export class QuestionVariantController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateQuestionVariantDto: UpdateQuestionVariantDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateQuestionVariantDto: UpdateQuestionVariantDto,
+  ) {
     return this.questionVariantService.update(+id, updateQuestionVariantDto);
   }
 

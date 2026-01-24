@@ -1,15 +1,29 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { ModuleUnitUserProgressService } from './module-unit-user-progress.service';
 import { CreateModuleUnitUserProgressDto } from './dto/create-module-unit-user-progress.dto';
 import { UpdateModuleUnitUserProgressDto } from './dto/update-module-unit-user-progress.dto';
 
 @Controller('module-unit-user-progress')
 export class ModuleUnitUserProgressController {
-  constructor(private readonly moduleUnitUserProgressService: ModuleUnitUserProgressService) {}
+  constructor(
+    private readonly moduleUnitUserProgressService: ModuleUnitUserProgressService,
+  ) {}
 
   @Post()
-  create(@Body() createModuleUnitUserProgressDto: CreateModuleUnitUserProgressDto) {
-    return this.moduleUnitUserProgressService.create(createModuleUnitUserProgressDto);
+  create(
+    @Body() createModuleUnitUserProgressDto: CreateModuleUnitUserProgressDto,
+  ) {
+    return this.moduleUnitUserProgressService.create(
+      createModuleUnitUserProgressDto,
+    );
   }
 
   @Get()
@@ -23,8 +37,14 @@ export class ModuleUnitUserProgressController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateModuleUnitUserProgressDto: UpdateModuleUnitUserProgressDto) {
-    return this.moduleUnitUserProgressService.update(+id, updateModuleUnitUserProgressDto);
+  update(
+    @Param('id') id: string,
+    @Body() updateModuleUnitUserProgressDto: UpdateModuleUnitUserProgressDto,
+  ) {
+    return this.moduleUnitUserProgressService.update(
+      +id,
+      updateModuleUnitUserProgressDto,
+    );
   }
 
   @Delete(':id')

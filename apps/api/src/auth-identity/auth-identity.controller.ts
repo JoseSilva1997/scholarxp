@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { AuthIdentityService } from './auth-identity.service';
 import { CreateAuthIdentityDto } from './dto/create-auth-identity.dto';
 import { UpdateAuthIdentityDto } from './dto/update-auth-identity.dto';
@@ -23,7 +31,10 @@ export class AuthIdentityController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateAuthIdentityDto: UpdateAuthIdentityDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateAuthIdentityDto: UpdateAuthIdentityDto,
+  ) {
     return this.authIdentityService.update(+id, updateAuthIdentityDto);
   }
 

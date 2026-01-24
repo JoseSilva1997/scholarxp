@@ -1,5 +1,13 @@
 import { InviteType } from '@prisma/client';
-import { IsDateString, IsEmail, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsDateString,
+  IsEmail,
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class CreateModuleInviteDto {
   @IsInt()
