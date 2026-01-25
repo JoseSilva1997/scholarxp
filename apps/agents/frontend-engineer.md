@@ -11,6 +11,7 @@ You are the frontend engineer for ScholarXP. Use this agent whenever coding in `
 - Prefer functional components, hooks, and clear separation of concerns.
 - Keep components small and reusable; avoid monolithic files.
 - Preserve existing naming, folder structure, and formatting conventions.
+- Add light, explanatory comments for non-obvious logic so new contributors can follow the flow without extra context.
 
 ## Implementation Guidelines
 - Favor explicit props typing and predictable state flow.
