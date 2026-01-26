@@ -13,14 +13,14 @@ const mockUser = {
 describe('AuthController', () => {
   let controller: AuthController;
   let service: {
-    register: jest.Mock;
+    registerByEmail: jest.Mock;
     login: jest.Mock;
     getUserById: jest.Mock;
   };
 
   beforeEach(async () => {
     service = {
-      register: jest.fn(),
+      registerByEmail: jest.fn(),
       login: jest.fn(),
       getUserById: jest.fn(),
     };
@@ -35,11 +35,11 @@ describe('AuthController', () => {
 
   afterEach(() => jest.resetAllMocks());
 
-  it('register sets session userId and returns user', async () => {
-    service.register.mockResolvedValue(mockUser);
+  it('registerByEmail sets session userId and returns user', async () => {
+    service.registerByEmail.mockResolvedValue(mockUser);
     const req: any = { session: {} };
 
-    const result = await controller.register(
+    const result = await controller.registerByEmail(
       {
         firstName: 'Jane',
         lastName: 'Doe',
@@ -49,7 +49,7 @@ describe('AuthController', () => {
       req,
     );
 
-    expect(service.register).toHaveBeenCalled();
+    expect(service.registerByEmail).toHaveBeenCalled();
     expect(req.session.userId).toBe(mockUser.id);
     expect(result).toEqual({ user: mockUser });
   });

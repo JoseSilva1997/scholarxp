@@ -91,6 +91,15 @@
   flex-wrap: wrap;
 }
 
+.error {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.08);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
 .primaryBtn {
   border: none;
   background: var(--btn-primary-gradient);

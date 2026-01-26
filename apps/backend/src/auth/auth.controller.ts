@@ -8,9 +8,9 @@ import { LoginDto } from './dto/login.dto';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post('register')
-  async register(@Body() dto: RegisterDto, @Req() req: Request) {
-    const user = await this.authService.register(dto);
+  @Post('register-by-email')
+  async registerByEmail(@Body() dto: RegisterDto, @Req() req: Request) {
+    const user = await this.authService.registerByEmail(dto);
     req.session.userId = user.id;
     return { user };
   }

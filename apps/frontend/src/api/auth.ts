@@ -1,31 +1,30 @@
-import { apiRequest } from './client';
 import type { AuthResponse } from '../types/auth';
+import { ApiError, apiFetch } from './client';
 
-export function register(payload: {
+export type RegisterByEmailPayload = {
   firstName: string;
   lastName: string;
   email: string;
   password: string;
-}) {
-  return apiRequest<AuthResponse>('/auth/register', {
+};
+
+export async function registerByEmail(payload: RegisterByEmailPayload): Promise<AuthResponse> {
+  return apiFetch<AuthResponse>('/auth/register-by-email', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
 }
 
-export function login(payload: { email: string; password: string }) {
-  return apiRequest<AuthResponse>('/auth/login', {
+export type LoginPayload = {
+  email: string;
+  password: string;
+};
+
+export async function login(payload: LoginPayload): Promise<AuthResponse> {
+  return apiFetch<AuthResponse>('/auth/login', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
 }
 
-export function logout() {
-  return apiRequest<{ ok: boolean }>('/auth/logout', {
-    method: 'POST',
-  });
-}
-
-export function me() {
-  return apiRequest<AuthResponse>('/auth/me');
-}
+export { ApiError };

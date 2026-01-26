@@ -27,7 +27,7 @@ describe('AuthService', () => {
     jest.restoreAllMocks();
   });
 
-  describe('register', () => {
+  describe('registerByEmail', () => {
     it('creates user, password, and auth identity with normalized email', async () => {
       const dto = {
         firstName: 'Jane',
@@ -49,7 +49,7 @@ describe('AuthService', () => {
       };
 
       prisma.user.findUnique.mockResolvedValue(null);
-    bcryptMock.hash.mockResolvedValue('hashed-password');
+      bcryptMock.hash.mockResolvedValue('hashed-password');
 
       const txMock = {
         user: {
@@ -76,7 +76,7 @@ describe('AuthService', () => {
 
       prisma.$transaction.mockImplementation(async (cb: any) => cb(txMock));
 
-      const result = await service.register(dto);
+      const result = await service.registerByEmail(dto);
 
       expect(prisma.user.findUnique).toHaveBeenCalledWith({
         where: { email: normalizedEmail },
@@ -122,7 +122,7 @@ describe('AuthService', () => {
       });
 
       await expect(
-        service.register({
+        service.registerByEmail({
           firstName: 'Jane',
           lastName: 'Doe',
           email: 'existing@example.com',
