@@ -14,6 +14,7 @@ export type AuthUser = {
   firstName: string;
   lastName: string;
   email: string | null;
+  profilePictureUrl: string;
   globalRole: string;
 };
 
@@ -96,6 +97,7 @@ export class AuthService {
     firstName: string;
     lastName: string;
     email: string | null;
+    profilePictureUrl?: string | null;
     globalRole: string;
   }): AuthUser {
     return {
@@ -103,6 +105,7 @@ export class AuthService {
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
+      profilePictureUrl: user.profilePictureUrl ?? 'default-profile-pic.png',
       globalRole: user.globalRole,
     };
   }

@@ -7,6 +7,7 @@ const mockUser = {
   firstName: 'Jane',
   lastName: 'Doe',
   email: 'jane@example.com',
+  profilePictureUrl: 'default-profile-pic.png',
   globalRole: 'student',
 };
 

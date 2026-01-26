@@ -44,6 +44,7 @@ describe('AuthService', () => {
         firstName: dto.firstName,
         lastName: dto.lastName,
         email: normalizedEmail,
+        profilePictureUrl: 'default-profile-pic.png',
         globalRole: 'student' as any,
         createdAt,
       };
@@ -107,6 +108,7 @@ describe('AuthService', () => {
         firstName: createdUser.firstName,
         lastName: createdUser.lastName,
         email: createdUser.email,
+        profilePictureUrl: createdUser.profilePictureUrl,
         globalRole: createdUser.globalRole,
       });
     });
@@ -141,6 +143,7 @@ describe('AuthService', () => {
         firstName: 'Jane',
         lastName: 'Doe',
         email: 'jane@example.com',
+        profilePictureUrl: 'default-profile-pic.png',
         globalRole: 'student' as any,
         createdAt,
       };
@@ -162,6 +165,7 @@ describe('AuthService', () => {
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
+        profilePictureUrl: user.profilePictureUrl,
         globalRole: user.globalRole,
       });
     });
@@ -220,6 +224,7 @@ describe('AuthService', () => {
         firstName: 'Test',
         lastName: 'User',
         email: 'test@example.com',
+        profilePictureUrl: 'default-profile-pic.png',
         globalRole: 'student' as any,
         createdAt: new Date('2026-01-01T00:00:00Z'),
       };
@@ -232,6 +237,7 @@ describe('AuthService', () => {
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
+        profilePictureUrl: user.profilePictureUrl,
         globalRole: user.globalRole,
       });
     });
