@@ -32,7 +32,6 @@ model LtiIdentity {
   institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
   user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([institutionId, ltiUserId])
   @@map("lti_identity")
 }
 
@@ -66,7 +65,6 @@ model Avatar {
   createdAt  DateTime @default(now()) @map("created_at")
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId])
   @@map("avatars")
 }
 
@@ -161,7 +159,6 @@ model ModuleUnitQuestionGroup {
   moduleUnit    ModuleUnit     @relation(fields: [moduleUnitId], references: [id], onDelete: Cascade)
   questionUnits QuestionUnit[]
 
-  @@unique([moduleUnitId, name])
   @@map("module_unit_question_groups")
 }
 
@@ -185,7 +182,6 @@ model QuestionUnit {
   moduleUnitId    Int?                      @map("module_unit_id")
   questionGroupId Int?                      @map("question_group_id")
   title           String
-  sortOrder       Float                     @default(0) @map("sort_order")
   createdAt       DateTime                  @default(now()) @map("created_at")
   updatedAt       DateTime                  @updatedAt @map("updated_at")
   moduleUnit      ModuleUnit?               @relation(fields: [moduleUnitId], references: [id], onDelete: Cascade)

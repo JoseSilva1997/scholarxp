@@ -1,0 +1,162 @@
+.authShell {
+  width: 100%;
+  margin: 0;
+  flex: 1;
+  display: grid;
+}
+
+.authLayout {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  gap: 24px;
+  align-items: stretch;
+  min-height: 100%;
+}
+
+.visual {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0;
+  background: radial-gradient(circle at 20% 18%, rgba(76, 175, 80, 0.18), transparent 30%),
+    radial-gradient(circle at 82% 10%, rgba(243, 206, 48, 0.18), transparent 26%),
+    linear-gradient(145deg, #0f172a, #111827);
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  min-height: 100%;
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  box-shadow: var(--shadow-lg);
+}
+
+.title {
+  margin: 0 0 4px;
+  font-family: var(--font-display);
+}
+
+.subtitle {
+  margin: 0 0 20px;
+  color: var(--color-muted);
+  line-height: 1.5;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.row {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.input {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 1rem;
+  font-family: var(--font-sans);
+  background: #f8fafc;
+}
+
+.input:focus {
+  outline: 2px solid var(--color-accent-primary);
+  outline-offset: 1px;
+  background: #fff;
+}
+
+.actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.primaryBtn {
+  border: none;
+  background: var(--btn-primary-gradient);
+  color: #0d2619;
+  padding: 12px 18px;
+  font-weight: 700;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: var(--btn-primary-shadow);
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.primaryBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--btn-primary-shadow-hover);
+}
+
+.linkBtn {
+  background: none;
+  border: none;
+  color: var(--color-muted);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.helper {
+  display: grid;
+  gap: 12px;
+  color: var(--color-muted);
+}
+
+.helperCard {
+  padding: 18px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-alt);
+}
+
+.list {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+.cardColumn {
+  display: grid;
+  gap: 18px;
+  align-content: center;
+  max-width: 520px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+@media (max-width: 640px) {
+  .authShell {
+    margin: 0;
+    width: 100%;
+  }
+
+  .authLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .visual {
+    min-height: 260px;
+  }
+}

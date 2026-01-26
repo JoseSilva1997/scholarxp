@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import logo from '../assets/logo.svg';
 import styles from './Header.module.css';
 
@@ -14,12 +15,12 @@ export default function Header() {
       </nav>
 
       <div className={styles.actions}>
-        <button className={`${styles.btn} ${styles.btnGhost}`} type="button">
+        <Link className={`${styles.btn} ${styles.btnGhost}`} to="/login">
           Login
-        </button>
-        <button className={`${styles.btn} ${styles.btnPrimary}`} type="button">
-          Sign-up
-        </button>
+        </Link>
+        <Link className={`${styles.btn} ${styles.btnPrimary}`} to="/register">
+          Sign up
+        </Link>
       </div>
     </header>
   );

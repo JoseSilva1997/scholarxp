@@ -22,6 +22,11 @@
   --radius-lg: 20px;
   --radius-md: 14px;
 
+  /* Buttons */
+  --btn-primary-gradient: linear-gradient(135deg, var(--color-accent-primary), #32a86f);
+  --btn-primary-shadow: 0 12px 26px rgba(76, 175, 80, 0.28);
+  --btn-primary-shadow-hover: 0 14px 30px rgba(76, 175, 80, 0.36);
+
   font-family: var(--font-sans);
   color: var(--color-text);
   background-color: var(--color-bg);
