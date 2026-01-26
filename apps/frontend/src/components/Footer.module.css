@@ -1,5 +1,5 @@
 .footer {
-  padding: 18px 24px;
+  padding: var(--footer-padding-block) 24px;
   background: var(--color-surface-alt);
   color: var(--color-text);
   border-top: 1px solid var(--color-border);
@@ -8,6 +8,7 @@
   justify-content: space-between;
   gap: 16px;
   box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.04);
+  min-height: var(--footer-height);
 }
 
 .brand {

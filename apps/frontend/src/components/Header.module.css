@@ -4,11 +4,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 24px;
+  padding: var(--header-padding-block) 24px;
   background-color: var(--color-brand-surface-dark);
   color: #ffffff;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   gap: 24px;
+  min-height: var(--header-height);
 }
 
 .brand {

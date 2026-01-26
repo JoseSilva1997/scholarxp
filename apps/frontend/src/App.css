@@ -1,3 +1,4 @@
+@import './styles/theme.css';
 .App {
   min-height: 100vh;
   background: radial-gradient(circle at 16% 18%, rgba(59, 130, 246, 0.14), transparent 10%),
@@ -6,8 +7,6 @@
   display: flex;
   flex-direction: column;
   color: var(--color-text);
-  --header-height: 80px;
-  --footer-height: 80px;
 }
 
 .App__content {
@@ -26,7 +25,7 @@
   width: 100%;
   padding: 0;
   gap: 0;
-  min-height: calc(100vh - var(--header-height));
+  min-height: calc(100vh - var(--header-height) - var(--footer-height));
   display: flex;
   overflow-x: hidden;
 }
