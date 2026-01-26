@@ -146,6 +146,19 @@
   margin: 0 auto;
 }
 
+
+.inlineHelper {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  color: var(--color-muted);
+}
+
+.helperLink {
+  color: var(--color-accent-primary);
+  font-weight: 700;
+}
+
 @media (max-width: 640px) {
   .authShell {
     margin: 0;

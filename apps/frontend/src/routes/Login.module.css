@@ -17,9 +17,9 @@
   position: relative;
   overflow: hidden;
   border-radius: 0;
-  background: radial-gradient(circle at 18% 20%, rgba(76, 175, 80, 0.18), transparent 30%),
-    radial-gradient(circle at 78% 12%, rgba(243, 206, 48, 0.18), transparent 26%),
-    linear-gradient(145deg, #0f172a, #1e293b);
+  background: radial-gradient(circle at 20% 18%, rgba(76, 175, 80, 0.18), transparent 30%),
+    radial-gradient(circle at 82% 10%, rgba(243, 206, 48, 0.18), transparent 26%),
+    linear-gradient(145deg, #0f172a, #111827);
   border: none;
   box-shadow: none;
   padding: 0;
@@ -85,10 +85,23 @@
   flex-wrap: wrap;
 }
 
+.inlineHelper {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  color: var(--color-muted);
+}
+
+.helperLink {
+  color: var(--color-accent-primary);
+  font-weight: 700;
+}
+
 .primaryBtn {
   border: none;
   background: var(--btn-primary-gradient);
   color: #0d2619;
+  min-width: 100px;
   padding: 12px 18px;
   font-weight: 700;
   border-radius: 12px;

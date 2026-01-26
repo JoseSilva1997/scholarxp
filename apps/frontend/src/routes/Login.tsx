@@ -45,26 +45,15 @@ export default function Login() {
                 <button className={styles.primaryBtn} type="submit">
                   Log in
                 </button>
-                <Link className={styles.linkBtn} to="/register">
-                  Create an account
-                </Link>
+                <span className={styles.inlineHelper}>
+                  <span>New here? </span>
+                  <Link className={styles.helperLink} to="/register">
+                    Create an account
+                  </Link>
+                </span>
               </div>
             </form>
           </section>
-
-          <aside className={styles.helper}>
-            <div className={styles.helperCard}>
-              <strong>Why log in?</strong>
-              <ul className={styles.list}>
-                <li>Resume your latest practice session instantly.</li>
-                <li>Track XP earned across quests.</li>
-                <li>Keep progress synced with your LMS launch.</li>
-              </ul>
-            </div>
-            <div className={styles.helperCard}>
-              New here? <Link to="/register">Create your account</Link> to start earning XP.
-            </div>
-          </aside>
         </div>
       </div>
     </div>

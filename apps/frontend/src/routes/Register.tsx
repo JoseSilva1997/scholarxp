@@ -89,22 +89,17 @@ export default function Register() {
                 <button className={styles.primaryBtn} type="submit">
                   Create account
                 </button>
-                <Link className={styles.linkBtn} to="/login">
-                  Already have an account?
-                </Link>
+                <span className={styles.inlineHelper}>
+                  <span>Already have an account? </span>
+                  <Link className={styles.helperLink} to="/login">
+                    Log in
+                  </Link>
+                </span>
               </div>
             </form>
           </section>
 
           <aside className={styles.helper}>
-            <div className={styles.helperCard}>
-              <strong>What you get</strong>
-              <ul className={styles.list}>
-                <li>Personalized daily sets tuned to your course.</li>
-                <li>XP and quest progress that respects consistency.</li>
-                <li>Secure LTI launch that keeps your data safe.</li>
-              </ul>
-            </div>
             <div className={styles.helperCard}>
               Have an invite code? You can enter it after creating your account.
             </div>
