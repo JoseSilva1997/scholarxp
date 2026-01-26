@@ -18,7 +18,7 @@ export default function Header() {
           Login
         </button>
         <button className={`${styles.btn} ${styles.btnPrimary}`} type="button">
-          Register
+          Sign-up
         </button>
       </div>
     </header>

@@ -50,11 +50,6 @@ When asked to write docs, provide:
 ## How It Works
 - Short bullets with key steps.
 
-## Usage
-```bash
-pnpm --filter api start:dev
-```
-
 ## Notes
 - Edge cases or gotchas.
 ```

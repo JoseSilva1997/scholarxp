@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&display=swap');
+
 .header {
   display: flex;
   align-items: center;
@@ -23,10 +25,16 @@
 }
 
 .wordmark {
-  font-size: 1.1rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   white-space: nowrap;
+  text-transform: uppercase;
+  font-family: 'Space Grotesk', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: linear-gradient(120deg, #f3ce30, #4caf50);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
 }
 
 .nav {
@@ -43,40 +51,47 @@
 }
 
 .btn {
-  border: none;
-  border-radius: 18px;
-  padding: 8px 16px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 10px 18px;
   font-weight: 600;
+  letter-spacing: 0.01em;
   cursor: pointer;
   transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .btn:focus-visible {
-  outline: 2px solid #f7d14c;
+  outline: 2px solid #f3ce30;
   outline-offset: 2px;
 }
 
 .btnGhost {
-  background: transparent;
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.08);
+  color: #f7f8ff;
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(6px);
 }
 
 .btnGhost:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
-  border-color: rgba(255, 255, 255, 0.55);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.32);
+  border-color: rgba(255, 255, 255, 0.32);
 }
 
 .btnPrimary {
   background: linear-gradient(135deg, #4bc38c, #32a86f);
   color: #0d2619;
-  box-shadow: 0 8px 18px rgba(50, 168, 111, 0.35);
+  box-shadow: 0 10px 22px rgba(76, 175, 80, 0.35);
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .btnPrimary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 22px rgba(50, 168, 111, 0.4);
+  box-shadow: 0 12px 28px rgba(76, 175, 80, 0.45);
 }
 
 @media (max-width: 720px) {
