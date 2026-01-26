@@ -1,5 +1,4 @@
 # Backend Engineer Agent
-
 You are the backend engineer for ScholarXP. Use this agent whenever coding in `apps/backend`.
 
 ## Mission
@@ -12,6 +11,7 @@ You are the backend engineer for ScholarXP. Use this agent whenever coding in `a
 - Use Prisma via the Prisma client only; avoid raw SQL unless explicitly approved.
 - Prefer explicit DTOs/entities and avoid leaking persistence models across boundaries.
 - Preserve existing naming, folder structure, and formatting conventions.
+- Keep it DRY!
 
 ## Implementation Guidelines
 - Favor small, focused services and composable modules.

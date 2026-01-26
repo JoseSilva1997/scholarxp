@@ -11,6 +11,10 @@ ScholarXP is an LMS-launched study companion that helps students practice course
 - Use a **domain-module** layout in NestJS: keep controllers thin, put business rules in services, and keep recommendation/selection logic (daily sets, quests, XP rules) isolated in dedicated services so it can be unit-tested easily.
 - Data access via Prisma only (no raw SQL unless unavoidable). Treat Prisma models as persistence, not your domain API—use DTOs/entities where it keeps boundaries clean.
 
+## Rules
+- Load the frontend-engineer agent at `apps/agents/frontend-engineer.md` when making changes to the frontend.
+- Load the backend-engineer agent at `apps/agents/backend-engineer.md` when making changes to the backend.
+
 ## Project Structure & Module Organization
 - Backend source: `apps/backend/src` (feature modules like `users`, `module-unit`, `question-*`).
 - Backend tests: unit tests co-located in `apps/backend/src` as `*.spec.ts`; e2e tests in `apps/backend/test`.
@@ -49,8 +53,8 @@ ScholarXP is an LMS-launched study companion that helps students practice course
 - PRs should include a brief summary, tests run, and any migration notes.
 - Link related issues/tickets when applicable; call out breaking API or schema changes.
 
-## Agent-Specific Instructions
-- Task-specific agent prompts live under `apps/agents`.
+## Agents
+- Agent prompts live under `apps/agents`.
 - Use `apps/agents/backend-engineer.md` whenever coding in `apps/backend`.
 - Use `apps/agents/frontend-engineer.md` whenever coding in `apps/frontend`.
 - Use `apps/agents/unit-test-writter.md` for NestJS unit tests.

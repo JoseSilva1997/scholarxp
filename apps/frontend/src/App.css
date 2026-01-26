@@ -1,0 +1,16 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+
+:root {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #111111;
+  background-color: #f5f6fb;
+}
+
+.App {
+  min-height: 100vh;
+  background: #f5f6fb;
+}
+
+.App__content {
+  padding: 32px 24px;
+}
