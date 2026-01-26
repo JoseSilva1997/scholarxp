@@ -23,7 +23,8 @@ export class AvatarService {
       throw new BadRequestException('Only students can have avatars');
     }
 
-    const existing = await this.prisma.avatar.findUnique({
+    // Use a non-unique lookup to avoid depending on DB-level unique constraints in TS types
+    const existing = await this.prisma.avatar.findFirst({
       where: { userId: createAvatarDto.userId },
     });
     if (existing) {

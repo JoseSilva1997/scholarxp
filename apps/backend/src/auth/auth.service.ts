@@ -6,7 +6,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import { AuthProvider } from '@prisma/client';
+import { AuthProvider, GlobalRole } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 export type AuthUser = {
@@ -15,7 +15,8 @@ export type AuthUser = {
   lastName: string;
   email: string | null;
   profilePictureUrl: string;
-  globalRole: string;
+  globalRole: GlobalRole | string;
+  isVerified: boolean;
 };
 
 @Injectable()
@@ -37,6 +38,7 @@ export class AuthService {
           email,
           firstName: dto.firstName,
           lastName: dto.lastName,
+          globalRole: GlobalRole.pending,
         },
       });
 
@@ -98,7 +100,8 @@ export class AuthService {
     lastName: string;
     email: string | null;
     profilePictureUrl?: string | null;
-    globalRole: string;
+    globalRole: GlobalRole | string;
+    isVerified?: boolean;
   }): AuthUser {
     return {
       id: user.id,
@@ -107,6 +110,7 @@ export class AuthService {
       email: user.email,
       profilePictureUrl: user.profilePictureUrl ?? 'default-profile-pic.png',
       globalRole: user.globalRole,
+      isVerified: user.isVerified ?? false,
     };
   }
 }

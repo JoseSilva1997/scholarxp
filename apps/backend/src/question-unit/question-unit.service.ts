@@ -21,20 +21,24 @@ export class QuestionUnitService {
         );
       }
 
-      const defaultGroup = await this.prisma.moduleUnitQuestionGroup.upsert({
-        where: {
-          moduleUnitId_name: {
+      // Look up the default group without relying on a composite unique TS type
+      let defaultGroup =
+        await this.prisma.moduleUnitQuestionGroup.findFirst({
+          where: {
             moduleUnitId: data.moduleUnitId,
             name: 'default',
           },
-        },
-        update: {},
-        create: {
-          moduleUnitId: data.moduleUnitId,
-          name: 'default',
-          sortOrder: 1,
-        },
-      });
+        });
+
+      if (!defaultGroup) {
+        defaultGroup = await this.prisma.moduleUnitQuestionGroup.create({
+          data: {
+            moduleUnitId: data.moduleUnitId,
+            name: 'default',
+            sortOrder: 1,
+          },
+        });
+      }
 
       data.questionGroupId = defaultGroup.id;
     }

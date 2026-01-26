@@ -41,7 +41,8 @@ model User {
   lastName         String                   @map("last_name")
   email            String?                  @unique
   profilePictureUrl String                  @default("default-profile-pic.png") @map("profile_picture_url")
-  globalRole       GlobalRole               @default(student) @map("global_role")
+  globalRole       GlobalRole               @default(pending) @map("global_role")
+  isVerified       Boolean                  @default(false)
   createdAt        DateTime                 @default(now()) @map("created_at")
   authIdentities   AuthIdentity[]
   password         UserPassword?
@@ -66,6 +67,7 @@ model Avatar {
   createdAt  DateTime @default(now()) @map("created_at")
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId])
   @@map("avatars")
 }
 
@@ -160,6 +162,7 @@ model ModuleUnitQuestionGroup {
   moduleUnit    ModuleUnit     @relation(fields: [moduleUnitId], references: [id], onDelete: Cascade)
   questionUnits QuestionUnit[]
 
+  @@unique([moduleUnitId, name])
   @@map("module_unit_question_groups")
 }
 
@@ -286,6 +289,7 @@ model ModuleInvite {
 }
 
 enum GlobalRole {
+  pending
   admin
   institution_admin
   instructor

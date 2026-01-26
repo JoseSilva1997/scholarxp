@@ -9,6 +9,7 @@ const mockUser = {
   email: 'jane@example.com',
   profilePictureUrl: 'default-profile-pic.png',
   globalRole: 'student',
+  isVerified: false,
 };
 
 describe('AuthController', () => {

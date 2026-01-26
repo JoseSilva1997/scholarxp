@@ -1,7 +1,7 @@
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import bcrypt from 'bcryptjs';
-import { AuthProvider } from '@prisma/client';
+import { AuthProvider, GlobalRole } from '@prisma/client';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock, PrismaMock } from '../testing/test-helpers';
@@ -45,7 +45,8 @@ describe('AuthService', () => {
         lastName: dto.lastName,
         email: normalizedEmail,
         profilePictureUrl: 'default-profile-pic.png',
-        globalRole: 'student' as any,
+        globalRole: GlobalRole.pending,
+        isVerified: false,
         createdAt,
       };
 
@@ -87,6 +88,7 @@ describe('AuthService', () => {
           email: normalizedEmail,
           firstName: dto.firstName,
           lastName: dto.lastName,
+          globalRole: GlobalRole.pending,
         },
       });
       expect(txMock.userPassword.create).toHaveBeenCalledWith({
@@ -110,6 +112,7 @@ describe('AuthService', () => {
         email: createdUser.email,
         profilePictureUrl: createdUser.profilePictureUrl,
         globalRole: createdUser.globalRole,
+        isVerified: createdUser.isVerified,
       });
     });
 
@@ -119,7 +122,9 @@ describe('AuthService', () => {
         firstName: 'Existing',
         lastName: 'User',
         email: 'existing@example.com',
-        globalRole: 'student' as any,
+        profilePictureUrl: 'default-profile-pic.png',
+        globalRole: GlobalRole.pending,
+        isVerified: false,
         createdAt: new Date('2026-01-01T00:00:00Z'),
       });
 
@@ -144,7 +149,8 @@ describe('AuthService', () => {
         lastName: 'Doe',
         email: 'jane@example.com',
         profilePictureUrl: 'default-profile-pic.png',
-        globalRole: 'student' as any,
+        globalRole: GlobalRole.student,
+        isVerified: true,
         createdAt,
       };
       prisma.user.findUnique.mockResolvedValue(user);
@@ -167,6 +173,7 @@ describe('AuthService', () => {
         email: user.email,
         profilePictureUrl: user.profilePictureUrl,
         globalRole: user.globalRole,
+        isVerified: user.isVerified,
       });
     });
 
@@ -184,7 +191,9 @@ describe('AuthService', () => {
         firstName: 'Jane',
         lastName: 'Doe',
         email: 'jane@example.com',
-        globalRole: 'student' as any,
+        profilePictureUrl: 'default-profile-pic.png',
+        globalRole: GlobalRole.student,
+        isVerified: true,
         createdAt: new Date('2026-01-01T00:00:00Z'),
       });
       prisma.userPassword.findUnique.mockResolvedValue(null);
@@ -201,7 +210,9 @@ describe('AuthService', () => {
         firstName: 'Jane',
         lastName: 'Doe',
         email: 'jane@example.com',
-        globalRole: 'student' as any,
+        profilePictureUrl: 'default-profile-pic.png',
+        globalRole: GlobalRole.student,
+        isVerified: true,
         createdAt: new Date('2026-01-01T00:00:00Z'),
       });
       prisma.userPassword.findUnique.mockResolvedValue({
@@ -225,7 +236,8 @@ describe('AuthService', () => {
         lastName: 'User',
         email: 'test@example.com',
         profilePictureUrl: 'default-profile-pic.png',
-        globalRole: 'student' as any,
+        globalRole: GlobalRole.student,
+        isVerified: true,
         createdAt: new Date('2026-01-01T00:00:00Z'),
       };
       prisma.user.findUnique.mockResolvedValue(user);
@@ -239,6 +251,7 @@ describe('AuthService', () => {
         email: user.email,
         profilePictureUrl: user.profilePictureUrl,
         globalRole: user.globalRole,
+        isVerified: user.isVerified,
       });
     });
 

@@ -1,8 +1,16 @@
 import { Link } from 'react-router-dom';
+import type { AuthUser } from '../types/auth';
 import logo from '../assets/logo.svg';
+import UserBadge from './UserBadge';
 import styles from './Header.module.css';
 
-export default function Header() {
+type HeaderProps = {
+  user?: AuthUser | null;
+  studentLevel?: number;
+  studentExp?: { current: number; max: number };
+};
+
+export default function Header({ user, studentLevel, studentExp }: HeaderProps) {
   return (
     <header className={styles.header}>
       <Link to="/" className={styles.brand} aria-label="Go to landing page">
@@ -14,14 +22,18 @@ export default function Header() {
         {/* Navigation links will be added here as pages are introduced. */}
       </nav>
 
-      <div className={styles.actions}>
-        <Link className={`${styles.btn} ${styles.btnGhost}`} to="/login">
-          Login
-        </Link>
-        <Link className={`${styles.btn} ${styles.btnPrimary}`} to="/register">
-          Sign up
-        </Link>
-      </div>
+      {user ? (
+        <UserBadge user={user} level={studentLevel} exp={studentExp} />
+      ) : (
+        <div className={styles.actions}>
+          <Link className={`${styles.btn} ${styles.btnGhost}`} to="/login">
+            Login
+          </Link>
+          <Link className={`${styles.btn} ${styles.btnPrimary}`} to="/register">
+            Sign up
+          </Link>
+        </div>
+      )}
     </header>
   );
 }
