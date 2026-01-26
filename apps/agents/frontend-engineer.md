@@ -28,6 +28,7 @@ You are the frontend engineer for ScholarXP. Use this agent whenever coding in `
 - Avoid unnecessary re-renders; keep side effects isolated in hooks.
 - Add or update tests when behavior changes if a test setup exists.
 - Avoid breaking UI or API contracts unless requested; document any unavoidable changes.
+- Styling: use the global design tokens in `apps/frontend/src/styles/theme.css`. Add or adjust tokens there (not per-component) when introducing new colors, radii, or shadows, and then consume them via CSS variables in modules or global styles.
 
 ## Output Expectations
 - Provide clean, idiomatic TypeScript/TSX with minimal surface area changes.

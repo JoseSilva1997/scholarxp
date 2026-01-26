@@ -5,7 +5,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px 24px;
-  background-color: #23283a;
+  background-color: var(--color-brand-surface-dark);
   color: #ffffff;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   gap: 24px;
@@ -31,7 +31,7 @@
   white-space: nowrap;
   text-transform: uppercase;
   font-family: 'Space Grotesk', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  background: linear-gradient(120deg, #f3ce30, #4caf50);
+  background: linear-gradient(120deg, var(--color-accent-secondary), var(--color-accent-primary));
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
@@ -83,7 +83,7 @@
 }
 
 .btnPrimary {
-  background: linear-gradient(135deg, #4bc38c, #32a86f);
+  background: linear-gradient(135deg, var(--color-accent-primary), #32a86f);
   color: #0d2619;
   box-shadow: 0 10px 22px rgba(76, 175, 80, 0.35);
   border-color: rgba(255, 255, 255, 0.12);

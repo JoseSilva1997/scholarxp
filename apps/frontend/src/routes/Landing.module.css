@@ -9,17 +9,17 @@
   flex-direction: column;
   gap: 16px;
   padding: 32px;
-  border-radius: 20px;
-  background: linear-gradient(135deg, #ffffff, #eaf2ff);
-  border: 1px solid rgba(15, 23, 42, 0.06);
-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--color-surface), var(--color-surface-alt));
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-lg);
 }
 
 .heroEyebrow {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-weight: 700;
-  color: #2563eb;
+  color: var(--color-accent-primary);
   margin: 0;
   font-size: 0.8rem;
 }
@@ -27,13 +27,13 @@
 .heroTitle {
   margin: 0;
   font-size: clamp(2.2rem, 3vw + 1rem, 3rem);
-  font-family: 'Space Grotesk', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family: var(--font-display);
   line-height: 1.1;
 }
 
 .heroSubtitle {
   margin: 0;
-  color: #334155;
+  color: var(--color-muted);
   max-width: 720px;
   line-height: 1.6;
 }
@@ -47,9 +47,9 @@
 .pill {
   padding: 8px 12px;
   border-radius: 999px;
-  background: rgba(37, 99, 235, 0.08);
-  color: #0f172a;
-  border: 1px solid rgba(37, 99, 235, 0.16);
+  background: var(--color-accent-primary-soft);
+  color: var(--color-text);
+  border: 1px solid var(--color-border-strong);
   font-weight: 600;
   font-size: 0.9rem;
 }
@@ -62,21 +62,21 @@
 
 .featureCard {
   padding: 18px 16px;
-  border-radius: 14px;
-  background: #ffffff;
-  border: 1px solid rgba(15, 23, 42, 0.06);
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-md);
 }
 
 .featureCard h3 {
   margin: 0 0 8px;
   font-size: 1.05rem;
-  color: #0f172a;
+  color: var(--color-text);
 }
 
 .featureCard p {
   margin: 0;
-  color: #475569;
+  color: var(--color-muted);
   line-height: 1.5;
 }
 
