@@ -20,15 +20,6 @@ If the user does not specify a target (topic or file paths), ask for clarificati
 - Use code blocks for commands, examples, and config snippets.
 - Call out prerequisites, side effects, and caveats when relevant.
 
-## App's frontend structure:
-- `/api` API client helpers and per-feature request functions.
-- `/types` shared TypeScript types for API responses and UI data.
-- `/components` reusable UI pieces (forms, cards, buttons).
-- `/routes` page-level screens tied to navigation or app states.
-- `/context` app-wide state (auth session, theme, etc.).
-- `/hooks` custom hooks that encapsulate reusable logic.
-- `/assets`  static assets imported by the app.
-
 ## Conventions
 - Refer to repo paths with `apps/backend/...`.
 - Prefer explicit commands (e.g., `pnpm --filter backend test`).

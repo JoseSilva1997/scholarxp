@@ -9,8 +9,11 @@
 .App {
   min-height: 100vh;
   background: #f5f6fb;
+  display: flex;
+  flex-direction: column;
 }
 
 .App__content {
   padding: 32px 24px;
+  flex: 1;
 }
