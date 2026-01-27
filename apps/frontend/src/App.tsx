@@ -12,11 +12,11 @@ function AppLayout() {
   const location = useLocation();
   const isAuthRoute = location.pathname === '/login' || location.pathname === '/register';
 
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, logout } = useAuth();
 
   return (
     <div className={`App ${isAuthRoute ? 'App--auth' : ''}`}>
-      <Header user={user} />
+      <Header user={user} onLogout={logout} />
       <main className={`App__content ${isAuthRoute ? 'App__content--auth' : ''}`}>
         <Routes>
           <Route path="/" element={<Landing />} />

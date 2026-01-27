@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import type { AuthUser } from '../types/auth';
 import defaultAvatar from '../assets/default-profile-pic.png';
 import { STUDENT_EXP_MAX } from '../constants/progression';
@@ -11,13 +12,30 @@ type UserBadgeProps = {
     current: number;
     max: number;
   };
+  onLogout?: () => Promise<void> | void;
 };
 
 function formatName(user: AuthUser) {
   return [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
 }
 
-export default function UserBadge({ user, level, exp }: UserBadgeProps) {
+export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  const toggleMenu = () => setIsMenuOpen((open) => !open);
+  const closeMenu = () => setIsMenuOpen(false);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        closeMenu();
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const avatarSrc =
     user.profilePictureUrl && user.profilePictureUrl.startsWith('http')
       ? user.profilePictureUrl
@@ -29,7 +47,7 @@ export default function UserBadge({ user, level, exp }: UserBadgeProps) {
     exp && expMax > 0 ? Math.min(100, Math.round((exp.current / expMax) * 100)) : 0;
 
   return (
-    <div className={styles.badge} aria-label={`${formatName(user)} profile`}>
+    <div className={styles.badge} aria-label={`${formatName(user)} profile`} ref={menuRef}>
       <div className={styles.meta}>
         <div className={styles.name} title={formatName(user) || 'User'}>
           {formatName(user) || 'User'}
@@ -47,7 +65,41 @@ export default function UserBadge({ user, level, exp }: UserBadgeProps) {
           </div>
         ) : null}
       </div>
-      <img src={avatarSrc} alt="" className={styles.avatar} />
+      <button
+        type="button"
+        className={styles.avatarButton}
+        onClick={toggleMenu}
+        aria-expanded={isMenuOpen}
+        aria-haspopup="menu"
+      >
+        <img src={avatarSrc} alt="" className={styles.avatar} />
+      </button>
+      {isMenuOpen ? (
+        <div className={styles.menu} role="menu">
+          <button
+            type="button"
+            className={styles.menuItem}
+            role="menuitem"
+            onClick={() => {
+              window.alert('Coming soon!');
+              closeMenu();
+            }}
+          >
+            Account settings
+          </button>
+          <button
+            type="button"
+            className={styles.menuItem}
+            role="menuitem"
+            onClick={async () => {
+              closeMenu();
+              if (onLogout) await onLogout();
+            }}
+          >
+            Log out
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

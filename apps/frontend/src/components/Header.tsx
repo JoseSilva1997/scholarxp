@@ -9,9 +9,10 @@ type HeaderProps = {
   user?: AuthUser | null;
   studentLevel?: number;
   studentExp?: { current: number; max: number };
+  onLogout?: () => Promise<void> | void;
 };
 
-export default function Header({ user, studentLevel, studentExp }: HeaderProps) {
+export default function Header({ user, studentLevel, studentExp, onLogout }: HeaderProps) {
   const isStudent = user?.globalRole === 'student';
   const derivedLevel = isStudent ? user?.avatar?.level : undefined;
   const derivedExp =
@@ -37,7 +38,7 @@ export default function Header({ user, studentLevel, studentExp }: HeaderProps) 
       </nav>
 
       {user ? (
-        <UserBadge user={user} level={levelToShow} exp={expToShow} />
+        <UserBadge user={user} level={levelToShow} exp={expToShow} onLogout={onLogout} />
       ) : (
         <div className={styles.actions}>
           <Link className={`${styles.btn} ${styles.btnGhost}`} to="/login">
