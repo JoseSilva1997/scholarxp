@@ -73,6 +73,7 @@ export default function Register() {
                     type="text"
                     placeholder="Alex"
                     autoComplete="given-name"
+                    maxLength={40}
                     value={form.firstName}
                     onChange={handleChange}
                     required
@@ -89,6 +90,7 @@ export default function Register() {
                     type="text"
                     placeholder="Rivera"
                     autoComplete="family-name"
+                    maxLength={40}
                     value={form.lastName}
                     onChange={handleChange}
                     required
