@@ -365,4 +365,165 @@ describe('AuthService', () => {
       );
     });
   });
+
+  describe('loginWithGoogle', () => {
+    const basePayload = {
+      providerUserId: 'google-123',
+      email: 'new.user@example.com',
+      firstName: 'New',
+      lastName: 'User',
+      picture: 'https://pics.example/avatar.jpg',
+    };
+
+    it('refreshes existing linked user profile and returns updated auth user', async () => {
+      const existingUser = {
+        id: 42,
+        firstName: 'Old',
+        lastName: 'Name',
+        email: basePayload.email,
+        profilePictureUrl: 'old.png',
+        globalRole: GlobalRole.student,
+        isVerified: true,
+        createdAt: new Date('2026-01-01T00:00:00Z'),
+      };
+
+      prisma.authIdentity.findUnique.mockResolvedValue({
+        id: 99,
+        userId: existingUser.id,
+        provider: AuthProvider.google,
+        providerUserId: basePayload.providerUserId,
+        email: existingUser.email,
+        createdAt: new Date('2026-01-02T00:00:00Z'),
+        user: existingUser,
+      } as any);
+      prisma.user.update.mockResolvedValue({
+        ...existingUser,
+        firstName: basePayload.firstName,
+        lastName: basePayload.lastName,
+        profilePictureUrl: basePayload.picture,
+      });
+      prisma.avatar.findUnique.mockResolvedValue(null);
+
+      const result = await service.loginWithGoogle(basePayload);
+
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: existingUser.id },
+        data: {
+          firstName: basePayload.firstName,
+          lastName: basePayload.lastName,
+          profilePictureUrl: basePayload.picture,
+        },
+      });
+      expect(result.firstName).toBe(basePayload.firstName);
+      expect(result.lastName).toBe(basePayload.lastName);
+      expect(result.profilePictureUrl).toBe(basePayload.picture);
+    });
+
+    it('creates a new user and links google identity when email is new', async () => {
+      prisma.authIdentity.findUnique.mockResolvedValue(null);
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      const createdUser = {
+        id: 7,
+        firstName: basePayload.firstName,
+        lastName: basePayload.lastName,
+        email: basePayload.email,
+        profilePictureUrl: basePayload.picture,
+        globalRole: GlobalRole.pending,
+        isVerified: true,
+        createdAt: new Date('2026-01-01T00:00:00Z'),
+      };
+
+      const txMock = {
+        user: { create: jest.fn().mockResolvedValue(createdUser) },
+        authIdentity: { create: jest.fn().mockResolvedValue({ id: 1 }) },
+      };
+      prisma.$transaction.mockImplementation(async (cb: any) => cb(txMock));
+
+      prisma.avatar.findUnique.mockResolvedValue(null);
+
+      const result = await service.loginWithGoogle(basePayload);
+
+      expect(txMock.user.create).toHaveBeenCalledWith({
+        data: {
+          email: basePayload.email,
+          firstName: basePayload.firstName,
+          lastName: basePayload.lastName,
+          profilePictureUrl: basePayload.picture,
+          globalRole: GlobalRole.pending,
+          isVerified: true,
+        },
+      });
+      expect(txMock.authIdentity.create).toHaveBeenCalledWith({
+        data: {
+          userId: createdUser.id,
+          provider: AuthProvider.google,
+          providerUserId: basePayload.providerUserId,
+          email: basePayload.email,
+        },
+      });
+      expect(result.id).toBe(createdUser.id);
+    });
+
+    it('updates existing user matched by email and links google identity', async () => {
+      const existingUser = {
+        id: 10,
+        firstName: 'Prior',
+        lastName: 'Name',
+        email: basePayload.email,
+        profilePictureUrl: 'oldpic.png',
+        globalRole: GlobalRole.pending,
+        isVerified: false,
+        createdAt: new Date('2026-01-01T00:00:00Z'),
+      };
+
+      prisma.authIdentity.findUnique.mockResolvedValue(null);
+      prisma.user.findUnique.mockResolvedValue(existingUser);
+
+      const txMock = {
+        user: {
+          update: jest.fn().mockResolvedValue({
+            ...existingUser,
+            firstName: basePayload.firstName,
+            lastName: basePayload.lastName,
+            profilePictureUrl: basePayload.picture,
+          }),
+        },
+        authIdentity: { create: jest.fn().mockResolvedValue({ id: 1 }) },
+      };
+      prisma.$transaction.mockImplementation(async (cb: any) => cb(txMock));
+      prisma.avatar.findUnique.mockResolvedValue(null);
+
+      const result = await service.loginWithGoogle(basePayload);
+
+      expect(txMock.user.update).toHaveBeenCalledWith({
+        where: { id: existingUser.id },
+        data: {
+          firstName: basePayload.firstName,
+          lastName: basePayload.lastName,
+          profilePictureUrl: basePayload.picture,
+        },
+      });
+      expect(txMock.authIdentity.create).toHaveBeenCalledWith({
+        data: {
+          userId: existingUser.id,
+          provider: AuthProvider.google,
+          providerUserId: basePayload.providerUserId,
+          email: basePayload.email,
+        },
+      });
+      expect(result.profilePictureUrl).toBe(basePayload.picture);
+    });
+
+    it('throws UnauthorizedException when Google payload lacks email', async () => {
+      prisma.authIdentity.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.loginWithGoogle({
+          ...basePayload,
+          email: null,
+        }),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+    });
+  });
 });

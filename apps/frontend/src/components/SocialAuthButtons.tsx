@@ -1,8 +1,8 @@
-// Renders OAuth entry points so sign-in/up can delegate to external providers (Google, Microsoft, etc.).
+// Renders OAuth entry points so sign-in/up can delegate to external providers (Google).
 // Uses hosted brand assets to avoid bundling duplicates while matching official logos.
 import styles from './SocialAuthButtons.module.css';
 
-type Provider = 'google' | 'microsoft';
+type Provider = 'google';
 
 type SocialAuthButtonsProps = {
   context: 'login' | 'register';
@@ -13,11 +13,6 @@ const PROVIDERS: { key: Provider; label: string; icon: string }[] = [
     key: 'google',
     label: 'Sign in with Google',
     icon: 'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
-  },
-  {
-    key: 'microsoft',
-    label: 'Sign in with Microsoft',
-    icon: 'https://learn.microsoft.com/en-us/entra/identity-platform/media/howto-add-branding-in-apps/ms-symbollockup_mssymbol_19.svg',
   },
 ];
 

@@ -4,4 +4,3 @@ export const NAME_MAX_LENGTH = 40;
 export const NAME_REGEX = /^[A-Za-zÀ-ÖØ-öø-ÿ'\- ]+$/;
 export const NAME_REGEX_MESSAGE =
   'Name can only include letters, spaces, apostrophes, or hyphens';
-

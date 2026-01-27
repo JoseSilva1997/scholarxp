@@ -45,4 +45,3 @@ describe('CreateUserDto validation', () => {
     expect(lastNameError?.constraints).toBeDefined();
   });
 });
-

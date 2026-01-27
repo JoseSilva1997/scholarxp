@@ -49,8 +49,8 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
   return (
     <div className={styles.badge} aria-label={`${formatName(user)} profile`} ref={menuRef}>
       <div className={styles.meta}>
-        <div className={styles.name} title={formatName(user) || 'User'}>
-          {formatName(user) || 'User'}
+        <div className={styles.name} title={formatName(user) || ''}>
+          {formatName(user) || ''}
         </div>
         {isStudent && level !== undefined && exp ? (
           <div className={styles.progress}>
@@ -72,7 +72,16 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
         aria-expanded={isMenuOpen}
         aria-haspopup="menu"
       >
-        <img src={avatarSrc} alt="" className={styles.avatar} />
+        <img
+          src={avatarSrc}
+          alt=""
+          className={styles.avatar}
+          // Defensive fallback so any bad/expired remote image swaps to our bundled default.
+          onError={(event) => {
+            event.currentTarget.onerror = null;
+            event.currentTarget.src = defaultAvatar;
+          }}
+        />
       </button>
       {isMenuOpen ? (
         <div className={styles.menu} role="menu">

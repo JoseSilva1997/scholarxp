@@ -2,12 +2,14 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import session from 'express-session';
+import passport from 'passport';
 import { AppModule } from './app.module';
+import { FRONTEND_URL } from './constants';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const isProd = process.env.NODE_ENV === 'production';
-  const corsOrigin = process.env.CORS_ORIGIN ?? 'http://localhost:5173';
+  const corsOrigin = process.env.CORS_ORIGIN ?? FRONTEND_URL;
   const sessionSecret = process.env.SESSION_SECRET ?? 'dev-session-secret';
 
   app.useGlobalPipes(
@@ -34,6 +36,8 @@ async function bootstrap() {
       },
     }),
   );
+  // Initialize Passport for OAuth strategies; session is handled manually via req.session.
+  app.use(passport.initialize());
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('ScholarXP API')

@@ -18,6 +18,7 @@ describe('AuthController', () => {
     registerByEmail: jest.Mock;
     login: jest.Mock;
     getUserById: jest.Mock;
+    loginWithGoogle: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -25,6 +26,7 @@ describe('AuthController', () => {
       registerByEmail: jest.fn(),
       login: jest.fn(),
       getUserById: jest.fn(),
+      loginWithGoogle: jest.fn(),
     };
 
     const moduleRef: TestingModule = await Test.createTestingModule({
@@ -106,5 +108,39 @@ describe('AuthController', () => {
 
     expect(service.getUserById).toHaveBeenCalledWith(mockUser.id);
     expect(result).toEqual({ user: mockUser });
+  });
+
+  describe('google OAuth flow', () => {
+    it('googleAuth returns ok (guard handles redirect)', async () => {
+      const result = await controller.googleAuth();
+      expect(result).toEqual({ ok: true });
+    });
+
+    it('googleCallback logs in user, sets session, and redirects', async () => {
+      const req: any = {
+        user: {
+          providerUserId: 'google-123',
+          email: 'jane@example.com',
+          firstName: 'Jane',
+          lastName: 'Doe',
+          picture: 'https://example.com/pic.jpg',
+        },
+        session: {},
+      };
+      const res: any = { redirect: jest.fn() };
+      const redirectTarget = 'http://frontend.local';
+      const originalCors = process.env.CORS_ORIGIN;
+      process.env.CORS_ORIGIN = redirectTarget;
+
+      service.loginWithGoogle.mockResolvedValue(mockUser);
+
+      await controller.googleCallback(req, res);
+
+      expect(service.loginWithGoogle).toHaveBeenCalledWith(req.user);
+      expect(req.session.userId).toBe(mockUser.id);
+      expect(res.redirect).toHaveBeenCalledWith(redirectTarget);
+
+      process.env.CORS_ORIGIN = originalCors;
+    });
   });
 });

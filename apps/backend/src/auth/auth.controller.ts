@@ -1,8 +1,18 @@
-import { Body, Controller, Get, Post, Req } from '@nestjs/common';
-import type { Request } from 'express';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { AuthGuard } from '@nestjs/passport';
+import { FRONTEND_URL } from '../constants';
 
 @Controller('auth')
 export class AuthController {
@@ -44,5 +54,31 @@ export class AuthController {
     }
     const user = await this.authService.getUserById(userId);
     return { user };
+  }
+
+  @Get('oauth/google')
+  @UseGuards(AuthGuard('google'))
+  // Entry point: Passport redirects to Google; logic handled by strategy.
+  async googleAuth() {
+    return { ok: true };
+  }
+
+  @Get('oauth/google/callback')
+  @UseGuards(AuthGuard('google'))
+  async googleCallback(@Req() req: Request, @Res() res: Response) {
+    const profile = req.user as {
+      providerUserId: string;
+      email: string | null;
+      firstName: string;
+      lastName: string;
+      picture?: string;
+    };
+
+    const user = await this.authService.loginWithGoogle(profile);
+    req.session.userId = user.id;
+
+    // Frontend listens for session cookie; redirect back to app root so it can call /auth/me.
+    const redirectTarget = process.env.CORS_ORIGIN ?? FRONTEND_URL;
+    res.redirect(redirectTarget);
   }
 }

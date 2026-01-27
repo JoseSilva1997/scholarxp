@@ -6,7 +6,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import { AuthProvider, GlobalRole } from '@prisma/client';
+import { AuthProvider, GlobalRole, Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 export type AuthUser = {
@@ -22,6 +22,16 @@ export type AuthUser = {
     level: number;
     currentExp: number;
   } | null;
+};
+
+type UserRecord = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  profilePictureUrl?: string | null;
+  globalRole: GlobalRole | string;
+  isVerified?: boolean;
 };
 
 @Injectable()
@@ -92,6 +102,167 @@ export class AuthService {
     return this.toAuthUser(user, avatar);
   }
 
+  async loginWithGoogle(payload: {
+    providerUserId: string;
+    email: string | null;
+    firstName: string;
+    lastName: string;
+    picture?: string;
+  }) {
+    const email = payload.email?.trim().toLowerCase() ?? null;
+    const profilePictureUrl = payload.picture ?? 'default-profile-pic.png';
+
+    // Check if this Google account is already linked; if so, just refresh the profile and return.
+    const existingIdentity = await this.findGoogleIdentity(
+      payload.providerUserId,
+    );
+    if (existingIdentity) {
+      const refreshed = await this.refreshUserFromGoogle(
+        existingIdentity.user,
+        {
+          email,
+          firstName: payload.firstName,
+          lastName: payload.lastName,
+          profilePictureUrl,
+        },
+      );
+      const avatar = await this.loadAvatarIfStudent(refreshed);
+      return this.toAuthUser(refreshed, avatar);
+    }
+
+    // We cannot create/link without an email from Google (rare but possible).
+    if (!email) {
+      throw new UnauthorizedException('Google account has no email');
+    }
+
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email },
+    });
+    const user = await this.linkOrCreateUserForGoogle(existingUser, {
+      email,
+      providerUserId: payload.providerUserId,
+      firstName: payload.firstName,
+      lastName: payload.lastName,
+      profilePictureUrl,
+    });
+
+    const avatar = await this.loadAvatarIfStudent(user);
+    return this.toAuthUser(user, avatar);
+  }
+
+  // Looks up a Google auth identity (with its user) so we can short-circuit on returning users.
+  private findGoogleIdentity(providerUserId: string) {
+    return this.prisma.authIdentity.findUnique({
+      where: {
+        provider_providerUserId: {
+          provider: AuthProvider.google,
+          providerUserId,
+        },
+      },
+      include: { user: true },
+    }) as Promise<{ user: UserRecord } | null>;
+  }
+
+  // Refreshes stored profile fields from Google every login without clobbering with empty values.
+  private async refreshUserFromGoogle(
+    user: UserRecord,
+    incoming: {
+      email: string | null;
+      firstName: string;
+      lastName: string;
+      profilePictureUrl: string;
+    },
+  ) {
+    const updates = this.buildGoogleProfileUpdates(user, incoming);
+    if (Object.keys(updates).length === 0) {
+      return user;
+    }
+    return this.prisma.user.update({ where: { id: user.id }, data: updates });
+  }
+
+  // Matches by email when possible, otherwise creates a new user and records the Google identity.
+  private async linkOrCreateUserForGoogle(
+    existingUser: UserRecord | null,
+    incoming: {
+      email: string;
+      providerUserId: string;
+      firstName: string;
+      lastName: string;
+      profilePictureUrl: string;
+    },
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      // Keep existing users fresh; otherwise create a new one with Google defaults.
+      const userRecord = existingUser
+        ? await tx.user.update({
+            where: { id: existingUser.id },
+            data: this.buildGoogleProfileUpdates(existingUser, incoming),
+          })
+        : await tx.user.create({
+            data: {
+              email: incoming.email,
+              firstName: incoming.firstName || '',
+              lastName: incoming.lastName || '',
+              profilePictureUrl: incoming.profilePictureUrl,
+              globalRole: GlobalRole.pending,
+              isVerified: true,
+            },
+          });
+
+      // Ensure there is a Google auth identity linked to the user for next logins.
+      await tx.authIdentity.create({
+        data: {
+          userId: userRecord.id,
+          provider: AuthProvider.google,
+          providerUserId: incoming.providerUserId,
+          email: incoming.email,
+        },
+      });
+
+      return userRecord;
+    });
+  }
+
+  // Determine which user fields should be refreshed from Google on every login while
+  // avoiding overwriting existing data with empty values.
+  private buildGoogleProfileUpdates(
+    user: {
+      id: number;
+      firstName: string;
+      lastName: string;
+      email: string | null;
+      profilePictureUrl?: string | null;
+    },
+    incoming: {
+      email: string | null;
+      firstName: string;
+      lastName: string;
+      profilePictureUrl: string;
+    },
+  ): Prisma.UserUpdateInput {
+    const updates: Prisma.UserUpdateInput = {};
+
+    if (incoming.firstName && incoming.firstName !== user.firstName) {
+      updates.firstName = incoming.firstName;
+    }
+    if (incoming.lastName && incoming.lastName !== user.lastName) {
+      updates.lastName = incoming.lastName;
+    }
+    if (
+      incoming.profilePictureUrl &&
+      incoming.profilePictureUrl !== user.profilePictureUrl
+    ) {
+      updates.profilePictureUrl = incoming.profilePictureUrl;
+    }
+    if (!user.email && incoming.email) {
+      updates.email = incoming.email;
+    }
+
+    return updates;
+  }
+
+  
+  // Retrieve user by ID and avatar if student
   async getUserById(id: number) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) {
@@ -114,6 +285,7 @@ export class AuthService {
     });
   }
 
+  // It is much easier to create a payload which contains Avatar info directly.
   private toAuthUser(
     user: {
       id: number;

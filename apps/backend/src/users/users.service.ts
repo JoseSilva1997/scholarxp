@@ -37,7 +37,8 @@ export class UsersService {
   async updateRole(id: number, role: GlobalRole) {
     const existingUser = await this.getUserOrThrow(id);
     const shouldCreateAvatar =
-      role === GlobalRole.student && existingUser.globalRole !== GlobalRole.student;
+      role === GlobalRole.student &&
+      existingUser.globalRole !== GlobalRole.student;
 
     return this.prisma.$transaction(async (tx) => {
       const updatedUser = await tx.user.update({
