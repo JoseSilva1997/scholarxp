@@ -8,7 +8,7 @@
 .authLayout {
   display: grid;
   grid-template-columns: 1.05fr 1fr;
-  gap: 24px;
+  gap: 16px;
   align-items: stretch;
   min-height: 100%;
 }
@@ -30,43 +30,47 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  padding: 28px;
+  padding: 16px;
   box-shadow: var(--shadow-lg);
 }
 
 .title {
   margin: 0 0 4px;
   font-family: var(--font-display);
+  font-size: 1.3rem;
 }
 
 .subtitle {
-  margin: 0 0 20px;
+  margin: 0 0 12px;
   color: var(--color-muted);
   line-height: 1.5;
+  font-size: 0.95rem;
 }
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 
 .field {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  font-size: 0.8rem;
 }
 
 .label {
   font-weight: 600;
   color: var(--color-text);
+  font-size: 0.9rem;
 }
 
 .input {
   border: 1px solid var(--color-border);
   border-radius: 10px;
-  padding: 12px 14px;
-  font-size: 1rem;
+  padding: 9px 11px;
+  font-size: 0.8rem;
   font-family: var(--font-sans);
   background: #f8fafc;
 }
@@ -89,9 +93,10 @@
   color: #dc2626;
   background: rgba(220, 38, 38, 0.08);
   border: 1px solid rgba(220, 38, 38, 0.3);
-  padding: 10px 12px;
+  padding: 8px 10px;
   border-radius: 10px;
   font-weight: 600;
+  font-size: 0.95rem;
 }
 
 .inlineHelper {
@@ -99,24 +104,31 @@
   gap: 6px;
   align-items: center;
   color: var(--color-muted);
+  font-size: 0.85rem;
 }
 
 .helperLink {
   color: var(--color-accent-primary);
   font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.form + .section {
+  margin-top: 12px;
 }
 
 .primaryBtn {
   border: none;
   background: var(--btn-primary-gradient);
   color: #0d2619;
-  min-width: 100px;
-  padding: 12px 18px;
+  min-width: 86px;
+  padding: 9px 12px;
   font-weight: 700;
   border-radius: 12px;
   cursor: pointer;
   box-shadow: var(--btn-primary-shadow);
   transition: transform 120ms ease, box-shadow 120ms ease;
+  font-size: 0.85rem;
 }
 
 .primaryBtn:hover {
@@ -128,12 +140,13 @@
   border: 1px solid var(--color-border);
   background: var(--color-surface-alt);
   color: var(--color-text);
-  padding: 12px 18px;
+  padding: 9px 12px;
   font-weight: 700;
   border-radius: 12px;
   cursor: pointer;
   transition: transform 120ms ease, box-shadow 120ms ease;
   box-shadow: var(--shadow-sm);
+  font-size: 0.95rem;
 }
 
 .secondaryBtn:hover {
@@ -157,7 +170,7 @@
 }
 
 .helperCard {
-  padding: 18px;
+  padding: 12px;
   border: 1px dashed var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface-alt);
@@ -172,9 +185,9 @@
 
 .cardColumn {
   display: grid;
-  gap: 18px;
+  gap: 12px;
   align-content: center;
-  max-width: 520px;
+  max-width: 400px;
   width: 100%;
   margin: 0 auto;
 }
@@ -183,24 +196,25 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  padding: 22px;
+  padding: 14px;
   box-shadow: var(--shadow-lg);
 }
 
 .roleTitle {
   margin: 0 0 6px;
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-family: var(--font-display);
 }
 
 .roleSubtitle {
-  margin: 0 0 14px;
+  margin: 0 0 12px;
   color: var(--color-muted);
+  font-size: 0.95rem;
 }
 
 .roleButtons {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 @media (max-width: 640px) {

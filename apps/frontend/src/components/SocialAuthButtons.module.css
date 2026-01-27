@@ -1,0 +1,74 @@
+.section {
+  display: grid;
+  gap: 8px;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-muted);
+  font-weight: 600;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+.buttons {
+  display: grid;
+  gap: 6px;
+}
+
+.oauthBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: 1px solid #dadce0; /* Google branding spec recommends a light border */
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 8px 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+  box-shadow: var(--shadow-sm);
+  color: #202124;
+  font-size: 0.95rem;
+}
+
+.oauthBtn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.oauthBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 8px;
+  background: #fff;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.helper {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.95rem;
+}

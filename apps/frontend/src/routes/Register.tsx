@@ -2,6 +2,7 @@ import type { ChangeEvent, FormEvent } from 'react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ApiError, registerByEmail } from '../api/auth';
+import { SocialAuthButtons } from '../components/SocialAuthButtons';
 import styles from './Register.module.css';
 
 // Keep client-side validation aligned with backend rules so users see immediate feedback.
@@ -20,6 +21,30 @@ export default function Register() {
   const [error, setError] = useState<string | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showMeter, setShowMeter] = useState(false);
+  // Derive password strength feedback so users can fix issues before submission.
+  const passwordChecks = [
+    { label: 'At least 10 characters', pass: form.password.length >= 10 },
+    { label: 'Uppercase letter', pass: /[A-Z]/.test(form.password) },
+    { label: 'Lowercase letter', pass: /[a-z]/.test(form.password) },
+    { label: 'Number', pass: /\d/.test(form.password) },
+    {
+      label: 'Symbol (!@#$…)',
+      pass: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(form.password),
+    },
+  ];
+  const passedCount = passwordChecks.filter((item) => item.pass).length;
+  const strengthPercent = (passedCount / passwordChecks.length) * 100;
+  const strengthLabel =
+    passedCount <= 1
+      ? 'Very weak'
+      : passedCount === 2
+        ? 'Weak'
+        : passedCount === 3
+          ? 'Okay'
+          : passedCount === 4
+            ? 'Strong'
+            : 'Excellent';
 
   function handleChange(event: ChangeEvent<HTMLInputElement>) {
     const { name, value } = event.target;
@@ -60,8 +85,15 @@ export default function Register() {
       issues.push('Enter a valid email address.');
     }
 
-    if (!form.password || form.password.length < 8) {
-      issues.push('Password must be at least 8 characters.');
+    if (!form.password || form.password.length < 10) {
+      issues.push('Password must be at least 10 characters.');
+    } else if (
+      !/(?=.*[a-z])/.test(form.password) ||
+      !/(?=.*[A-Z])/.test(form.password) ||
+      !/(?=.*\d)/.test(form.password) ||
+      !/(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?])/.test(form.password)
+    ) {
+      issues.push('Password must include uppercase, lowercase, number, and symbol characters.');
     }
 
     if (form.password !== form.confirmPassword) {
@@ -192,7 +224,9 @@ export default function Register() {
                     autoComplete="new-password"
                     value={form.password}
                     onChange={handleChange}
-                    minLength={8}
+                    onFocus={() => setShowMeter(true)}
+                    onBlur={() => setShowMeter(false)}
+                    minLength={10}
                     required
                   />
                 </div>
@@ -209,7 +243,9 @@ export default function Register() {
                     autoComplete="new-password"
                     value={form.confirmPassword}
                     onChange={handleChange}
-                    minLength={8}
+                    onFocus={() => setShowMeter(true)}
+                    onBlur={() => setShowMeter(false)}
+                    minLength={10}
                     required
                   />
                 </div>
@@ -244,6 +280,42 @@ export default function Register() {
               </div>
             </form>
           </section>
+
+          <SocialAuthButtons context="register" />
+
+          {showMeter ? (
+            <section className={styles.meterPanel} aria-live="polite">
+              <div className={styles.meterPanelHeader}>
+                <span>Password strength</span>
+                <strong>{strengthLabel}</strong>
+              </div>
+              <div
+                className={styles.meter}
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(strengthPercent)}
+              >
+                <div
+                  className={`${styles.meterFill} ${
+                    passedCount >= 4
+                      ? styles.meterStrong
+                      : passedCount >= 3
+                        ? styles.meterOkay
+                        : styles.meterWeak
+                  }`}
+                  style={{ width: `${strengthPercent}%` }}
+                />
+              </div>
+              <ul className={styles.requirements}>
+                {passwordChecks.map((item) => (
+                  <li key={item.label} className={item.pass ? styles.reqPass : styles.reqFail}>
+                    {item.label}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
 
           <aside className={styles.helper}>
             <div className={styles.helperCard}>

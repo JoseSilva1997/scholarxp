@@ -9,7 +9,7 @@ describe('RegisterDto validation', () => {
       firstName: 'Jane',
       lastName: 'Doe',
       email: '  Jane.Doe@Example.com  ',
-      password: 'password123',
+      password: 'Password123!',
     });
 
     const errors = await validate(dto);
@@ -49,5 +49,18 @@ describe('RegisterDto validation', () => {
 
     expect(passwordError?.constraints).toBeDefined();
   });
-});
 
+  it('rejects passwords without complexity', async () => {
+    const dto = plainToInstance(RegisterDto, {
+      firstName: 'Jane',
+      lastName: 'Doe',
+      email: 'jane@example.com',
+      password: 'alllowercase1', // missing uppercase and symbol
+    });
+
+    const errors = await validate(dto);
+    const passwordError = errors.find((e) => e.property === 'password');
+
+    expect(passwordError?.constraints).toBeDefined();
+  });
+});

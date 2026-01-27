@@ -8,7 +8,7 @@
 .authLayout {
   display: grid;
   grid-template-columns: 1.05fr 1fr;
-  gap: 24px;
+  gap: 16px;
   align-items: stretch;
   min-height: 100%;
 }
@@ -30,25 +30,27 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  padding: 28px;
+  padding: 16px;
   box-shadow: var(--shadow-lg);
 }
 
 .title {
   margin: 0 0 4px;
   font-family: var(--font-display);
+  font-size: 1.5rem;
 }
 
 .subtitle {
-  margin: 0 0 20px;
+  margin: 0 0 12px;
   color: var(--color-muted);
   line-height: 1.5;
+  font-size: 0.85rem;
 }
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 
 .field {
@@ -60,19 +62,20 @@
 .label {
   font-weight: 600;
   color: var(--color-text);
+  font-size: 0.9rem;
 }
 
 .row {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
 }
 
 .input {
   border: 1px solid var(--color-border);
   border-radius: 10px;
-  padding: 12px 14px;
-  font-size: 1rem;
+  padding: 10px 10px;
+  font-size: 0.8rem;
   font-family: var(--font-sans);
   background: #f8fafc;
 }
@@ -83,11 +86,96 @@
   background: #fff;
 }
 
+.meterRow {
+  margin-top: 8px;
+  display: grid;
+  gap: 6px;
+}
+
+.meterLabel {
+  font-size: 0.95rem;
+  color: var(--color-muted);
+}
+
+.meter {
+  position: relative;
+  height: 10px;
+  border-radius: 12px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.meterFill {
+  height: 100%;
+  width: 0%;
+  transition: width 160ms ease, background-color 160ms ease;
+}
+
+.meterWeak {
+  background: linear-gradient(90deg, #ef4444, #f97316);
+}
+
+.meterOkay {
+  background: linear-gradient(90deg, #f59e0b, #84cc16);
+}
+
+.meterStrong {
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+}
+
+.requirements {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+.reqPass {
+  color: #15803d;
+}
+
+.reqFail {
+  color: #b91c1c;
+}
+
+.meterPanel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 12px 14px;
+  box-shadow: var(--shadow-md);
+  display: grid;
+  gap: 10px;
+  animation: fadeIn 120ms ease;
+  font-size: 0.95rem;
+}
+
+.meterPanelHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--color-text);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  margin-top: 8px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
@@ -95,9 +183,10 @@
   color: #dc2626;
   background: rgba(220, 38, 38, 0.08);
   border: 1px solid rgba(220, 38, 38, 0.3);
-  padding: 10px 12px;
+  padding: 8px 10px;
   border-radius: 10px;
   font-weight: 600;
+  font-size: 0.95rem;
 }
 
 .errorTitle {
@@ -117,12 +206,13 @@
   border: none;
   background: var(--btn-primary-gradient);
   color: #0d2619;
-  padding: 12px 18px;
+  padding: 9px 12px;
   font-weight: 700;
   border-radius: 12px;
   cursor: pointer;
   box-shadow: var(--btn-primary-shadow);
   transition: transform 120ms ease, box-shadow 120ms ease;
+  font-size: 0.85rem;
 }
 
 .primaryBtn:hover {
@@ -146,10 +236,11 @@
 }
 
 .helperCard {
-  padding: 18px;
+  padding: 12px;
   border: 1px dashed var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface-alt);
+  font-size: 0.85rem;
 }
 
 .list {
@@ -161,9 +252,9 @@
 
 .cardColumn {
   display: grid;
-  gap: 18px;
+  gap: 14px;
   align-content: center;
-  max-width: 520px;
+  max-width: 400px;
   width: 100%;
   margin: 0 auto;
 }
@@ -171,6 +262,7 @@
 
 .inlineHelper {
   display: inline-flex;
+  font-size: 0.85rem;
   gap: 6px;
   align-items: center;
   color: var(--color-muted);
@@ -179,6 +271,10 @@
 .helperLink {
   color: var(--color-accent-primary);
   font-weight: 700;
+}
+
+.form + .section {
+  margin-top: 18px;
 }
 
 @media (max-width: 640px) {

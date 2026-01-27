@@ -11,6 +11,11 @@ import {
   NAME_REGEX,
   NAME_REGEX_MESSAGE,
 } from '../../validation/name.rules';
+import {
+  PASSWORD_COMPLEXITY_MESSAGE,
+  PASSWORD_COMPLEXITY_REGEX,
+  PASSWORD_MIN_LENGTH,
+} from '../../validation/password.rules';
 
 export class RegisterDto {
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
@@ -32,6 +37,9 @@ export class RegisterDto {
   email: string;
 
   @IsString()
-  @MinLength(8)
+  @MinLength(PASSWORD_MIN_LENGTH)
+  @Matches(PASSWORD_COMPLEXITY_REGEX, {
+    message: PASSWORD_COMPLEXITY_MESSAGE,
+  })
   password: string;
 }

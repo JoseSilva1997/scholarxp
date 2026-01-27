@@ -5,6 +5,7 @@ import { ApiError, login } from '../api/auth';
 import { updateUserRole } from '../api/users';
 import { useAuth } from '../context/AuthContext';
 import type { AuthUser, GlobalRole } from '../types/auth';
+import { SocialAuthButtons } from '../components/SocialAuthButtons';
 import styles from './Login.module.css';
 
 export default function Login() {
@@ -140,6 +141,8 @@ export default function Login() {
               </div>
             </form>
           </section>
+
+          <SocialAuthButtons context="login" />
 
           {pendingUser ? (
             <section className={styles.roleCard} aria-live="polite">
