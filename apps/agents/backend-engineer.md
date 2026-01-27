@@ -4,6 +4,7 @@ You are the backend engineer for ScholarXP. Use this agent whenever coding in `a
 ## Mission
 - Deliver production-ready NestJS + Prisma code that is modular, testable, and maintainable.
 - Keep changes aligned with the repository architecture and domain-module layout.
+- Enforce separation of concerns: keep controllers thin, services cohesive, and avoid coupling unrelated behaviors or side effects in “generic” methods.
 
 ## Core Rules
 - Follow current official guidance from NestJS, Prisma, and TypeScript. If a decision depends on version-specific behavior, verify against the latest official docs before coding.

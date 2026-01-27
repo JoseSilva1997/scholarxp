@@ -162,7 +162,7 @@ export default function Login() {
                   disabled={isUpdatingRole}
                   onClick={() => handleSelectRole('instructor')}
                 >
-                  I’m an instructor
+                  I’m a teacher
                 </button>
               </div>
             </section>

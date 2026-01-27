@@ -28,9 +28,9 @@
   --btn-primary-shadow-hover: 0 14px 30px rgba(76, 175, 80, 0.36);
 
   /* Layout */
-  --header-height: 80px;
-  --header-padding-block: 16px;
-  --footer-height: 80px;
+  --header-height: 70px;
+  --header-padding-block: 6px;
+  --footer-height: 60px;
   --footer-padding-block: 18px;
 
   font-family: var(--font-sans);
