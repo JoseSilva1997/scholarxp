@@ -111,8 +111,8 @@ describe('AuthController', () => {
   });
 
   describe('google OAuth flow', () => {
-    it('googleAuth returns ok (guard handles redirect)', async () => {
-      const result = await controller.googleAuth();
+    it('googleAuth returns ok (guard handles redirect)', () => {
+      const result = controller.googleAuth();
       expect(result).toEqual({ ok: true });
     });
 

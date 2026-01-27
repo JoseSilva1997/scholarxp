@@ -10,25 +10,30 @@ export class PrismaService
 {
   private pool: Pool;
 
+  /* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment */
   constructor() {
     const url = process.env.DATABASE_URL;
     if (!url) {
       throw new Error('DATABASE_URL is not set');
     }
 
-    const pool = new Pool({ connectionString: url });
-    const adapter = new PrismaPg(pool);
+    // Prisma's adapter constructors are typed with `unknown`, so we cast to the concrete types to satisfy eslint's safety checks.
+    const pool: Pool = new Pool({ connectionString: url });
+    const adapter: PrismaPg = new PrismaPg(pool);
     super({ adapter });
 
     this.pool = pool;
   }
+  /* eslint-enable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment */
 
   async onModuleInit() {
     await this.$connect();
   }
 
+  /* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
   async onModuleDestroy() {
     await this.$disconnect();
     await this.pool.end();
   }
+  /* eslint-enable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
 }

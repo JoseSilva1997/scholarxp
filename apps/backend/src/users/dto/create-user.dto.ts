@@ -1,5 +1,5 @@
 import { GlobalRole } from '@prisma/client';
-import { Transform } from 'class-transformer';
+import { Transform, TransformFnParams } from 'class-transformer';
 import {
   IsEmail,
   IsEnum,
@@ -16,22 +16,26 @@ import {
 } from '../../validation/name.rules';
 
 export class CreateUserDto {
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @Transform(({ value }: TransformFnParams) =>
+    typeof value === 'string' ? value.trim() : (value as unknown),
+  )
   @IsString()
   @IsNotEmpty()
   @MaxLength(NAME_MAX_LENGTH)
   @Matches(NAME_REGEX, { message: NAME_REGEX_MESSAGE })
   firstName: string;
 
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @Transform(({ value }: TransformFnParams) =>
+    typeof value === 'string' ? value.trim() : (value as unknown),
+  )
   @IsString()
   @IsNotEmpty()
   @MaxLength(NAME_MAX_LENGTH)
   @Matches(NAME_REGEX, { message: NAME_REGEX_MESSAGE })
   lastName: string;
 
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.trim().toLowerCase() : value,
+  @Transform(({ value }: TransformFnParams) =>
+    typeof value === 'string' ? value.trim().toLowerCase() : (value as unknown),
   )
   @IsEmail()
   @IsOptional()

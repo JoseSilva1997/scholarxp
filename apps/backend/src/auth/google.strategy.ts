@@ -20,19 +20,18 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   }
 
   // We keep the verify step tiny; actual user handling lives in AuthService.loginWithGoogle.
-  async validate(
+  validate(
     req: Request,
     _accessToken: string,
     _refreshToken: string,
     profile: Profile,
     done: VerifyCallback,
-  ): Promise<void> {
+  ): void {
     const intent = (req.query.intent as string | undefined) ?? 'login';
     const email = profile.emails?.[0]?.value?.toLowerCase() ?? null;
     const firstName = profile.name?.givenName ?? '';
     const lastName = profile.name?.familyName ?? '';
     const picture = profile.photos?.[0]?.value ?? undefined;
-
     done(null, {
       provider: 'google',
       providerUserId: profile.id,

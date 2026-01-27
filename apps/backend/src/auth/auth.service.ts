@@ -15,7 +15,7 @@ export type AuthUser = {
   lastName: string;
   email: string | null;
   profilePictureUrl: string;
-  globalRole: GlobalRole | string;
+  globalRole: GlobalRole;
   isVerified: boolean;
   avatar?: {
     id: number;
@@ -30,7 +30,7 @@ type UserRecord = {
   lastName: string;
   email: string | null;
   profilePictureUrl?: string | null;
-  globalRole: GlobalRole | string;
+  globalRole: GlobalRole;
   isVerified?: boolean;
 };
 
@@ -261,7 +261,6 @@ export class AuthService {
     return updates;
   }
 
-  
   // Retrieve user by ID and avatar if student
   async getUserById(id: number) {
     const user = await this.prisma.user.findUnique({ where: { id } });
@@ -274,7 +273,7 @@ export class AuthService {
 
   private async loadAvatarIfStudent(user: {
     id: number;
-    globalRole: GlobalRole | string;
+    globalRole: GlobalRole;
   }) {
     if (user.globalRole !== GlobalRole.student) {
       return null;
@@ -293,7 +292,7 @@ export class AuthService {
       lastName: string;
       email: string | null;
       profilePictureUrl?: string | null;
-      globalRole: GlobalRole | string;
+      globalRole: GlobalRole;
       isVerified?: boolean;
     },
     avatar?: { id: number; level: number; currentExp: number } | null,

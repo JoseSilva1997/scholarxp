@@ -37,7 +37,7 @@ export class AuthController {
     await new Promise<void>((resolve, reject) => {
       req.session.destroy((err) => {
         if (err) {
-          reject(err);
+          reject(err instanceof Error ? err : new Error(String(err)));
           return;
         }
         resolve();
@@ -59,7 +59,7 @@ export class AuthController {
   @Get('oauth/google')
   @UseGuards(AuthGuard('google'))
   // Entry point: Passport redirects to Google; logic handled by strategy.
-  async googleAuth() {
+  googleAuth() {
     return { ok: true };
   }
 
