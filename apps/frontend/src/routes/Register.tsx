@@ -1,8 +1,12 @@
-import type { ChangeEvent, FormEvent} from 'react' 
+import type { ChangeEvent, FormEvent } from 'react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ApiError, registerByEmail } from '../api/auth';
 import styles from './Register.module.css';
+
+// Keep client-side validation aligned with backend rules so users see immediate feedback.
+const NAME_REGEX = /^[A-Za-zÀ-ÖØ-öø-ÿ'\- ]+$/;
+const NAME_MAX_LENGTH = 40;
 
 export default function Register() {
   const navigate = useNavigate();
@@ -14,6 +18,7 @@ export default function Register() {
     confirmPassword: '',
   });
   const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   function handleChange(event: ChangeEvent<HTMLInputElement>) {
@@ -21,12 +26,59 @@ export default function Register() {
     setForm((prev) => ({ ...prev, [name]: value }));
   }
 
+  function validateForm() {
+    const issues: string[] = [];
+    const trimmedFirst = form.firstName.trim();
+    const trimmedLast = form.lastName.trim();
+    const trimmedEmail = form.email.trim();
+
+    if (!trimmedFirst) {
+      issues.push('First name is required.');
+    } else {
+      if (trimmedFirst.length > NAME_MAX_LENGTH) {
+        issues.push(`First name must be at most ${NAME_MAX_LENGTH} characters.`);
+      }
+      if (!NAME_REGEX.test(trimmedFirst)) {
+        issues.push('First name can only include letters, spaces, apostrophes, or hyphens.');
+      }
+    }
+
+    if (!trimmedLast) {
+      issues.push('Last name is required.');
+    } else {
+      if (trimmedLast.length > NAME_MAX_LENGTH) {
+        issues.push(`Last name must be at most ${NAME_MAX_LENGTH} characters.`);
+      }
+      if (!NAME_REGEX.test(trimmedLast)) {
+        issues.push('Last name can only include letters, spaces, apostrophes, or hyphens.');
+      }
+    }
+
+    if (!trimmedEmail) {
+      issues.push('Email is required.');
+    } else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(trimmedEmail)) {
+      issues.push('Enter a valid email address.');
+    }
+
+    if (!form.password || form.password.length < 8) {
+      issues.push('Password must be at least 8 characters.');
+    }
+
+    if (form.password !== form.confirmPassword) {
+      issues.push('Passwords do not match.');
+    }
+
+    return issues;
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
+    setErrors([]);
 
-    if (form.password !== form.confirmPassword) {
-      setError('Passwords do not match.');
+    const validationIssues = validateForm();
+    if (validationIssues.length) {
+      setErrors(validationIssues);
       return;
     }
 
@@ -35,13 +87,24 @@ export default function Register() {
       await registerByEmail({
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
-        email: form.email.trim(),
+        email: form.email.trim().toLowerCase(),
         password: form.password,
       });
       navigate('/');
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(err.message || 'Unable to create your account right now.');
+        const data = err.data as { message?: unknown };
+        const serverMessages =
+          data && Array.isArray(data.message)
+            ? data.message.map(String)
+            : data && typeof data.message === 'string'
+              ? [data.message]
+              : [];
+        if (serverMessages.length) {
+          setErrors(serverMessages);
+        } else {
+          setError(err.message || 'Unable to create your account right now.');
+        }
       } else {
         setError('Something went wrong. Please try again.');
       }
@@ -152,7 +215,21 @@ export default function Register() {
                 </div>
               </div>
 
-              {error ? <div className={styles.error}>{error}</div> : null}
+              {errors.length > 0 ? (
+                <div className={styles.error} role="alert">
+                  <p className={styles.errorTitle}>Please fix the following:</p>
+                  <ul className={styles.errorList}>
+                    {errors.map((msg) => (
+                      <li key={msg}>{msg}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              {error ? (
+                <div className={styles.error} role="alert">
+                  {error}
+                </div>
+              ) : null}
 
               <div className={styles.actions}>
                 <button className={styles.primaryBtn} type="submit" disabled={isSubmitting}>

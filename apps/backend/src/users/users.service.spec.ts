@@ -79,6 +79,19 @@ describe('UsersService', () => {
       expect(prisma.avatar.create).not.toHaveBeenCalled();
       expect(result).toEqual({ ...baseUser, ...updateDto });
     });
+
+    it('passes nullable email as null to keep Prisma consistent', async () => {
+      prisma.user.findUnique.mockResolvedValue(baseUser);
+      prisma.user.update.mockResolvedValue({ ...baseUser, email: null });
+
+      const result = await service.update(baseUser.id, { email: undefined });
+
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: baseUser.id },
+        data: { email: undefined },
+      });
+      expect(result.email).toBeNull();
+    });
   });
 
   describe('updateRole', () => {

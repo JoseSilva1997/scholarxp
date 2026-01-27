@@ -33,11 +33,15 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
 
   const contentType = response.headers.get('content-type');
   const isJson = contentType?.includes('application/json');
-  const data = isJson ? await response.json() : await response.text();
+  const data: unknown = isJson ? await response.json() : await response.text();
 
   if (!response.ok) {
+    const extracted =
+      isJson && typeof data === 'object' && data && 'message' in data
+        ? (data as { message: unknown }).message
+        : undefined;
     const message =
-      (isJson && typeof data === 'object' && data && 'message' in data && (data as any).message) ||
+      (Array.isArray(extracted) ? extracted.join(', ') : extracted) ||
       response.statusText ||
       'Request failed';
     throw new ApiError(String(message), response.status, data);

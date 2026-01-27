@@ -8,8 +8,14 @@ import { PrismaService } from '../prisma/prisma.service';
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
+  // Creation uses DTO-level transformations (trim, normalize) and keeps validation rules centralized.
   create(createUserDto: CreateUserDto) {
-    return this.prisma.user.create({ data: createUserDto });
+    return this.prisma.user.create({
+      data: {
+        ...createUserDto,
+        email: createUserDto.email ?? null,
+      },
+    });
   }
 
   findAll() {

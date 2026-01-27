@@ -100,6 +100,19 @@
   font-weight: 600;
 }
 
+.errorTitle {
+  margin: 0 0 6px;
+  font-size: 0.95rem;
+}
+
+.errorList {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  font-weight: 500;
+}
+
 .primaryBtn {
   border: none;
   background: var(--btn-primary-gradient);
