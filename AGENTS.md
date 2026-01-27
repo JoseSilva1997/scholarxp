@@ -15,6 +15,8 @@ ScholarXP is an LMS-launched study companion that helps students practice course
 - Load the frontend-engineer agent at `apps/agents/frontend-engineer.md` when making changes to the frontend.
 - Load the backend-engineer agent at `apps/agents/backend-engineer.md` when making changes to the backend.
 - Whenever creating a new file, add a description of what its role is at the top
+- Add comments! Comments must explain why it is coded that way and offer a very brief description of what is being done.
+- Once a change is made, you must explain what you did and why. I am still learning to work with this stack.
 
 ## Project Structure & Module Organization
 - Backend source: `apps/backend/src` (feature modules like `users`, `module-unit`, `question-*`).

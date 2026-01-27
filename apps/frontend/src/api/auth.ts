@@ -27,4 +27,16 @@ export async function login(payload: LoginPayload): Promise<AuthResponse> {
   });
 }
 
+export async function getCurrentUser(): Promise<AuthResponse> {
+  return apiFetch<AuthResponse>('/auth/me', {
+    method: 'GET',
+  });
+}
+
+export async function logout(): Promise<{ ok: boolean }> {
+  return apiFetch<{ ok: boolean }>('/auth/logout', {
+    method: 'POST',
+  });
+}
+
 export { ApiError };

@@ -85,6 +85,15 @@
   flex-wrap: wrap;
 }
 
+.error {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.08);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
 .inlineHelper {
   display: inline-flex;
   gap: 6px;
@@ -113,6 +122,23 @@
 .primaryBtn:hover {
   transform: translateY(-1px);
   box-shadow: var(--btn-primary-shadow-hover);
+}
+
+.secondaryBtn {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  padding: 12px 18px;
+  font-weight: 700;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.secondaryBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .linkBtn {
@@ -151,6 +177,30 @@
   max-width: 520px;
   width: 100%;
   margin: 0 auto;
+}
+
+.roleCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  box-shadow: var(--shadow-lg);
+}
+
+.roleTitle {
+  margin: 0 0 6px;
+  font-size: 1.1rem;
+  font-family: var(--font-display);
+}
+
+.roleSubtitle {
+  margin: 0 0 14px;
+  color: var(--color-muted);
+}
+
+.roleButtons {
+  display: grid;
+  gap: 10px;
 }
 
 @media (max-width: 640px) {
