@@ -2,9 +2,7 @@ import type { ChangeEvent, FormEvent } from 'react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ApiError, login } from '../api/auth';
-import { updateUserRole } from '../api/users';
 import { useAuth } from '../context/AuthContext';
-import type { AuthUser, GlobalRole } from '../types/auth';
 import { SocialAuthButtons } from '../components/SocialAuthButtons';
 import styles from './Login.module.css';
 
@@ -14,8 +12,6 @@ export default function Login() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [pendingUser, setPendingUser] = useState<AuthUser | null>(null);
-  const [isUpdatingRole, setIsUpdatingRole] = useState(false);
 
   function handleChange(event: ChangeEvent<HTMLInputElement>) {
     const { name, value } = event.target;
@@ -25,7 +21,6 @@ export default function Login() {
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
-    setPendingUser(null);
     setIsSubmitting(true);
 
     try {
@@ -44,11 +39,6 @@ export default function Login() {
         return;
       }
 
-      if (user.globalRole === 'pending') {
-        setPendingUser(user);
-        return;
-      }
-
       setUser(user);
       navigate('/main', { replace: true });
     } catch (err) {
@@ -59,25 +49,6 @@ export default function Login() {
       }
     } finally {
       setIsSubmitting(false);
-    }
-  }
-
-  async function handleSelectRole(role: Exclude<GlobalRole, 'pending'>) {
-    if (!pendingUser) return;
-    setError(null);
-    setIsUpdatingRole(true);
-    try {
-      const updatedUser = await updateUserRole(pendingUser.id, role);
-      setUser(updatedUser);
-      navigate('/main', { replace: true });
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message || 'Unable to update your role right now.');
-      } else {
-        setError('Something went wrong. Please try again.');
-      }
-    } finally {
-      setIsUpdatingRole(false);
     }
   }
 
@@ -143,33 +114,6 @@ export default function Login() {
           </section>
 
           <SocialAuthButtons context="login" />
-
-          {pendingUser ? (
-            <section className={styles.roleCard} aria-live="polite">
-              <h2 className={styles.roleTitle}>Choose your role to continue</h2>
-              <p className={styles.roleSubtitle}>
-                Tell us how you use ScholarXP so we can tailor your experience.
-              </p>
-              <div className={styles.roleButtons}>
-                <button
-                  type="button"
-                  className={styles.secondaryBtn}
-                  disabled={isUpdatingRole}
-                  onClick={() => handleSelectRole('student')}
-                >
-                  I’m a student
-                </button>
-                <button
-                  type="button"
-                  className={styles.secondaryBtn}
-                  disabled={isUpdatingRole}
-                  onClick={() => handleSelectRole('instructor')}
-                >
-                  I’m a teacher
-                </button>
-              </div>
-            </section>
-          ) : null}
         </div>
       </div>
     </div>

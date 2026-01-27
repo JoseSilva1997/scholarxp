@@ -1,0 +1,69 @@
+// RoleSelectorOverlay blocks the app until a newly verified user chooses a role, ensuring
+// we collect their context before loading the main experience or rendering header identity.
+import { useState } from 'react';
+import type { AuthUser, GlobalRole } from '../types/auth';
+import { updateUserRole } from '../api/users';
+import styles from './RoleSelectorOverlay.module.css';
+
+type RoleSelectorOverlayProps = {
+  user: AuthUser;
+  onRoleSelected: (user: AuthUser) => void;
+};
+
+export default function RoleSelectorOverlay({ user, onRoleSelected }: RoleSelectorOverlayProps) {
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSelect(role: Exclude<GlobalRole, 'pending'>) {
+    // Keep selection idempotent while an update is in flight to avoid double PATCH.
+    if (isSaving) return;
+    setIsSaving(true);
+    setError(null);
+    try {
+      const updatedUser = await updateUserRole(user.id, role);
+      onRoleSelected(updatedUser);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to update your role right now.');
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  return (
+    <div className={styles.backdrop} role="dialog" aria-modal="true" aria-labelledby="role-title">
+      <div className={styles.card}>
+        <p className={styles.pill}>Welcome, {user.firstName}</p>
+        <h2 id="role-title" className={styles.title}>
+          Choose your role to continue
+        </h2>
+        <p className={styles.subtitle}>
+          Pick 
+          the role that best matches how you will use ScholarXP.
+        </p>
+        <div className={styles.actions}>
+          <button
+            type="button"
+            className={styles.buttonPrimary}
+            disabled={isSaving}
+            onClick={() => handleSelect('student')}
+          >
+            {isSaving ? 'Saving…' : 'I’m a student'}
+          </button>
+          <button
+            type="button"
+            className={styles.buttonPrimary}
+            disabled={isSaving}
+            onClick={() => handleSelect('instructor')}
+          >
+            {isSaving ? 'Saving…' : 'I’m a teacher'}
+          </button>
+        </div>
+        {error ? (
+          <div className={styles.error} role="alert">
+            {error}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
