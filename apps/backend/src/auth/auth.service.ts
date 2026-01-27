@@ -17,6 +17,11 @@ export type AuthUser = {
   profilePictureUrl: string;
   globalRole: GlobalRole | string;
   isVerified: boolean;
+  avatar?: {
+    id: number;
+    level: number;
+    currentExp: number;
+  } | null;
 };
 
 @Injectable()
@@ -83,7 +88,8 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    return this.toAuthUser(user);
+    const avatar = await this.loadAvatarIfStudent(user);
+    return this.toAuthUser(user, avatar);
   }
 
   async getUserById(id: number) {
@@ -91,18 +97,35 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException('Session invalid');
     }
-    return this.toAuthUser(user);
+    const avatar = await this.loadAvatarIfStudent(user);
+    return this.toAuthUser(user, avatar);
   }
 
-  private toAuthUser(user: {
+  private async loadAvatarIfStudent(user: {
     id: number;
-    firstName: string;
-    lastName: string;
-    email: string | null;
-    profilePictureUrl?: string | null;
     globalRole: GlobalRole | string;
-    isVerified?: boolean;
-  }): AuthUser {
+  }) {
+    if (user.globalRole !== GlobalRole.student) {
+      return null;
+    }
+    return this.prisma.avatar.findUnique({
+      where: { userId: user.id },
+      select: { id: true, level: true, currentExp: true },
+    });
+  }
+
+  private toAuthUser(
+    user: {
+      id: number;
+      firstName: string;
+      lastName: string;
+      email: string | null;
+      profilePictureUrl?: string | null;
+      globalRole: GlobalRole | string;
+      isVerified?: boolean;
+    },
+    avatar?: { id: number; level: number; currentExp: number } | null,
+  ): AuthUser {
     return {
       id: user.id,
       firstName: user.firstName,
@@ -111,6 +134,7 @@ export class AuthService {
       profilePictureUrl: user.profilePictureUrl ?? 'default-profile-pic.png',
       globalRole: user.globalRole,
       isVerified: user.isVerified ?? false,
+      avatar: avatar ?? null,
     };
   }
 }

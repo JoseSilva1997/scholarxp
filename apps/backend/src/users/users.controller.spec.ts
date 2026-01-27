@@ -3,6 +3,7 @@ import { GlobalRole } from '@prisma/client';
 import { BadRequestException } from '@nestjs/common';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
+import { AuthService } from '../auth/auth.service';
 
 // Verifies that role updates use the dedicated endpoint while profile edits stay side-effect free.
 describe('UsersController', () => {
@@ -15,11 +16,17 @@ describe('UsersController', () => {
     updateRole: jest.fn(),
     remove: jest.fn(),
   };
+  const authService = {
+    getUserById: jest.fn(),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UsersController],
-      providers: [{ provide: UsersService, useValue: service }],
+      providers: [
+        { provide: UsersService, useValue: service },
+        { provide: AuthService, useValue: authService },
+      ],
     }).compile();
 
     controller = module.get(UsersController);
@@ -27,14 +34,16 @@ describe('UsersController', () => {
   });
 
   it('forwards role updates to updateRole via /:id/role', async () => {
-    const response = { id: 1, globalRole: GlobalRole.student };
-    service.updateRole.mockResolvedValue(response);
+    const response = { id: 1, globalRole: GlobalRole.student, avatar: null };
+    service.updateRole.mockResolvedValue({ id: 1 });
+    authService.getUserById.mockResolvedValue(response);
 
     const result = await controller.updateRole('1', {
       globalRole: GlobalRole.student,
     } as any);
 
     expect(service.updateRole).toHaveBeenCalledWith(1, GlobalRole.student);
+    expect(authService.getUserById).toHaveBeenCalledWith(1);
     expect(result).toEqual(response);
   });
 

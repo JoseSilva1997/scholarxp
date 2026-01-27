@@ -7,15 +7,20 @@ import {
   Param,
   Delete,
   BadRequestException,
+  Inject,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
+import { AuthService } from '../auth/auth.service';
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly authService: AuthService,
+  ) {}
 
   @Post()
   create(@Body() createUserDto: CreateUserDto) {
@@ -47,7 +52,9 @@ export class UsersController {
     @Param('id') id: string,
     @Body() updateUserRoleDto: UpdateUserRoleDto,
   ) {
-    return this.usersService.updateRole(+id, updateUserRoleDto.globalRole);
+    return this.usersService
+      .updateRole(+id, updateUserRoleDto.globalRole)
+      .then(() => this.authService.getUserById(+id));
   }
 
   @Delete(':id')

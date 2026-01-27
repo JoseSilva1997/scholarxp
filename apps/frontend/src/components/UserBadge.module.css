@@ -4,6 +4,9 @@
   gap: 12px;
   border-radius: 999px;
   color: #fff;
+  width: 28vw; /* responsive width that stays stable */
+  min-width: 260px;
+  max-width: 340px;
 }
 
 .avatar {
@@ -18,30 +21,51 @@
 .meta {
   display: grid;
   gap: 4px;
+  min-width: 0; /* allow ellipsis to work */
+  width: 100%;
+  justify-items: end;
+  text-align: right;
 }
 
 .name {
   font-weight: 700;
   letter-spacing: 0.01em;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .progress {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
+  display: inline-grid;
+  grid-template-columns: auto auto auto;
   gap: 8px;
   align-items: center;
-  min-width: 180px;
+  min-width: 0;
+  justify-content: end;
+  justify-items: end;
+  width: fit-content;
+  max-width: 100%;
 }
 
 .level {
   font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.85);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.levelIcon {
+  width: 12px;
+  height: 12px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
 }
 
 .barTrack {
   position: relative;
   height: 8px;
+  width: 110px;
+  min-width: 70px;
   background: rgba(255, 255, 255, 0.14);
   border-radius: 999px;
   overflow: hidden;

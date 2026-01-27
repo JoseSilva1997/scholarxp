@@ -113,6 +113,7 @@ describe('AuthService', () => {
         profilePictureUrl: createdUser.profilePictureUrl,
         globalRole: createdUser.globalRole,
         isVerified: createdUser.isVerified,
+        avatar: null,
       });
     });
 
@@ -160,6 +161,7 @@ describe('AuthService', () => {
         updatedAt,
       });
       bcryptMock.compare.mockResolvedValue(true);
+      prisma.avatar.findUnique.mockResolvedValue(null);
 
       const result = await service.login({
         email: 'jane@example.com',
@@ -174,6 +176,49 @@ describe('AuthService', () => {
         profilePictureUrl: user.profilePictureUrl,
         globalRole: user.globalRole,
         isVerified: user.isVerified,
+        avatar: null,
+      });
+    });
+
+    it('includes avatar when student has one', async () => {
+      const createdAt = new Date('2026-01-01T00:00:00Z');
+      const updatedAt = new Date('2026-01-02T00:00:00Z');
+      const user = {
+        id: 7,
+        firstName: 'Jane',
+        lastName: 'Doe',
+        email: 'jane@example.com',
+        profilePictureUrl: 'default-profile-pic.png',
+        globalRole: GlobalRole.student,
+        isVerified: true,
+        createdAt,
+      };
+      prisma.user.findUnique.mockResolvedValue(user);
+      prisma.userPassword.findUnique.mockResolvedValue({
+        userId: user.id,
+        passwordHash: 'hash',
+        updatedAt,
+      });
+      bcryptMock.compare.mockResolvedValue(true);
+      prisma.avatar.findUnique.mockResolvedValue({
+        id: 99,
+        userId: user.id,
+        level: 2,
+        currentExp: 50,
+        createdAt: new Date('2026-01-03T00:00:00Z'),
+      });
+
+      const result = await service.login({
+        email: 'jane@example.com',
+        password: 'password123',
+      });
+
+      expect(result.avatar).toEqual({
+        id: 99,
+        userId: user.id,
+        level: 2,
+        currentExp: 50,
+        createdAt: new Date('2026-01-03T00:00:00Z'),
       });
     });
 
@@ -252,7 +297,64 @@ describe('AuthService', () => {
         profilePictureUrl: user.profilePictureUrl,
         globalRole: user.globalRole,
         isVerified: user.isVerified,
+        avatar: null,
       });
+    });
+
+    it('includes avatar when student has one', async () => {
+      const user = {
+        id: 11,
+        firstName: 'Test',
+        lastName: 'User',
+        email: 'test@example.com',
+        profilePictureUrl: 'default-profile-pic.png',
+        globalRole: GlobalRole.student,
+        isVerified: true,
+        createdAt: new Date('2026-01-01T00:00:00Z'),
+      };
+      prisma.user.findUnique.mockResolvedValue(user);
+      prisma.avatar.findUnique.mockResolvedValue({
+        id: 77,
+        userId: user.id,
+        level: 3,
+        currentExp: 120,
+        createdAt: new Date('2026-01-03T00:00:00Z'),
+      });
+
+      const result = await service.getUserById(user.id);
+
+      expect(result.avatar).toEqual({
+        id: 77,
+        userId: user.id,
+        level: 3,
+        currentExp: 120,
+        createdAt: new Date('2026-01-03T00:00:00Z'),
+      });
+    });
+
+    it('returns null avatar when not student', async () => {
+      const user = {
+        id: 11,
+        firstName: 'Test',
+        lastName: 'User',
+        email: 'test@example.com',
+        profilePictureUrl: 'default-profile-pic.png',
+        globalRole: GlobalRole.instructor,
+        isVerified: true,
+        createdAt: new Date('2026-01-01T00:00:00Z'),
+      };
+      prisma.user.findUnique.mockResolvedValue(user);
+      prisma.avatar.findUnique.mockResolvedValue({
+        id: 77,
+        userId: user.id,
+        level: 3,
+        currentExp: 120,
+        createdAt: new Date('2026-01-03T00:00:00Z'),
+      });
+
+      const result = await service.getUserById(user.id);
+
+      expect(result.avatar).toBeNull();
     });
 
     it('throws UnauthorizedException when user is missing', async () => {
