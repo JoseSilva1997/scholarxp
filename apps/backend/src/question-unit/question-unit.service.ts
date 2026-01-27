@@ -20,25 +20,23 @@ export class QuestionUnitService {
           'moduleUnitId is required when questionGroupId is not provided',
         );
       }
-
-      // Look up the default group without relying on a composite unique TS type
-      let defaultGroup =
-        await this.prisma.moduleUnitQuestionGroup.findFirst({
-          where: {
+      // Use upsert to atomically find-or-create the default group and avoid
+      // unique constraint races on (moduleUnitId, name) when multiple requests
+      // create question units concurrently.
+      const defaultGroup = await this.prisma.moduleUnitQuestionGroup.upsert({
+        where: {
+          moduleUnitId_name: {
             moduleUnitId: data.moduleUnitId,
             name: 'default',
           },
-        });
-
-      if (!defaultGroup) {
-        defaultGroup = await this.prisma.moduleUnitQuestionGroup.create({
-          data: {
-            moduleUnitId: data.moduleUnitId,
-            name: 'default',
-            sortOrder: 1,
-          },
-        });
-      }
+        },
+        update: {},
+        create: {
+          moduleUnitId: data.moduleUnitId,
+          name: 'default',
+          sortOrder: 1,
+        },
+      });
 
       data.questionGroupId = defaultGroup.id;
     }

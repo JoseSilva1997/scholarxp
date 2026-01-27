@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import './App.css';
 import Header from './components/Header';
@@ -42,7 +43,7 @@ function AppLayout() {
 type ProtectedRouteProps = {
   isLoading: boolean;
   isAuthed: boolean;
-  component: JSX.Element;
+  component: ReactElement;
 };
 
 function ProtectedRoute({ isLoading, isAuthed, component }: ProtectedRouteProps) {

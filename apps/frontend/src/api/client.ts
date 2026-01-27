@@ -1,3 +1,5 @@
+// Centralized fetch wrapper for the frontend: standardizes base URL, credentials, and error handling
+// so feature-specific API modules can stay focused on their endpoints.
 const API_BASE = import.meta.env.VITE_API_URL;
 
 if (!API_BASE) {
