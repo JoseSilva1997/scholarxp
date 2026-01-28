@@ -8,6 +8,8 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { AuthProvider, GlobalRole, Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { EmailVerificationTokenService } from '../email-verification-token/email-verification-token.service';
+import { MailerService } from '../mailer/mailer.service';
 
 export type AuthUser = {
   id: number;
@@ -34,9 +36,26 @@ type UserRecord = {
   isVerified?: boolean;
 };
 
+// Google OAuth profile data returned from the strategy
+type GoogleProfilePayload = {
+  firstName: string;
+  lastName: string;
+  profilePictureUrl: string;
+  email: string | null;
+};
+
+// Google identity binding with provider-specific ID
+export type GoogleIdentity = GoogleProfilePayload & {
+  providerUserId: string;
+};
+
 @Injectable()
 export class AuthService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly emailTokens: EmailVerificationTokenService,
+    private readonly mailer: MailerService,
+  ) {}
 
   async registerByEmail(dto: RegisterDto) {
     const email = dto.email.trim().toLowerCase();
@@ -76,6 +95,13 @@ export class AuthService {
       return createdUser;
     });
 
+    const token = await this.emailTokens.issueToken({
+      userId: user.id,
+      reason: 'signup',
+      reuseExisting: true,
+    });
+    await this.mailer.sendVerificationCode(email, token.token);
+
     return this.toAuthUser(user);
   }
 
@@ -98,17 +124,46 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    if (!user.isVerified) {
+      throw new UnauthorizedException('Email not verified');
+    }
+
     const avatar = await this.loadAvatarIfStudent(user);
     return this.toAuthUser(user, avatar);
   }
 
-  async loginWithGoogle(payload: {
-    providerUserId: string;
-    email: string | null;
-    firstName: string;
-    lastName: string;
-    picture?: string;
-  }) {
+  async verifyEmail(token: string) {
+    const record = await this.emailTokens.consumeToken(token);
+    const user = await this.prisma.user.update({
+      where: { id: record.userId },
+      data: { isVerified: true },
+    });
+    const avatar = await this.loadAvatarIfStudent(user);
+    return this.toAuthUser(user, avatar);
+  }
+
+  async resendVerification(email: string) {
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await this.prisma.user.findUnique({
+      where: { email: normalizedEmail },
+    });
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+    if (user.isVerified) {
+      return { sent: false, reason: 'already_verified' };
+    }
+
+    const token = await this.emailTokens.issueToken({
+      userId: user.id,
+      reason: 'signup',
+      reuseExisting: true,
+    });
+    await this.mailer.sendVerificationCode(normalizedEmail, token.token);
+    return { sent: true };
+  }
+
+  async loginWithGoogle(payload: GoogleIdentity & { picture?: string }) {
     const email = payload.email?.trim().toLowerCase() ?? null;
     const profilePictureUrl = payload.picture ?? 'default-profile-pic.png';
 
@@ -166,12 +221,7 @@ export class AuthService {
   // Refreshes stored profile fields from Google every login without clobbering with empty values.
   private async refreshUserFromGoogle(
     user: UserRecord,
-    incoming: {
-      email: string | null;
-      firstName: string;
-      lastName: string;
-      profilePictureUrl: string;
-    },
+    incoming: GoogleProfilePayload,
   ) {
     const updates = this.buildGoogleProfileUpdates(user, incoming);
     if (Object.keys(updates).length === 0) {
@@ -183,13 +233,7 @@ export class AuthService {
   // Matches by email when possible, otherwise creates a new user and records the Google identity.
   private async linkOrCreateUserForGoogle(
     existingUser: UserRecord | null,
-    incoming: {
-      email: string;
-      providerUserId: string;
-      firstName: string;
-      lastName: string;
-      profilePictureUrl: string;
-    },
+    incoming: GoogleIdentity,
   ) {
     return this.prisma.$transaction(async (tx) => {
       // Keep existing users fresh; otherwise create a new one with Google defaults.
@@ -226,19 +270,8 @@ export class AuthService {
   // Determine which user fields should be refreshed from Google on every login while
   // avoiding overwriting existing data with empty values.
   private buildGoogleProfileUpdates(
-    user: {
-      id: number;
-      firstName: string;
-      lastName: string;
-      email: string | null;
-      profilePictureUrl?: string | null;
-    },
-    incoming: {
-      email: string | null;
-      firstName: string;
-      lastName: string;
-      profilePictureUrl: string;
-    },
+    user: UserRecord,
+    incoming: GoogleProfilePayload,
   ): Prisma.UserUpdateInput {
     const updates: Prisma.UserUpdateInput = {};
 

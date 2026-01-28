@@ -19,6 +19,8 @@ describe('AuthController', () => {
     login: jest.Mock;
     getUserById: jest.Mock;
     loginWithGoogle: jest.Mock;
+    verifyEmail: jest.Mock;
+    resendVerification: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -27,6 +29,8 @@ describe('AuthController', () => {
       login: jest.fn(),
       getUserById: jest.fn(),
       loginWithGoogle: jest.fn(),
+      verifyEmail: jest.fn(),
+      resendVerification: jest.fn(),
     };
 
     const moduleRef: TestingModule = await Test.createTestingModule({
@@ -39,7 +43,7 @@ describe('AuthController', () => {
 
   afterEach(() => jest.resetAllMocks());
 
-  it('registerByEmail sets session userId and returns user', async () => {
+  it('registerByEmail returns user without setting session', async () => {
     service.registerByEmail.mockResolvedValue(mockUser);
     const req: any = { session: {} };
 
@@ -54,7 +58,7 @@ describe('AuthController', () => {
     );
 
     expect(service.registerByEmail).toHaveBeenCalled();
-    expect(req.session.userId).toBe(mockUser.id);
+    expect(req.session.userId).toBeUndefined();
     expect(result).toEqual({ user: mockUser });
   });
 
@@ -108,6 +112,25 @@ describe('AuthController', () => {
 
     expect(service.getUserById).toHaveBeenCalledWith(mockUser.id);
     expect(result).toEqual({ user: mockUser });
+  });
+
+  it('verifyEmail sets session and returns user', async () => {
+    service.verifyEmail.mockResolvedValue(mockUser);
+    const req: any = { session: {} };
+
+    const result = await controller.verifyEmail('123456', req);
+
+    expect(service.verifyEmail).toHaveBeenCalledWith('123456');
+    expect(req.session.userId).toBe(mockUser.id);
+    expect(result).toEqual({ user: mockUser });
+  });
+
+  it('resendVerification proxies to service', async () => {
+    service.resendVerification.mockResolvedValue({ sent: true });
+    const result = await controller.resendVerification('jane@example.com');
+
+    expect(service.resendVerification).toHaveBeenCalledWith('jane@example.com');
+    expect(result).toEqual({ sent: true });
   });
 
   describe('google OAuth flow', () => {

@@ -5,6 +5,8 @@ import { AuthProvider, GlobalRole } from '@prisma/client';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock, PrismaMock } from '../testing/test-helpers';
+import { EmailVerificationTokenService } from '../email-verification-token/email-verification-token.service';
+import { MailerService } from '../mailer/mailer.service';
 
 jest.mock('bcryptjs');
 
@@ -12,15 +14,116 @@ describe('AuthService', () => {
   let service: AuthService;
   let prisma: PrismaMock;
   let bcryptMock: { hash: jest.Mock; compare: jest.Mock };
+  let emailTokens: { issueToken: jest.Mock; consumeToken: jest.Mock };
+  let mailer: { sendVerificationCode: jest.Mock };
 
   beforeEach(async () => {
     prisma = createPrismaMock();
     bcryptMock = bcrypt as unknown as { hash: jest.Mock; compare: jest.Mock };
+    emailTokens = { issueToken: jest.fn(), consumeToken: jest.fn() };
+    mailer = { sendVerificationCode: jest.fn() };
     const moduleRef: TestingModule = await Test.createTestingModule({
-      providers: [AuthService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        AuthService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: EmailVerificationTokenService, useValue: emailTokens },
+        { provide: MailerService, useValue: mailer },
+      ],
     }).compile();
 
     service = moduleRef.get(AuthService);
+  });
+
+  describe('verifyEmail', () => {
+    it('consumes token, marks user verified, and returns auth user', async () => {
+      emailTokens.consumeToken.mockResolvedValue({
+        id: 1,
+        userId: 5,
+        token: '123456',
+        reason: 'signup',
+        expiresAt: new Date(),
+        consumedAt: new Date(),
+        createdAt: new Date(),
+      });
+      const user = {
+        id: 5,
+        firstName: 'New',
+        lastName: 'User',
+        email: 'new@example.com',
+        profilePictureUrl: 'default-profile-pic.png',
+        globalRole: GlobalRole.pending,
+        isVerified: false,
+        createdAt: new Date(),
+      };
+      prisma.user.update.mockResolvedValue({ ...user, isVerified: true });
+      prisma.avatar.findUnique.mockResolvedValue(null);
+
+      const result = await service.verifyEmail('123456');
+
+      expect(emailTokens.consumeToken).toHaveBeenCalledWith('123456');
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: 5 },
+        data: { isVerified: true },
+      });
+      expect(result.isVerified).toBe(true);
+    });
+  });
+
+  describe('resendVerification', () => {
+    it('issues token and sends email for unverified user', async () => {
+      const user = {
+        id: 9,
+        firstName: 'Jane',
+        lastName: 'Doe',
+        email: 'jane@example.com',
+        profilePictureUrl: 'default-profile-pic.png',
+        globalRole: GlobalRole.pending,
+        isVerified: false,
+        createdAt: new Date(),
+      };
+      prisma.user.findUnique.mockResolvedValue(user);
+      emailTokens.issueToken.mockResolvedValue({
+        id: 2,
+        userId: user.id,
+        token: '654321',
+        reason: 'signup',
+        expiresAt: new Date(),
+        consumedAt: null,
+        createdAt: new Date(),
+      });
+
+      const result = await service.resendVerification(user.email);
+
+      expect(emailTokens.issueToken).toHaveBeenCalledWith({
+        userId: user.id,
+        reason: 'signup',
+        reuseExisting: true,
+      });
+      expect(mailer.sendVerificationCode).toHaveBeenCalledWith(
+        user.email,
+        '654321',
+      );
+      expect(result).toEqual({ sent: true });
+    });
+
+    it('returns sent:false with reason when user is already verified', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: 9,
+        firstName: 'Jane',
+        lastName: 'Doe',
+        email: 'jane@example.com',
+        profilePictureUrl: 'default-profile-pic.png',
+        globalRole: GlobalRole.pending,
+        isVerified: true,
+        createdAt: new Date(),
+      });
+
+      const result = await service.resendVerification('jane@example.com');
+
+      expect(result).toEqual({ sent: false, reason: 'already_verified' });
+      expect(emailTokens.issueToken).not.toHaveBeenCalled();
+      expect(mailer.sendVerificationCode).not.toHaveBeenCalled();
+    });
   });
 
   afterEach(() => {
@@ -52,6 +155,15 @@ describe('AuthService', () => {
 
       prisma.user.findUnique.mockResolvedValue(null);
       bcryptMock.hash.mockResolvedValue('hashed-password');
+      emailTokens.issueToken.mockResolvedValue({
+        id: 1,
+        userId: 1,
+        token: '123456',
+        reason: 'signup',
+        expiresAt: new Date(),
+        consumedAt: null,
+        createdAt: createdAt,
+      });
 
       const txMock = {
         user: {
@@ -105,6 +217,15 @@ describe('AuthService', () => {
           email: normalizedEmail,
         },
       });
+      expect(emailTokens.issueToken).toHaveBeenCalledWith({
+        userId: createdUser.id,
+        reason: 'signup',
+        reuseExisting: true,
+      });
+      expect(mailer.sendVerificationCode).toHaveBeenCalledWith(
+        normalizedEmail,
+        '123456',
+      );
       expect(result).toEqual({
         id: createdUser.id,
         firstName: createdUser.firstName,
@@ -178,6 +299,31 @@ describe('AuthService', () => {
         isVerified: user.isVerified,
         avatar: null,
       });
+    });
+
+    it('throws UnauthorizedException when user is not verified', async () => {
+      const createdAt = new Date('2026-01-01T00:00:00Z');
+      const user = {
+        id: 7,
+        firstName: 'Jane',
+        lastName: 'Doe',
+        email: 'jane@example.com',
+        profilePictureUrl: 'default-profile-pic.png',
+        globalRole: GlobalRole.student,
+        isVerified: false,
+        createdAt,
+      };
+      prisma.user.findUnique.mockResolvedValue(user);
+      prisma.userPassword.findUnique.mockResolvedValue({
+        userId: user.id,
+        passwordHash: 'hash',
+        updatedAt: new Date(),
+      });
+      bcryptMock.compare.mockResolvedValue(true);
+
+      await expect(
+        service.login({ email: 'jane@example.com', password: 'password123' }),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
     });
 
     it('includes avatar when student has one', async () => {
@@ -367,13 +513,14 @@ describe('AuthService', () => {
   });
 
   describe('loginWithGoogle', () => {
-    const basePayload = {
-      providerUserId: 'google-123',
-      email: 'new.user@example.com',
-      firstName: 'New',
-      lastName: 'User',
-      picture: 'https://pics.example/avatar.jpg',
-    };
+  const basePayload = {
+    providerUserId: 'google-123',
+    email: 'new.user@example.com',
+    firstName: 'New',
+    lastName: 'User',
+    picture: 'https://pics.example/avatar.jpg',
+    profilePictureUrl: 'https://pics.example/avatar.jpg',
+  };
 
     it('refreshes existing linked user profile and returns updated auth user', async () => {
       const existingUser = {
@@ -522,6 +669,7 @@ describe('AuthService', () => {
         service.loginWithGoogle({
           ...basePayload,
           email: null,
+          profilePictureUrl: basePayload.profilePictureUrl,
         }),
       ).rejects.toBeInstanceOf(UnauthorizedException);
     });
