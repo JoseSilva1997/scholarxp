@@ -46,6 +46,8 @@ model User {
   createdAt        DateTime                 @default(now()) @map("created_at")
   authIdentities   AuthIdentity[]
   password         UserPassword?
+  /// Keeps track of one-time email verification codes so signup flows can mark users verified without losing auditability.
+  emailVerificationTokens EmailVerificationToken[]
   createdModules   Module[]
   createdInvites   ModuleInvite[]
   avatars          Avatar[]
@@ -259,6 +261,21 @@ model AuthIdentity {
 
   @@unique([provider, providerUserId])
   @@map("auth_identity")
+}
+
+/// Stores the short-lived codes that prove control of an email address without keeping them on the users table.
+model EmailVerificationToken {
+  id         Int       @id @default(autoincrement())
+  userId     Int       @map("user_id")
+  token      String    @unique
+  reason     String    @default("signup")
+  expiresAt  DateTime  @map("expires_at")
+  consumedAt DateTime? @map("consumed_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@map("email_verification_tokens")
 }
 
 model UserPassword {
