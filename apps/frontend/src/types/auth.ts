@@ -9,6 +9,7 @@ export type AuthUser = {
   profilePictureUrl: string;
   globalRole: GlobalRole;
   isVerified: boolean;
+  requiresEmailVerification?: boolean;
   avatar?: {
     id: number;
     level: number;

@@ -13,6 +13,8 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { FRONTEND_URL } from '../constants';
+import { VerifyEmailDto } from './dto/verify-email.dto';
+import { ResendVerificationDto } from './dto/resend-verification.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -34,15 +36,15 @@ export class AuthController {
   }
 
   @Post('verify-email')
-  async verifyEmail(@Body('token') token: string, @Req() req: Request) {
-    const user = await this.authService.verifyEmail(token);
+  async verifyEmail(@Body() dto: VerifyEmailDto, @Req() req: Request) {
+    const user = await this.authService.verifyEmail(dto.token);
     req.session.userId = user.id;
     return { user };
   }
 
   @Post('resend-verification')
-  async resendVerification(@Body('email') email: string) {
-    return this.authService.resendVerification(email);
+  async resendVerification(@Body() dto: ResendVerificationDto) {
+    return this.authService.resendVerification(dto.email);
   }
 
   @Post('logout')

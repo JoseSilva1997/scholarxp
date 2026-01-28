@@ -34,8 +34,11 @@ export default function Login() {
         return;
       }
 
-      if (!user.isVerified) {
-        setError('Please verify your account before signing in. Check your email for the verification link.');
+      if (user.requiresEmailVerification || !user.isVerified) {
+        navigate('/verify-email', {
+          replace: true,
+          state: { email: form.email.trim().toLowerCase() },
+        });
         return;
       }
 
@@ -43,7 +46,18 @@ export default function Login() {
       navigate('/main', { replace: true });
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(err.message || 'Unable to log you in right now.');
+        const message = err.message || 'Unable to log you in right now.';
+        const normalizedEmail = form.email.trim().toLowerCase();
+        setError(message);
+        const wantsVerify =
+          message.toLowerCase().includes('verify') ||
+          message.toLowerCase().includes('not verified');
+        if (wantsVerify) {
+          navigate('/verify-email', {
+            replace: false,
+            state: { email: normalizedEmail, message },
+          });
+        }
       } else {
         setError('Something went wrong. Please try again.');
       }

@@ -15,7 +15,8 @@ describe('MailerService', () => {
   const baseConfig = {
     get: jest.fn((key: string) => {
       const values: Record<string, string | number | undefined> = {
-        EMAIL_FROM: 'no-reply@test.dev',
+        MAILER_EMAIL: 'no-reply@test.dev',
+        MAILER_ALLOW_LOG_FALLBACK: 'true',
         FRONTEND_URL: FRONTEND_URL,
       };
       return values[key];
@@ -23,7 +24,7 @@ describe('MailerService', () => {
   } as unknown as ConfigService;
 
   beforeEach(() => {
-    jest.resetAllMocks();
+    jest.clearAllMocks();
   });
 
   it('logs email when SMTP is not configured', async () => {
@@ -45,14 +46,38 @@ describe('MailerService', () => {
     expect(loggerSpy).toHaveBeenCalled();
   });
 
+  it('throws when SMTP is not configured and fallback is disabled', async () => {
+    const config = {
+      get: jest.fn((key: string) => {
+        const values: Record<string, string | number | undefined> = {
+          MAILER_EMAIL: 'no-reply@test.dev',
+          MAILER_ALLOW_LOG_FALLBACK: 'false',
+          FRONTEND_URL: FRONTEND_URL,
+        };
+        return values[key];
+      }),
+    } as unknown as ConfigService;
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [MailerService, { provide: ConfigService, useValue: config }],
+    }).compile();
+
+    const service = module.get<MailerService>(MailerService);
+    (service as any).transporter = undefined;
+
+    await expect(
+      service.sendMail({ to: 'user@test.dev', subject: 'Hello' }),
+    ).rejects.toThrow('Mailer transport is not configured');
+  });
+
   it('sends via SMTP when host/port are set', async () => {
     const sendMail = jest.fn();
     mockedNodemailer.createTransport.mockReturnValue({ sendMail } as any);
     const config = {
       get: jest.fn((key: string) => {
         const values: Record<string, string | number | undefined> = {
-          EMAIL_FROM: 'from@test.dev',
-          SMTP_HOST: 'smtp.test.dev',
+          MAILER_EMAIL: 'from@test.dev',
+          // Include scheme and trailing slash to ensure sanitizeHost strips them.
+          SMTP_HOST: 'https://smtp.test.dev/',
           SMTP_PORT: 2525,
           SMTP_USER: 'user',
           SMTP_PASS: 'pass',
@@ -91,7 +116,7 @@ describe('MailerService', () => {
     const config = {
       get: jest.fn((key: string) => {
         const values: Record<string, string | number | undefined> = {
-          EMAIL_FROM: 'from@test.dev',
+          MAILER_EMAIL: 'from@test.dev',
           SMTP_HOST: 'smtp.test.dev',
           SMTP_PORT: 465,
           SMTP_SECURE: 'false', // Explicitly set to false, but port 465 should override
@@ -122,7 +147,7 @@ describe('MailerService', () => {
     const config = {
       get: jest.fn((key: string) => {
         const values: Record<string, string | number | undefined> = {
-          EMAIL_FROM: 'from@test.dev',
+          MAILER_EMAIL: 'from@test.dev',
           SMTP_HOST: 'smtp.test.dev',
           SMTP_PORT: 587,
           SMTP_SECURE: 'true',
@@ -153,7 +178,7 @@ describe('MailerService', () => {
     const config = {
       get: jest.fn((key: string) => {
         const values: Record<string, string | number | undefined> = {
-          EMAIL_FROM: 'from@test.dev',
+          MAILER_EMAIL: 'from@test.dev',
           SMTP_HOST: 'smtp.test.dev',
           SMTP_PORT: 2525,
           // No SMTP_USER or SMTP_PASS
@@ -184,7 +209,7 @@ describe('MailerService', () => {
     const config = {
       get: jest.fn((key: string) => {
         const values: Record<string, string | number | undefined> = {
-          EMAIL_FROM: 'noreply@test.dev',
+          MAILER_EMAIL: 'noreply@test.dev',
           SMTP_HOST: 'smtp.test.dev',
           SMTP_PORT: 2525,
           FRONTEND_URL: 'https://app.test.dev',
@@ -200,26 +225,24 @@ describe('MailerService', () => {
     const service = module.get<MailerService>(MailerService);
     await service.sendVerificationCode('user@test.dev', 'ABC123');
 
-    expect(sendMail).toHaveBeenCalledWith(
-      expect.objectContaining({
-        to: 'user@test.dev',
-        subject: 'Your ScholarXP verification code',
-        text: expect.stringContaining('ABC123'),
-        html: expect.stringContaining('<strong style="font-size:20px;">ABC123</strong>'),
-      })
-    );
+    const call = sendMail.mock.calls[0][0];
+    expect(call.to).toBe('user@test.dev');
+    expect(call.subject).toBe('Your ScholarXP verification code');
+    expect(call.text).toContain('ABC123');
+    expect(call.html).toContain('ABC123');
+    expect(call.html.toLowerCase()).not.toContain('http');
   });
 
-  it('uses FRONTEND_URL constant when env var is not set', async () => {
+  // With no links in the template, ensure we aren't accidentally including URLs.
+  it('omits links when generating code email', async () => {
     const sendMail = jest.fn();
     mockedNodemailer.createTransport.mockReturnValue({ sendMail } as any);
     const config = {
       get: jest.fn((key: string) => {
         const values: Record<string, string | number | undefined> = {
-          EMAIL_FROM: 'noreply@test.dev',
+          MAILER_EMAIL: 'noreply@test.dev',
           SMTP_HOST: 'smtp.test.dev',
           SMTP_PORT: 2525,
-          // No FRONTEND_URL set
         };
         return values[key];
       }),
@@ -230,45 +253,10 @@ describe('MailerService', () => {
     }).compile();
 
     const service = module.get<MailerService>(MailerService);
-    await service.sendVerificationCode('user@test.dev', 'XYZ789');
+    await service.sendVerificationCode('user@test.dev', 'CODE123');
 
-    expect(sendMail).toHaveBeenCalledWith(
-      expect.objectContaining({
-        text: expect.stringContaining(`${FRONTEND_URL}/verify-email`),
-        html: expect.stringContaining(`${FRONTEND_URL}/verify-email`),
-      })
-    );
-  });
-
-  it('encodes verification code in URL', async () => {
-    const sendMail = jest.fn();
-    mockedNodemailer.createTransport.mockReturnValue({ sendMail } as any);
-    const config = {
-      get: jest.fn((key: string) => {
-        const values: Record<string, string | number | undefined> = {
-          EMAIL_FROM: 'noreply@test.dev',
-          SMTP_HOST: 'smtp.test.dev',
-          SMTP_PORT: 2525,
-          FRONTEND_URL: 'https://app.test.dev',
-        };
-        return values[key];
-      }),
-    } as unknown as ConfigService;
-
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [MailerService, { provide: ConfigService, useValue: config }],
-    }).compile();
-
-    const service = module.get<MailerService>(MailerService);
-    const codeWithSpecialChars = 'ABC+123/DEF=';
-    await service.sendVerificationCode('user@test.dev', codeWithSpecialChars);
-
-    const expectedEncoded = encodeURIComponent(codeWithSpecialChars);
-    expect(sendMail).toHaveBeenCalledWith(
-      expect.objectContaining({
-        text: expect.stringContaining(expectedEncoded),
-        html: expect.stringContaining(expectedEncoded),
-      })
-    );
+    const call = sendMail.mock.calls[0][0];
+    expect(call.html.toLowerCase()).not.toMatch(/http/);
+    expect(call.text.toLowerCase()).not.toMatch(/http/);
   });
 });

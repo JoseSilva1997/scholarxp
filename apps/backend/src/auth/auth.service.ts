@@ -102,7 +102,7 @@ export class AuthService {
     });
     await this.mailer.sendVerificationCode(email, token.token);
 
-    return this.toAuthUser(user);
+    return this.toAuthUser(user, null, true);
   }
 
   async login(dto: LoginDto) {
@@ -157,7 +157,7 @@ export class AuthService {
     const token = await this.emailTokens.issueToken({
       userId: user.id,
       reason: 'signup',
-      reuseExisting: true,
+      reuseExisting: false,
     });
     await this.mailer.sendVerificationCode(normalizedEmail, token.token);
     return { sent: true };
@@ -329,7 +329,8 @@ export class AuthService {
       isVerified?: boolean;
     },
     avatar?: { id: number; level: number; currentExp: number } | null,
-  ): AuthUser {
+    requireVerification?: boolean,
+  ): AuthUser & { requiresEmailVerification?: boolean } {
     return {
       id: user.id,
       firstName: user.firstName,
@@ -338,6 +339,7 @@ export class AuthService {
       profilePictureUrl: user.profilePictureUrl ?? 'default-profile-pic.png',
       globalRole: user.globalRole,
       isVerified: user.isVerified ?? false,
+      requiresEmailVerification: requireVerification || !(user.isVerified ?? false),
       avatar: avatar ?? null,
     };
   }

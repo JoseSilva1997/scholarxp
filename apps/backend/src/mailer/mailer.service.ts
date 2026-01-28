@@ -1,8 +1,7 @@
-// Provides a single place to send emails; falls back to log-only when SMTP is not configured so devs can test flows without real emails.
+// Provides a single place to send emails; can fall back to log-only in development but fails fast in production when misconfigured.
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import nodemailer, { Transporter } from 'nodemailer';
-import { FRONTEND_URL } from '../constants';
 
 export type MailPayload = {
   to: string;
@@ -16,9 +15,22 @@ export class MailerService {
   private readonly logger = new Logger(MailerService.name);
   private readonly from: string;
   private transporter?: Transporter;
+  private readonly allowLogFallback: boolean;
+  private readonly hostSanitized: string | undefined;
 
   constructor(private readonly config: ConfigService) {
-    this.from = this.config.get<string>('EMAIL_FROM') ?? 'no-reply@localhost';
+    // Prefer explicit MAILER_EMAIL; fall back to legacy EMAIL_FROM to avoid breaking existing envs.
+    this.from =
+      this.config.get<string>('MAILER_EMAIL') ??
+      this.config.get<string>('EMAIL_FROM') ??
+      'no-reply@localhost';
+    // Only allow log-only fallback in dev or when explicitly enabled; prod should fail loudly to surface misconfig.
+    const allowFallbackEnv = this.config.get<string>('MAILER_ALLOW_LOG_FALLBACK');
+    const nodeEnv =
+      this.config.get<string>('NODE_ENV') ?? process.env.NODE_ENV ?? 'development';
+    this.allowLogFallback =
+      (allowFallbackEnv ? allowFallbackEnv === 'true' : nodeEnv === 'development');
+    this.hostSanitized = this.sanitizeHost(this.config.get<string>('SMTP_HOST'));
     this.transporter = this.buildTransport();
   }
 
@@ -35,6 +47,12 @@ export class MailerService {
     };
 
     if (!this.transporter) {
+      if (!this.allowLogFallback) {
+        // Fail fast in production so misconfigurations don't silently drop emails.
+        throw new Error(
+          'Mailer transport is not configured; set SMTP_HOST/SMTP_PORT (and MAILER_EMAIL).',
+        );
+      }
       this.logger.log(`DEV mail (not sent): ${JSON.stringify(message)}`);
       return;
     }
@@ -46,18 +64,41 @@ export class MailerService {
    * Helper to send the email verification code with both text and HTML variants.
    */
   async sendVerificationCode(to: string, code: string): Promise<void> {
-    const verifyUrl = `${
-      this.config.get<string>('FRONTEND_URL') ?? FRONTEND_URL
-    }/verify-email?code=${encodeURIComponent(code)}`;
     const subject = 'Your ScholarXP verification code';
-    const text = `Enter this code to verify your email: ${code}\nOr click: ${verifyUrl}`;
-    const html = `<p>Enter this code to verify your email:</p><p><strong style="font-size:20px;">${code}</strong></p><p>Or <a href="${verifyUrl}">click here</a>.</p>`;
+    const text = `Enter this code to verify your email: ${code}`;
+    // Lightweight, inline-styled template that renders well in common email clients without external assets.
+    const html = `<!doctype html>
+<html>
+<body style="margin:0;padding:0;background:#0f172a;font-family:'Segoe UI',Arial,sans-serif;">
+  <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#0f172a;padding:24px 0;">
+    <tr>
+      <td align="center">
+        <table role="presentation" cellpadding="0" cellspacing="0" width="520" style="background:#0b1220;border:1px solid #1f2937;border-radius:12px;padding:28px;color:#e5e7eb;">
+          <tr>
+            <td style="text-align:left;">
+              <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#e5e7eb;">Verify your email</p>
+              <p style="margin:0 0 20px;font-size:15px;color:#cbd5e1;">Use this code to finish setting up your ScholarXP account.</p>
+
+              <div style="display:inline-block;background:#111827;border:1px solid #1f2937;border-radius:10px;padding:14px 18px;margin:0 0 18px;">
+                <span style="font-size:26px;letter-spacing:4px;font-weight:800;color:#7dd3fc;">${code}</span>
+              </div>
+
+              <p style="margin:0;font-size:12px;color:#94a3b8;">Enter this code in ScholarXP to finish verifying your account. If you didn’t request this, you can ignore this email.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
 
     await this.sendMail({ to, subject, text, html });
   }
 
   private buildTransport(): Transporter | undefined {
-    const host = this.config.get<string>('SMTP_HOST');
+    // Strip accidental schemes/trailing slashes to avoid DNS failures (e.g., "http://smtp.example.com/").
+    const host = this.hostSanitized;
     const portValue = this.config.get<string>('SMTP_PORT');
     const port = portValue ? Number(portValue) : undefined;
     if (!host || !port) {
@@ -75,5 +116,10 @@ export class MailerService {
       secure,
       auth: user && pass ? { user, pass } : undefined,
     });
+  }
+
+  private sanitizeHost(raw: string | undefined): string | undefined {
+    if (!raw) return undefined;
+    return raw.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
   }
 }

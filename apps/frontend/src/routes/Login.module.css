@@ -99,6 +99,12 @@
   font-size: 0.95rem;
 }
 
+.infoLink {
+  color: var(--color-accent-primary);
+  font-weight: 700;
+  text-decoration: underline;
+}
+
 .inlineHelper {
   display: inline-flex;
   gap: 6px;

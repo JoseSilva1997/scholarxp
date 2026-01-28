@@ -234,6 +234,7 @@ describe('AuthService', () => {
         profilePictureUrl: createdUser.profilePictureUrl,
         globalRole: createdUser.globalRole,
         isVerified: createdUser.isVerified,
+        requiresEmailVerification: true,
         avatar: null,
       });
     });
@@ -297,6 +298,7 @@ describe('AuthService', () => {
         profilePictureUrl: user.profilePictureUrl,
         globalRole: user.globalRole,
         isVerified: user.isVerified,
+        requiresEmailVerification: false,
         avatar: null,
       });
     });
@@ -443,6 +445,7 @@ describe('AuthService', () => {
         profilePictureUrl: user.profilePictureUrl,
         globalRole: user.globalRole,
         isVerified: user.isVerified,
+        requiresEmailVerification: false,
         avatar: null,
       });
     });
@@ -564,6 +567,7 @@ describe('AuthService', () => {
       expect(result.firstName).toBe(basePayload.firstName);
       expect(result.lastName).toBe(basePayload.lastName);
       expect(result.profilePictureUrl).toBe(basePayload.picture);
+      expect(result.requiresEmailVerification).toBe(false);
     });
 
     it('creates a new user and links google identity when email is new', async () => {
@@ -610,6 +614,7 @@ describe('AuthService', () => {
         },
       });
       expect(result.id).toBe(createdUser.id);
+      expect(result.requiresEmailVerification).toBe(false);
     });
 
     it('updates existing user matched by email and links google identity', async () => {

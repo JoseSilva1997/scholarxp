@@ -7,12 +7,16 @@ import Landing from './routes/Landing';
 import Login from './routes/Login';
 import Register from './routes/Register';
 import MainPage from './routes/MainPage';
+import VerifyEmail from './routes/VerifyEmail';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import RoleSelectorOverlay from './components/RoleSelectorOverlay';
 
 function AppLayout() {
   const location = useLocation();
-  const isAuthRoute = location.pathname === '/login' || location.pathname === '/register';
+  const isAuthRoute =
+    location.pathname === '/login' ||
+    location.pathname === '/register' ||
+    location.pathname === '/verify-email';
 
   const { user, isLoading, logout, setUser } = useAuth();
   const shouldShowRoleSelector =
@@ -35,6 +39,7 @@ function AppLayout() {
               path="/register"
               element={user && !isLoading ? <Navigate to="/main" replace /> : <Register />}
             />
+            <Route path="/verify-email" element={<VerifyEmail />} />
             <Route
               path="/main"
               element={

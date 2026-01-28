@@ -118,7 +118,7 @@ describe('AuthController', () => {
     service.verifyEmail.mockResolvedValue(mockUser);
     const req: any = { session: {} };
 
-    const result = await controller.verifyEmail('123456', req);
+    const result = await controller.verifyEmail({ token: '123456' } as any, req);
 
     expect(service.verifyEmail).toHaveBeenCalledWith('123456');
     expect(req.session.userId).toBe(mockUser.id);
@@ -127,7 +127,9 @@ describe('AuthController', () => {
 
   it('resendVerification proxies to service', async () => {
     service.resendVerification.mockResolvedValue({ sent: true });
-    const result = await controller.resendVerification('jane@example.com');
+    const result = await controller.resendVerification({
+      email: 'jane@example.com',
+    } as any);
 
     expect(service.resendVerification).toHaveBeenCalledWith('jane@example.com');
     expect(result).toEqual({ sent: true });

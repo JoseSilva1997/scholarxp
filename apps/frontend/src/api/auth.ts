@@ -39,4 +39,18 @@ export async function logout(): Promise<{ ok: boolean }> {
   });
 }
 
+export async function verifyEmail(token: string): Promise<AuthResponse> {
+  return apiFetch<AuthResponse>('/auth/verify-email', {
+    method: 'POST',
+    body: JSON.stringify({ token }),
+  });
+}
+
+export async function resendVerification(email: string): Promise<{ sent: boolean; alreadyVerified?: boolean; reason?: string }> {
+  return apiFetch('/auth/resend-verification', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
 export { ApiError };

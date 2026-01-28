@@ -122,7 +122,11 @@ export default function Register() {
         email: form.email.trim().toLowerCase(),
         password: form.password,
       });
-      navigate('/');
+      // Send the user to the verification screen so they can confirm their email before logging in.
+      navigate('/verify-email', {
+        replace: true,
+        state: { email: form.email.trim().toLowerCase() },
+      });
     } catch (err) {
       if (err instanceof ApiError) {
         const data = err.data as { message?: unknown };
