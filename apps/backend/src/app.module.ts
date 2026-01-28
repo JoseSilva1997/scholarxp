@@ -21,6 +21,7 @@ import { QuestionContentModule } from './question-content/question-content.modul
 import { QuestionVariantModule } from './question-variant/question-variant.module';
 import { QuestionAttemptModule } from './question-attempt/question-attempt.module';
 import { AuthModule } from './auth/auth.module';
+import { EmailVerificationTokenModule } from './email-verification-token/email-verification-token.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { AuthModule } from './auth/auth.module';
     QuestionVariantModule,
     QuestionAttemptModule,
     AuthModule,
+    EmailVerificationTokenModule,
   ],
   controllers: [TestController],
 })
