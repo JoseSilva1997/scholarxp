@@ -29,10 +29,10 @@ ScholarXP is an LMS-launched study companion that helps students practice course
 ## Build, Test, and Development Commands
 - Install deps: `pnpm install` (from repo root).
 - Workspace commands (all packages with scripts): `pnpm build`, `pnpm lint`, `pnpm test`.
-- API dev server: `pnpm --filter api start:dev` (watch mode).
-- API build/start: `pnpm --filter api build`, `pnpm --filter api start`.
-- Formatting: `pnpm --filter api format` (Prettier on `src` and `test`).
-- Database migrations: `pnpm --filter api migrate:dev`, `pnpm --filter api migrate:test`.
+- API dev server: `pnpm --filter backend start:dev` (watch mode).
+- API build/start: `pnpm --filter backend build`, `pnpm --filter backend start`.
+- Formatting: `pnpm --filter backend format` (Prettier on `src` and `test`).
+- Database migrations: `pnpm --filter backend migrate:dev`, `pnpm --filter backend migrate:test`.
 - Frontend dev server: `pnpm --filter frontend dev`.
 - Frontend build/preview: `pnpm --filter frontend build`, `pnpm --filter frontend preview`.
 - Frontend lint: `pnpm --filter frontend lint`.
