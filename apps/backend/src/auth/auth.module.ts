@@ -3,7 +3,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { GoogleStrategy } from './google.strategy';
-import { EmailVerificationTokenModule } from '../email-verification-token/email-verification-token.module';
+import { EmailVerificationTokenModule } from '../db-entities/email-verification-token/email-verification-token.module';
 import { MailerModule } from '../mailer/mailer.module';
 
 @Module({

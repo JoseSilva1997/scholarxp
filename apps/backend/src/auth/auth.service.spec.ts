@@ -4,8 +4,8 @@ import bcrypt from 'bcryptjs';
 import { AuthProvider, GlobalRole } from '@prisma/client';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { createPrismaMock, PrismaMock } from '../testing/test-helpers';
-import { EmailVerificationTokenService } from '../email-verification-token/email-verification-token.service';
+import { createPrismaMock, PrismaMock } from '../test/test-helpers';
+import { EmailVerificationTokenService } from '../db-entities/email-verification-token/email-verification-token.service';
 import { MailerService } from '../mailer/mailer.service';
 
 jest.mock('bcryptjs');
@@ -97,7 +97,7 @@ describe('AuthService', () => {
       expect(emailTokens.issueToken).toHaveBeenCalledWith({
         userId: user.id,
         reason: 'signup',
-        reuseExisting: true,
+        reuseExisting: false,
       });
       expect(mailer.sendVerificationCode).toHaveBeenCalledWith(
         user.email,

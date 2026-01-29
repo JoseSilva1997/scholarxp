@@ -8,7 +8,7 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { AuthProvider, GlobalRole, Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import { EmailVerificationTokenService } from '../email-verification-token/email-verification-token.service';
+import { EmailVerificationTokenService } from '../db-entities/email-verification-token/email-verification-token.service';
 import { MailerService } from '../mailer/mailer.service';
 
 export type AuthUser = {
