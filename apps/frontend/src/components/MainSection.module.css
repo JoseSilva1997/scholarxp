@@ -1,0 +1,16 @@
+/* Reusable shell to align authed pages: shared padding, max width, and vertical spacing. */
+.section {
+  padding: 32px 24px 48px;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+@media (max-width: 720px) {
+  .section {
+    padding: 24px 16px 40px;
+  }
+}

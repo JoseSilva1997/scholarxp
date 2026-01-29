@@ -1,20 +1,22 @@
-// Main experience: fetches modules scoped to the logged-in user and gates actions by role.
+// Screen that lists modules for the logged-in user; split out so the app shell can host other sections.
 import { useEffect, useMemo, useState } from 'react';
-import { listModules } from '../api/modules';
-import type { ModuleSummary } from '../types/module';
-import { useAuth } from '../context/AuthContext';
-import { ApiError } from '../api/client';
-import styles from './MainPage.module.css';
-import { logError } from '../utils/logger';
-import ModuleCreateModal from '../components/ModuleCreateModal';
+import { listModules } from '../../api/modules';
+import type { ModuleSummary } from '../../types/module';
+import { useAuth } from '../../context/AuthContext';
+import { ApiError } from '../../api/client';
+import { logError } from '../../utils/logger';
+import ModuleCreateModal from '../../components/ModuleCreateModal';
+import MainSection from '../../components/MainSection';
+import styles from './ModulesPage.module.css';
 
-export default function MainPage() {
+export default function ModulesPage() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const [modules, setModules] = useState<ModuleSummary[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
 
+  // Fetch modules once auth is ready; cancel flag avoids setting state after unmount.
   useEffect(() => {
     if (isAuthLoading || !user) return;
     let cancelled = false;
@@ -59,7 +61,7 @@ export default function MainPage() {
   );
 
   return (
-    <div className={styles.container}>
+    <MainSection>
       <header className={styles.hero}>
         <div>
           <p className={styles.eyebrow}>Welcome back</p>
@@ -122,6 +124,6 @@ export default function MainPage() {
           onCreated={(created) => setModules((prev) => [created, ...prev])}
         />
       ) : null}
-    </div>
+    </MainSection>
   );
 }
