@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { AuthUser, GlobalRole } from '../types/auth';
 import { updateUserRole } from '../api/users';
 import styles from './RoleSelectorOverlay.module.css';
+import { logError } from '../utils/logger';
 
 type RoleSelectorOverlayProps = {
   user: AuthUser;
@@ -23,7 +24,8 @@ export default function RoleSelectorOverlay({ user, onRoleSelected }: RoleSelect
       const updatedUser = await updateUserRole(user.id, role);
       onRoleSelected(updatedUser);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to update your role right now.');
+      logError(err, { feature: 'role-selector', action: 'update-role' });
+      setError('We could not save your role right now. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -53,7 +55,8 @@ export default function RoleSelectorOverlay({ user, onRoleSelected }: RoleSelect
             type="button"
             className={styles.buttonPrimary}
             disabled={isSaving}
-            onClick={() => handleSelect('instructor')}
+            // Use the backend enum value; UI copy can stay human-friendly.
+            onClick={() => handleSelect('teacher')}
           >
             {isSaving ? 'Saving…' : 'I’m a teacher'}
           </button>

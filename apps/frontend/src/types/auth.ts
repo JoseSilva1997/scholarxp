@@ -1,5 +1,5 @@
 // Defines the authenticated user shape returned by the backend session APIs.
-export type GlobalRole = 'pending' | 'admin' | 'institution_admin' | 'instructor' | 'student';
+export type GlobalRole = 'pending' | 'admin' | 'institution_admin' | 'teacher' | 'student';
 
 export type AuthUser = {
   id: number;

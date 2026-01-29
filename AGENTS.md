@@ -18,6 +18,7 @@ ScholarXP is an LMS-launched study companion that helps students practice course
 - You MUST add comments. Comments must explain why it is coded that way and offer a very brief description of what is being done.
 - Break tasks down into smaller chunks and formulate a plan to complete a task. 
 - Write production ready code.
+- Error-handling: never surface raw backend messages to users; expected/validation errors should show tailored messages, unexpected errors should be generic. Log full details to server logs or monitoring, keep UI messages sanitized.
 
 ## Project Structure & Module Organization
 - Backend source: `apps/backend/src` (feature modules like `users`, `module-unit`, `question-*`).

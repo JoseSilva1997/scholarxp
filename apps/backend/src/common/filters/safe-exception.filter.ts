@@ -19,26 +19,33 @@ export class SafeExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
-    const status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+    const isHttp = exception instanceof HttpException;
+    const status = isHttp
+      ? exception.getStatus()
+      : HttpStatus.INTERNAL_SERVER_ERROR;
 
     // Always log the detailed error server-side to aid debugging.
-    const message =
-      exception instanceof HttpException
-        ? exception.message
-        : 'Unhandled exception';
+    const message = isHttp ? exception.message : 'Unhandled exception';
     const stack =
       exception instanceof Error && exception.stack
         ? exception.stack
         : undefined;
-    this.logger.error(
-      `${request?.method ?? 'UNKNOWN'} ${request?.url ?? 'UNKNOWN'} -> ${status}: ${message}`,
-      stack,
-    );
+    const logLine = `${request?.method ?? 'UNKNOWN'} ${request?.url ?? 'UNKNOWN'} -> ${status}: ${message}`;
+    // Validation and other 4xx flows are expected; keep them at warn to reduce noise.
+    if (status >= 500) {
+      this.logger.error(logLine, stack);
+    } else {
+      this.logger.warn(logLine);
+    }
 
-    // Return a safe, minimal payload to clients; avoid leaking internal details.
+    if (isHttp) {
+      // For expected/handled errors, forward the original payload so clients can show specific messages.
+      const httpResponse = exception.getResponse();
+      response.status(status).json(httpResponse);
+      return;
+    }
+
+    // For unexpected errors, return a safe, minimal payload to clients.
     response.status(status).json({
       message: 'Something went wrong. Please try again.',
     });

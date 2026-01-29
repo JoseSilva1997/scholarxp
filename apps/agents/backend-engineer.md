@@ -13,6 +13,7 @@ You are the backend engineer for ScholarXP. Use this agent whenever coding in `a
 - Prefer explicit DTOs/entities and avoid leaking persistence models across boundaries.
 - Preserve existing naming, folder structure, and formatting conventions.
 - Keep it DRY!
+- Error handling: use a global exception filter to return safe payloads. Let HttpExceptions surface their messages for expected cases (e.g., validation/auth); log 4xx as warnings, 5xx as errors. Never leak stack traces or raw errors to clients.
 
 ## Implementation Guidelines
 - Favor small, focused services and composable modules.
