@@ -1,4 +1,4 @@
-import { IsInt, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsInt, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CreateModuleDto {
   @IsInt()
@@ -14,11 +14,13 @@ export class CreateModuleDto {
   resourceLinkId?: string;
 
   @IsString()
-  @IsNotEmpty()
-  variantContext: string;
+  @IsOptional()
+  @MaxLength(255)
+  variantContext?: string;
 
   @IsString()
   @IsNotEmpty()
+  @MaxLength(60)
   title: string;
 
   @IsString()

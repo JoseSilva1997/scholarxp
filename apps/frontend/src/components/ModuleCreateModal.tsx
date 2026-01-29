@@ -15,7 +15,6 @@ type ModuleCreateModalProps = {
 export default function ModuleCreateModal({ onClose, onCreated }: ModuleCreateModalProps) {
   const { user } = useAuth();
   const [title, setTitle] = useState('');
-  const [variantContext, setVariantContext] = useState('');
   const [description, setDescription] = useState('');
   const [institutionId, setInstitutionId] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -32,12 +31,10 @@ export default function ModuleCreateModal({ onClose, onCreated }: ModuleCreateMo
     try {
       const payload: {
         title: string;
-        variantContext: string;
         description?: string;
         institutionId?: number;
       } = {
         title: title.trim(),
-        variantContext: variantContext.trim(),
         description: description.trim() || undefined,
       };
       if (canSetInstitution && institutionId.trim()) {
@@ -91,18 +88,6 @@ export default function ModuleCreateModal({ onClose, onCreated }: ModuleCreateMo
             />
           </label>
           <label className={styles.label}>
-            Variant context
-            <input
-              className={styles.input}
-              value={variantContext}
-              onChange={(e) => setVariantContext(e.target.value)}
-              required
-              minLength={2}
-              maxLength={120}
-              placeholder="e.g., math101-fall"
-            />
-          </label>
-          <label className={styles.label}>
             Description (optional)
             <textarea
               className={styles.textarea}
@@ -128,7 +113,11 @@ export default function ModuleCreateModal({ onClose, onCreated }: ModuleCreateMo
             <button type="button" className={styles.secondary} onClick={onClose} disabled={isSaving}>
               Cancel
             </button>
-            <button type="submit" className={styles.primary} disabled={isSaving}>
+            <button
+              type="submit"
+              className={styles.primary}
+              disabled={isSaving || title.trim().length === 0}
+            >
               {isSaving ? 'Creating…' : 'Create module'}
             </button>
           </div>

@@ -4,7 +4,7 @@ export type ModuleSummary = {
   institutionId?: number | null;
   ltiContextId?: string | null;
   resourceLinkId?: string | null;
-  variantContext: string;
+  variantContext?: string | null;
   title: string;
   description?: string | null;
   createdByUserId?: number | null;

@@ -53,7 +53,7 @@
 .input,
 .textarea {
   width: 100%;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--color-muted);
   border-radius: 10px;
   padding: 10px 12px;
   font-size: 14px;
@@ -74,7 +74,7 @@
 }
 
 .secondary {
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border-default);
   background: white;
   color: var(--text-primary);
   border-radius: 10px;
@@ -84,12 +84,26 @@
 
 .primary {
   border: none;
-  background: var(--brand-600);
+  background: var(--color-brand-surface-dark);
   color: white;
   border-radius: 10px;
   padding: 10px 14px;
   font-weight: 600;
   cursor: pointer;
+  min-width: 110px;
+  transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
+}
+
+.primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.primary:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
 }
 
 .error {

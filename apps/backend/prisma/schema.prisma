@@ -78,7 +78,7 @@ model Module {
   institutionId    Int?              @map("institution_id")
   ltiContextId     String?            @map("lti_context_id")
   resourceLinkId   String?            @map("resource_link_id")
-  variantContext   String            @map("variant_context")
+  variantContext   String?            @map("variant_context")
   title            String
   description      String?
   createdByUserId  Int?              @map("created_by_user_id")
