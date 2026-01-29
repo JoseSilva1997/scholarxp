@@ -14,10 +14,7 @@ import {
   MODULE_ACCESS_KEY,
   type ModuleAccessOptions,
 } from '../decorators/module-access.decorator';
-import {
-  createPrismaMock,
-  type PrismaMock,
-} from '../../test/test-helpers';
+import { createPrismaMock, type PrismaMock } from '../../test/test-helpers';
 
 describe('ModuleAccessGuard', () => {
   let guard: ModuleAccessGuard;
@@ -68,7 +65,10 @@ describe('ModuleAccessGuard', () => {
   });
 
   it('throws BadRequest when moduleId is missing', async () => {
-    const req: any = { params: {}, user: { id: 1, globalRole: GlobalRole.admin } };
+    const req: any = {
+      params: {},
+      user: { id: 1, globalRole: GlobalRole.admin },
+    };
 
     await expect(guard.canActivate(buildContext(req))).rejects.toBeInstanceOf(
       BadRequestException,
@@ -91,6 +91,7 @@ describe('ModuleAccessGuard', () => {
     prisma.module.findUnique.mockResolvedValue({
       id: 3,
       institutionId: 11,
+      createdByUserId: null,
       userModules: [],
     } as any);
     prisma.ltiIdentity.findFirst.mockResolvedValue({ id: 99 } as any);
@@ -112,6 +113,7 @@ describe('ModuleAccessGuard', () => {
     prisma.module.findUnique.mockResolvedValue({
       id: 3,
       institutionId: 12,
+      createdByUserId: null,
       userModules: [],
     } as any);
     prisma.ltiIdentity.findFirst.mockResolvedValue(null);
@@ -129,6 +131,7 @@ describe('ModuleAccessGuard', () => {
     prisma.module.findUnique.mockResolvedValue({
       id: 7,
       institutionId: null,
+      createdByUserId: null,
       userModules: [{ roleInModule: 'teacher' }],
     } as any);
     const req: any = {
@@ -145,6 +148,7 @@ describe('ModuleAccessGuard', () => {
     prisma.module.findUnique.mockResolvedValue({
       id: 7,
       institutionId: null,
+      createdByUserId: 99,
       userModules: [],
     } as any);
     const req: any = {
@@ -161,6 +165,7 @@ describe('ModuleAccessGuard', () => {
     prisma.module.findUnique.mockResolvedValue({
       id: 15,
       institutionId: null,
+      createdByUserId: null,
       userModules: [{ roleInModule: 'student' }],
     } as any);
     const req: any = {
@@ -179,6 +184,7 @@ describe('ModuleAccessGuard', () => {
     prisma.module.findUnique.mockResolvedValue({
       id: 15,
       institutionId: null,
+      createdByUserId: null,
       userModules: [{ roleInModule: 'student' }],
     } as any);
     const req: any = {
@@ -189,5 +195,22 @@ describe('ModuleAccessGuard', () => {
     await expect(guard.canActivate(buildContext(req))).rejects.toBeInstanceOf(
       ForbiddenException,
     );
+  });
+
+  it('allows teacher who created the module even without roster row', async () => {
+    prisma.module.findUnique.mockResolvedValue({
+      id: 21,
+      institutionId: null,
+      createdByUserId: 8,
+      userModules: [],
+    } as any);
+    const req: any = {
+      params: { moduleId: '21' },
+      user: { id: 8, globalRole: GlobalRole.teacher },
+    };
+
+    const result = await guard.canActivate(buildContext(req));
+
+    expect(result).toBe(true);
   });
 });

@@ -1,3 +1,4 @@
+// UserModuleService handles roster records; it now supports module-scoped listing.
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateUserModuleDto } from './dto/create-user-module.dto';
 import { UpdateUserModuleDto } from './dto/update-user-module.dto';
@@ -11,7 +12,11 @@ export class UserModuleService {
     return this.prisma.userModule.create({ data: createUserModuleDto });
   }
 
-  findAll() {
+  findAll(moduleId?: number) {
+    // Constrain roster queries to a specific module when provided.
+    if (moduleId) {
+      return this.prisma.userModule.findMany({ where: { moduleId } });
+    }
     return this.prisma.userModule.findMany();
   }
 

@@ -34,10 +34,10 @@ export class ModuleAccessGuard implements CanActivate {
     }
 
     const options =
-      this.reflector.getAllAndOverride<ModuleAccessOptions>(
-        MODULE_ACCESS_KEY,
-        [context.getHandler(), context.getClass()],
-      ) ?? {};
+      this.reflector.getAllAndOverride<ModuleAccessOptions>(MODULE_ACCESS_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ]) ?? {};
 
     const moduleId = this.extractModuleId(req, options.paramKey);
     if (!moduleId) {
@@ -55,6 +55,7 @@ export class ModuleAccessGuard implements CanActivate {
       select: {
         id: true,
         institutionId: true,
+        createdByUserId: true,
         userModules: {
           where: { userId: user.id },
           select: { roleInModule: true },
@@ -82,8 +83,9 @@ export class ModuleAccessGuard implements CanActivate {
     // Instructor access: must have a userModule row with roleInModule 'teacher'.
     const membership = module.userModules[0];
     if (
-      membership?.roleInModule === 'teacher' &&
-      user.globalRole === GlobalRole.teacher
+      user.globalRole === GlobalRole.teacher &&
+      (membership?.roleInModule === 'teacher' ||
+        module.createdByUserId === user.id)
     ) {
       return true;
     }
@@ -100,10 +102,7 @@ export class ModuleAccessGuard implements CanActivate {
     throw new ForbiddenException('Insufficient permissions for module access');
   }
 
-  private extractModuleId(
-    req: Request,
-    paramKey = 'moduleId',
-  ): number | null {
+  private extractModuleId(req: Request, paramKey = 'moduleId'): number | null {
     const value =
       req.params?.[paramKey] ??
       req.params?.id ??
