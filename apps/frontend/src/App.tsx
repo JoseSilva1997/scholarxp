@@ -10,6 +10,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import RoleSelectorOverlay from './components/RoleSelectorOverlay';
 import AuthedLayout from './layouts/AuthedLayout';
 import ModulesPage from './routes/main/ModulesPage';
+import SingleModulePage from './routes/main/SingleModulePage';
 import QuestsPage from './routes/main/QuestsPage';
 import ProfilePage from './routes/main/ProfilePage';
 
@@ -51,6 +52,7 @@ function AppLayout() {
               <Route element={<AuthedLayout />}>
                 <Route path="/main" element={<Navigate to="/main/modules" replace />} />
                 <Route path="/main/modules" element={<ModulesPage />} />
+                <Route path="/main/modules/:moduleId" element={<SingleModulePage />} />
                 <Route path="/main/quests" element={<QuestsPage />} />
                 <Route path="/main/profile" element={<ProfilePage />} />
               </Route>

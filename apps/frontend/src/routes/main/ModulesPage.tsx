@@ -1,5 +1,6 @@
 // Screen that lists modules for the logged-in user; split out so the app shell can host other sections.
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { listModules } from '../../api/modules';
 import type { ModuleSummary } from '../../types/module';
 import { useAuth } from '../../context/AuthContext';
@@ -11,6 +12,7 @@ import styles from './ModulesPage.module.css';
 
 export default function ModulesPage() {
   const { user, isLoading: isAuthLoading } = useAuth();
+  const navigate = useNavigate();
   const [modules, setModules] = useState<ModuleSummary[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -100,24 +102,75 @@ export default function ModulesPage() {
         </div>
       ) : (
         <div className={styles.grid}>
-          {modules.map((m) => (
-            <article key={m.id} className={styles.card}>
-              <div className={styles.cardHeader}>
-                <h3 className={styles.cardTitle}>{m.title}</h3>
-                <span className={styles.badge}>{m.variantContext}</span>
-              </div>
-              <p className={styles.cardDescription}>
-                {m.description ?? 'No description provided.'}
-              </p>
-              <div className={styles.meta}>
-                {m.institutionId ? (
-                  <span className={styles.metaItem}>Institution #{m.institutionId}</span>
-                ) : (
-                  <span className={styles.metaItem}>No institution</span>
-                )}
-              </div>
-            </article>
-          ))}
+          {modules.map((m) => {
+            // Expanded array of module card colors from theme for more visual variety.
+            const moduleCardColors = [
+              'var(--module-card-green-dark)',
+              'var(--module-card-green-medium)',
+              'var(--module-card-green-light)',
+              'var(--module-card-yellow-dark)',
+              'var(--module-card-yellow-medium)',
+              'var(--module-card-yellow-light)',
+              'var(--module-card-blue-dark)',
+              'var(--module-card-blue-medium)',
+              'var(--module-card-blue-light)',
+              'var(--module-card-purple-dark)',
+              'var(--module-card-purple-medium)',
+              'var(--module-card-purple-light)',
+              'var(--module-card-orange-dark)',
+              'var(--module-card-orange-medium)',
+              'var(--module-card-orange-light)',
+              'var(--module-card-teal-dark)',
+              'var(--module-card-teal-medium)',
+              'var(--module-card-teal-light)',
+              'var(--module-card-red-dark)',
+              'var(--module-card-red-medium)',
+              'var(--module-card-red-light)',
+              'var(--module-card-pink-dark)',
+              'var(--module-card-pink-medium)',
+              'var(--module-card-pink-light)',
+              'var(--module-card-dark-dark)',
+              'var(--module-card-dark-medium)',
+              'var(--module-card-dark-light)',
+            ];
+            const cardColor = moduleCardColors[m.id % moduleCardColors.length];
+            const handleOpen = () => {
+              // Route to module detail page so users can drill into content quickly.
+              navigate(`/main/modules/${m.id}`);
+            };
+
+            return (
+              <article
+                key={m.id}
+                className={styles.card}
+                style={{ '--card-color': cardColor } as React.CSSProperties}
+                role="button"
+                tabIndex={0}
+                onClick={handleOpen}
+                onKeyDown={(evt) => {
+                  if (evt.key === 'Enter' || evt.key === ' ') {
+                    evt.preventDefault();
+                    handleOpen();
+                  }
+                }}
+                >
+                <div className={styles.cardHeader}>
+                  <h3 className={styles.cardTitle}>{m.title}</h3>
+                  <span className={styles.badge}>{m.variantContext}</span>
+                </div>
+                <p className={styles.cardDescription}>
+                  {m.description ?? 'No description provided.'}
+                </p>
+                <div className={styles.meta}>
+                  {m.institutionId ? (
+                    <span className={styles.metaItem}>Institution #{m.institutionId}</span>
+                  ) : (
+                    <span className={styles.metaItem}>No institution</span>
+                  )}
+                </div>
+              </article>
+            );
+          })}
         </div>
       )}
 

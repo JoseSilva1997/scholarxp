@@ -87,7 +87,25 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  /* Ensures all cards stretch to same height and content is distributed properly. */
+  justify-content: space-between;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+  min-height: 20px;
+  /* Add smooth transitions for hover effects. */
+  transition: transform 150ms ease, box-shadow 150ms ease;
+  cursor: pointer;
+  /* Add colored left and right borders using CSS variable set by component. */
+  border-left: 8px solid var(--card-color, var(--border-subtle));
+  border-right: 8px solid var(--card-color, var(--border-subtle));
+  /* Adjust padding to account for thick borders. */
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+.card:hover {
+  /* Move card up slightly and enhance shadow on hover. */
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
 .cardHeader {
@@ -124,6 +142,8 @@
   overflow: hidden;
   overflow-wrap: anywhere;
   word-break: break-word;
+  /* Ensure description always takes up 2 lines worth of height. */
+  min-height: calc(1.45 * 1em * 2);
 }
 
 .meta {
@@ -134,7 +154,6 @@
 }
 
 .metaItem {
-  background: var(--surface-muted);
-  padding: 4px 8px;
+  background: var(--surface-muted);;
   border-radius: 6px;
 }

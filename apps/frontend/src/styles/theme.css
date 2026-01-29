@@ -27,6 +27,35 @@
   --btn-primary-shadow: 0 12px 26px rgba(76, 175, 80, 0.28);
   --btn-primary-shadow-hover: 0 14px 30px rgba(76, 175, 80, 0.36);
 
+  /* Module card colors - variants for visual distinction */
+  --module-card-green-dark: #2e8b57;
+  --module-card-green-medium: #4caf50;
+  --module-card-green-light: #81c784;
+  --module-card-yellow-dark: #e6a800;
+  --module-card-yellow-medium: #ffb300;
+  --module-card-yellow-light: #ffc947;
+  --module-card-dark-dark: #1a1b2e;
+  --module-card-dark-medium: #303146;
+  --module-card-dark-light: #4a4b6a;
+  --module-card-blue-dark: #1e3a8a;
+  --module-card-blue-medium: #2563eb;
+  --module-card-blue-light: #60a5fa;
+  --module-card-purple-dark: #6b21a8;
+  --module-card-purple-medium: #9333ea;
+  --module-card-purple-light: #c084fc;
+  --module-card-orange-dark: #b45309;
+  --module-card-orange-medium: #d97706;
+  --module-card-orange-light: #fb923c;
+  --module-card-teal-dark: #0d9488;
+  --module-card-teal-medium: #14b8a6;
+  --module-card-teal-light: #2dd4bf;
+  --module-card-red-dark: #b91c1c;
+  --module-card-red-medium: #dc2626;
+  --module-card-red-light: #ef4444;
+  --module-card-pink-dark: #be185d;
+  --module-card-pink-medium: #db2777;
+  --module-card-pink-light: #f472b6;
+
   /* Layout */
   --header-height: 70px;
   --header-padding-block: 6px;
