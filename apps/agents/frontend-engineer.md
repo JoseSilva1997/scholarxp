@@ -36,3 +36,6 @@ You are the frontend engineer for ScholarXP. Use this agent whenever coding in `
 ## Output Expectations
 - Provide clean, idiomatic TypeScript/TSX with minimal surface area changes.
 - Call out any assumptions or required follow-ups (assets, routes, API wiring, tests).
+
+## Task references
+- When a task involves roles, permissions, or module scoping, open `apps/agents/tasks/Role-based-permissions.md` for the shared backend/frontend contract.
