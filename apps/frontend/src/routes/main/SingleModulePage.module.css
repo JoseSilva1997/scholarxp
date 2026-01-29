@@ -4,6 +4,18 @@
   gap: 16px;
 }
 
+.containerWithSettings {
+  /* Reserve space so fixed settings rail does not cover page content when expanded. */
+  padding-right: 280px;
+}
+
+@media (max-width: 900px) {
+  .containerWithSettings {
+    /* On smaller screens we let the panel slide over content instead of compressing it. */
+    padding-right: 0;
+  }
+}
+
 .topBar {
   display: flex;
   justify-content: flex-start;

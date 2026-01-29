@@ -9,6 +9,7 @@ import settingsIcon from '../../assets/settings-icon.svg';
 import toggleStudentViewIcon from '../../assets/toggle-student-view.svg';
 import untoggleStudentViewIcon from '../../assets/untoggle-student-view.svg';
 import MainSection from '../../components/MainSection';
+import ModuleSettingsPanel from './ModuleSettingsPanel';
 import styles from './SingleModulePage.module.css';
 
 export default function SingleModulePage() {
@@ -17,6 +18,8 @@ export default function SingleModulePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isStudentViewEnabled, setIsStudentViewEnabled] = useState(false);
+  // Local slide-over flag keeps the settings UI contained on this screen without routing away.
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const parsedId = useMemo(() => {
     if (!moduleId) return null;
@@ -69,78 +72,88 @@ export default function SingleModulePage() {
   }, [parsedId]);
 
   return (
-    <MainSection className={styles.container}>
-      <div className={styles.topBar}>
-        <Link className={styles.backLink} to="/main/modules">
-          ← Back to modules
-        </Link>
-      </div>
-
-      {isLoading ? (
-        <div className={styles.panel}>Loading module…</div>
-      ) : error ? (
-        <div className={styles.panel} role="alert">
-          {error}
+    <>
+      <MainSection className={styles.container}>
+        <div className={styles.topBar}>
+          <Link className={styles.backLink} to="/main/modules">
+            ← Back to modules
+          </Link>
         </div>
-      ) : module ? (
-        <>
-          <header className={styles.header}>
-            <div className={styles.titleRow}>
-              <h1 className={styles.title}>{module.title}</h1>
-            </div>
-            <button
-              className={styles.toggleButton}
-              type="button"
-              aria-label={isStudentViewEnabled ? 'Disable student view' : 'Enable student view'}
-              title={isStudentViewEnabled ? 'Disable student view' : 'Enable student view'}
-              onClick={() => setIsStudentViewEnabled(!isStudentViewEnabled)}
-            >
-              <img
-                src={isStudentViewEnabled ? untoggleStudentViewIcon : toggleStudentViewIcon}
-                alt=""
-                aria-hidden="true"
-              />
-            </button>
-            <button
-              className={styles.settingsButton}
-              type="button"
-              aria-label="Module settings"
-              title="Module settings"
-            >
-              <img src={settingsIcon} alt="" aria-hidden="true" />
-            </button>
-            <div className={styles.metaRow}>
-            </div>
-          </header>
 
-          <div className={styles.grid}>
-            <section className={styles.card}>
-              <div className={styles.cardHeader}>
-                <h2 className={styles.cardTitle}>Contents</h2>
-                <span className={styles.badgeMuted}>Module library</span>
-              </div>
-              <p className={styles.cardBody}>
-                Lessons, practice sets, and upcoming quests for this module will appear here. Select
-                an activity to continue where you left off.
-              </p>
-              <div className={styles.contentPlaceholders}>
-                <div className={styles.placeholderRow}>
-                  <div className={styles.placeholderTitle} />
-                  <div className={styles.placeholderMeta} />
-                </div>
-                <div className={styles.placeholderRow}>
-                  <div className={styles.placeholderTitle} />
-                  <div className={styles.placeholderMeta} />
-                </div>
-                <div className={styles.placeholderRow}>
-                  <div className={styles.placeholderTitle} />
-                  <div className={styles.placeholderMeta} />
-                </div>
-              </div>
-            </section>
+        {isLoading ? (
+          <div className={styles.panel}>Loading module…</div>
+        ) : error ? (
+          <div className={styles.panel} role="alert">
+            {error}
           </div>
-        </>
-      ) : null}
-    </MainSection>
+        ) : module ? (
+          <>
+            <header className={styles.header}>
+              <div className={styles.titleRow}>
+                <h1 className={styles.title}>{module.title}</h1>
+              </div>
+              <button
+                className={styles.toggleButton}
+                type="button"
+                aria-label={isStudentViewEnabled ? 'Disable student view' : 'Enable student view'}
+                title={isStudentViewEnabled ? 'Disable student view' : 'Enable student view'}
+                onClick={() => setIsStudentViewEnabled(!isStudentViewEnabled)}
+              >
+                <img
+                  src={isStudentViewEnabled ? untoggleStudentViewIcon : toggleStudentViewIcon}
+                  alt=""
+                  aria-hidden="true"
+                />
+              </button>
+              <button
+                className={styles.settingsButton}
+                type="button"
+                aria-label="Module settings"
+                title="Module settings"
+                aria-expanded={isSettingsOpen}
+                onClick={() => setIsSettingsOpen((open) => !open)}
+              >
+                <img src={settingsIcon} alt="" aria-hidden="true" />
+              </button>
+              <div className={styles.metaRow}>
+              </div>
+            </header>
+
+            <div className={styles.grid}>
+              <section className={styles.card}>
+                <div className={styles.cardHeader}>
+                  <h2 className={styles.cardTitle}>Contents</h2>
+                  <span className={styles.badgeMuted}>Module library</span>
+                </div>
+                <p className={styles.cardBody}>
+                  Lessons, practice sets, and upcoming quests for this module will appear here. Select
+                  an activity to continue where you left off.
+                </p>
+                <div className={styles.contentPlaceholders}>
+                  <div className={styles.placeholderRow}>
+                    <div className={styles.placeholderTitle} />
+                    <div className={styles.placeholderMeta} />
+                  </div>
+                  <div className={styles.placeholderRow}>
+                    <div className={styles.placeholderTitle} />
+                    <div className={styles.placeholderMeta} />
+                  </div>
+                  <div className={styles.placeholderRow}>
+                    <div className={styles.placeholderTitle} />
+                    <div className={styles.placeholderMeta} />
+                  </div>
+                </div>
+              </section>
+            </div>
+          </>
+        ) : null}
+      </MainSection>
+
+      <ModuleSettingsPanel
+        title={module?.title || ''}
+        isOpen={isSettingsOpen}
+        onToggle={() => setIsSettingsOpen((open) => !open)}
+      />
+    </>
   );
 }

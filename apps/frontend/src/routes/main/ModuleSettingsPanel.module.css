@@ -1,0 +1,235 @@
+.settingsPanel {
+  position: fixed;
+  top: var(--header-height);
+  bottom: var(--footer-height);
+  right: 0;
+  width: 380px;
+  max-width: 92vw;
+  background: var(--color-surface);
+  border-left: 1px solid var(--border-subtle);
+  box-shadow: -10px 0 26px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 180ms ease, opacity 180ms ease;
+  z-index: 100;
+}
+
+.backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 99;
+  animation: fadeIn 180ms ease;
+  pointer-events: auto;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.settingsPanelOpen {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.settingsPanelClosed {
+  transform: translateX(100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.settingsPanelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 22px 12px;
+  gap: 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.settingsPanelEyebrow {
+  margin: 0 0 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.settingsPanelTitle {
+  margin: 0;
+  font-size: 22px;
+  color: var(--text-primary);
+}
+
+.closeSettingsButton {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 140ms ease, border-color 140ms ease, transform 120ms ease;
+}
+
+.closeSettingsButton:hover {
+  background: var(--surface-muted);
+  border-color: var(--border-strong);
+}
+
+.closeSettingsButton:focus-visible {
+  outline: 2px solid var(--color-accent-secondary);
+  outline-offset: 2px;
+}
+
+.settingsPanelBody {
+  padding: 14px 22px 22px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.settingsSection {
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 14px 14px 16px;
+  background: var(--surface-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.settingsSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settingsSectionEyebrow {
+  margin: 0 0 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.settingsSectionTitle {
+  margin: 0;
+  font-size: 18px;
+  color: var(--text-primary);
+}
+
+.settingsBadge {
+  background: var(--brand-50);
+  color: var(--brand-700);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  border: 1px solid var(--brand-100);
+}
+
+.settingsSectionCopy {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.settingsPlaceholderGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.settingsPlaceholderRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.settingsPlaceholderLabel {
+  width: 120px;
+  height: 10px;
+  border-radius: 6px;
+  background: var(--border-subtle);
+}
+
+.settingsPlaceholderInput {
+  flex: 1;
+  height: 14px;
+  border-radius: 6px;
+  background: var(--color-surface);
+  border: 1px solid var(--border-subtle);
+}
+
+.settingsPlaceholderInputWide {
+  flex: 1;
+  height: 14px;
+  border-radius: 6px;
+  background: var(--color-surface);
+  border: 1px solid var(--border-subtle);
+}
+
+.settingsPlaceholderButton {
+  width: 120px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--text-secondary);
+  opacity: 0.25;
+}
+
+.settingsPlaceholderButtonSmall {
+  width: 80px;
+  height: 28px;
+  border-radius: 10px;
+  background: var(--text-secondary);
+  opacity: 0.25;
+}
+
+.settingsRosterList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.settingsRosterItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: white;
+  border: 1px dashed var(--border-subtle);
+  border-radius: 10px;
+}
+
+.settingsRosterAvatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--surface-muted);
+}
+
+.settingsRosterMeta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settingsPlaceholderMicro {
+  width: 90px;
+  height: 8px;
+  border-radius: 6px;
+  background: var(--border-subtle);
+}
