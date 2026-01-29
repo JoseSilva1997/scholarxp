@@ -33,7 +33,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['**/*.spec.ts', 'test/**/*.ts', 'src/testing/**/*.ts'],
+    files: ['**/*.spec.ts', 'test/**/*.ts', 'src/test/**/*.ts'],
     rules: {
       '@typescript-eslint/no-unsafe-assignment': 'warn',
       '@typescript-eslint/no-unsafe-call': 'warn',
