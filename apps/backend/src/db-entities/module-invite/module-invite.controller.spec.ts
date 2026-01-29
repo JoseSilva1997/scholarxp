@@ -43,7 +43,12 @@ describe('ModuleInviteController', () => {
   afterEach(() => jest.resetAllMocks());
 
   it('create forwards DTO to the service', async () => {
-    const dto: any = { moduleId: 1, createdByUserId: 2, type: 'link', tokenHash: 'h' };
+    const dto: any = {
+      moduleId: 1,
+      createdByUserId: 2,
+      type: 'link',
+      tokenHash: 'h',
+    };
     service.create.mockResolvedValue({ id: 1 });
 
     const result = await controller.create(dto);

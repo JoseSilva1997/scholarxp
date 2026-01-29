@@ -16,7 +16,7 @@ import {
   MODULE_ACCESS_KEY,
   ModuleAccessOptions,
 } from '../decorators/module-access.decorator';
-import type { AuthUser } from '../auth.service';
+import type { AuthUser } from '../../types/auth-user.type';
 
 @Injectable()
 export class ModuleAccessGuard implements CanActivate {

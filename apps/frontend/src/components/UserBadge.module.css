@@ -105,6 +105,7 @@
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
   min-width: 160px;
   z-index: 10;
+  overflow: hidden;
 }
 
 .menuItem {
@@ -116,6 +117,10 @@
   text-align: left;
   cursor: pointer;
   font-size: 0.95rem;
+}
+
+.menuItem + .menuItem {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .menuItem:hover,

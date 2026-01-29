@@ -1,8 +1,7 @@
 /* Styles for the persistent sidebar used inside the authenticated shell. */
 .sidebar {
   width: 260px;
-  background: white;
-  border-right: 1px solid var(--border-subtle);
+  background: var(--color-surface);
   padding: 16px 12px;
   display: flex;
   flex-direction: column;
@@ -33,13 +32,13 @@
 }
 
 .toggleButton:hover {
-  background: var(--surface-muted);
+  background: var(--color-surface-alt);
   transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
 }
 
 .toggleButton:hover .toggleIcon > span {
-  background: var(--text-primary, #111827);
+  background: var(--color-brand-surface-dark);
 }
 
 .toggleButton:focus-visible {
@@ -58,7 +57,7 @@
   display: block;
   height: 2.5px;
   width: 100%;
-  background: var(--text-primary, #1f2937);
+  background: var(--color-brand-surface-dark);
   border-radius: 2px;
   transition: all 200ms ease;
 }

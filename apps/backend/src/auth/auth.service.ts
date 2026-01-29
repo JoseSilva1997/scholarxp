@@ -10,21 +10,7 @@ import { AuthProvider, GlobalRole, Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { EmailVerificationTokenService } from '../db-entities/email-verification-token/email-verification-token.service';
 import { MailerService } from '../mailer/mailer.service';
-
-export type AuthUser = {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email: string | null;
-  profilePictureUrl: string;
-  globalRole: GlobalRole;
-  isVerified: boolean;
-  avatar?: {
-    id: number;
-    level: number;
-    currentExp: number;
-  } | null;
-};
+import { AuthUser } from '../types/auth-user.type';
 
 type UserRecord = {
   id: number;
@@ -102,7 +88,7 @@ export class AuthService {
     });
     await this.mailer.sendVerificationCode(email, token.token);
 
-    return this.toAuthUser(user, null, true);
+    return this.toAuthUser(user, null, undefined, true);
   }
 
   async login(dto: LoginDto) {
@@ -129,7 +115,8 @@ export class AuthService {
     }
 
     const avatar = await this.loadAvatarIfStudent(user);
-    return this.toAuthUser(user, avatar);
+    const membership = await this.loadInstitutionMembership(user.id);
+    return this.toAuthUser(user, avatar, membership);
   }
 
   async verifyEmail(token: string) {
@@ -139,7 +126,8 @@ export class AuthService {
       data: { isVerified: true },
     });
     const avatar = await this.loadAvatarIfStudent(user);
-    return this.toAuthUser(user, avatar);
+    const membership = await this.loadInstitutionMembership(user.id);
+    return this.toAuthUser(user, avatar, membership);
   }
 
   async resendVerification(email: string) {
@@ -182,7 +170,8 @@ export class AuthService {
         },
       );
       const avatar = await this.loadAvatarIfStudent(refreshed);
-      return this.toAuthUser(refreshed, avatar);
+      const membership = await this.loadInstitutionMembership(refreshed.id);
+      return this.toAuthUser(refreshed, avatar, membership);
     }
 
     // We cannot create/link without an email from Google (rare but possible).
@@ -202,7 +191,8 @@ export class AuthService {
     });
 
     const avatar = await this.loadAvatarIfStudent(user);
-    return this.toAuthUser(user, avatar);
+    const membership = await this.loadInstitutionMembership(user.id);
+    return this.toAuthUser(user, avatar, membership);
   }
 
   // Looks up a Google auth identity (with its user) so we can short-circuit on returning users.
@@ -301,7 +291,41 @@ export class AuthService {
       throw new UnauthorizedException('Session invalid');
     }
     const avatar = await this.loadAvatarIfStudent(user);
-    return this.toAuthUser(user, avatar);
+    const membership = await this.loadInstitutionMembership(user.id);
+    return this.toAuthUser(user, avatar, membership);
+  }
+
+  // Load institution/LTI membership only when the user has any LTI identity; avoids extra selects for non-institution users.
+  private async loadInstitutionMembership(userId: number) {
+    const firstIdentity = await this.prisma.ltiIdentity.findFirst({
+      where: { userId },
+      select: { institutionId: true, ltiUserId: true },
+    });
+
+    if (!firstIdentity) {
+      return {
+        institutionIds: [],
+
+        hasInstitutionMembership: false,
+        ltiIdentities: [],
+        hasLtiIdentity: false,
+      };
+    }
+
+    const ltiIdentities = await this.prisma.ltiIdentity.findMany({
+      where: { userId },
+      select: { institutionId: true, ltiUserId: true },
+    });
+    const institutionIds = Array.from(
+      new Set(ltiIdentities.map((identity) => identity.institutionId)),
+    );
+
+    return {
+      institutionIds,
+      hasInstitutionMembership: institutionIds.length > 0,
+      ltiIdentities,
+      hasLtiIdentity: ltiIdentities.length > 0,
+    };
   }
 
   private async loadAvatarIfStudent(user: {
@@ -329,6 +353,12 @@ export class AuthService {
       isVerified?: boolean;
     },
     avatar?: { id: number; level: number; currentExp: number } | null,
+    membership?: {
+      institutionIds?: number[];
+      hasInstitutionMembership?: boolean;
+      ltiIdentities?: { institutionId: number; ltiUserId: string }[];
+      hasLtiIdentity?: boolean;
+    },
     requireVerification?: boolean,
   ): AuthUser & { requiresEmailVerification?: boolean } {
     return {
@@ -342,6 +372,10 @@ export class AuthService {
       requiresEmailVerification:
         requireVerification || !(user.isVerified ?? false),
       avatar: avatar ?? null,
+      institutionIds: membership?.institutionIds ?? [],
+      hasInstitutionMembership: membership?.hasInstitutionMembership ?? false,
+      ltiIdentities: membership?.ltiIdentities ?? [],
+      hasLtiIdentity: membership?.hasLtiIdentity ?? false,
     };
   }
 }

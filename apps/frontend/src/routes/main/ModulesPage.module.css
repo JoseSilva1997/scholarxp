@@ -2,7 +2,7 @@
   display: flex;
   justify-content: space-between;
   gap: 16px;
-  align-items: flex-start;
+  align-items: center;
   margin-bottom: 24px;
 }
 
@@ -25,15 +25,44 @@
   color: var(--text-secondary);
 }
 
-.primaryButton {
-  background: var(--brand-600);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  padding: 10px 14px;
-  font-weight: 600;
+.createAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.createLabel {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.createButton {
+  background: var(--color-brand-surface-dark);
+  color: #ffffff;
+  border: 1px solid var(--color-brand-surface-dark);
+  border-radius: 999px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 700;
   cursor: pointer;
-  transition: transform 120ms ease, box-shadow 120ms ease;
+  transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+  line-height: 1;
+  padding: 0;
+}
+
+.createButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 2px 2px 2px rgba(48, 49, 70, 0.32);
+  /* background: #3b3c52; */
+}
+
+.createButton:focus-visible {
+  outline: 2px solid var(--color-accent-secondary);
+  outline-offset: 3px;
 }
 
 .panel {

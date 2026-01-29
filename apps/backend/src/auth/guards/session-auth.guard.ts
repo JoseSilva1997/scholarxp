@@ -6,8 +6,9 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { AuthService, type AuthUser } from '../auth.service';
+import { AuthService } from '../auth.service';
 import type { Request } from 'express';
+import type { AuthUser } from '../../types/auth-user.type';
 
 @Injectable()
 export class SessionAuthGuard implements CanActivate {

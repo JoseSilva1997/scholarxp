@@ -2,7 +2,8 @@
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { GlobalRole } from '@prisma/client';
 import { SessionAuthGuard } from './session-auth.guard';
-import { AuthService, type AuthUser } from '../auth.service';
+import { AuthService } from '../auth.service';
+import type { AuthUser } from '../../types/auth-user.type';
 
 describe('SessionAuthGuard', () => {
   let guard: SessionAuthGuard;

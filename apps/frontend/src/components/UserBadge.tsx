@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { AuthUser } from '../types/auth';
 import defaultAvatar from '../assets/default-profile-pic.png';
 import { STUDENT_EXP_MAX } from '../constants/progression';
@@ -22,6 +23,7 @@ function formatName(user: AuthUser) {
 export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const navigate = useNavigate();
 
   const toggleMenu = () => setIsMenuOpen((open) => !open);
   const closeMenu = () => setIsMenuOpen(false);
@@ -90,7 +92,20 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
             className={styles.menuItem}
             role="menuitem"
             onClick={() => {
-              window.alert('Coming soon!');
+              // Navigating via router keeps SPA context and closes the menu for consistent UX.
+              navigate('/main');
+              closeMenu();
+            }}
+          >
+            My content
+          </button>
+          <button
+            type="button"
+            className={styles.menuItem}
+            role="menuitem"
+            onClick={() => {
+              // Profile page is the natural destination for account settings today.
+              navigate('/main/profile');
               closeMenu();
             }}
           >

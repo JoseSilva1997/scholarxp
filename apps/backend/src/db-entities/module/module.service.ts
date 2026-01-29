@@ -7,7 +7,7 @@ import {
 import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
 import { PrismaService } from '../../prisma/prisma.service';
-import type { AuthUser } from '../../auth/auth.service';
+import type { AuthUser } from '../../types/auth-user.type';
 import { GlobalRole } from '@prisma/client';
 
 @Injectable()

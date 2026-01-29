@@ -235,6 +235,10 @@ describe('AuthService', () => {
         globalRole: createdUser.globalRole,
         isVerified: createdUser.isVerified,
         requiresEmailVerification: true,
+        institutionIds: [],
+        hasInstitutionMembership: false,
+        ltiIdentities: [],
+        hasLtiIdentity: false,
         avatar: null,
       });
     });
@@ -299,6 +303,10 @@ describe('AuthService', () => {
         globalRole: user.globalRole,
         isVerified: user.isVerified,
         requiresEmailVerification: false,
+        institutionIds: [],
+        hasInstitutionMembership: false,
+        ltiIdentities: [],
+        hasLtiIdentity: false,
         avatar: null,
       });
     });
@@ -446,6 +454,10 @@ describe('AuthService', () => {
         globalRole: user.globalRole,
         isVerified: user.isVerified,
         requiresEmailVerification: false,
+        institutionIds: [],
+        hasInstitutionMembership: false,
+        ltiIdentities: [],
+        hasLtiIdentity: false,
         avatar: null,
       });
     });

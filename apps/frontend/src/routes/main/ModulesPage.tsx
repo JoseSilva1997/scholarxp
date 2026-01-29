@@ -52,7 +52,7 @@ export default function ModulesPage() {
     };
   }, [isAuthLoading, user]);
 
-  const canCreate = useMemo(
+  const canCreateModules = useMemo(
     () =>
       user?.globalRole === 'admin' ||
       user?.globalRole === 'institution_admin' ||
@@ -64,7 +64,6 @@ export default function ModulesPage() {
     <MainSection>
       <header className={styles.hero}>
         <div>
-          <p className={styles.eyebrow}>Welcome back</p>
           <h1 className={styles.title}>Your modules</h1>
           <p className={styles.subtitle}>
             {user?.globalRole === 'student'
@@ -72,14 +71,18 @@ export default function ModulesPage() {
               : 'Create, manage, and track the modules you teach.'}
           </p>
         </div>
-        {canCreate ? (
-          <button
-            className={styles.primaryButton}
-            type="button"
-            onClick={() => setShowCreate(true)}
-          >
-            Create module
-          </button>
+        {canCreateModules ? (
+          <div className={styles.createAction}>
+            <span className={styles.createLabel}>Create module</span>
+            <button
+              className={styles.createButton}
+              type="button"
+              onClick={() => setShowCreate(true)}
+              aria-label="Open create module form"
+            >
+              +
+            </button>
+          </div>
         ) : null}
       </header>
 
@@ -91,7 +94,7 @@ export default function ModulesPage() {
         </div>
       ) : modules.length === 0 ? (
         <div className={styles.panel}>
-          {canCreate
+          {canCreateModules
             ? "You don't have any modules yet. Create one to get started."
             : 'No modules found for your account.'}
         </div>

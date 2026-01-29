@@ -9,6 +9,11 @@ export type AuthUser = {
   profilePictureUrl: string;
   globalRole: GlobalRole;
   isVerified: boolean;
+  // Optional institution data: used to gate tutor-facing creation flows when a tutor belongs to an institution.
+  institutionIds?: number[];
+  hasInstitutionMembership?: boolean;
+  ltiIdentities?: { institutionId: number; ltiUserId: string }[];
+  hasLtiIdentity?: boolean;
   requiresEmailVerification?: boolean;
   avatar?: {
     id: number;

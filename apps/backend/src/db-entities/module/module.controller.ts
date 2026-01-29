@@ -20,7 +20,7 @@ import { Roles } from '../../auth/decorators/roles.decorator';
 import { GlobalRole } from '@prisma/client';
 import { ModuleAccess } from '../../auth/decorators/module-access.decorator';
 import { ModuleAccessGuard } from '../../auth/guards/module-access.guard';
-import type { AuthUser } from '../../auth/auth.service';
+import type { AuthUser } from '../../types/auth-user.type';
 
 @Controller('module')
 @UseGuards(SessionAuthGuard, RolesGuard)

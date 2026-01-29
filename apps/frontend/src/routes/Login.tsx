@@ -73,7 +73,6 @@ export default function Login() {
 
         <div className={styles.cardColumn}>
           <section className={styles.card}>
-            <h1 className={styles.title}>Welcome back</h1>
             <p className={styles.subtitle}>Log in to continue your daily practice journey.</p>
 
             <form className={styles.form} onSubmit={handleSubmit} noValidate>
