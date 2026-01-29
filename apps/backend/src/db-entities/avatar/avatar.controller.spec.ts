@@ -1,4 +1,4 @@
-import { runCrudControllerTests } from '../../test/test-helpers'
+import { runCrudControllerTests } from '../../test/test-helpers';
 import { AvatarController } from './avatar.controller';
 import { AvatarService } from './avatar.service';
 

@@ -34,7 +34,10 @@ describe('MailerService', () => {
     mockedNodemailer.createTransport.mockReturnValue({} as any);
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [MailerService, { provide: ConfigService, useValue: baseConfig }],
+      providers: [
+        MailerService,
+        { provide: ConfigService, useValue: baseConfig },
+      ],
     }).compile();
 
     const service = module.get<MailerService>(MailerService);
@@ -93,7 +96,11 @@ describe('MailerService', () => {
 
     const service = module.get<MailerService>(MailerService);
 
-    await service.sendMail({ to: 'user@test.dev', subject: 'Hello', text: 'Hi' });
+    await service.sendMail({
+      to: 'user@test.dev',
+      subject: 'Hello',
+      text: 'Hi',
+    });
 
     expect(mockedNodemailer.createTransport).toHaveBeenCalledWith({
       host: 'smtp.test.dev',

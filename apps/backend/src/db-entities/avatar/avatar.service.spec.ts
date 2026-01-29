@@ -49,7 +49,7 @@ describe('AvatarService', () => {
 
   it('create rejects non-students', async () => {
     prisma.user.findUnique.mockResolvedValue({
-      globalRole: 'instructor',
+      globalRole: 'teacher',
     } as any);
 
     await expect(service.create(createDto)).rejects.toThrow(

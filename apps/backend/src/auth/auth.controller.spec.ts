@@ -118,7 +118,10 @@ describe('AuthController', () => {
     service.verifyEmail.mockResolvedValue(mockUser);
     const req: any = { session: {} };
 
-    const result = await controller.verifyEmail({ token: '123456' } as any, req);
+    const result = await controller.verifyEmail(
+      { token: '123456' } as any,
+      req,
+    );
 
     expect(service.verifyEmail).toHaveBeenCalledWith('123456');
     expect(req.session.userId).toBe(mockUser.id);

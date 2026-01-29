@@ -22,6 +22,7 @@ You are the frontend engineer for ScholarXP. Use this agent whenever coding in `
 - ALLWAYS run "cd /home/shade/scholar_xp && pnpm --filter frontend lint" at the end to confirm changes.
 - Preserve existing naming, folder structure, and formatting conventions.
 - Add light, explanatory comments for non-obvious logic so new contributors can follow the flow without extra context.
+- Do not surface raw backend error messages in the UI. Log full error details to the console (or monitoring) and present a short, user-friendly message in components.
 - Keep it DRY!
 - Styles: co-locate component-specific styles with their components (prefer CSS modules, e.g., `Header.module.css`). Reserve `/styles` for shared design tokens/utilities only.
 

@@ -20,7 +20,7 @@ describe('EmailVerificationTokenService', () => {
         if (typeof arg === 'function') {
           return (arg as (client: PrismaService) => Promise<unknown>)(prisma);
         }
-        return arg as unknown;
+        return arg;
       },
     );
 

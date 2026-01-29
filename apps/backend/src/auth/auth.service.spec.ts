@@ -488,7 +488,7 @@ describe('AuthService', () => {
         lastName: 'User',
         email: 'test@example.com',
         profilePictureUrl: 'default-profile-pic.png',
-        globalRole: GlobalRole.instructor,
+        globalRole: GlobalRole.teacher,
         isVerified: true,
         createdAt: new Date('2026-01-01T00:00:00Z'),
       };
@@ -516,14 +516,14 @@ describe('AuthService', () => {
   });
 
   describe('loginWithGoogle', () => {
-  const basePayload = {
-    providerUserId: 'google-123',
-    email: 'new.user@example.com',
-    firstName: 'New',
-    lastName: 'User',
-    picture: 'https://pics.example/avatar.jpg',
-    profilePictureUrl: 'https://pics.example/avatar.jpg',
-  };
+    const basePayload = {
+      providerUserId: 'google-123',
+      email: 'new.user@example.com',
+      firstName: 'New',
+      lastName: 'User',
+      picture: 'https://pics.example/avatar.jpg',
+      profilePictureUrl: 'https://pics.example/avatar.jpg',
+    };
 
     it('refreshes existing linked user profile and returns updated auth user', async () => {
       const existingUser = {

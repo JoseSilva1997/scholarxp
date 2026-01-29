@@ -25,12 +25,19 @@ export class MailerService {
       this.config.get<string>('EMAIL_FROM') ??
       'no-reply@localhost';
     // Only allow log-only fallback in dev or when explicitly enabled; prod should fail loudly to surface misconfig.
-    const allowFallbackEnv = this.config.get<string>('MAILER_ALLOW_LOG_FALLBACK');
+    const allowFallbackEnv = this.config.get<string>(
+      'MAILER_ALLOW_LOG_FALLBACK',
+    );
     const nodeEnv =
-      this.config.get<string>('NODE_ENV') ?? process.env.NODE_ENV ?? 'development';
-    this.allowLogFallback =
-      (allowFallbackEnv ? allowFallbackEnv === 'true' : nodeEnv === 'development');
-    this.hostSanitized = this.sanitizeHost(this.config.get<string>('SMTP_HOST'));
+      this.config.get<string>('NODE_ENV') ??
+      process.env.NODE_ENV ??
+      'development';
+    this.allowLogFallback = allowFallbackEnv
+      ? allowFallbackEnv === 'true'
+      : nodeEnv === 'development';
+    this.hostSanitized = this.sanitizeHost(
+      this.config.get<string>('SMTP_HOST'),
+    );
     this.transporter = this.buildTransport();
   }
 
@@ -105,7 +112,8 @@ export class MailerService {
       return undefined;
     }
 
-    const secure = this.config.get<string>('SMTP_SECURE') === 'true' || port === 465;
+    const secure =
+      this.config.get<string>('SMTP_SECURE') === 'true' || port === 465;
     const user = this.config.get<string>('SMTP_USER');
     const pass = this.config.get<string>('SMTP_PASS');
 

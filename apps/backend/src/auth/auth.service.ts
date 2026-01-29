@@ -339,7 +339,8 @@ export class AuthService {
       profilePictureUrl: user.profilePictureUrl ?? 'default-profile-pic.png',
       globalRole: user.globalRole,
       isVerified: user.isVerified ?? false,
-      requiresEmailVerification: requireVerification || !(user.isVerified ?? false),
+      requiresEmailVerification:
+        requireVerification || !(user.isVerified ?? false),
       avatar: avatar ?? null,
     };
   }

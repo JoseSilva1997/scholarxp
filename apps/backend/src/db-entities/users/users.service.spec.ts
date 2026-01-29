@@ -146,14 +146,14 @@ describe('UsersService', () => {
       expect(prisma.avatar.create).not.toHaveBeenCalled();
     });
 
-    it('leaves avatar untouched when switching to instructor', async () => {
+    it('leaves avatar untouched when switching to teacher', async () => {
       prisma.user.findUnique.mockResolvedValue(baseUser);
       prisma.user.update.mockResolvedValue({
         ...baseUser,
-        globalRole: GlobalRole.instructor,
+        globalRole: GlobalRole.teacher,
       });
 
-      await service.updateRole(baseUser.id, GlobalRole.instructor);
+      await service.updateRole(baseUser.id, GlobalRole.teacher);
 
       expect(prisma.avatar.findFirst).not.toHaveBeenCalled();
       expect(prisma.avatar.create).not.toHaveBeenCalled();

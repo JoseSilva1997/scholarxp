@@ -5,6 +5,7 @@ import session from 'express-session';
 import passport from 'passport';
 import { AppModule } from './app.module';
 import { FRONTEND_URL } from './constants';
+import { SafeExceptionFilter } from './common/filters/safe-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -20,6 +21,8 @@ async function bootstrap() {
       transformOptions: { enableImplicitConversion: true },
     }),
   );
+  // Standardize outward-facing errors and keep internal details in server logs.
+  app.useGlobalFilters(new SafeExceptionFilter());
   app.enableCors({
     origin: corsOrigin,
     credentials: true,

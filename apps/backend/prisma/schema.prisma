@@ -309,7 +309,7 @@ enum GlobalRole {
   pending
   admin
   institution_admin
-  instructor
+  teacher
   student
 }
 
