@@ -78,7 +78,7 @@ describe('ModuleService', () => {
     const result = await service.findAll(admin as any);
 
     expect(result).toEqual([{ id: 1 }]);
-    expect(prisma.module.findMany).toHaveBeenCalledWith();
+    expect(prisma.module.findMany).toHaveBeenCalledWith({ where: {} });
   });
 
   it('findAll filters for student membership', async () => {

@@ -44,10 +44,10 @@ describe('UserModuleService', () => {
     await expect(service.findOne(1)).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('blocks roster actions when permission denied', async () => {
+  it('blocks roster actions when permission denied', () => {
     const noAccess = { ...teacher, globalRole: GlobalRole.student };
-    await expect(
+    expect(() =>
       service.create({ moduleId: 1, userId: 2 } as any, noAccess),
-    ).rejects.toBeInstanceOf(ForbiddenException);
+    ).toThrow(ForbiddenException);
   });
 });

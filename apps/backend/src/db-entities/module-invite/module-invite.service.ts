@@ -1,25 +1,21 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateModuleInviteDto } from './dto/create-module-invite.dto';
 import { UpdateModuleInviteDto } from './dto/update-module-invite.dto';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { AuthUser } from '../../types/auth-user.type';
-import { canAccess, type Role as PermissionRole } from '@scholarxp/permissions';
+import { assertHasAccess } from '../../helpers/permissions.helper';
 
 @Injectable()
 export class ModuleInviteService {
   constructor(private readonly prisma: PrismaService) {}
 
   create(createModuleInviteDto: CreateModuleInviteDto, user: AuthUser) {
-    this.assertHasAccess(user);
+    assertHasAccess('modules.invitations', user, 'You do not have permission to manage module invites');
     return this.prisma.moduleInvite.create({ data: createModuleInviteDto });
   }
 
   findAll(user: AuthUser) {
-    this.assertHasAccess(user);
+    assertHasAccess('modules.invitations', user, 'You do not have permission to view module invites');
     return this.prisma.moduleInvite.findMany();
   }
 
@@ -32,7 +28,7 @@ export class ModuleInviteService {
     updateModuleInviteDto: UpdateModuleInviteDto,
     user: AuthUser,
   ) {
-    this.assertHasAccess(user);
+    assertHasAccess('modules.invitations', user, 'You do not have permission to manage module invites');
     await this.getOrThrow(id);
     return this.prisma.moduleInvite.update({
       where: { id },
@@ -41,7 +37,7 @@ export class ModuleInviteService {
   }
 
   async remove(id: number, user: AuthUser) {
-    this.assertHasAccess(user);
+    assertHasAccess('modules.invitations', user, 'You do not have permission to manage module invites');
     await this.getOrThrow(id);
     return this.prisma.moduleInvite.delete({ where: { id } });
   }
@@ -52,15 +48,5 @@ export class ModuleInviteService {
       throw new NotFoundException(`ModuleInvite ${id} not found`);
     }
     return record;
-  }
-
-  private assertHasAccess(user: AuthUser) {
-    const allowed = canAccess('modules.invitations', {
-      role: user.globalRole as PermissionRole,
-      hasInstitutionMembership: user.hasInstitutionMembership,
-    });
-    if (!allowed) {
-      throw new ForbiddenException('User cannot manage module invites');
-    }
   }
 }

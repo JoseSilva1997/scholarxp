@@ -1,26 +1,23 @@
 // UserModuleService handles roster records; it now supports module-scoped listing.
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateUserModuleDto } from './dto/create-user-module.dto';
 import { UpdateUserModuleDto } from './dto/update-user-module.dto';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { AuthUser } from '../../types/auth-user.type';
-import { canAccess, type Role as PermissionRole } from '@scholarxp/permissions';
+import { assertHasAccess } from '../../helpers/permissions.helper';
 
 @Injectable()
 export class UserModuleService {
   constructor(private readonly prisma: PrismaService) {}
 
   create(createUserModuleDto: CreateUserModuleDto, user: AuthUser) {
-    this.assertHasAccess(user);
+    // Validate capabilities before hitting the database so we fail fast on forbidden requests.
+    assertHasAccess('modules.settings', user, 'You do not have permission to manage module rosters.');
     return this.prisma.userModule.create({ data: createUserModuleDto });
   }
 
   findAll(moduleId: number | undefined, user: AuthUser) {
-    this.assertHasAccess(user);
+    assertHasAccess('modules.settings', user, 'You do not have permission to manage module rosters.');
     // Constrain roster queries to a specific module when provided.
     if (moduleId) {
       return this.prisma.userModule.findMany({ where: { moduleId } });
@@ -37,7 +34,7 @@ export class UserModuleService {
     updateUserModuleDto: UpdateUserModuleDto,
     user: AuthUser,
   ) {
-    this.assertHasAccess(user);
+    assertHasAccess('modules.settings', user, 'You do not have permission to manage module rosters.');
     await this.getOrThrow(id);
     return this.prisma.userModule.update({
       where: { id },
@@ -46,7 +43,7 @@ export class UserModuleService {
   }
 
   async remove(id: number, user: AuthUser) {
-    this.assertHasAccess(user);
+    assertHasAccess('modules.settings', user, 'You do not have permission to manage module rosters.');
     await this.getOrThrow(id);
     return this.prisma.userModule.delete({ where: { id } });
   }
@@ -57,15 +54,5 @@ export class UserModuleService {
       throw new NotFoundException(`UserModule ${id} not found`);
     }
     return record;
-  }
-
-  private assertHasAccess(user: AuthUser) {
-    const allowed = canAccess('modules.settings', {
-      role: user.globalRole as PermissionRole,
-      hasInstitutionMembership: user.hasInstitutionMembership,
-    });
-    if (!allowed) {
-      throw new ForbiddenException('User cannot manage roster');
-    }
   }
 }

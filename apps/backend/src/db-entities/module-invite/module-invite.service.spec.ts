@@ -30,11 +30,11 @@ describe('ModuleInviteService', () => {
     expect(result).toEqual({ id: 10 });
   });
 
-  it('blocks create when capability missing', async () => {
+  it('blocks create when capability missing', () => {
     const student = { ...teacher, globalRole: GlobalRole.student };
-    await expect(
+    expect(() =>
       service.create({ moduleId: 1 } as any, student),
-    ).rejects.toBeInstanceOf(ForbiddenException);
+    ).toThrow(ForbiddenException);
   });
 
   it('finds all invites with access check', async () => {
