@@ -1,17 +1,25 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateModuleInviteDto } from './dto/create-module-invite.dto';
 import { UpdateModuleInviteDto } from './dto/update-module-invite.dto';
 import { PrismaService } from '../../prisma/prisma.service';
+import type { AuthUser } from '../../types/auth-user.type';
+import { canAccess, type Role as PermissionRole } from '@scholarxp/permissions';
 
 @Injectable()
 export class ModuleInviteService {
   constructor(private readonly prisma: PrismaService) {}
 
-  create(createModuleInviteDto: CreateModuleInviteDto) {
+  create(createModuleInviteDto: CreateModuleInviteDto, user: AuthUser) {
+    this.assertHasAccess(user);
     return this.prisma.moduleInvite.create({ data: createModuleInviteDto });
   }
 
-  findAll() {
+  findAll(user: AuthUser) {
+    this.assertHasAccess(user);
     return this.prisma.moduleInvite.findMany();
   }
 
@@ -19,7 +27,12 @@ export class ModuleInviteService {
     return this.getOrThrow(id);
   }
 
-  async update(id: number, updateModuleInviteDto: UpdateModuleInviteDto) {
+  async update(
+    id: number,
+    updateModuleInviteDto: UpdateModuleInviteDto,
+    user: AuthUser,
+  ) {
+    this.assertHasAccess(user);
     await this.getOrThrow(id);
     return this.prisma.moduleInvite.update({
       where: { id },
@@ -27,7 +40,8 @@ export class ModuleInviteService {
     });
   }
 
-  async remove(id: number) {
+  async remove(id: number, user: AuthUser) {
+    this.assertHasAccess(user);
     await this.getOrThrow(id);
     return this.prisma.moduleInvite.delete({ where: { id } });
   }
@@ -38,5 +52,15 @@ export class ModuleInviteService {
       throw new NotFoundException(`ModuleInvite ${id} not found`);
     }
     return record;
+  }
+
+  private assertHasAccess(user: AuthUser) {
+    const allowed = canAccess('modules.invitations', {
+      role: user.globalRole as PermissionRole,
+      hasInstitutionMembership: user.hasInstitutionMembership,
+    });
+    if (!allowed) {
+      throw new ForbiddenException('User cannot manage module invites');
+    }
   }
 }

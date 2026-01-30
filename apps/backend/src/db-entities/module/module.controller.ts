@@ -67,7 +67,7 @@ export class ModuleController {
   @Roles(GlobalRole.teacher, GlobalRole.institution_admin, GlobalRole.admin)
   @ModuleAccess({ paramKey: 'id' })
   @UseGuards(ModuleAccessGuard)
-  remove(@Param('id') id: string) {
-    return this.moduleService.remove(+id);
+  remove(@Param('id') id: string, @Req() req: Request) {
+    return this.moduleService.remove(+id, req.user as AuthUser);
   }
 }

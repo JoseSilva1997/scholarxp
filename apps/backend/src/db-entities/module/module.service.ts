@@ -96,6 +96,14 @@ export class ModuleService {
   }
 
   async update(id: number, updateModuleDto: UpdateModuleDto, user: AuthUser) {
+    const canManage = canAccess('modules.settings', {
+      role: user.globalRole as PermissionRole,
+      hasInstitutionMembership: user.hasInstitutionMembership,
+    });
+    if (!canManage) {
+      throw new ForbiddenException('User cannot update modules');
+    }
+
     await this.getOrThrow(id);
     if (
       user.globalRole === GlobalRole.institution_admin &&
@@ -112,7 +120,15 @@ export class ModuleService {
     });
   }
 
-  async remove(id: number) {
+  async remove(id: number, user: AuthUser) {
+    const canManage = canAccess('modules.settings', {
+      role: user.globalRole as PermissionRole,
+      hasInstitutionMembership: user.hasInstitutionMembership,
+    });
+    if (!canManage) {
+      throw new ForbiddenException('User cannot delete modules');
+    }
+
     await this.getOrThrow(id);
     return this.prisma.module.delete({ where: { id } });
   }

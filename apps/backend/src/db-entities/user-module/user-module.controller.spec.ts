@@ -48,13 +48,13 @@ describe('UserModuleController', () => {
 
   afterEach(() => jest.resetAllMocks());
 
-  it('create forwards payload', async () => {
+  it('create forwards payload and user', async () => {
     const dto = { moduleId: 5, userId: 2 };
     service.create.mockResolvedValue({ id: 1 });
 
-    const result = await controller.create(dto as any);
+    const result = await controller.create(dto as any, req);
 
-    expect(service.create).toHaveBeenCalledWith(dto);
+    expect(service.create).toHaveBeenCalledWith(dto, req.user);
     expect(result).toEqual({ id: 1 });
   });
 
@@ -63,7 +63,7 @@ describe('UserModuleController', () => {
 
     await controller.findAll(req);
 
-    expect(service.findAll).toHaveBeenCalledWith(5);
+    expect(service.findAll).toHaveBeenCalledWith(5, req.user);
   });
 
   it('findOne delegates to service', async () => {
@@ -73,5 +73,24 @@ describe('UserModuleController', () => {
 
     expect(service.findOne).toHaveBeenCalledWith(9);
     expect(result).toEqual({ id: 9 });
+  });
+
+  it('update forwards payload and user', async () => {
+    const dto = { roleInModule: 'teacher' };
+    service.update.mockResolvedValue({ id: 2 });
+
+    const result = await controller.update('2', dto as any, req);
+
+    expect(service.update).toHaveBeenCalledWith(2, dto, req.user);
+    expect(result).toEqual({ id: 2 });
+  });
+
+  it('remove forwards user', async () => {
+    service.remove.mockResolvedValue({ id: 3 });
+
+    const result = await controller.remove('3', req);
+
+    expect(service.remove).toHaveBeenCalledWith(3, req.user);
+    expect(result).toEqual({ id: 3 });
   });
 });

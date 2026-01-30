@@ -6,7 +6,8 @@ export type FeatureKey =
   | 'modules.settings'
   | 'navigation.modules'
   | 'navigation.quests'
-  | 'navigation.profile';
+  | 'navigation.profile'
+  | 'modules.invitations';
 
 export type Role = 'pending' | 'admin' | 'institution_admin' | 'teacher' | 'student';
 
@@ -30,6 +31,10 @@ export const permissionMatrix: PermissionMatrix = {
   'modules.setInstitution': [{ roles: ['admin', 'institution_admin'], requiresInstitution: true }],
   'modules.toggleStudentView': [{ roles: ['admin', 'institution_admin', 'teacher'] }],
   'modules.settings': [{ roles: ['admin', 'institution_admin', 'teacher'] }],
+  'modules.invitations': [
+    { roles: ['admin']},
+    { roles: ['teacher'], forbidsInstitution: true }
+  ],
   'navigation.modules': [{ roles: ['admin', 'institution_admin', 'teacher', 'student'] }],
   'navigation.quests': [{ roles: ['admin', 'institution_admin', 'student'] }],
   'navigation.profile': [{ roles: ['admin', 'institution_admin', 'teacher', 'student'] }],

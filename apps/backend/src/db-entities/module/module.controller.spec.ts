@@ -89,9 +89,9 @@ describe('ModuleController', () => {
   it('remove delegates to service', async () => {
     service.remove.mockResolvedValue({ id: 3 });
 
-    const result = await controller.remove('3');
+    const result = await controller.remove('3', req);
 
-    expect(service.remove).toHaveBeenCalledWith(3);
+    expect(service.remove).toHaveBeenCalledWith(3, req.user);
     expect(result).toEqual({ id: 3 });
   });
 });

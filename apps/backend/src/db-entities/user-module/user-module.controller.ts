@@ -30,8 +30,11 @@ export class UserModuleController {
   @Roles(GlobalRole.teacher, GlobalRole.institution_admin, GlobalRole.admin)
   @ModuleAccess({ paramKey: 'moduleId' })
   @UseGuards(ModuleAccessGuard)
-  create(@Body() createUserModuleDto: CreateUserModuleDto) {
-    return this.userModuleService.create(createUserModuleDto);
+  create(
+    @Body() createUserModuleDto: CreateUserModuleDto,
+    @Req() req: Request,
+  ) {
+    return this.userModuleService.create(createUserModuleDto, req.user as any);
   }
 
   @Get()
@@ -43,6 +46,7 @@ export class UserModuleController {
     const moduleId = Number(req.query.moduleId);
     return this.userModuleService.findAll(
       Number.isFinite(moduleId) ? moduleId : undefined,
+      req.user as any,
     );
   }
 
@@ -61,15 +65,20 @@ export class UserModuleController {
   update(
     @Param('id') id: string,
     @Body() updateUserModuleDto: UpdateUserModuleDto,
+    @Req() req: Request,
   ) {
-    return this.userModuleService.update(+id, updateUserModuleDto);
+    return this.userModuleService.update(
+      +id,
+      updateUserModuleDto,
+      req.user as any,
+    );
   }
 
   @Delete(':id')
   @Roles(GlobalRole.teacher, GlobalRole.institution_admin, GlobalRole.admin)
   @ModuleAccess({ paramKey: 'id' })
   @UseGuards(ModuleAccessGuard)
-  remove(@Param('id') id: string) {
-    return this.userModuleService.remove(+id);
+  remove(@Param('id') id: string, @Req() req: Request) {
+    return this.userModuleService.remove(+id, req.user as any);
   }
 }
