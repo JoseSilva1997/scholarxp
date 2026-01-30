@@ -9,3 +9,22 @@ export type ModuleSummary = {
   description?: string | null;
   createdByUserId?: number | null;
 };
+
+export type ModuleInvite = {
+  id: number;
+  moduleId: number;
+  createdByUserId: number;
+  type: 'link';
+  maxUses: number | null;
+  uses: number;
+  expiresAt: string | null;
+  revokedAt: string | null;
+  createdAt: string;
+  emailLock: string | null;
+};
+
+export type CreateModuleInviteResponse = {
+  invite: ModuleInvite;
+  token: string;
+  url: string;
+};
