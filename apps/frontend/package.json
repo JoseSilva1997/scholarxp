@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@scholarxp/permissions": "workspace:*",
     "@sentry/browser": "^8.53.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",

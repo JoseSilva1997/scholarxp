@@ -12,6 +12,7 @@ Central source of truth for role-based access and rendering so both backend guar
 
 ## Backend contract
 - Session: `SessionAuthGuard` loads `AuthUser` from session; `RolesGuard` enforces handler roles; `ModuleAccessGuard` enforces per-module scope (admin always; institution_admin only same institution; teacher if creator or instructor; optional student read).
+- Permissions: use the shared matrix in `packages/permissions` (`@scholarxp/permissions`) for feature-level checks; evaluate with authenticated user context and combine with domain/ownership/institution checks. Compute and return `capabilities` in auth responses; never rely on frontend-only maps for enforcement.
 - Endpoints:
   - `GET /auth/me`: returns `AuthUser` (with `globalRole`) for UI gating.
   - `GET /module`: returns modules already scoped to caller role (admin=all; institution_admin=institution; teacher=created/assigned; student=enrolled). Do not further filter on the server per caller.
@@ -21,6 +22,7 @@ Central source of truth for role-based access and rendering so both backend guar
 
 ## Frontend contract
 - On app boot call `/auth/me`; block pending users with role picker until role set.
+- Use `capabilities` returned from `/auth/me` to gate UI; fall back to the shared evaluator (`@scholarxp/permissions`) if capabilities are absent to avoid drift.
 - Fetch modules via `/module` with `credentials: 'include'`; render list as returned (already scoped).
 - For module detail, handle 401 (sign-in), 403 (no permission), 404 (missing).
 - Show create/roster/invite buttons only for teacher/institution_admin/admin; students stay read-only. UI hides buttons but backend still guards.

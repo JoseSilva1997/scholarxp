@@ -10,6 +10,7 @@ const mockUser = {
   profilePictureUrl: 'default-profile-pic.png',
   globalRole: 'student',
   isVerified: false,
+  hasInstitutionMembership: false,
 };
 
 describe('AuthController', () => {
@@ -59,7 +60,13 @@ describe('AuthController', () => {
 
     expect(service.registerByEmail).toHaveBeenCalled();
     expect(req.session.userId).toBeUndefined();
-    expect(result).toEqual({ user: mockUser });
+    expect(result.user).toMatchObject({
+      ...mockUser,
+      capabilities: expect.arrayContaining([
+        'navigation.modules',
+        'navigation.profile',
+      ]),
+    });
   });
 
   it('login sets session userId and returns user', async () => {
@@ -73,7 +80,13 @@ describe('AuthController', () => {
 
     expect(service.login).toHaveBeenCalled();
     expect(req.session.userId).toBe(mockUser.id);
-    expect(result).toEqual({ user: mockUser });
+    expect(result.user).toMatchObject({
+      ...mockUser,
+      capabilities: expect.arrayContaining([
+        'navigation.modules',
+        'navigation.profile',
+      ]),
+    });
   });
 
   it('logout destroys session', async () => {
@@ -111,7 +124,13 @@ describe('AuthController', () => {
     const result = await controller.me(req);
 
     expect(service.getUserById).toHaveBeenCalledWith(mockUser.id);
-    expect(result).toEqual({ user: mockUser });
+    expect(result.user).toMatchObject({
+      ...mockUser,
+      capabilities: expect.arrayContaining([
+        'navigation.modules',
+        'navigation.profile',
+      ]),
+    });
   });
 
   it('verifyEmail sets session and returns user', async () => {
@@ -125,7 +144,13 @@ describe('AuthController', () => {
 
     expect(service.verifyEmail).toHaveBeenCalledWith('123456');
     expect(req.session.userId).toBe(mockUser.id);
-    expect(result).toEqual({ user: mockUser });
+    expect(result.user).toMatchObject({
+      ...mockUser,
+      capabilities: expect.arrayContaining([
+        'navigation.modules',
+        'navigation.profile',
+      ]),
+    });
   });
 
   it('resendVerification proxies to service', async () => {

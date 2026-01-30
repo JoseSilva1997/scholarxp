@@ -9,12 +9,22 @@ import { UpdateModuleDto } from './dto/update-module.dto';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { AuthUser } from '../../types/auth-user.type';
 import { GlobalRole } from '@prisma/client';
+import { canAccess, type Role as PermissionRole } from '@scholarxp/permissions';
 
 @Injectable()
 export class ModuleService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createModuleDto: CreateModuleDto, user: AuthUser) {
+    // Enforce shared permission matrix first so backend and frontend rules stay aligned.
+    const canCreate = canAccess('modules.create', {
+      role: user.globalRole as PermissionRole,
+      hasInstitutionMembership: user.hasInstitutionMembership,
+    });
+    if (!canCreate) {
+      throw new ForbiddenException('You do not have permission');
+    }
+
     // Enforce that the creator is recorded and institution scoping is respected.
     const data = {
       ...createModuleDto,

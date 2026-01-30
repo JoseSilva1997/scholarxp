@@ -1,71 +1,36 @@
-// Central permission map for UI gating; keeps feature-level decisions in one place so components stay lean and consistent.
-import type { AuthUser, GlobalRole } from '../types/auth';
+// Frontend wrapper around the shared permission matrix so UI gates stay aligned with backend auth.
+import {
+  canAccess as evaluateAccess,
+  listCapabilities,
+  permissionMatrix,
+  type FeatureKey,
+  type UserContext,
+} from '@scholarxp/permissions';
+import type { AuthUser } from '../types/auth';
 
-// Enumerates frontend features we gate; extend as new features ship.
-export type PermissionKey =
-  | 'modules.create'
-  | 'modules.setInstitution'
-  | 'modules.toggleStudentView'
-  | 'modules.settings'
-  | 'navigation.modules'
-  | 'navigation.quests'
-  | 'navigation.profile';
+function toUserContext(user: AuthUser | null | undefined): UserContext | null {
+  if (!user) return null;
+  return {
+    role: user.globalRole,
+    hasInstitutionMembership:
+      user.hasInstitutionMembership ?? Boolean(user.institutionIds?.length),
+  };
+}
 
-// A condition is satisfied when all provided checks pass; feature is allowed if any condition matches.
-type PermissionCondition = {
-  roles?: GlobalRole[];
-  requiresInstitution?: boolean;
-  forbidsInstitution?: boolean;
-};
+// Prefer server-computed capabilities when present; otherwise evaluate locally using shared logic.
+export function canUserAccess(feature: FeatureKey, user: AuthUser | null | undefined): boolean {
+  const capabilityList = user?.capabilities;
+  if (capabilityList && capabilityList.length > 0) {
+    return capabilityList.includes(feature);
+  }
+  return evaluateAccess(feature, toUserContext(user));
+}
 
-type PermissionRule = PermissionCondition[];
-
-const permissionMatrix: Record<PermissionKey, PermissionRule> = {
-  'modules.create': [
-    { roles: ['admin', 'institution_admin'] },
-    { roles: ['teacher'], forbidsInstitution: true },
-  ],
-  'modules.setInstitution': [
-    { roles: ['admin', 'institution_admin'], requiresInstitution: true },
-  ],
-  'modules.toggleStudentView': [{ roles: ['admin', 'institution_admin', 'teacher'] }],
-  'modules.settings': [{ roles: ['admin', 'institution_admin', 'teacher'] }],
-  'navigation.modules': [{ roles: ['admin', 'institution_admin', 'teacher', 'student'] }],
-  'navigation.quests': [{ roles: ['admin', 'institution_admin', 'student'] }],
-  'navigation.profile': [{ roles: ['admin', 'institution_admin', 'teacher', 'student'] }],
-};
-
-// Helper used by components; keeps fallbacks defensive so missing data never grants access.
-export function canUserAccess(feature: PermissionKey, user: AuthUser | null | undefined): boolean {
-  if (!user) return false;
-  const rule = permissionMatrix[feature];
-  if (!rule) return false;
-
-  const hasInstitution = user.hasInstitutionMembership ?? Boolean(user.institutionIds?.length);
-
-  return rule.some((condition) => {
-    if (condition.roles && !condition.roles.includes(user.globalRole)) return false;
-    if (condition.requiresInstitution && !hasInstitution) return false;
-    if (condition.forbidsInstitution && hasInstitution) return false;
-    return true;
+export function listRolePermissions(role: AuthUser['globalRole'], hasInstitution = false): FeatureKey[] {
+  return listCapabilities({
+    role,
+    hasInstitutionMembership: hasInstitution,
   });
 }
 
-// Convenience for debugging or analytics when we need to show a role's surface area.
-export function listRolePermissions(role: GlobalRole, hasInstitution = false): PermissionKey[] {
-  const mockUser: AuthUser = {
-    id: -1,
-    firstName: '',
-    lastName: '',
-    email: null,
-    profilePictureUrl: '',
-    globalRole: role,
-    isVerified: true,
-    institutionIds: hasInstitution ? [1] : [],
-    hasInstitutionMembership: hasInstitution,
-  };
-
-  return (Object.keys(permissionMatrix) as PermissionKey[]).filter((feature) =>
-    canUserAccess(feature, mockUser),
-  );
-}
+export { permissionMatrix};

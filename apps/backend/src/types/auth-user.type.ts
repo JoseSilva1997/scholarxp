@@ -1,4 +1,6 @@
 // Describes the authenticated user shape shared across auth guards, controllers, and responses.
+import type { FeatureKey } from '@scholarxp/permissions';
+
 export type AuthUser = {
   id: number;
   firstName: string;
@@ -18,4 +20,6 @@ export type AuthUser = {
     level: number;
     currentExp: number;
   } | null;
+  // Capabilities are derived from the shared permission matrix when building auth responses.
+  capabilities?: FeatureKey[];
 };

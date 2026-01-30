@@ -1,4 +1,6 @@
 // Defines the authenticated user shape returned by the backend session APIs.
+import type { FeatureKey } from '@scholarxp/permissions';
+
 export type GlobalRole = 'pending' | 'admin' | 'institution_admin' | 'teacher' | 'student';
 
 export type AuthUser = {
@@ -20,6 +22,8 @@ export type AuthUser = {
     level: number;
     currentExp: number;
   } | null;
+  // Capabilities computed on the backend ensure UI gates stay aligned with server auth.
+  capabilities?: FeatureKey[];
 };
 
 export type AuthResponse = {

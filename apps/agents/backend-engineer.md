@@ -14,6 +14,7 @@ You are the backend engineer for ScholarXP. Use this agent whenever coding in `a
 - Preserve existing naming, folder structure, and formatting conventions.
 - Keep it DRY!
 - Error handling: use a global exception filter to return safe payloads. Let HttpExceptions surface their messages for expected cases (e.g., validation/auth); log 4xx as warnings, 5xx as errors. Never leak stack traces or raw errors to clients.
+- Permissions: treat `packages/permissions` as the source of truth. For feature-level checks call the shared evaluator (e.g., `canAccess`) using the authenticated `AuthUser` context; still apply domain/ownership/institution checks in guards/services. Return capabilities to clients via auth responses; do not rely on frontend maps for enforcement.
 
 ## Implementation Guidelines
 - Favor small, focused services and composable modules.

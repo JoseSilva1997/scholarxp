@@ -15,6 +15,12 @@ import { AuthGuard } from '@nestjs/passport';
 import { FRONTEND_URL } from '../constants';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
+import {
+  listCapabilities,
+  type FeatureKey,
+  type Role as PermissionRole,
+} from '@scholarxp/permissions';
+import type { AuthUser } from '../types/auth-user.type';
 
 @Controller('auth')
 export class AuthController {
@@ -25,21 +31,21 @@ export class AuthController {
     const user = await this.authService.registerByEmail(dto);
     // Do not start a session until the email is verified; client should direct to code entry screen.
     req.session.userId = undefined;
-    return { user };
+    return { user: this.attachCapabilities(user) };
   }
 
   @Post('login')
   async login(@Body() dto: LoginDto, @Req() req: Request) {
     const user = await this.authService.login(dto);
     req.session.userId = user.id;
-    return { user };
+    return { user: this.attachCapabilities(user) };
   }
 
   @Post('verify-email')
   async verifyEmail(@Body() dto: VerifyEmailDto, @Req() req: Request) {
     const user = await this.authService.verifyEmail(dto.token);
     req.session.userId = user.id;
-    return { user };
+    return { user: this.attachCapabilities(user) };
   }
 
   @Post('resend-verification')
@@ -68,7 +74,7 @@ export class AuthController {
       return { user: null };
     }
     const user = await this.authService.getUserById(userId);
-    return { user };
+    return { user: this.attachCapabilities(user) };
   }
 
   @Get('oauth/google')
@@ -89,5 +95,16 @@ export class AuthController {
     // Frontend listens for session cookie; redirect back to app root so it can call /auth/me.
     const redirectTarget = process.env.CORS_ORIGIN ?? FRONTEND_URL;
     res.redirect(redirectTarget);
+  }
+
+  // Compute capabilities from shared matrix so frontend and backend stay in sync.
+  private attachCapabilities(
+    user: AuthUser,
+  ): AuthUser & { capabilities: FeatureKey[] } {
+    const capabilities = listCapabilities({
+      role: user.globalRole as PermissionRole,
+      hasInstitutionMembership: user.hasInstitutionMembership,
+    });
+    return { ...user, capabilities };
   }
 }

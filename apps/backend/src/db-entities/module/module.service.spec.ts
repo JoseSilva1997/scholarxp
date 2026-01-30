@@ -17,6 +17,7 @@ const teacher = {
 const admin = { ...teacher, globalRole: GlobalRole.admin };
 const instAdmin = { ...teacher, globalRole: GlobalRole.institution_admin };
 const student = { ...teacher, globalRole: GlobalRole.student };
+const teacherWithInstitution = { ...teacher, hasInstitutionMembership: true };
 
 describe('ModuleService', () => {
   let prisma: PrismaMock;
@@ -60,6 +61,15 @@ describe('ModuleService', () => {
     await expect(
       service.create(dto as any, instAdmin as any),
     ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('rejects teacher with institution membership creating any module', async () => {
+    const dto = { title: 'Nope' };
+
+    await expect(
+      service.create(dto as any, teacherWithInstitution as any),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(prisma.module.create).not.toHaveBeenCalled();
   });
 
   it('findAll returns all for admin', async () => {

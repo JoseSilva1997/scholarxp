@@ -10,6 +10,7 @@ ScholarXP is an LMS-launched study companion that helps students practice course
 - LMS-launched via LTI 1.3.
 - Use a **domain-module** layout in NestJS: keep controllers thin, put business rules in services, and keep recommendation/selection logic (daily sets, quests, XP rules) isolated in dedicated services so it can be unit-tested easily.
 - Data access via Prisma only (no raw SQL unless unavoidable). Treat Prisma models as persistence, not your domain API—use DTOs/entities where it keeps boundaries clean.
+- Permissions: use the shared matrix in `packages/permissions` as the single source of truth. Backend must enforce with the shared evaluator and return capabilities to the frontend; frontend should gate UI using server-provided capabilities or the shared evaluator as fallback.
 
 ## Rules
 - Load the frontend-engineer agent at `apps/agents/frontend-engineer.md` when making changes to the frontend.
