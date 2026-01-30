@@ -13,6 +13,7 @@ import ModulesPage from './routes/main/ModulesPage';
 import SingleModulePage from './routes/main/SingleModulePage';
 import QuestsPage from './routes/main/QuestsPage';
 import ProfilePage from './routes/main/ProfilePage';
+import AcceptInvite from './routes/AcceptInvite';
 
 function AppLayout() {
   const location = useLocation();
@@ -49,6 +50,8 @@ function AppLayout() {
             />
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route element={<ProtectedRoute isLoading={isLoading} isAuthed={!!user} />}>
+              {/* Invite redemption sits outside the shell so it can stay focused and load without sidebar chrome. */}
+              <Route path="/invite" element={<AcceptInvite />} />
               <Route element={<AuthedLayout />}>
                 <Route path="/main" element={<Navigate to="/main/modules" replace />} />
                 <Route path="/main/modules" element={<ModulesPage />} />

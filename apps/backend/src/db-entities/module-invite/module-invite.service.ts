@@ -169,6 +169,7 @@ export class ModuleInviteService {
     user: AuthUser,
   ) {
     return this.prisma.$transaction(async (tx) => {
+      await this.assertStudentNotEnrolled(invite.moduleId, user.id);
       // Reload inside the transaction to guard against stale counters.
       const freshInvite = await tx.moduleInvite.findUnique({
         where: { id: invite.id },
@@ -178,10 +179,17 @@ export class ModuleInviteService {
       }
       this.assertInviteIsActive(freshInvite);
 
-      await tx.moduleInvite.update({
+      const updatedInvite = await tx.moduleInvite.update({
         where: { id: invite.id },
         data: { uses: { increment: 1 } },
       });
+      if (
+        updatedInvite.maxUses !== null &&
+        updatedInvite.maxUses !== undefined &&
+        updatedInvite.uses > (updatedInvite.maxUses ?? 0)
+      ) {
+        throw new BadRequestException('Invite has reached its usage limit');
+      }
 
       return tx.userModule.upsert({
         where: {
@@ -243,6 +251,17 @@ export class ModuleInviteService {
     }
     if (invite.maxUses && invite.uses >= invite.maxUses) {
       throw new BadRequestException('Invite has reached its usage limit');
+    }
+  }
+
+  private async assertStudentNotEnrolled(moduleId: number, userId: number) {
+    const enrollment = await this.prisma.userModule.findUnique({
+      where: {
+        moduleId_userId: { moduleId, userId },
+      },
+    });
+    if (enrollment) {
+      throw new BadRequestException('You are already enrolled in this module');
     }
   }
 

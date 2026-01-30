@@ -187,4 +187,32 @@ describe('ModuleInviteService', () => {
       BadRequestException,
     );
   });
+
+  it('does not redeem when user already enrolled', async () => {
+    const token = 'dup';
+    const tokenHash = createHash('sha256').update(token).digest('hex');
+    prisma.moduleInvite.findFirst.mockResolvedValue({
+      id: 6,
+      moduleId: module.id,
+      createdByUserId: 1,
+      type: InviteType.link,
+      tokenHash,
+      maxUses: 5,
+      uses: 0,
+      expiresAt: new Date(Date.now() + 1000 * 60),
+      revokedAt: null,
+      createdAt: new Date(),
+      emailLock: null,
+      module,
+    } as any);
+
+    // Mock the enrollment check to return existing enrollment
+    prisma.userModule.findUnique.mockResolvedValue({ id: 123 } as any);
+    prisma.$transaction.mockImplementation(async (cb) => cb(prisma as any));
+
+    await expect(service.redeem({ token }, teacher)).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(prisma.moduleInvite.update).not.toHaveBeenCalled();
+  });
 });
