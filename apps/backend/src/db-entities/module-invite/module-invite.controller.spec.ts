@@ -1,30 +1,36 @@
 // Controller tests ensure DTO forwarding while bypassing guards.
 import { Test, TestingModule } from '@nestjs/testing';
+import type { Request } from 'express';
 import { ModuleInviteController } from './module-invite.controller';
 import { ModuleInviteService } from './module-invite.service';
 import { SessionAuthGuard } from '../../auth/guards/session-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { ModuleAccessGuard } from '../../auth/guards/module-access.guard';
 import { GlobalRole } from '@prisma/client';
+import { CreateModuleInviteDto } from './dto/create-module-invite.dto';
+import { UpdateModuleInviteDto } from './dto/update-module-invite.dto';
+import { RedeemModuleInviteDto } from './dto/redeem-module-invite.dto';
 
 describe('ModuleInviteController', () => {
   let controller: ModuleInviteController;
   let service: {
     create: jest.Mock;
     findAll: jest.Mock;
-    findOne: jest.Mock;
     update: jest.Mock;
     remove: jest.Mock;
+    redeem: jest.Mock;
   };
-  const req: any = { user: { id: 1, globalRole: GlobalRole.teacher } };
+  const req = {
+    user: { id: 1, globalRole: GlobalRole.teacher },
+  } as unknown as Request;
 
   beforeEach(async () => {
     service = {
       create: jest.fn(),
       findAll: jest.fn(),
-      findOne: jest.fn(),
       update: jest.fn(),
       remove: jest.fn(),
+      redeem: jest.fn(),
     };
 
     const moduleRef: TestingModule = await Test.createTestingModule({
@@ -45,60 +51,58 @@ describe('ModuleInviteController', () => {
   afterEach(() => jest.resetAllMocks());
 
   it('create forwards DTO to the service', async () => {
-    const dto: any = {
-      moduleId: 1,
-      createdByUserId: 2,
-      type: 'link',
-      tokenHash: 'h',
-    };
-    service.create.mockResolvedValue({ id: 1 });
+    const dto: CreateModuleInviteDto = { maxUses: 50 };
+    service.create.mockResolvedValue({ invite: { id: 1 } });
 
-    const result = await controller.create(dto, req);
+    const result = await controller.create('9', dto, req);
 
-    expect(service.create).toHaveBeenCalledWith(dto, req.user);
-    expect(result).toEqual({ id: 1 });
+    expect(service.create).toHaveBeenCalledWith(9, dto, req.user);
+    expect(result).toEqual({ invite: { id: 1 } });
   });
 
   it('findAll delegates to the service', async () => {
-    service.findAll.mockResolvedValue([]);
+    service.findAll.mockResolvedValue([{ id: 2 }]);
 
-    const result = await controller.findAll(req);
+    const result = await controller.findAll('3', req);
 
-    expect(service.findAll).toHaveBeenCalledWith(req.user);
-    expect(result).toEqual([]);
-  });
-
-  it('findOne parses id to number and returns service result', async () => {
-    service.findOne.mockResolvedValue({ id: 3 });
-
-    const result = await controller.findOne('3');
-
-    expect(service.findOne).toHaveBeenCalledWith(3);
-    expect(result).toEqual({ id: 3 });
+    expect(service.findAll).toHaveBeenCalledWith(3, req.user);
+    expect(result).toEqual([{ id: 2 }]);
   });
 
   it('update parses id to number and forwards DTO', async () => {
-    const dto: any = { maxUses: 5 };
+    const dto: UpdateModuleInviteDto = { maxUses: 5 };
     service.update.mockResolvedValue({ id: 4 });
 
-    const result = await controller.update('4', dto, req);
+    const result = await controller.update('7', '4', dto, req);
 
-    expect(service.update).toHaveBeenCalledWith(4, dto, req.user);
+    expect(service.update).toHaveBeenCalledWith(7, 4, dto, req.user);
     expect(result).toEqual({ id: 4 });
   });
 
   it('remove parses id to number and delegates', async () => {
     service.remove.mockResolvedValue({ id: 5 });
 
-    const result = await controller.remove('5', req);
+    const result = await controller.remove('11', '5', req);
 
-    expect(service.remove).toHaveBeenCalledWith(5, req.user);
+    expect(service.remove).toHaveBeenCalledWith(11, 5, req.user);
     expect(result).toEqual({ id: 5 });
+  });
+
+  it('redeem forwards token to service', async () => {
+    const dto: RedeemModuleInviteDto = { token: 'abc' };
+    service.redeem.mockResolvedValue({ moduleId: 9 });
+
+    const result = await controller.redeem(dto, req);
+
+    expect(service.redeem).toHaveBeenCalledWith(dto, req.user);
+    expect(result).toEqual({ moduleId: 9 });
   });
 
   it('propagates service errors', async () => {
     service.create.mockRejectedValue(new Error('boom'));
 
-    await expect(controller.create({} as any, req)).rejects.toThrow('boom');
+    await expect(controller.create('1', {} as any, req)).rejects.toThrow(
+      'boom',
+    );
   });
 });

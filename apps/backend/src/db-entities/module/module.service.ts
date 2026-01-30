@@ -17,7 +17,11 @@ export class ModuleService {
 
   async create(createModuleDto: CreateModuleDto, user: AuthUser) {
     // Enforce shared permission matrix first so backend and frontend rules stay aligned.
-    assertHasAccess('modules.create', user, 'You do not have permission to create modules');
+    assertHasAccess(
+      'modules.create',
+      user,
+      'You do not have permission to create modules',
+    );
 
     // Validate institution scoping. Throws if institution_admins try to create
     // modules outside their institution, or if teachers try to create modules
@@ -39,7 +43,7 @@ export class ModuleService {
   async findAll(user: AuthUser) {
     // If admin or teacher, use simple filter; institution admins need async load.
     const filter = this.getModuleAccessFilter(user);
-    
+
     if (filter !== null) {
       return this.prisma.module.findMany({ where: filter });
     }
@@ -50,7 +54,7 @@ export class ModuleService {
       select: { institutionId: true },
     });
     const institutionIds = institutions.map((i) => i.institutionId);
-    
+
     return this.prisma.module.findMany({
       where: { institutionId: { in: institutionIds } },
     });
@@ -64,7 +68,7 @@ export class ModuleService {
     assertHasAccess('modules.settings', user);
 
     await this.getOrThrow(id);
-    
+
     await this.validateInstitutionScope(
       user.id,
       user.globalRole,
@@ -113,8 +117,8 @@ export class ModuleService {
       return {}; // Admins see all
     }
     if (user.globalRole === GlobalRole.institution_admin) {
-    // Institution admins see only their institution's modules (loaded async below)
-    return null; // Signals we need to load institutions first
+      // Institution admins see only their institution's modules (loaded async below)
+      return null; // Signals we need to load institutions first
     }
 
     if (user.globalRole === GlobalRole.teacher) {
@@ -155,9 +159,12 @@ export class ModuleService {
     }
 
     // Teachers must validate membership if an institution is provided.
-    if (globalRole === GlobalRole.teacher && institutionId !== undefined && institutionId !== null) {
+    if (
+      globalRole === GlobalRole.teacher &&
+      institutionId !== undefined &&
+      institutionId !== null
+    ) {
       await this.assertInstitutionMembership(userId, institutionId);
     }
   }
-
 }

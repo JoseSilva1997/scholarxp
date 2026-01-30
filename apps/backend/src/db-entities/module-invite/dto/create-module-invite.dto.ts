@@ -1,47 +1,15 @@
-import { InviteType } from '@prisma/client';
-import {
-  IsDateString,
-  IsEmail,
-  IsEnum,
-  IsInt,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-} from 'class-validator';
+import { IsInt, IsOptional, Min } from 'class-validator';
 
 export class CreateModuleInviteDto {
-  @IsInt()
-  @IsNotEmpty()
-  moduleId: number;
-
-  @IsInt()
-  @IsNotEmpty()
-  createdByUserId: number;
-
-  @IsEnum(InviteType)
-  type: InviteType;
-
-  @IsString()
-  @IsNotEmpty()
-  tokenHash: string;
-
-  @IsEmail()
+  // Allow instructors to override the default expiry window; validated in hours to keep inputs simple.
   @IsOptional()
-  emailLock?: string;
-
   @IsInt()
+  @Min(1)
+  expiresInHours?: number;
+
+  // Permit a custom usage cap when instructors want tighter control than the default ceiling.
   @IsOptional()
+  @IsInt()
+  @Min(1)
   maxUses?: number;
-
-  @IsInt()
-  @IsOptional()
-  uses?: number;
-
-  @IsDateString()
-  @IsOptional()
-  expiresAt?: string;
-
-  @IsDateString()
-  @IsOptional()
-  revokedAt?: string;
 }
