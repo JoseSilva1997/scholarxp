@@ -22,3 +22,15 @@ export async function createModule(
     body: JSON.stringify(payload),
   });
 }
+
+export async function updateModule(
+  id: number,
+  payload: Partial<
+    Pick<ModuleSummary, 'title' | 'variantContext' | 'description' | 'institutionId'>
+  >,
+): Promise<ModuleSummary> {
+  return apiFetch<ModuleSummary>(`/module/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}

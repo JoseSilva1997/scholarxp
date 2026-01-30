@@ -151,7 +151,6 @@ export default function ModulesPage() {
                 >
                 <div className={styles.cardHeader}>
                   <h3 className={styles.cardTitle}>{m.title}</h3>
-                  <span className={styles.badge}>{m.variantContext}</span>
                 </div>
                 <p className={styles.cardDescription}>
                   {m.description ?? 'No description provided.'}

@@ -11,7 +11,7 @@ import settingsIcon from '../../assets/settings-icon.svg';
 import toggleStudentViewIcon from '../../assets/toggle-student-view.svg';
 import untoggleStudentViewIcon from '../../assets/untoggle-student-view.svg';
 import MainSection from '../../components/MainSection';
-import ModuleSettingsPanel from './ModuleSettingsPanel';
+import ModuleSettingsPanel from '../../components/ModuleSettingsPanel';
 import styles from './SingleModulePage.module.css';
 
 export default function SingleModulePage() {
@@ -29,6 +29,12 @@ export default function SingleModulePage() {
     const value = Number(moduleId);
     return Number.isFinite(value) && value > 0 ? value : null;
   }, [moduleId]);
+
+  const canEditSettings = useMemo(() => canUserAccess('modules.settings', user), [user]);
+  const canToggleStudentView = useMemo(
+    () => canUserAccess('modules.toggleStudentView', user),
+    [user],
+  );
 
   // Load the module once the id is known; guards against invalid ids to avoid noisy network calls.
   useEffect(() => {
@@ -95,31 +101,35 @@ export default function SingleModulePage() {
               <div className={styles.titleRow}>
                 <h1 className={styles.title}>{module.title}</h1>
               </div>
-              {user && canUserAccess('modules.toggleStudentView', user) && (
+              {user && (canToggleStudentView || canEditSettings) && (
                 <>
-                  <button
-                    className={styles.toggleButton}
-                    type="button"
-                    aria-label={isStudentViewEnabled ? 'Disable student view' : 'Enable student view'}
-                    title={isStudentViewEnabled ? 'Disable student view' : 'Enable student view'}
-                    onClick={() => setIsStudentViewEnabled(!isStudentViewEnabled)}
-                  >
-                    <img
-                      src={isStudentViewEnabled ? untoggleStudentViewIcon : toggleStudentViewIcon}
-                      alt=""
-                      aria-hidden="true"
-                    />
-                  </button>
-                  <button
-                    className={styles.settingsButton}
-                    type="button"
-                    aria-label="Module settings"
-                    title="Module settings"
-                    aria-expanded={isSettingsOpen}
-                    onClick={() => setIsSettingsOpen((open) => !open)}
-                  >
-                    <img src={settingsIcon} alt="" aria-hidden="true" />
-                  </button>
+                  {canToggleStudentView ? (
+                    <button
+                      className={styles.toggleButton}
+                      type="button"
+                      aria-label={isStudentViewEnabled ? 'Disable student view' : 'Enable student view'}
+                      title={isStudentViewEnabled ? 'Disable student view' : 'Enable student view'}
+                      onClick={() => setIsStudentViewEnabled(!isStudentViewEnabled)}
+                    >
+                      <img
+                        src={isStudentViewEnabled ? untoggleStudentViewIcon : toggleStudentViewIcon}
+                        alt=""
+                        aria-hidden="true"
+                      />
+                    </button>
+                  ) : null}
+                  {canEditSettings ? (
+                    <button
+                      className={styles.settingsButton}
+                      type="button"
+                      aria-label="Module settings"
+                      title="Module settings"
+                      aria-expanded={isSettingsOpen}
+                      onClick={() => setIsSettingsOpen((open) => !open)}
+                    >
+                      <img src={settingsIcon} alt="" aria-hidden="true" />
+                    </button>
+                  ) : null}
                 </>
               )}
               <div className={styles.metaRow}>
@@ -156,11 +166,14 @@ export default function SingleModulePage() {
         ) : null}
       </MainSection>
 
-      <ModuleSettingsPanel
-        title={module?.title || ''}
-        isOpen={isSettingsOpen}
-        onToggle={() => setIsSettingsOpen((open) => !open)}
-      />
+      {canEditSettings ? (
+        <ModuleSettingsPanel
+          module={module}
+          isOpen={isSettingsOpen}
+          onToggle={() => setIsSettingsOpen((open) => !open)}
+          onSaved={(updated) => setModule(updated)}
+        />
+      ) : null}
     </>
   );
 }
