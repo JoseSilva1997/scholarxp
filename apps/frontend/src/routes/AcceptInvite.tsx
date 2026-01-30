@@ -36,19 +36,17 @@ export default function AcceptInvite() {
     }
     redemptionAttempted.current = true;
     
-    let cancelled = false;
     const redeem = async () => {
-      console.log('[AcceptInvite] Starting redemption for token:', token.substring(0, 8) + '...');
       setStatus({ state: 'loading' });
       try {
         const result = await redeemInvite(token);
-        console.log('[AcceptInvite] Redemption successful:', result);
+        console.log('[AcceptInvite] Redemption successful:');
         // Process success even if component unmounted - the ref prevents duplicate attempts.
         setStatus({ state: 'success', moduleId: result.moduleId });
         // After a short delay, take the learner into the module.
         setTimeout(() => navigate(`/main/modules/${result.moduleId}`, { replace: true }), 900);
       } catch (err) {
-        console.log('[AcceptInvite] Redemption failed:', err);
+        console.log('[AcceptInvite] Redemption failed:');
         
         const message =
           err instanceof ApiError
@@ -61,7 +59,6 @@ export default function AcceptInvite() {
     void redeem();
     return () => {
       console.log('[AcceptInvite] Effect cleanup, cancelling redemption');
-      cancelled = true;
       // Do NOT reset ref - we want it to persist across StrictMode unmount/remount to prevent duplicate requests.
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

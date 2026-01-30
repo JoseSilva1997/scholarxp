@@ -342,13 +342,14 @@
 }
 
 .secondaryButton {
-  background: var(--surface-muted);
+  background: var(--btn-primary-shadow-hover);
   color: var(--text-primary);
-  border: 1px solid var(--border-subtle);
+  padding: 10px;
+  border-radius: 50px;
 }
 
 .secondaryButton:hover {
-  border-color: var(--border-strong);
+  background: var(--btn-background-hover);
 }
 
 .inviteForm {

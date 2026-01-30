@@ -27,6 +27,7 @@
   --btn-primary-gradient: linear-gradient(135deg, var(--color-accent-primary), #32a86f);
   --btn-primary-shadow: 0 12px 26px rgba(76, 175, 80, 0.28);
   --btn-primary-shadow-hover: 0 14px 30px rgba(76, 175, 80, 0.36);
+  --btn-background-hover: rgba(15, 23, 42, 0.1);
 
   /* Module card colors - variants for visual distinction */
   --module-card-green-dark: #2e8b57;
