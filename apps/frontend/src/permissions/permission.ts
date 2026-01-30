@@ -5,6 +5,8 @@ import type { AuthUser, GlobalRole } from '../types/auth';
 export type PermissionKey =
   | 'modules.create'
   | 'modules.setInstitution'
+  | 'modules.toggleStudentView'
+  | 'modules.settings'
   | 'navigation.modules'
   | 'navigation.quests'
   | 'navigation.profile';
@@ -26,6 +28,8 @@ const permissionMatrix: Record<PermissionKey, PermissionRule> = {
   'modules.setInstitution': [
     { roles: ['admin', 'institution_admin'], requiresInstitution: true },
   ],
+  'modules.toggleStudentView': [{ roles: ['admin', 'institution_admin', 'teacher'] }],
+  'modules.settings': [{ roles: ['admin', 'institution_admin', 'teacher'] }],
   'navigation.modules': [{ roles: ['admin', 'institution_admin', 'teacher', 'student'] }],
   'navigation.quests': [{ roles: ['admin', 'institution_admin', 'student'] }],
   'navigation.profile': [{ roles: ['admin', 'institution_admin', 'teacher', 'student'] }],

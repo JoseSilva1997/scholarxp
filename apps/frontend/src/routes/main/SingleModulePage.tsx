@@ -5,6 +5,8 @@ import { getModuleById } from '../../api/modules';
 import type { ModuleSummary } from '../../types/module';
 import { ApiError } from '../../api/client';
 import { logError } from '../../utils/logger';
+import { useAuth } from '../../context/AuthContext';
+import { canUserAccess } from '../../permissions/permission';
 import settingsIcon from '../../assets/settings-icon.svg';
 import toggleStudentViewIcon from '../../assets/toggle-student-view.svg';
 import untoggleStudentViewIcon from '../../assets/untoggle-student-view.svg';
@@ -14,6 +16,7 @@ import styles from './SingleModulePage.module.css';
 
 export default function SingleModulePage() {
   const { moduleId } = useParams<{ moduleId: string }>();
+  const { user } = useAuth();
   const [module, setModule] = useState<ModuleSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -92,29 +95,33 @@ export default function SingleModulePage() {
               <div className={styles.titleRow}>
                 <h1 className={styles.title}>{module.title}</h1>
               </div>
-              <button
-                className={styles.toggleButton}
-                type="button"
-                aria-label={isStudentViewEnabled ? 'Disable student view' : 'Enable student view'}
-                title={isStudentViewEnabled ? 'Disable student view' : 'Enable student view'}
-                onClick={() => setIsStudentViewEnabled(!isStudentViewEnabled)}
-              >
-                <img
-                  src={isStudentViewEnabled ? untoggleStudentViewIcon : toggleStudentViewIcon}
-                  alt=""
-                  aria-hidden="true"
-                />
-              </button>
-              <button
-                className={styles.settingsButton}
-                type="button"
-                aria-label="Module settings"
-                title="Module settings"
-                aria-expanded={isSettingsOpen}
-                onClick={() => setIsSettingsOpen((open) => !open)}
-              >
-                <img src={settingsIcon} alt="" aria-hidden="true" />
-              </button>
+              {user && canUserAccess('modules.toggleStudentView', user) && (
+                <>
+                  <button
+                    className={styles.toggleButton}
+                    type="button"
+                    aria-label={isStudentViewEnabled ? 'Disable student view' : 'Enable student view'}
+                    title={isStudentViewEnabled ? 'Disable student view' : 'Enable student view'}
+                    onClick={() => setIsStudentViewEnabled(!isStudentViewEnabled)}
+                  >
+                    <img
+                      src={isStudentViewEnabled ? untoggleStudentViewIcon : toggleStudentViewIcon}
+                      alt=""
+                      aria-hidden="true"
+                    />
+                  </button>
+                  <button
+                    className={styles.settingsButton}
+                    type="button"
+                    aria-label="Module settings"
+                    title="Module settings"
+                    aria-expanded={isSettingsOpen}
+                    onClick={() => setIsSettingsOpen((open) => !open)}
+                  >
+                    <img src={settingsIcon} alt="" aria-hidden="true" />
+                  </button>
+                </>
+              )}
               <div className={styles.metaRow}>
               </div>
             </header>
