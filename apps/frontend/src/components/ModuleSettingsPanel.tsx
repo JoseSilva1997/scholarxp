@@ -1,8 +1,15 @@
 // Component that renders the collapsible module settings rail so the module page stays lean.
 import { useEffect, useMemo, useState } from 'react';
 import styles from './ModuleSettingsPanel.module.css';
-import type { ModuleSummary } from '../types/module';
+import type { ModuleInvite, ModuleSummary } from '../types/module';
 import { updateModule } from '../api/modules';
+import CopyIcon from './svg-icons/CopyIcon';
+import {
+  createModuleInvite,
+  deleteModuleInvite,
+  listModuleInvites,
+  updateModuleInvite,
+} from '../api/moduleInvites';
 import { ApiError } from '../api/client';
 import { logError } from '../utils/logger';
 
@@ -25,6 +32,13 @@ export default function ModuleSettingsPanel({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const [invites, setInvites] = useState<ModuleInvite[]>([]);
+  const [inviteLinks, setInviteLinks] = useState<Record<number, string>>({});
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [isInvitesLoading, setIsInvitesLoading] = useState(false);
+  const [isCreatingInvite, setIsCreatingInvite] = useState(false);
+  const [createExpiry, setCreateExpiry] = useState(48);
+  const [createMaxUses, setCreateMaxUses] = useState(100);
 
   // Prevent body scroll when settings panel is open to avoid layout shift from scrollbar.
   useEffect(() => {
@@ -46,9 +60,38 @@ export default function ModuleSettingsPanel({
     setVariantContext(module.variantContext ?? '');
     setError(null);
     setStatus(null);
+    setInviteError(null);
   }, [module, isOpen]);
 
   const isReady = useMemo(() => Boolean(module), [module]);
+  const isInviteEnabled = useMemo(
+    () => Boolean(module && module.institutionId === null),
+    [module],
+  );
+
+  useEffect(() => {
+    // Load invites when the panel opens for eligible modules so the list stays fresh without extra clicks.
+    if (!isOpen || !module || !isInviteEnabled) return;
+    void loadInvites(module.id);
+  }, [isOpen, module, isInviteEnabled]);
+
+  async function loadInvites(moduleId: number) {
+    setIsInvitesLoading(true);
+    setInviteError(null);
+    try {
+      const records = await listModuleInvites(moduleId);
+      setInvites(records);
+    } catch (err) {
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : 'Could not load invites right now. Please try again.';
+      setInviteError(message);
+      logError(err, { feature: 'module-invites', action: 'list', moduleId });
+    } finally {
+      setIsInvitesLoading(false);
+    }
+  }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -92,6 +135,121 @@ export default function ModuleSettingsPanel({
     } finally {
       setIsSaving(false);
     }
+  }
+
+  async function handleCreateInvite(event: React.FormEvent) {
+    event.preventDefault();
+    if (!module || isCreatingInvite) return;
+    setIsCreatingInvite(true);
+    setInviteError(null);
+    try {
+      const result = await createModuleInvite(module.id, {
+        expiresInHours: createExpiry,
+        maxUses: createMaxUses,
+      });
+      // Store the link in-memory so instructors can copy it immediately; backend only returns token on creation.
+      setInviteLinks((prev) => ({ ...prev, [result.invite.id]: result.url }));
+      setInvites((prev) => [result.invite, ...prev]);
+      setCreateExpiry(48);
+      setCreateMaxUses(100);
+    } catch (err) {
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : 'Could not create invite. Please try again.';
+      setInviteError(message);
+      logError(err, { feature: 'module-invites', action: 'create', moduleId: module.id });
+    } finally {
+      setIsCreatingInvite(false);
+    }
+  }
+
+  async function handleRevoke(invite: ModuleInvite) {
+    if (!module) return;
+    setInviteError(null);
+    try {
+      const updated = await updateModuleInvite(module.id, invite.id, { revoke: true });
+      setInvites((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+    } catch (err) {
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : 'Could not revoke invite. Please try again.';
+      setInviteError(message);
+      logError(err, { feature: 'module-invites', action: 'revoke', moduleId: module.id });
+    }
+  }
+
+  async function handleDelete(invite: ModuleInvite) {
+    if (!module) return;
+    setInviteError(null);
+    try {
+      await deleteModuleInvite(module.id, invite.id);
+      setInvites((prev) => prev.filter((item) => item.id !== invite.id));
+      setInviteLinks((prev) => {
+        const copy = { ...prev };
+        delete copy[invite.id];
+        return copy;
+      });
+    } catch (err) {
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : 'Could not delete invite. Please try again.';
+      setInviteError(message);
+      logError(err, { feature: 'module-invites', action: 'delete', moduleId: module.id });
+    }
+  }
+
+  function formatExpiry(invite: ModuleInvite) {
+    if (invite.revokedAt) return 'Revoked';
+    if (!invite.expiresAt) return 'No expiry';
+    const date = new Date(invite.expiresAt);
+    return `Expires ${date.toLocaleDateString()}`;
+  }
+
+  function renderInviteActions(invite: ModuleInvite) {
+    const link = inviteLinks[invite.id];
+    const canCopy = Boolean(link);
+    return (
+      <div className={styles.inviteActions}>
+        {canCopy ? (
+          <button
+            type="button"
+            className={styles.secondaryButton}
+            onClick={() => {
+              navigator.clipboard
+                .writeText(link ?? '')
+                .catch((err) =>
+                  logError(err, { feature: 'module-invites', action: 'copy', inviteId: invite.id }),
+                );
+            }}
+            aria-label="Copy invite link"
+          >
+            <CopyIcon />
+          </button>
+        ) : (
+          <span className={styles.inviteHint}>Create a new link to copy</span>
+        )}
+        {!invite.revokedAt ? (
+          <button
+            type="button"
+            className={styles.dangerGhostButton}
+            onClick={() => void handleRevoke(invite)}
+          >
+            Revoke
+          </button>
+        ) : (
+          <button
+            type="button"
+            className={styles.dangerGhostButton}
+            onClick={() => void handleDelete(invite)}
+          >
+            Delete
+          </button>
+        )}
+      </div>
+    );
   }
 
   return (
@@ -218,43 +376,106 @@ export default function ModuleSettingsPanel({
             </form>
           )}
         </section>
-
+        {/* 
+        Invites & membership section 
+        */}
         <section className={styles.settingsSection}>
           <header className={styles.settingsSectionHeader}>
             <div>
-              <p className={styles.settingsSectionEyebrow}>Roster</p>
               <h3 className={styles.settingsSectionTitle}>Invites & membership</h3>
             </div>
-            <span className={styles.settingsBadge}>Coming soon</span>
           </header>
-          <p className={styles.settingsSectionCopy}>
-            Generate invite links and manage the roster here. We will wire this to roster APIs next so
-            you can add and remove learners directly.
-          </p>
-          <div className={styles.settingsPlaceholderGroup}>
-            <div className={styles.settingsPlaceholderRow}>
-              <div className={styles.settingsPlaceholderInputWide} />
-              <div className={styles.settingsPlaceholderButton} />
-            </div>
-            <div className={styles.settingsRosterList}>
-              <div className={styles.settingsRosterItem}>
-                <div className={styles.settingsRosterAvatar} />
-                <div className={styles.settingsRosterMeta}>
-                  <div className={styles.settingsPlaceholderLabel} />
-                  <div className={styles.settingsPlaceholderMicro} />
+          {isInviteEnabled ? (
+            <>
+              {inviteError ? (
+                <div className={styles.inlineError} role="alert">
+                  {inviteError}
                 </div>
-                <div className={styles.settingsPlaceholderButtonSmall} />
-              </div>
-              <div className={styles.settingsRosterItem}>
-                <div className={styles.settingsRosterAvatar} />
-                <div className={styles.settingsRosterMeta}>
-                  <div className={styles.settingsPlaceholderLabel} />
-                  <div className={styles.settingsPlaceholderMicro} />
+              ) : null}
+              <form className={styles.inviteForm} onSubmit={handleCreateInvite}>
+                <label className={styles.field}>
+                  <span className={styles.fieldLabel}>Expiry (hours)</span>
+                  <input
+                    className={styles.input}
+                    type="number"
+                    min={1}
+                    value={createExpiry}
+                    onChange={(e) => setCreateExpiry(Number(e.target.value))}
+                  />
+                </label>
+                <label className={styles.field}>
+                  <span className={styles.fieldLabel}>Max uses</span>
+                  <input
+                    className={styles.input}
+                    type="number"
+                    min={1}
+                    value={createMaxUses}
+                    onChange={(e) => setCreateMaxUses(Number(e.target.value))}
+                  />
+                </label>
+                <div className={styles.actions}>
+                  <button
+                    className={styles.primaryButton}
+                    type="submit"
+                    disabled={isCreatingInvite || !module}
+                  >
+                    {isCreatingInvite ? 'Creating…' : 'Create invite'}
+                  </button>
                 </div>
-                <div className={styles.settingsPlaceholderButtonSmall} />
+              </form>
+
+              <div className={styles.inviteListHeader}>
+                <h4 className={styles.inviteListTitle}>Active invites</h4>
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  disabled={isInvitesLoading}
+                  onClick={() => module && void loadInvites(module.id)}
+                >
+                  {isInvitesLoading ? 'Refreshing…' : 'Refresh'}
+                </button>
               </div>
-            </div>
-          </div>
+
+              {isInvitesLoading ? (
+                <div className={styles.settingsPlaceholderGroup}>
+                  <div className={styles.settingsPlaceholderRow}>
+                    <div className={styles.settingsPlaceholderLabel} />
+                    <div className={styles.settingsPlaceholderInputWide} />
+                  </div>
+                </div>
+              ) : invites.length === 0 ? (
+                <p className={styles.settingsSectionCopy}>
+                  No invites yet. Create a link to start inviting students.
+                </p>
+              ) : (
+                <ul className={styles.inviteList} aria-live="polite">
+                  {invites.map((invite) => (
+                    <li key={invite.id} className={styles.inviteItem}>
+                      <div className={styles.inviteMeta}>
+                        <p className={styles.inviteTitle}>
+                          Created {new Date(invite.createdAt).toLocaleDateString('en-US', { 
+                            month: 'short', 
+                            day: 'numeric' 
+                          })}
+                          {invite.revokedAt ? ' (revoked)' : ''}
+                        </p>
+                        <p className={styles.inviteSubtext}>
+                          {formatExpiry(invite)} • Uses {invite.uses}
+                          {invite.maxUses ? ` / ${invite.maxUses}` : ' (no cap)'}
+                        </p>
+                      </div>
+                      {renderInviteActions(invite)}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          ) : (
+            <p className={styles.settingsSectionCopy}>
+              Invites are available only for modules created outside an institution. This module is
+              institution-managed, so roster changes must happen through the LMS.
+            </p>
+          )}
         </section>
       </div>
     </aside>

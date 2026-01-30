@@ -350,3 +350,87 @@
 .secondaryButton:hover {
   border-color: var(--border-strong);
 }
+
+.inviteForm {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px 14px;
+  align-items: end;
+}
+
+.inviteListHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+
+.inviteListTitle {
+  margin: 0;
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+.inviteList {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.inviteItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  background: white;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+}
+
+.inviteMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.inviteTitle {
+  margin: 0;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.inviteSubtext {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.inviteActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inviteHint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.dangerGhostButton {
+  background: transparent;
+  color: var(--error-600, #b31b1b);
+  border: 1px solid var(--error-100, #ffd7d7);
+  padding: 8px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 120ms ease, color 120ms ease;
+}
+
+.dangerGhostButton:hover {
+  border-color: var(--error-300, #ffb3b3);
+  color: var(--error-700, #8f1414);
+}
