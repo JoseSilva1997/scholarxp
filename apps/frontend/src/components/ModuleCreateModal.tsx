@@ -6,6 +6,7 @@ import type { ModuleSummary } from '../types/module';
 import { useAuth } from '../context/AuthContext';
 import { logError } from '../utils/logger';
 import { createModule } from '../api/modules';
+import { canUserAccess } from '../permissions/permission';
 
 type ModuleCreateModalProps = {
   onClose: () => void;
@@ -20,8 +21,8 @@ export default function ModuleCreateModal({ onClose, onCreated }: ModuleCreateMo
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canSetInstitution =
-    user?.globalRole === 'institution_admin' || user?.globalRole === 'admin';
+  // Teachers can create modules but only admins/institution admins can bind to an institution.
+  const canSetInstitution = canUserAccess('modules.setInstitution', user);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();

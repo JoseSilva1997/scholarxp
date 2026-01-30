@@ -2,6 +2,7 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useUiLayout } from '../context/UiLayoutContext';
+import { canUserAccess } from '../permissions/permission';
 import styles from './SidebarNav.module.css';
 
 type SidebarNavProps = {
@@ -9,20 +10,36 @@ type SidebarNavProps = {
   onNavigate?: () => void;
 };
 
-type Role = 'admin' | 'institution_admin' | 'teacher' | 'student';
-
 type NavItem = {
   to: string;
   label: string;
   hint: string;
   icon: string;
-  roles?: Role[];
+  feature?: 'navigation.modules' | 'navigation.quests' | 'navigation.profile';
 };
 
 const navItems: NavItem[] = [
-  { to: '/main/modules', label: 'Modules', hint: 'Create and manage', icon: '📚' },
-  { to: '/main/quests', label: 'Quests', hint: 'Daily practice', icon: '🎯' },
-  { to: '/main/profile', label: 'Profile', hint: 'Account and role', icon: '👤' },
+  {
+    to: '/main/modules',
+    label: 'Modules',
+    hint: 'Create and manage',
+    icon: '📚',
+    feature: 'navigation.modules',
+  },
+  {
+    to: '/main/quests',
+    label: 'Quests',
+    hint: 'Daily practice',
+    icon: '🎯',
+    feature: 'navigation.quests',
+  },
+  {
+    to: '/main/profile',
+    label: 'Profile',
+    hint: 'Account and role',
+    icon: '👤',
+    feature: 'navigation.profile',
+  },
 ];
 
 export default function SidebarNav({ collapsed = false, onNavigate }: SidebarNavProps) {
@@ -30,9 +47,8 @@ export default function SidebarNav({ collapsed = false, onNavigate }: SidebarNav
   const { toggleSidebar } = useUiLayout();
 
   const filteredItems = navItems.filter((item) => {
-    if (!item.roles) return true;
-    if (!user) return false;
-    return item.roles.includes(user.globalRole as Role);
+    if (!item.feature) return true;
+    return canUserAccess(item.feature, user);
   });
 
   return (

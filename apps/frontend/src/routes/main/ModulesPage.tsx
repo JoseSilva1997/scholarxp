@@ -8,6 +8,7 @@ import { ApiError } from '../../api/client';
 import { logError } from '../../utils/logger';
 import ModuleCreateModal from '../../components/ModuleCreateModal';
 import MainSection from '../../components/MainSection';
+import { canUserAccess } from '../../permissions/permission';
 import styles from './ModulesPage.module.css';
 
 export default function ModulesPage() {
@@ -54,13 +55,7 @@ export default function ModulesPage() {
     };
   }, [isAuthLoading, user]);
 
-  const canCreateModules = useMemo(
-    () =>
-      user?.globalRole === 'admin' ||
-      user?.globalRole === 'institution_admin' ||
-      user?.globalRole === 'teacher',
-    [user],
-  );
+  const canCreateModules = useMemo(() => canUserAccess('modules.create', user), [user]);
 
   return (
     <MainSection>
