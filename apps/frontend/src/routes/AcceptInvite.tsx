@@ -1,5 +1,5 @@
 // Invite acceptance screen: redeems an invite token and routes the student into the module.
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { redeemInvite } from '../api/moduleInvites';
 import { ApiError } from '../api/client';
@@ -21,21 +21,35 @@ export default function AcceptInvite() {
   const [status, setStatus] = useState<StatusState>(() =>
     hasToken ? { state: 'idle' } : { state: 'error', message: 'This invite link is missing a token.' },
   );
+  // Use a ref to prevent duplicate redemptions; refs update synchronously unlike state.
+  const redemptionAttempted = useRef(false);
 
   useEffect(() => {
     // Guard against missing tokens without triggering cascading renders.
     if (!hasToken) return;
+    
+    // Prevent duplicate redemptions using ref to guard against React StrictMode double-invocation.
+    // State updates are async, so both effect invocations could see state === 'idle' and both fire.
+    if (redemptionAttempted.current) {
+      console.log('[AcceptInvite] Redemption already attempted, skipping');
+      return;
+    }
+    redemptionAttempted.current = true;
+    
     let cancelled = false;
     const redeem = async () => {
+      console.log('[AcceptInvite] Starting redemption for token:', token.substring(0, 8) + '...');
       setStatus({ state: 'loading' });
       try {
         const result = await redeemInvite(token);
-        if (cancelled) return;
+        console.log('[AcceptInvite] Redemption successful:', result);
+        // Process success even if component unmounted - the ref prevents duplicate attempts.
         setStatus({ state: 'success', moduleId: result.moduleId });
         // After a short delay, take the learner into the module.
         setTimeout(() => navigate(`/main/modules/${result.moduleId}`, { replace: true }), 900);
       } catch (err) {
-        if (cancelled) return;
+        console.log('[AcceptInvite] Redemption failed:', err);
+        
         const message =
           err instanceof ApiError
             ? err.message
@@ -46,9 +60,12 @@ export default function AcceptInvite() {
     };
     void redeem();
     return () => {
+      console.log('[AcceptInvite] Effect cleanup, cancelling redemption');
       cancelled = true;
+      // Do NOT reset ref - we want it to persist across StrictMode unmount/remount to prevent duplicate requests.
     };
-  }, [hasToken, navigate, token]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasToken, token]);
 
   return (
     <MainSection className={styles.container}>

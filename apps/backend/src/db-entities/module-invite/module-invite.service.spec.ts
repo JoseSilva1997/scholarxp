@@ -137,19 +137,13 @@ describe('ModuleInviteService', () => {
     prisma.moduleInvite.findFirst.mockResolvedValue(invite as any);
     prisma.$transaction.mockImplementation(async (cb) => cb(prisma as any));
     prisma.moduleInvite.findUnique.mockResolvedValue(invite as any);
-    prisma.moduleInvite.update.mockResolvedValue({
-      ...invite,
-      uses: invite.uses + 1,
-    } as any);
-    prisma.userModule.upsert.mockResolvedValue({ id: 99 } as any);
+    prisma.userModule.create.mockResolvedValue({ id: 99 } as any);
+    prisma.moduleInvite.updateMany.mockResolvedValue({ count: 1 } as any);
 
     const result = await service.redeem({ token }, teacher);
 
-    expect(prisma.moduleInvite.update).toHaveBeenCalled();
-    expect(prisma.userModule.upsert).toHaveBeenCalledWith({
-      where: { moduleId_userId: { moduleId: module.id, userId: teacher.id } },
-      update: {},
-      create: {
+    expect(prisma.userModule.create).toHaveBeenCalledWith({
+      data: {
         moduleId: module.id,
         userId: teacher.id,
         roleInModule: 'student',
@@ -157,6 +151,15 @@ describe('ModuleInviteService', () => {
         currentExp: 0,
         enrolledVia: 'invite',
       },
+    });
+    expect(prisma.moduleInvite.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: invite.id,
+        revokedAt: null,
+        expiresAt: { gt: expect.any(Date) },
+        uses: { lt: invite.maxUses },
+      },
+      data: { uses: { increment: 1 } },
     });
     expect(result).toEqual({
       moduleId: module.id,
@@ -206,13 +209,27 @@ describe('ModuleInviteService', () => {
       module,
     } as any);
 
-    // Mock the enrollment check to return existing enrollment
-    prisma.userModule.findUnique.mockResolvedValue({ id: 123 } as any);
-    prisma.$transaction.mockImplementation(async (cb) => cb(prisma as any));
+    prisma.$transaction.mockImplementation(async (cb) => {
+      prisma.moduleInvite.findUnique.mockResolvedValue({
+        id: 6,
+        moduleId: module.id,
+        createdByUserId: 1,
+        type: InviteType.link,
+        tokenHash,
+        maxUses: 5,
+        uses: 0,
+        expiresAt: new Date(Date.now() + 1000 * 60),
+        revokedAt: null,
+        createdAt: new Date(),
+        emailLock: null,
+      } as any);
+      prisma.userModule.create.mockRejectedValue({ code: 'P2002' } as any);
+      return cb(prisma as any);
+    });
 
     await expect(service.redeem({ token }, teacher)).rejects.toThrow(
       BadRequestException,
     );
-    expect(prisma.moduleInvite.update).not.toHaveBeenCalled();
+    expect(prisma.moduleInvite.updateMany).not.toHaveBeenCalled();
   });
 });
