@@ -230,12 +230,8 @@ export default function SingleModulePage() {
               <div className={styles.metaRow}>
               </div>
             </header>
-            {moduleUnits.map((unit) => {
-              if (canManageModuleContent) {
-                return <ModuleUnitCard key={unit.id} unit={unit} onPublish={handlePublishUnit} />;
-              }
-              const canStudentSee = unit.status === 'live' || unit.status === 'locked';
-              return canStudentSee ? <StudentModuleUnitCard key={unit.id} unit={unit} /> : null;
+            {canManageModuleContent && moduleUnits.map((unit) => {
+              return <ModuleUnitCard key={unit.id} unit={unit} onPublish={handlePublishUnit} />;
             })}
             {canManageModuleContent ? (
               // Only show the creation entry point to roles granted modules.createContent so students stay read-only here.
@@ -245,27 +241,33 @@ export default function SingleModulePage() {
             ) : null}
             {user?.globalRole === 'student' && module.userModuleLevel !== undefined ? (
               <>
-                <div className={styles.progressRow} aria-label="Module progress">
-                  {/* Mirrors the badge progress but scoped to this module so students see their progress contextually. */}
-                  <span className={styles.level}>
-                    <img src={expIcon} alt="" aria-hidden="true" className={styles.levelIcon} />
-                    Level {module.userModuleLevel}
-                  </span>
-                  <div className={styles.barTrack} role="progressbar" aria-valuenow={expPercent} aria-valuemin={0} aria-valuemax={100}>
-                    <div className={styles.barFill} style={{ width: `${expPercent}%` }} />
+                <div className={styles.progressContainer}>
+                  <div className={styles.progressRow} aria-label="Module progress">
+                    {/* Mirrors the badge progress but scoped to this module so students see their progress contextually. */}
+                    <span className={styles.level}>
+                      <img src={expIcon} alt="" aria-hidden="true" className={styles.levelIcon} />
+                      Level {module.userModuleLevel}
+                    </span>
+                    <div className={styles.barTrack} role="progressbar" aria-valuenow={expPercent} aria-valuemin={0} aria-valuemax={100}>
+                      <div className={styles.barFill} style={{ width: `${expPercent}%` }} />
+                    </div>
+                    <span className={styles.expLabel}>{module.currentExp ?? 0} xp</span>
                   </div>
-                  <span className={styles.expLabel}>{module.currentExp ?? 0} xp</span>
+                  <button
+                    type="button"
+                    className={styles.dailyRevisionButton}
+                    onClick={() => alert('Daily revision coming soon! 🎯')}
+                  >
+                    <span className={styles.dailyRevisionIcon}>⚡</span>
+                    <span className={styles.dailyRevisionText}>
+                      <span className={styles.dailyRevisionLabel}>Daily Revision</span>
+                    </span>
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  className={styles.dailyRevisionButton}
-                  onClick={() => alert('Daily revision coming soon! 🎯')}
-                >
-                  <span className={styles.dailyRevisionIcon}>⚡</span>
-                  <span className={styles.dailyRevisionText}>
-                    <span className={styles.dailyRevisionLabel}>Daily Revision</span>
-                  </span>
-                </button>
+                {moduleUnits.map((unit) => {
+                  const canStudentSee = unit.status === 'live' || unit.status === 'locked';
+                  return canStudentSee ? <StudentModuleUnitCard key={unit.id} unit={unit} /> : null;
+                })}
               </>
             ) : null}
           </>

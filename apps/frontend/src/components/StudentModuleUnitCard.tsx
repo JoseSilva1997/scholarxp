@@ -12,19 +12,37 @@ export default function StudentModuleUnitCard({ unit }: StudentModuleUnitCardPro
   const isLocked = unit.status === 'locked';
 
   return (
-    <article className={styles.card}>
-      <div className={styles.header}>
-        <div className={styles.badgeWrapper} aria-hidden="true">
-          <div className={styles.badgeHole}>{isLocked ? <img src={lockIcon} alt="" /> : null}</div>
+    <div className={styles.wrapper}>
+      <article className={styles.card}>
+        <div className={styles.leftContainer} aria-hidden="true" />
+        <div className={styles.content}>
+          <div className={styles.header}>
+            <button
+              type="button"
+              className={styles.statusButton}
+              aria-label={isLocked ? 'Locked' : 'Available'}
+              title={isLocked ? 'Locked' : 'Available'}
+              disabled
+            >
+              {isLocked ? <img src={lockIcon} alt="" aria-hidden="true" /> : null}
+            </button>
+            <div className={styles.meta}>
+              <h3 className={styles.title}>{unit.title}</h3>
+            </div>
+            <div className={styles.actions}>
+              <button 
+                type="button" 
+                className={styles.practiceButton} 
+                aria-label="Start practice"
+                disabled={isLocked}
+              >
+                Start Practice
+              </button>
+            </div>
+          </div>
         </div>
-        <div className={styles.meta}>
-          <h3 className={styles.title}>{unit.title}</h3>
-          <p className={styles.subtitle}>{unit.questionGroups.length}/? Questions</p>
-        </div>
-        <button type="button" className={styles.practiceButton} aria-label="Start practice">
-          Start Practice
-        </button>
-      </div>
-    </article>
+        <div className={styles.rightContainer} aria-hidden="true" />
+      </article>
+    </div>
   );
 }
