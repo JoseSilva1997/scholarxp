@@ -152,17 +152,29 @@ export default function SingleModulePage() {
               </div>
             </header>
             {user?.globalRole === 'student' && module.userModuleLevel !== undefined ? (
-              <div className={styles.progressRow} aria-label="Module progress">
-                {/* Mirrors the badge progress but scoped to this module so students see their progress contextually. */}
-                <span className={styles.level}>
-                  <img src={expIcon} alt="" aria-hidden="true" className={styles.levelIcon} />
-                  Level {module.userModuleLevel}
-                </span>
-                <div className={styles.barTrack} role="progressbar" aria-valuenow={expPercent} aria-valuemin={0} aria-valuemax={100}>
-                  <div className={styles.barFill} style={{ width: `${expPercent}%` }} />
+              <>
+                <div className={styles.progressRow} aria-label="Module progress">
+                  {/* Mirrors the badge progress but scoped to this module so students see their progress contextually. */}
+                  <span className={styles.level}>
+                    <img src={expIcon} alt="" aria-hidden="true" className={styles.levelIcon} />
+                    Level {module.userModuleLevel}
+                  </span>
+                  <div className={styles.barTrack} role="progressbar" aria-valuenow={expPercent} aria-valuemin={0} aria-valuemax={100}>
+                    <div className={styles.barFill} style={{ width: `${expPercent}%` }} />
+                  </div>
+                  <span className={styles.expLabel}>{module.currentExp ?? 0} xp</span>
                 </div>
-                <span className={styles.expLabel}>{module.currentExp ?? 0} xp</span>
-              </div>
+                <button
+                  type="button"
+                  className={styles.dailyRevisionButton}
+                  onClick={() => alert('Daily revision coming soon! 🎯')}
+                >
+                  <span className={styles.dailyRevisionIcon}>⚡</span>
+                  <span className={styles.dailyRevisionText}>
+                    <span className={styles.dailyRevisionLabel}>Daily Revision</span>
+                  </span>
+                </button>
+              </>
             ) : null}
           </>
         ) : null}

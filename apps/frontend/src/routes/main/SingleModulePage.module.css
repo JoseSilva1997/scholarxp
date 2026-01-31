@@ -66,6 +66,7 @@
   gap: 6px;
   flex: 1;
   min-width: 240px;
+  margin-bottom: 30px;
 }
 
 .eyebrow {
@@ -155,6 +156,14 @@
   flex-wrap: wrap;
 }
 
+.progressContainer {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+  align-items: center;
+  width: 100%;
+}
+
 .progressRow {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -213,6 +222,96 @@
   white-space: nowrap;
   text-align: right;
   align-self: center;
+}
+
+.dailyRevisionButton {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 260px;
+  padding: 16px 20px;
+  margin-top: 12px;
+  background: var(--color-brand-surface-dark);
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 180ms ease;
+  box-shadow: 0 4px 12px rgba(48, 49, 70, 0.3),
+              inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.dailyRevisionButton::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  transition: left 400ms ease;
+}
+
+.dailyRevisionButton:hover::before {
+  left: 100%;
+}
+
+.dailyRevisionButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(48, 49, 70, 0.4),
+              inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.2);
+  background: #3b3c52;
+}
+
+.dailyRevisionButton:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(48, 49, 70, 0.25),
+              inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.dailyRevisionButton:focus-visible {
+  outline: 3px solid var(--color-accent-secondary);
+  outline-offset: 3px;
+}
+
+.dailyRevisionIcon {
+  font-size: 28px;
+  animation: pulse 2s ease-in-out infinite;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+}
+
+.dailyRevisionText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  text-align: left;
+}
+
+.dailyRevisionLabel {
+  font-size: 18px;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.dailyRevisionHint {
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0.9;
+  letter-spacing: 0.01em;
 }
 
 .metaItem {
@@ -304,4 +403,53 @@
   height: 10px;
   background: var(--surface-muted);
   border-radius: 6px;
+}
+
+@media (max-width: 720px) {
+  .progressContainer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .progressRow {
+    min-width: 0;
+  }
+
+  .dailyRevisionButton {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .header {
+    gap: 12px;
+  }
+
+  .titleRow {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .title {
+    font-size: 22px;
+  }
+
+  .actions {
+    gap: 6px;
+  }
+
+  .settingsButton,
+  .toggleButton {
+    width: 36px;
+    height: 36px;
+    padding: 4px;
+  }
+
+  .settingsButton img,
+  .toggleButton img {
+    width: 24px;
+    height: 24px;
+  }
 }
