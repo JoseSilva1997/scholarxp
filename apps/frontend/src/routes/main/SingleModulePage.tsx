@@ -1,7 +1,12 @@
 // Screen that shows details and content entry points for a single module; reached from the modules grid.
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { getModuleById } from '../../api/modules';
+import {
+  createModuleUnit,
+  getModuleById,
+  updateModuleUnitStatus,
+  getModuleUnits,
+} from '../../api/modules';
 import type { ModuleSummary } from '../../types/module';
 import { ApiError } from '../../api/client';
 import { logError } from '../../utils/logger';
@@ -29,6 +34,7 @@ export default function SingleModulePage() {
   const [isStudentViewEnabled, setIsStudentViewEnabled] = useState(false);
   const [showCreateUnit, setShowCreateUnit] = useState(false);
   const [moduleUnits, setModuleUnits] = useState<ModuleUnit[]>([]);
+  const [isSavingUnit, setIsSavingUnit] = useState(false);
   // Local slide-over flag keeps the settings UI contained on this screen without routing away.
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -61,9 +67,24 @@ export default function SingleModulePage() {
       setIsLoading(true);
       setError(null);
       try {
-        const result = await getModuleById(parsedId);
+        const [moduleResult, unitResults] = await Promise.all([
+          getModuleById(parsedId),
+          getModuleUnits(parsedId),
+        ]);
         if (!cancelled) {
-          setModule(result);
+          setModule(moduleResult);
+          setModuleUnits(
+            unitResults.map((u) => ({
+              id: String(u.id),
+              title: u.title,
+              status: u.status,
+              questionGroups: (u.questionGroups ?? []).map((g) => ({
+                id: String(g.id),
+                title: g.name,
+                questions: [],
+              })),
+            })),
+          );
         }
       } catch (err) {
         if (cancelled) return;
@@ -105,22 +126,51 @@ export default function SingleModulePage() {
   }, [module, expMax]);
 
   const handleCreateUnit = (title: string) => {
-    // Local-only creation for now; default to draft with a starter question group placeholder.
-    setModuleUnits((prev) => [
-      {
-        id: crypto.randomUUID(),
-        title,
-        status: 'draft',
-        questionGroups: [
+    if (!module) return;
+    setIsSavingUnit(true);
+    createModuleUnit(module.id, title)
+      .then((created) => {
+        setModuleUnits((prev) => [
           {
-            id: crypto.randomUUID(),
-            title: 'Default question group',
-            questions: [],
+            id: String(created.id),
+            title: created.title,
+            status: created.status,
+            questionGroups: created.questionGroups.map((g) => ({
+              id: String(g.id),
+              title: g.name,
+              questions: [],
+            })),
           },
-        ],
-      },
-      ...prev,
-    ]);
+          ...prev,
+        ]);
+      })
+      .catch((err) => {
+        // Keep user-facing message generic; log details for diagnostics.
+        setError('Could not create the module unit. Please try again.');
+        logError(err, { feature: 'module-unit', action: 'create', moduleId: module.id });
+      })
+      .finally(() => setIsSavingUnit(false));
+  };
+
+  const handlePublishUnit = async (unitId: string) => {
+    if (!module) return;
+    try {
+      const numericId = Number(unitId);
+      const updated = await updateModuleUnitStatus(numericId, 'locked');
+      setModuleUnits((prev) =>
+        prev.map((u) =>
+          u.id === unitId
+            ? {
+                ...u,
+                status: updated.status,
+              }
+            : u,
+        ),
+      );
+    } catch (err) {
+      setError('Could not publish the lesson. Please try again.');
+      logError(err, { feature: 'module-unit', action: 'publish', moduleUnitId: unitId });
+    }
   };
 
   return (
@@ -182,7 +232,7 @@ export default function SingleModulePage() {
             </header>
             {moduleUnits.map((unit) => {
               if (canManageModuleContent) {
-                return <ModuleUnitCard key={unit.id} unit={unit} />;
+                return <ModuleUnitCard key={unit.id} unit={unit} onPublish={handlePublishUnit} />;
               }
               const canStudentSee = unit.status === 'live' || unit.status === 'locked';
               return canStudentSee ? <StudentModuleUnitCard key={unit.id} unit={unit} /> : null;
@@ -190,7 +240,7 @@ export default function SingleModulePage() {
             {canManageModuleContent ? (
               // Only show the creation entry point to roles granted modules.createContent so students stay read-only here.
               <div className={styles.createUnitCardRow}>
-                <CreateModuleUnitCard onClick={() => setShowCreateUnit(true)} />
+                <CreateModuleUnitCard onClick={() => setShowCreateUnit(true)} isSaving={isSavingUnit} />
               </div>
             ) : null}
             {user?.globalRole === 'student' && module.userModuleLevel !== undefined ? (

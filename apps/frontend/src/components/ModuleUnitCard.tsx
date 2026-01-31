@@ -4,6 +4,7 @@ import draftIcon from '../assets/module-unit/module-unit-draft-white.svg';
 import checkIcon from '../assets/module-unit/module-unit-live-checkmark-white.svg';
 import lockIcon from '../assets/module-unit/module-unit-padlock-white.svg';
 import styles from './ModuleUnitCard.module.css';
+import ConfirmPublishModal from './Modals/ConfirmPublishModal';
 
 type ModuleUnitStatus = 'draft' | 'live' | 'locked';
 
@@ -22,10 +23,14 @@ export type ModuleUnit = {
 
 type ModuleUnitCardProps = {
   unit: ModuleUnit;
+  onPublish?: (unitId: string) => Promise<void>;
 };
 
-export default function ModuleUnitCard({ unit }: ModuleUnitCardProps) {
+export default function ModuleUnitCard({ unit, onPublish }: ModuleUnitCardProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [showPublishModal, setShowPublishModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
 
   const statusIcon = {
     draft: draftIcon,
@@ -44,6 +49,11 @@ export default function ModuleUnitCard({ unit }: ModuleUnitCardProps) {
               className={styles.statusButton}
               aria-label={`Module unit status: ${unit.status}`}
               title={`Module unit status: ${unit.status}`}
+              onClick={() => {
+                if (unit.status === 'draft' && onPublish) {
+                  setShowPublishModal(true);
+                }
+              }}
             >
               <img src={statusIcon} alt="" aria-hidden="true" />
             </button>
@@ -94,6 +104,27 @@ export default function ModuleUnitCard({ unit }: ModuleUnitCardProps) {
           </div>
         ))}
       </div>
+
+      <ConfirmPublishModal
+        isOpen={showPublishModal}
+        onCancel={() => setShowPublishModal(false)}
+        isSubmitting={isSubmitting}
+        onConfirm={async () => {
+          if (!onPublish) return;
+          setIsSubmitting(true);
+          setPublishError(null);
+          try {
+            await onPublish(unit.id);
+            setShowPublishModal(false);
+          } catch (err) {
+            console.error('Publish module unit failed', err);
+            setPublishError('Failed to publish. Please try again.');
+          } finally {
+            setIsSubmitting(false);
+          }
+        }}
+        errorMessage={publishError ?? undefined}
+      />
     </div>
   );
 }

@@ -14,6 +14,27 @@ export type ModuleSummary = {
   expMax?: number;
 };
 
+export type ModuleUnitStatus = 'draft' | 'live' | 'locked';
+
+export type ModuleUnitGroup = {
+  id: number;
+  moduleUnitId: number;
+  name: string;
+  sortOrder: number;
+};
+
+export type ModuleUnitResponse = {
+  id: number;
+  moduleId: number | null;
+  variantContext: string;
+  title: string;
+  questionCount: number;
+  status: ModuleUnitStatus;
+  sortOrder: number;
+  createdAt: string;
+  questionGroups: ModuleUnitGroup[];
+};
+
 export type ModuleInvite = {
   id: number;
   moduleId: number;
