@@ -13,6 +13,7 @@ import untoggleStudentViewIcon from '../../assets/untoggle-student-view.svg';
 import expIcon from '../../assets/exp_icon.svg';
 import MainSection from '../../components/MainSection';
 import ModuleSettingsPanel from '../../components/ModuleSettingsPanel';
+import CreateModuleUnitCard from '../../components/CreateModuleUnitCard';
 import { MODULE_EXP_MAX } from '../../constants/progression';
 import styles from './SingleModulePage.module.css';
 
@@ -35,6 +36,10 @@ export default function SingleModulePage() {
   const canEditSettings = useMemo(() => canUserAccess('modules.settings', user), [user]);
   const canToggleStudentView = useMemo(
     () => canUserAccess('modules.toggleStudentView', user),
+    [user],
+  );
+  const canCreateModuleContent = useMemo(
+    () => canUserAccess('modules.createContent', user),
     [user],
   );
 
@@ -151,6 +156,12 @@ export default function SingleModulePage() {
               <div className={styles.metaRow}>
               </div>
             </header>
+            {canCreateModuleContent ? (
+              // Only show the creation entry point to roles granted modules.createContent so students stay read-only here.
+              <div className={styles.createUnitCardRow}>
+                <CreateModuleUnitCard />
+              </div>
+            ) : null}
             {user?.globalRole === 'student' && module.userModuleLevel !== undefined ? (
               <>
                 <div className={styles.progressRow} aria-label="Module progress">

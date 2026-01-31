@@ -348,6 +348,11 @@
   gap: 16px;
 }
 
+.createUnitCardRow {
+  /* Stretch the create card to the container width for maximum affordance. */
+  width: 100%;
+}
+
 .card {
   background: white;
   border: 1px solid var(--border-subtle);

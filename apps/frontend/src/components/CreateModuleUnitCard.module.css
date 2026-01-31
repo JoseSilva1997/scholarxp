@@ -1,0 +1,74 @@
+.card {
+  /* Full-width call-to-action so creators spot the entry point quickly. */
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 16px;
+  border: none;
+  border-radius: 14px;
+  background: 
+    linear-gradient(to right, var(--color-brand-surface-dark) 50%, transparent 50%) top/24px 2px repeat-x,
+    linear-gradient(to right, var(--color-brand-surface-dark) 50%, transparent 50%) bottom/24px 2px repeat-x,
+    linear-gradient(to bottom, var(--color-brand-surface-dark) 50%, transparent 50%) left/2px 24px repeat-y,
+    linear-gradient(to bottom, var(--color-brand-surface-dark) 50%, transparent 50%) right/2px 24px repeat-y;
+  box-sizing: border-box;
+  flex-wrap: nowrap;
+}
+
+.createButton {
+  /* Borrow the create-module affordance to keep the UI cohesive. */
+  background: var(--color-brand-surface-dark);
+  color: #ffffff;
+  border: 1px solid var(--color-brand-surface-dark);
+  border-radius: 999px;
+  width: 52px;
+  height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+  line-height: 1;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.createButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 2px 2px 2px rgba(48, 49, 70, 0.32);
+}
+
+.createButton:focus-visible {
+  outline: 2px solid var(--color-accent-secondary);
+  outline-offset: 3px;
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--text-primary);
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-weight: 800;
+  font-size: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
