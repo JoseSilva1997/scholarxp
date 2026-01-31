@@ -1,12 +1,12 @@
 // Modal to create a module; honors backend scoping via session cookie and surfaces friendly errors.
 import { useState } from 'react';
 import styles from './ModuleCreateModal.module.css';
-import { ApiError } from '../api/client';
-import type { ModuleSummary } from '../types/module';
-import { useAuth } from '../context/AuthContext';
-import { logError } from '../utils/logger';
-import { createModule } from '../api/modules';
-import { canUserAccess } from '../permissions/permission';
+import { ApiError } from '../../api/client';
+import type { ModuleSummary } from '../../types/module';
+import { useAuth } from '../../context/AuthContext';
+import { logError } from '../../utils/logger';
+import { createModule } from '../../api/modules';
+import { canUserAccess } from '../../permissions/permission';
 
 type ModuleCreateModalProps = {
   onClose: () => void;

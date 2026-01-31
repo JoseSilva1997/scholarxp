@@ -12,6 +12,7 @@
   --color-brand-surface-dark: #303146;
   --color-accent-primary: #4caf50; /* logo green */
   --color-accent-secondary: #f3ce30; /* logo yellow */
+  --color-accent-secondary-strong: #f59e0b; /* Mmodule unit accents */
   --color-accent-primary-soft: rgba(76, 175, 80, 0.12);
   --color-border: rgba(15, 23, 42, 0.06);
   --color-border-strong: rgba(76, 175, 80, 0.2);
@@ -65,6 +66,7 @@
   --footer-padding-block: 18px;
   --sidebar-full-width: 260px;
   --sidebar-collapsed-width: 76px;
+  --module-unit-round-button-size: 72px;
 
   font-family: var(--font-sans);
   color: var(--color-text);

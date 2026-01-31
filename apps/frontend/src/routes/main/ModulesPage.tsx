@@ -6,7 +6,7 @@ import type { ModuleSummary } from '../../types/module';
 import { useAuth } from '../../context/AuthContext';
 import { ApiError } from '../../api/client';
 import { logError } from '../../utils/logger';
-import ModuleCreateModal from '../../components/ModuleCreateModal';
+import ModuleCreateModal from '../../components/Modals/ModuleCreateModal';
 import MainSection from '../../components/MainSection';
 import { canUserAccess } from '../../permissions/permission';
 import styles from './ModulesPage.module.css';

@@ -14,6 +14,8 @@ import expIcon from '../../assets/exp_icon.svg';
 import MainSection from '../../components/MainSection';
 import ModuleSettingsPanel from '../../components/ModuleSettingsPanel';
 import CreateModuleUnitCard from '../../components/CreateModuleUnitCard';
+import CreateModuleUnitModal from '../../components/Modals/CreateModuleUnitModal';
+import ModuleUnitCard, { type ModuleUnit } from '../../components/ModuleUnitCard';
 import { MODULE_EXP_MAX } from '../../constants/progression';
 import styles from './SingleModulePage.module.css';
 
@@ -24,6 +26,8 @@ export default function SingleModulePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isStudentViewEnabled, setIsStudentViewEnabled] = useState(false);
+  const [showCreateUnit, setShowCreateUnit] = useState(false);
+  const [moduleUnits, setModuleUnits] = useState<ModuleUnit[]>([]);
   // Local slide-over flag keeps the settings UI contained on this screen without routing away.
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -99,6 +103,25 @@ export default function SingleModulePage() {
     return Math.min(100, Math.round((module.currentExp / expMax) * 100));
   }, [module, expMax]);
 
+  const handleCreateUnit = (title: string) => {
+    // Local-only creation for now; default to draft with a starter question group placeholder.
+    setModuleUnits((prev) => [
+      {
+        id: crypto.randomUUID(),
+        title,
+        status: 'draft',
+        questionGroups: [
+          {
+            id: crypto.randomUUID(),
+            title: 'Default question group',
+            questions: [],
+          },
+        ],
+      },
+      ...prev,
+    ]);
+  };
+
   return (
     <>
       <MainSection className={styles.container}>
@@ -156,10 +179,13 @@ export default function SingleModulePage() {
               <div className={styles.metaRow}>
               </div>
             </header>
+            {moduleUnits.map((unit) => (
+              <ModuleUnitCard key={unit.id} unit={unit} />
+            ))}
             {canCreateModuleContent ? (
               // Only show the creation entry point to roles granted modules.createContent so students stay read-only here.
               <div className={styles.createUnitCardRow}>
-                <CreateModuleUnitCard />
+                <CreateModuleUnitCard onClick={() => setShowCreateUnit(true)} />
               </div>
             ) : null}
             {user?.globalRole === 'student' && module.userModuleLevel !== undefined ? (
@@ -199,6 +225,11 @@ export default function SingleModulePage() {
           onSaved={(updated) => setModule(updated)}
         />
       ) : null}
+      <CreateModuleUnitModal
+        isOpen={showCreateUnit}
+        onClose={() => setShowCreateUnit(false)}
+        onCreate={handleCreateUnit}
+      />
     </>
   );
 }
