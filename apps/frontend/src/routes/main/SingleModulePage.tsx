@@ -16,6 +16,7 @@ import ModuleSettingsPanel from '../../components/ModuleSettingsPanel';
 import CreateModuleUnitCard from '../../components/CreateModuleUnitCard';
 import CreateModuleUnitModal from '../../components/Modals/CreateModuleUnitModal';
 import ModuleUnitCard, { type ModuleUnit } from '../../components/ModuleUnitCard';
+import StudentModuleUnitCard from '../../components/StudentModuleUnitCard';
 import { MODULE_EXP_MAX } from '../../constants/progression';
 import styles from './SingleModulePage.module.css';
 
@@ -42,8 +43,8 @@ export default function SingleModulePage() {
     () => canUserAccess('modules.toggleStudentView', user),
     [user],
   );
-  const canCreateModuleContent = useMemo(
-    () => canUserAccess('modules.createContent', user),
+  const canManageModuleContent = useMemo(
+    () => canUserAccess('modules.manageContent', user),
     [user],
   );
 
@@ -179,10 +180,14 @@ export default function SingleModulePage() {
               <div className={styles.metaRow}>
               </div>
             </header>
-            {moduleUnits.map((unit) => (
-              <ModuleUnitCard key={unit.id} unit={unit} />
-            ))}
-            {canCreateModuleContent ? (
+            {moduleUnits.map((unit) => {
+              if (canManageModuleContent) {
+                return <ModuleUnitCard key={unit.id} unit={unit} />;
+              }
+              const canStudentSee = unit.status === 'live' || unit.status === 'locked';
+              return canStudentSee ? <StudentModuleUnitCard key={unit.id} unit={unit} /> : null;
+            })}
+            {canManageModuleContent ? (
               // Only show the creation entry point to roles granted modules.createContent so students stay read-only here.
               <div className={styles.createUnitCardRow}>
                 <CreateModuleUnitCard onClick={() => setShowCreateUnit(true)} />

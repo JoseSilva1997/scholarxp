@@ -5,7 +5,7 @@ export type FeatureKey =
   | 'modules.toggleStudentView'
   | 'modules.settings'
   | 'modules.invitations'
-  | 'modules.createContent'
+  | 'modules.manageContent'
   | 'navigation.modules'
   | 'navigation.quests'
   | 'navigation.profile';
@@ -32,7 +32,7 @@ export const permissionMatrix: PermissionMatrix = {
   'modules.setInstitution': [{ roles: ['admin', 'institution_admin'], requiresInstitution: true }],
   'modules.toggleStudentView': [{ roles: ['admin', 'institution_admin', 'teacher'] }],
   'modules.settings': [{ roles: ['admin', 'institution_admin', 'teacher'] }],
-  'modules.createContent': [{ roles: ['admin', 'institution_admin', 'teacher'] }],
+  'modules.manageContent': [{ roles: ['admin', 'institution_admin', 'teacher'] }],
   'modules.invitations': [
     { roles: ['admin', 'institution_admin'] },
     { roles: ['teacher'], forbidsInstitution: true },
