@@ -99,17 +99,34 @@
 
 @media (max-width: 720px) {
   .header {
-    flex-wrap: wrap;
-    gap: 12px;
+    gap: 8px;
+    padding: var(--header-padding-block) 16px;
+  }
+
+  .brand {
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .logo {
+    width: 28px;
+    height: 28px;
+    align-self: center;
+  }
+
+  .wordmark {
+    font-size: 0.9rem;
+    white-space: normal;
+    line-height: 1;
+    text-align: center;
   }
 
   .nav {
-    order: 3;
-    width: 100%;
-    justify-content: flex-start;
+    display: none; /* Hide empty nav to save space */
   }
 
   .actions {
-    margin-left: auto;
+    gap: 8px;
   }
 }

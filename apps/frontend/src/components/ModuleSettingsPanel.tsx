@@ -226,7 +226,7 @@ export default function ModuleSettingsPanel({
             }}
             aria-label="Copy invite link"
           >
-            <CopyIcon />
+            <CopyIcon/>
           </button>
         ) : (
           <span className={styles.inviteHint}>Create a new link to copy</span>

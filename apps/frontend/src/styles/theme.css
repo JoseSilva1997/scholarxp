@@ -63,6 +63,8 @@
   --header-padding-block: 6px;
   --footer-height: 60px;
   --footer-padding-block: 18px;
+  --sidebar-full-width: 260px;
+  --sidebar-collapsed-width: 76px;
 
   font-family: var(--font-sans);
   color: var(--color-text);

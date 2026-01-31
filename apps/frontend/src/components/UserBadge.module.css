@@ -3,9 +3,7 @@
   align-items: center;
   gap: 12px;
   border-radius: 999px;
-  color: #fff;
-  width: 28vw; /* responsive width that stays stable */
-  min-width: 260px;
+  color: #fff; /* responsive width that stays stable */
   max-width: 340px;
   position: relative;
 }
@@ -62,6 +60,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
 }
 
 .levelIcon {
@@ -131,13 +130,48 @@
 
 @media (max-width: 640px) {
   .badge {
-    width: 100%;
+    max-width: 50vw;
     justify-content: space-between;
   }
 
   .progress {
-    grid-template-columns: 1fr;
-    gap: 6px;
+    grid-template-columns: auto auto;
+    grid-template-rows: auto auto;
     min-width: 0;
+    grid-template-areas:
+      "level exp"
+      "bar bar";
+  }
+
+  .avatar {
+    width: 40px;
+    height: 40px;
+  }
+
+  .name {
+    font-size: 12px;
+    overflow: hidden;
+  }
+
+  .levelIcon {
+    width: 10px;
+    height: 10px;  
+  }
+
+  .level {
+    grid-area: level;
+    font-size: 10px;
+  }
+
+  .barTrack {
+    grid-area: bar;
+    width: 100%;
+    height: 5px;
+  }
+
+  .expLabel {
+    grid-area: exp;
+    font-size: 10px;
+    margin-left: 16px;
   }
 }

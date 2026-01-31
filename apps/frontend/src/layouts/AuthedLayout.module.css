@@ -2,33 +2,32 @@
 .shell {
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - var(--footer-height));
+  height: calc(100vh - var(--footer-height));
 }
-
 .mainWrapper {
   display: flex;
   flex: 1;
-  margin-left: 200px;
-  transition: margin-left 140ms ease;
+  overflow: hidden;
 }
 
 .mainWrapperCollapsed {
-  margin-left: 76px;
+  /* No special handling needed, sidebar controls its own width */
 }
 
 .body {
   display: flex;
   flex-direction: column;
-  padding: 0;
-  width: 100%;
   flex: 1;
+  overflow-y: auto;
+  min-width: 0; /* Allow flex item to shrink below content size */
 }
 
 .content {
   padding: 24px;
-  min-height: calc(100vh - var(--header-height) - var(--footer-height));
   box-shadow: 0 14px 36px rgba(0, 0, 0, 0.05);
-  width: 100%;
+  flex: 1;
+  overflow-x: hidden; /* Prevent horizontal scrolling */
+  width: 100%; /* Ensure content respects container width */
 }
 
 .overlay {
@@ -40,32 +39,7 @@
 }
 
 @media (max-width: 900px) {
-  .mainWrapper {
-    flex-direction: column;
-  }
-
-  .body {
-    padding: 16px;
-  }
-
   .content {
     padding: 18px 14px;
-    min-height: calc(100vh - var(--header-height) - var(--footer-height));
-  }
-
-  .overlay {
-    position: fixed;
-    inset: var(--header-height) 0 var(--footer-height) 0;
-    background: rgba(0, 0, 0, 0.32);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 180ms ease;
-    z-index: 5;
-    display: block;
-  }
-
-  .overlayVisible {
-    opacity: 1;
-    pointer-events: auto;
   }
 }
