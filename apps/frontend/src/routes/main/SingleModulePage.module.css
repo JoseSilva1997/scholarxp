@@ -46,17 +46,26 @@
 
 .header {
   display: flex;
-  justify-content: space-between;
+  flex-direction: row;
   align-items: flex-start;
   gap: 16px;
-  flex-wrap: wrap;
 }
 
 .titleRow {
   display: flex;
   align-items: center;
   gap: 12px;
+  justify-content: space-between;
   flex: 1;
+  width: 100%;
+}
+
+.titleGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 240px;
 }
 
 .eyebrow {
@@ -74,6 +83,12 @@
   color: var(--text-primary);
 }
 
+.actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .settingsButton {
   background: transparent;
   border: 1px solid var(--border-subtle);
@@ -82,7 +97,7 @@
   padding: 6px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: end;
   cursor: pointer;
   transition: background-color 120ms ease, border-color 120ms ease;
   border-radius: 8px;
@@ -138,6 +153,66 @@
   margin-top: 8px;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.progressRow {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  grid-template-areas:
+    ". exp"
+    "level bar";
+  gap: 4px 10px;
+  width: 100%;
+  max-width: 600px;
+  margin-top: 8px;
+  align-items: center;
+}
+
+.level {
+  grid-area: level;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  color: var(--color-brand-surface-dark);
+  white-space: nowrap;
+  align-self: end;
+}
+
+.levelIcon {
+  width: 20px;
+  height: 20px;
+  align-self: end;
+}
+
+.barTrack {
+  grid-area: bar;
+  position: relative;
+  height: 16px;
+  width: 100%;
+  background: var(--surface-muted);
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid var(--color-brand-surface-dark);
+  align-self: end;
+  margin-bottom: 3px;
+}
+
+.barFill {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #4caf50, #32a86f);
+}
+
+.expLabel {
+  grid-area: exp;
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  white-space: nowrap;
+  text-align: right;
+  align-self: center;
 }
 
 .metaItem {

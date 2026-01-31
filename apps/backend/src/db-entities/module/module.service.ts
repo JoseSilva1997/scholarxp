@@ -60,8 +60,26 @@ export class ModuleService {
     });
   }
 
-  async findOne(id: number) {
-    return this.getOrThrow(id);
+  async findOne(id: number, user?: AuthUser) {
+    const module = await this.getOrThrow(id);
+
+    // When the caller is a student, attach their module-scoped progression so the frontend can show progress.
+    if (user?.globalRole === GlobalRole.student) {
+      const progress = await this.prisma.userModule.findUnique({
+        where: { moduleId_userId: { moduleId: id, userId: user.id } },
+        select: { userModuleLevel: true, currentExp: true },
+      });
+
+      if (progress) {
+        return {
+          ...module,
+          userModuleLevel: progress.userModuleLevel,
+          currentExp: progress.currentExp,
+        };
+      }
+    }
+
+    return module;
   }
 
   async update(id: number, updateModuleDto: UpdateModuleDto, user: AuthUser) {

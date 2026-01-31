@@ -8,6 +8,10 @@ export type ModuleSummary = {
   title: string;
   description?: string | null;
   createdByUserId?: number | null;
+  // Student-only progress fields; returned when the caller is enrolled as a student in the module.
+  userModuleLevel?: number;
+  currentExp?: number;
+  expMax?: number;
 };
 
 export type ModuleInvite = {

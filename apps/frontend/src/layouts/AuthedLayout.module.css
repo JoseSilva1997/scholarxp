@@ -10,10 +10,6 @@
   overflow: hidden;
 }
 
-.mainWrapperCollapsed {
-  /* No special handling needed, sidebar controls its own width */
-}
-
 .body {
   display: flex;
   flex-direction: column;

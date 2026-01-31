@@ -117,4 +117,29 @@ describe('ModuleService', () => {
 
     await expect(service.findOne(99)).rejects.toBeInstanceOf(NotFoundException);
   });
+
+  it('findOne returns module with student progress when enrolled', async () => {
+    prisma.module.findUnique.mockResolvedValue({ id: 7 } as any);
+    prisma.userModule.findUnique.mockResolvedValue({
+      userModuleLevel: 3,
+      currentExp: 120,
+    } as any);
+
+    const result = await service.findOne(7, student as any);
+
+    expect(prisma.userModule.findUnique).toHaveBeenCalledWith({
+      where: { moduleId_userId: { moduleId: 7, userId: student.id } },
+      select: { userModuleLevel: true, currentExp: true },
+    });
+    expect(result).toEqual({ id: 7, userModuleLevel: 3, currentExp: 120 });
+  });
+
+  it('findOne skips progress lookup for non-students', async () => {
+    prisma.module.findUnique.mockResolvedValue({ id: 8 } as any);
+
+    const result = await service.findOne(8, teacher as any);
+
+    expect(prisma.userModule.findUnique).not.toHaveBeenCalled();
+    expect(result).toEqual({ id: 8 });
+  });
 });

@@ -10,8 +10,10 @@ import { canUserAccess } from '../../permissions/permission';
 import settingsIcon from '../../assets/settings-icon.svg';
 import toggleStudentViewIcon from '../../assets/toggle-student-view.svg';
 import untoggleStudentViewIcon from '../../assets/untoggle-student-view.svg';
+import expIcon from '../../assets/exp_icon.svg';
 import MainSection from '../../components/MainSection';
 import ModuleSettingsPanel from '../../components/ModuleSettingsPanel';
+import { MODULE_EXP_MAX } from '../../constants/progression';
 import styles from './SingleModulePage.module.css';
 
 export default function SingleModulePage() {
@@ -80,6 +82,18 @@ export default function SingleModulePage() {
     };
   }, [parsedId]);
 
+  const expMax = useMemo(() => {
+    if (!module) return MODULE_EXP_MAX;
+    // Prefer module-specific cap when backend provides it so future tuning is seamless.
+    return module.expMax && module.expMax > 0 ? module.expMax : MODULE_EXP_MAX;
+  }, [module]);
+
+  const expPercent = useMemo(() => {
+    if (!module || module.currentExp === undefined || module.currentExp === null) return 0;
+    if (expMax <= 0) return 0;
+    return Math.min(100, Math.round((module.currentExp / expMax) * 100));
+  }, [module, expMax]);
+
   return (
     <>
       <MainSection className={styles.container}>
@@ -98,70 +112,58 @@ export default function SingleModulePage() {
         ) : module ? (
           <>
             <header className={styles.header}>
-              <div className={styles.titleRow}>
-                <h1 className={styles.title}>{module.title}</h1>
+              <div className={styles.titleGroup}>
+                <div className={styles.titleRow}>
+                  <h1 className={styles.title}>{module.title}</h1>
+                  {user && (canToggleStudentView || canEditSettings) && (
+                    <div className={styles.actions}>
+                      {canToggleStudentView ? (
+                        <button
+                          className={styles.toggleButton}
+                          type="button"
+                          aria-label={isStudentViewEnabled ? 'Disable student view' : 'Enable student view'}
+                          title={isStudentViewEnabled ? 'Disable student view' : 'Enable student view'}
+                          onClick={() => setIsStudentViewEnabled(!isStudentViewEnabled)}
+                        >
+                          <img
+                            src={isStudentViewEnabled ? untoggleStudentViewIcon : toggleStudentViewIcon}
+                            alt=""
+                            aria-hidden="true"
+                          />
+                        </button>
+                      ) : null}
+                      {canEditSettings ? (
+                        <button
+                          className={styles.settingsButton}
+                          type="button"
+                          aria-label="Module settings"
+                          title="Module settings"
+                          aria-expanded={isSettingsOpen}
+                          onClick={() => setIsSettingsOpen((open) => !open)}
+                        >
+                          <img src={settingsIcon} alt="" aria-hidden="true" />
+                        </button>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
               </div>
-              {user && (canToggleStudentView || canEditSettings) && (
-                <>
-                  {canToggleStudentView ? (
-                    <button
-                      className={styles.toggleButton}
-                      type="button"
-                      aria-label={isStudentViewEnabled ? 'Disable student view' : 'Enable student view'}
-                      title={isStudentViewEnabled ? 'Disable student view' : 'Enable student view'}
-                      onClick={() => setIsStudentViewEnabled(!isStudentViewEnabled)}
-                    >
-                      <img
-                        src={isStudentViewEnabled ? untoggleStudentViewIcon : toggleStudentViewIcon}
-                        alt=""
-                        aria-hidden="true"
-                      />
-                    </button>
-                  ) : null}
-                  {canEditSettings ? (
-                    <button
-                      className={styles.settingsButton}
-                      type="button"
-                      aria-label="Module settings"
-                      title="Module settings"
-                      aria-expanded={isSettingsOpen}
-                      onClick={() => setIsSettingsOpen((open) => !open)}
-                    >
-                      <img src={settingsIcon} alt="" aria-hidden="true" />
-                    </button>
-                  ) : null}
-                </>
-              )}
               <div className={styles.metaRow}>
               </div>
             </header>
-
-            <div className={styles.grid}>
-              <section className={styles.card}>
-                <div className={styles.cardHeader}>
-                  <h2 className={styles.cardTitle}>Contents</h2>
-                  <span className={styles.badgeMuted}>Module library</span>
+            {user?.globalRole === 'student' && module.userModuleLevel !== undefined ? (
+              <div className={styles.progressRow} aria-label="Module progress">
+                {/* Mirrors the badge progress but scoped to this module so students see their progress contextually. */}
+                <span className={styles.level}>
+                  <img src={expIcon} alt="" aria-hidden="true" className={styles.levelIcon} />
+                  Level {module.userModuleLevel}
+                </span>
+                <div className={styles.barTrack} role="progressbar" aria-valuenow={expPercent} aria-valuemin={0} aria-valuemax={100}>
+                  <div className={styles.barFill} style={{ width: `${expPercent}%` }} />
                 </div>
-                <p className={styles.cardBody}>
-                  Lessons, practice sets, and upcoming quests for this module will appear here. Select
-                  an activity to continue where you left off.
-                </p>
-                <div className={styles.contentPlaceholders}>
-                  <div className={styles.placeholderRow}>
-                    <div className={styles.placeholderTitle} />
-                    <div className={styles.placeholderMeta} />
-                  </div>
-                  <div className={styles.placeholderRow}>
-                    <div className={styles.placeholderTitle} />
-                    <div className={styles.placeholderMeta} />
-                  </div>
-                  <div className={styles.placeholderRow}>
-                    <div className={styles.placeholderTitle} />
-                    <div className={styles.placeholderMeta} />
-                  </div>
-                </div>
-              </section>
-            </div>
+                <span className={styles.expLabel}>{module.currentExp ?? 0} xp</span>
+              </div>
+            ) : null}
           </>
         ) : null}
       </MainSection>

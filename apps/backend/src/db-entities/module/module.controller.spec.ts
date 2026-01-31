@@ -70,9 +70,9 @@ describe('ModuleController', () => {
   it('findOne delegates to service', async () => {
     service.findOne.mockResolvedValue({ id: 1 });
 
-    const result = await controller.findOne('1');
+    const result = await controller.findOne('1', req);
 
-    expect(service.findOne).toHaveBeenCalledWith(1);
+    expect(service.findOne).toHaveBeenCalledWith(1, req.user);
     expect(result).toEqual({ id: 1 });
   });
 

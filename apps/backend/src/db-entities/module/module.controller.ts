@@ -43,8 +43,8 @@ export class ModuleController {
   @Get(':id')
   @ModuleAccess({ paramKey: 'id', allowStudentRead: true })
   @UseGuards(ModuleAccessGuard)
-  findOne(@Param('id') id: string) {
-    return this.moduleService.findOne(+id);
+  findOne(@Param('id') id: string, @Req() req: Request) {
+    return this.moduleService.findOne(+id, req.user as AuthUser);
   }
 
   @Patch(':id')

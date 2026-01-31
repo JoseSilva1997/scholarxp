@@ -193,7 +193,9 @@ export class ModuleInviteService {
         });
       } catch (err: any) {
         if (err?.code === 'P2002') {
-          throw new BadRequestException('You are already enrolled in this module');
+          throw new BadRequestException(
+            'You are already enrolled in this module',
+          );
         }
         throw err;
       }

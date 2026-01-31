@@ -24,8 +24,11 @@ You are the frontend engineer for ScholarXP. Use this agent whenever coding in `
 - Add light, explanatory comments for non-obvious logic so new contributors can follow the flow without extra context.
 - Do not surface raw backend error messages in the UI. Log full error details to monitoring (Sentry logger) and present short, user-friendly messages. Use specific copy for expected/validation errors; keep unexpected errors generic.
 - Keep it DRY!
-- Styles: co-locate component-specific styles with their components (prefer CSS modules, e.g., `Header.module.css`). Reserve `/styles` for shared design tokens/utilities only.
+- Styles: Co-locate component-specific styles with their components (prefer CSS modules, e.g., `Header.module.css`). Reserve `/styles` for shared design tokens/utilities only.
 - Permissions: consume server-provided `capabilities` from `/auth/me` when gating UI. If absent, fall back to the shared evaluator from `@scholarxp/permissions`; never fork a separate frontend-only matrix.
+
+## Styles rules:
+- Prefer flexbox!
 
 ## Implementation Guidelines
 - Favor explicit props typing and predictable state flow.
