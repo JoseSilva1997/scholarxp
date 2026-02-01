@@ -1,16 +1,25 @@
+// AuthService centralizes credential validation, OAuth linking, session hygiene, and user projection.
+// We rely on Prisma for persistence and keep side effects (email, tokens) here for testability.
 import {
   ConflictException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { RegisterDto } from './dto/register.dto';
-import { LoginDto } from './dto/login.dto';
+import { ConfigService } from '@nestjs/config';
 import { AuthProvider, GlobalRole, Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import type { Request, Response } from 'express';
+import {
+  listCapabilities,
+  type FeatureKey,
+  type Role as PermissionRole,
+} from '@scholarxp/permissions';
+import { PrismaService } from '../prisma/prisma.service';
 import { EmailVerificationTokenService } from '../db-entities/email-verification-token/email-verification-token.service';
 import { MailerService } from '../mailer/mailer.service';
-import { AuthUser } from '../types/auth-user.type';
+import { RegisterDto } from './dto/register.dto';
+import type { AuthUser } from '../types/auth-user.type';
+import type { GoogleProfile } from './strategies/google.strategy';
 
 type UserRecord = {
   id: number;
@@ -22,28 +31,55 @@ type UserRecord = {
   isVerified?: boolean;
 };
 
-// Google OAuth profile data returned from the strategy
-type GoogleProfilePayload = {
-  firstName: string;
-  lastName: string;
-  profilePictureUrl: string;
-  email: string | null;
-};
-
-// Google identity binding with provider-specific ID
-export type GoogleIdentity = GoogleProfilePayload & {
-  providerUserId: string;
-};
-
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailTokens: EmailVerificationTokenService,
     private readonly mailer: MailerService,
+    private readonly config: ConfigService,
   ) {}
 
-  async registerByEmail(dto: RegisterDto) {
+  // --- Session helpers ---
+  async regenerateSession(req: Request) {
+    // Rotate session ID to prevent fixation; ignore existing auth state.
+    await new Promise<void>((resolve, reject) => {
+      req.session.regenerate((err) =>
+        err ? reject(new Error(String(err))) : resolve(),
+      );
+    });
+  }
+
+  async loginUser(req: Request, user: AuthUser) {
+    await this.regenerateSession(req);
+    // Passport will call SessionSerializer.serializeUser via req.login.
+    await new Promise<void>((resolve, reject) =>
+      req.login(user, (err) =>
+        err ? reject(new Error(String(err))) : resolve(),
+      ),
+    );
+  }
+
+  async logout(req: Request, res?: Response) {
+    await new Promise<void>((resolve) => req.logout(() => resolve()));
+    await new Promise<void>((resolve, reject) =>
+      req.session.destroy((err) =>
+        err ? reject(new Error(String(err))) : resolve(),
+      ),
+    );
+    // Clear cookie to remove residual client state; mirror session cookie options.
+    const isProd = this.config.get('NODE_ENV') === 'production';
+    if (res) {
+      res.clearCookie('connect.sid', {
+        httpOnly: true,
+        sameSite: isProd ? 'none' : 'lax',
+        secure: isProd,
+      });
+    }
+  }
+
+  // --- Local auth ---
+  async register(dto: RegisterDto): Promise<AuthUser> {
     const email = dto.email.trim().toLowerCase();
     const existing = await this.prisma.user.findUnique({ where: { email } });
     if (existing) {
@@ -63,10 +99,7 @@ export class AuthService {
       });
 
       await tx.userPassword.create({
-        data: {
-          userId: createdUser.id,
-          passwordHash,
-        },
+        data: { userId: createdUser.id, passwordHash },
       });
 
       await tx.authIdentity.create({
@@ -91,21 +124,23 @@ export class AuthService {
     return this.toAuthUser(user, null, undefined, true);
   }
 
-  async login(dto: LoginDto) {
-    const email = dto.email.trim().toLowerCase();
-    const user = await this.prisma.user.findUnique({ where: { email } });
+  async validateLocal(email: string, password: string): Promise<AuthUser> {
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await this.prisma.user.findUnique({
+      where: { email: normalizedEmail },
+    });
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const password = await this.prisma.userPassword.findUnique({
+    const passwordRow = await this.prisma.userPassword.findUnique({
       where: { userId: user.id },
     });
-    if (!password) {
+    if (!passwordRow) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const isValid = await bcrypt.compare(dto.password, password.passwordHash);
+    const isValid = await bcrypt.compare(password, passwordRow.passwordHash);
     if (!isValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -119,7 +154,7 @@ export class AuthService {
     return this.toAuthUser(user, avatar, membership);
   }
 
-  async verifyEmail(token: string) {
+  async verifyEmail(token: string): Promise<AuthUser> {
     const record = await this.emailTokens.consumeToken(token);
     const user = await this.prisma.user.update({
       where: { id: record.userId },
@@ -151,14 +186,26 @@ export class AuthService {
     return { sent: true };
   }
 
-  async loginWithGoogle(payload: GoogleIdentity & { picture?: string }) {
+  // --- Google OAuth ---
+  async loginWithGoogle(profile: any): Promise<AuthUser> {
+    const payload = profile as GoogleProfile;
+
     const email = payload.email?.trim().toLowerCase() ?? null;
+    if (!email) {
+      throw new UnauthorizedException('Google account has no email');
+    }
     const profilePictureUrl = payload.picture ?? 'default-profile-pic.png';
 
-    // Check if this Google account is already linked; if so, just refresh the profile and return.
-    const existingIdentity = await this.findGoogleIdentity(
-      payload.providerUserId,
-    );
+    const existingIdentity = await this.prisma.authIdentity.findUnique({
+      where: {
+        provider_providerUserId: {
+          provider: AuthProvider.google,
+          providerUserId: payload.providerUserId,
+        },
+      },
+      include: { user: true },
+    });
+
     if (existingIdentity) {
       const refreshed = await this.refreshUserFromGoogle(
         existingIdentity.user,
@@ -172,11 +219,6 @@ export class AuthService {
       const avatar = await this.loadAvatarIfStudent(refreshed);
       const membership = await this.loadInstitutionMembership(refreshed.id);
       return this.toAuthUser(refreshed, avatar, membership);
-    }
-
-    // We cannot create/link without an email from Google (rare but possible).
-    if (!email) {
-      throw new UnauthorizedException('Google account has no email');
     }
 
     const existingUser = await this.prisma.user.findUnique({
@@ -195,23 +237,36 @@ export class AuthService {
     return this.toAuthUser(user, avatar, membership);
   }
 
-  // Looks up a Google auth identity (with its user) so we can short-circuit on returning users.
-  private findGoogleIdentity(providerUserId: string) {
-    return this.prisma.authIdentity.findUnique({
-      where: {
-        provider_providerUserId: {
-          provider: AuthProvider.google,
-          providerUserId,
-        },
-      },
-      include: { user: true },
-    }) as Promise<{ user: UserRecord } | null>;
+  // --- User loading and projection ---
+  async getUserById(id: number): Promise<AuthUser> {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      throw new UnauthorizedException('Session invalid');
+    }
+    const avatar = await this.loadAvatarIfStudent(user);
+    const membership = await this.loadInstitutionMembership(user.id);
+    return this.toAuthUser(user, avatar, membership);
   }
 
-  // Refreshes stored profile fields from Google every login without clobbering with empty values.
+  attachCapabilities(
+    user: AuthUser,
+  ): AuthUser & { capabilities: FeatureKey[] } {
+    const capabilities = listCapabilities({
+      role: user.globalRole as PermissionRole,
+      hasInstitutionMembership: user.hasInstitutionMembership,
+    });
+    return { ...user, capabilities };
+  }
+
+  // --- Helpers ---
   private async refreshUserFromGoogle(
     user: UserRecord,
-    incoming: GoogleProfilePayload,
+    incoming: {
+      firstName: string;
+      lastName: string;
+      profilePictureUrl: string;
+      email: string | null;
+    },
   ) {
     const updates = this.buildGoogleProfileUpdates(user, incoming);
     if (Object.keys(updates).length === 0) {
@@ -220,13 +275,17 @@ export class AuthService {
     return this.prisma.user.update({ where: { id: user.id }, data: updates });
   }
 
-  // Matches by email when possible, otherwise creates a new user and records the Google identity.
   private async linkOrCreateUserForGoogle(
     existingUser: UserRecord | null,
-    incoming: GoogleIdentity,
+    incoming: {
+      email: string;
+      providerUserId: string;
+      firstName: string;
+      lastName: string;
+      profilePictureUrl: string;
+    },
   ) {
     return this.prisma.$transaction(async (tx) => {
-      // Keep existing users fresh; otherwise create a new one with Google defaults.
       const userRecord = existingUser
         ? await tx.user.update({
             where: { id: existingUser.id },
@@ -243,7 +302,6 @@ export class AuthService {
             },
           });
 
-      // Ensure there is a Google auth identity linked to the user for next logins.
       await tx.authIdentity.create({
         data: {
           userId: userRecord.id,
@@ -257,14 +315,16 @@ export class AuthService {
     });
   }
 
-  // Determine which user fields should be refreshed from Google on every login while
-  // avoiding overwriting existing data with empty values.
   private buildGoogleProfileUpdates(
     user: UserRecord,
-    incoming: GoogleProfilePayload,
+    incoming: {
+      firstName: string;
+      lastName: string;
+      profilePictureUrl: string;
+      email: string | null;
+    },
   ): Prisma.UserUpdateInput {
     const updates: Prisma.UserUpdateInput = {};
-
     if (incoming.firstName && incoming.firstName !== user.firstName) {
       updates.firstName = incoming.firstName;
     }
@@ -280,22 +340,9 @@ export class AuthService {
     if (!user.email && incoming.email) {
       updates.email = incoming.email;
     }
-
     return updates;
   }
 
-  // Retrieve user by ID and avatar if student
-  async getUserById(id: number) {
-    const user = await this.prisma.user.findUnique({ where: { id } });
-    if (!user) {
-      throw new UnauthorizedException('Session invalid');
-    }
-    const avatar = await this.loadAvatarIfStudent(user);
-    const membership = await this.loadInstitutionMembership(user.id);
-    return this.toAuthUser(user, avatar, membership);
-  }
-
-  // Load institution/LTI membership only when the user has any LTI identity; avoids extra selects for non-institution users.
   private async loadInstitutionMembership(userId: number) {
     const firstIdentity = await this.prisma.ltiIdentity.findFirst({
       where: { userId },
@@ -305,7 +352,6 @@ export class AuthService {
     if (!firstIdentity) {
       return {
         institutionIds: [],
-
         hasInstitutionMembership: false,
         ltiIdentities: [],
         hasLtiIdentity: false,
@@ -341,7 +387,6 @@ export class AuthService {
     });
   }
 
-  // It is much easier to create a payload which contains Avatar info directly.
   private toAuthUser(
     user: {
       id: number;
@@ -360,7 +405,7 @@ export class AuthService {
       hasLtiIdentity?: boolean;
     },
     requireVerification?: boolean,
-  ): AuthUser & { requiresEmailVerification?: boolean } {
+  ): AuthUser {
     return {
       id: user.id,
       firstName: user.firstName,
@@ -369,6 +414,7 @@ export class AuthService {
       profilePictureUrl: user.profilePictureUrl ?? 'default-profile-pic.png',
       globalRole: user.globalRole,
       isVerified: user.isVerified ?? false,
+      // Caller can flag that email verification is still pending for UX hints.
       requiresEmailVerification:
         requireVerification || !(user.isVerified ?? false),
       avatar: avatar ?? null,
@@ -376,6 +422,6 @@ export class AuthService {
       hasInstitutionMembership: membership?.hasInstitutionMembership ?? false,
       ltiIdentities: membership?.ltiIdentities ?? [],
       hasLtiIdentity: membership?.hasLtiIdentity ?? false,
-    };
+    } as AuthUser;
   }
 }

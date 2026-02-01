@@ -1,3 +1,4 @@
+// RegisterDto validates and normalizes user signup input for local auth.
 import { Transform, TransformFnParams } from 'class-transformer';
 import {
   IsEmail,

@@ -1,4 +1,4 @@
-// RolesGuard enforces handler-level role lists, using req.user populated by the session guard.
+// RolesGuard enforces handler-level role metadata using req.user populated by Passport session.
 import {
   CanActivate,
   ExecutionContext,
@@ -17,7 +17,6 @@ export class RolesGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    // Allow endpoints without explicit role metadata to proceed unchanged.
     const requiredRoles =
       this.reflector.getAllAndOverride<GlobalRole[]>(ROLES_KEY, [
         context.getHandler(),
@@ -29,15 +28,13 @@ export class RolesGuard implements CanActivate {
     }
 
     const req = context.switchToHttp().getRequest<Request>();
-    const user = req.user as AuthUser;
+    const user = req.user as AuthUser | undefined;
 
     if (!user) {
-      // Absence of user means auth guard was skipped or session missing.
       throw new UnauthorizedException('Authentication required');
     }
 
     if (!requiredRoles.includes(user.globalRole)) {
-      // Keep message generic to avoid leaking policy details.
       throw new ForbiddenException('Insufficient permissions');
     }
 

@@ -1,3 +1,4 @@
+// LoginDto validates local login input; email is normalized to lowercase.
 import { Transform, TransformFnParams } from 'class-transformer';
 import { IsEmail, IsString } from 'class-validator';
 

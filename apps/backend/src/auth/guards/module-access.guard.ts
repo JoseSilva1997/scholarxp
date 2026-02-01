@@ -1,4 +1,5 @@
-// ModuleAccessGuard enforces module-scoped permissions (admin, institution_admin, instructor; optional student read).
+// ModuleAccessGuard enforces module-scoped permissions (admin/institution admin/teacher/student read).
+// It relies on Passport session to populate req.user and keeps DB lookups minimal.
 import {
   BadRequestException,
   CanActivate,
@@ -14,7 +15,7 @@ import type { Request } from 'express';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   MODULE_ACCESS_KEY,
-  ModuleAccessOptions,
+  type ModuleAccessOptions,
 } from '../decorators/module-access.decorator';
 import type { AuthUser } from '../../types/auth-user.type';
 
@@ -27,9 +28,8 @@ export class ModuleAccessGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest<Request>();
-    const user = req.user as AuthUser;
+    const user = req.user as AuthUser | undefined;
     if (!user) {
-      // This guard assumes SessionAuthGuard already ran; bail if missing.
       throw new UnauthorizedException('Authentication required');
     }
 
@@ -44,12 +44,10 @@ export class ModuleAccessGuard implements CanActivate {
       throw new BadRequestException('Module id is required for this action');
     }
 
-    // Admins are always allowed.
     if (user.globalRole === GlobalRole.admin) {
       return true;
     }
 
-    // Fetch module with minimal fields plus membership for this user to avoid extra queries.
     const module = await this.prisma.module.findUnique({
       where: { id: moduleId },
       select: {
@@ -62,25 +60,24 @@ export class ModuleAccessGuard implements CanActivate {
         },
       },
     });
+
     if (!module) {
       throw new NotFoundException('Module not found');
     }
 
-    // Institution admin must belong to the same institution. If institutionId is null, fall back to instructor check.
     if (user.globalRole === GlobalRole.institution_admin) {
       if (module.institutionId == null) {
         throw new ForbiddenException('Module not linked to an institution');
       }
-      const isSameInstitution = await this.prisma.ltiIdentity.findFirst({
+      const sameInstitution = await this.prisma.ltiIdentity.findFirst({
         where: { userId: user.id, institutionId: module.institutionId },
         select: { id: true },
       });
-      if (isSameInstitution) {
+      if (sameInstitution) {
         return true;
       }
     }
 
-    // Instructor access: must have a userModule row with roleInModule 'teacher'.
     const membership = module.userModules[0];
     if (
       user.globalRole === GlobalRole.teacher &&
@@ -90,7 +87,6 @@ export class ModuleAccessGuard implements CanActivate {
       return true;
     }
 
-    // Student read paths: only if explicitly allowed and membership is student.
     if (
       options.allowStudentRead &&
       membership?.roleInModule === 'student' &&

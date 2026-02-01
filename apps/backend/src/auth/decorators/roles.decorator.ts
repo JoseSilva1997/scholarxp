@@ -1,4 +1,4 @@
-// @Roles decorator stores allowed global roles on route handlers for RolesGuard to consume.
+// Roles decorator stores required global roles as metadata for RolesGuard.
 import { SetMetadata } from '@nestjs/common';
 import { GlobalRole } from '@prisma/client';
 

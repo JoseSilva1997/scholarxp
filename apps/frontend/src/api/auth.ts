@@ -8,8 +8,10 @@ export type RegisterByEmailPayload = {
   password: string;
 };
 
-export async function registerByEmail(payload: RegisterByEmailPayload): Promise<AuthResponse> {
-  return apiFetch<AuthResponse>('/auth/register-by-email', {
+export type RegisterResponse = AuthResponse & { pendingEmailVerification?: boolean };
+
+export async function registerByEmail(payload: RegisterByEmailPayload): Promise<RegisterResponse> {
+  return apiFetch<RegisterResponse>('/auth/register', {
     method: 'POST',
     body: JSON.stringify(payload),
   });

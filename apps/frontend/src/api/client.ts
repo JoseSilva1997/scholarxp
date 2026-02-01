@@ -1,5 +1,5 @@
-// Centralized fetch wrapper for the frontend: standardizes base URL, credentials, and error handling
-// so feature-specific API modules can stay focused on their endpoints.
+// Centralized fetch wrapper for the frontend: standardizes base URL, credentials, CSRF handling,
+// and error shaping so feature-specific API modules can stay focused on their endpoints.
 import { logError, logMessage } from '../utils/logger';
 
 const API_BASE = import.meta.env.VITE_API_URL;
@@ -44,14 +44,37 @@ type ApiOptions = RequestInit & {
   baseUrl?: string;
 };
 
+// CSRF token maintained from backend responses; refreshed each request via response header.
+let csrfToken: string | null = null;
+
+async function fetchCsrfToken(baseUrl: string) {
+  const resp = await fetch(`${baseUrl}/auth/me`, {
+    credentials: 'include',
+  });
+  const headerToken = resp.headers.get('x-csrf-token');
+  if (headerToken) {
+    csrfToken = headerToken;
+  }
+}
+
 export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promise<T> {
-  const { baseUrl = API_BASE, headers, ...rest } = options;
+  const { baseUrl = API_BASE, headers, method = 'GET', ...rest } = options;
+
+  // Ensure we have a CSRF token before mutating requests; backend issues a token on any response.
+  const methodUpper = method.toUpperCase();
+  const isSafe = methodUpper === 'GET' || methodUpper === 'HEAD' || methodUpper === 'OPTIONS';
+  if (!csrfToken && !isSafe) {
+    await fetchCsrfToken(baseUrl);
+  }
+
   const response = await fetch(`${baseUrl}${path}`, {
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
+      ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
       ...(headers ?? {}),
     },
+    method: methodUpper,
     ...rest,
   });
 
@@ -59,6 +82,10 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
   const isJson = contentType?.includes('application/json');
   const data: unknown = isJson ? await response.json() : await response.text();
   const requestId = response.headers.get('x-request-id');
+  const headerToken = response.headers.get('x-csrf-token');
+  if (headerToken) {
+    csrfToken = headerToken;
+  }
 
   if (!response.ok) {
     const extracted =

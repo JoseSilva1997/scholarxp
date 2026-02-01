@@ -1,3 +1,4 @@
+// AuthController handles authentication entry points and keeps logic thin by deferring to AuthService.
 import {
   Body,
   Controller,
@@ -7,45 +8,47 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import type { Request, Response } from 'express';
-import { AuthService, type GoogleIdentity } from './auth.service';
-import { RegisterDto } from './dto/register.dto';
-import { LoginDto } from './dto/login.dto';
 import { AuthGuard } from '@nestjs/passport';
+import type { Request, Response } from 'express';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { FRONTEND_URL } from '../constants';
+import { AuthService } from './auth.service';
+import { RegisterDto } from './dto/register.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
-import {
-  listCapabilities,
-  type FeatureKey,
-  type Role as PermissionRole,
-} from '@scholarxp/permissions';
+import { AuthenticatedGuard } from './guards/authenticated.guard';
 import type { AuthUser } from '../types/auth-user.type';
 
 @Controller('auth')
+@UseGuards(ThrottlerGuard) // coarse guard; per-route limits below fine-tune if needed
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post('register-by-email')
-  async registerByEmail(@Body() dto: RegisterDto, @Req() req: Request) {
-    const user = await this.authService.registerByEmail(dto);
-    // Do not start a session until the email is verified; client should direct to code entry screen.
-    req.session.userId = undefined;
-    return { user: this.attachCapabilities(user) };
+  @Post('register')
+  async register(@Body() dto: RegisterDto, @Req() req: Request) {
+    const user = await this.authService.register(dto);
+    await this.authService.regenerateSession(req);
+    // We do not log users in until they verify email; keep session unauthenticated.
+    return {
+      user: this.authService.attachCapabilities(user),
+      pendingEmailVerification: true,
+    };
   }
 
+  @UseGuards(AuthGuard('local'))
   @Post('login')
-  async login(@Body() dto: LoginDto, @Req() req: Request) {
-    const user = await this.authService.login(dto);
-    req.session.userId = user.id;
-    return { user: this.attachCapabilities(user) };
+  async login(@Req() req: Request) {
+    // AuthGuard(local) puts user on req.user if validate succeeds.
+    const user = req.user as AuthUser;
+    await this.authService.loginUser(req, user);
+    return { user: this.authService.attachCapabilities(user) };
   }
 
   @Post('verify-email')
   async verifyEmail(@Body() dto: VerifyEmailDto, @Req() req: Request) {
     const user = await this.authService.verifyEmail(dto.token);
-    req.session.userId = user.id;
-    return { user: this.attachCapabilities(user) };
+    await this.authService.loginUser(req, user);
+    return { user: this.authService.attachCapabilities(user) };
   }
 
   @Post('resend-verification')
@@ -53,33 +56,25 @@ export class AuthController {
     return this.authService.resendVerification(dto.email);
   }
 
+  @UseGuards(AuthenticatedGuard)
   @Post('logout')
-  async logout(@Req() req: Request) {
-    await new Promise<void>((resolve, reject) => {
-      req.session.destroy((err) => {
-        if (err) {
-          reject(err instanceof Error ? err : new Error(String(err)));
-          return;
-        }
-        resolve();
-      });
-    });
+  async logout(@Req() req: Request, @Res() res: Response) {
+    await this.authService.logout(req, res);
     return { ok: true };
   }
 
   @Get('me')
-  async me(@Req() req: Request) {
-    const userId = req.session.userId;
-    if (!userId) {
+  me(@Req() req: Request) {
+    const user = req.user as AuthUser | undefined;
+    if (!user) {
       return { user: null };
     }
-    const user = await this.authService.getUserById(userId);
-    return { user: this.attachCapabilities(user) };
+    return { user: this.authService.attachCapabilities(user) };
   }
 
   @Get('oauth/google')
   @UseGuards(AuthGuard('google'))
-  // Entry point: Passport redirects to Google; logic handled by strategy.
+  // Passport handles redirect to Google; nothing else needed here.
   googleAuth() {
     return { ok: true };
   }
@@ -87,24 +82,9 @@ export class AuthController {
   @Get('oauth/google/callback')
   @UseGuards(AuthGuard('google'))
   async googleCallback(@Req() req: Request, @Res() res: Response) {
-    const profile = req.user as GoogleIdentity & { picture?: string };
-
-    const user = await this.authService.loginWithGoogle(profile);
-    req.session.userId = user.id;
-
-    // Frontend listens for session cookie; redirect back to app root so it can call /auth/me.
+    const user = await this.authService.loginWithGoogle(req.user);
+    await this.authService.loginUser(req, user);
     const redirectTarget = process.env.CORS_ORIGIN ?? FRONTEND_URL;
     res.redirect(redirectTarget);
-  }
-
-  // Compute capabilities from shared matrix so frontend and backend stay in sync.
-  private attachCapabilities(
-    user: AuthUser,
-  ): AuthUser & { capabilities: FeatureKey[] } {
-    const capabilities = listCapabilities({
-      role: user.globalRole as PermissionRole,
-      hasInstitutionMembership: user.hasInstitutionMembership,
-    });
-    return { ...user, capabilities };
   }
 }

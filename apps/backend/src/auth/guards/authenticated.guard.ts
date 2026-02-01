@@ -1,5 +1,4 @@
-// SessionAuthGuard ensures requests carry an authenticated Passport session.
-// We keep it separate from AuthenticatedGuard to preserve existing controller usage.
+// AuthenticatedGuard ensures requests have a Passport-authenticated user in the session.
 import {
   CanActivate,
   ExecutionContext,
@@ -9,9 +8,10 @@ import {
 import type { Request } from 'express';
 
 @Injectable()
-export class SessionAuthGuard implements CanActivate {
+export class AuthenticatedGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const req = context.switchToHttp().getRequest<Request>();
+    // Passport adds isAuthenticated when session middleware is present.
     if (req.isAuthenticated && req.isAuthenticated()) {
       return true;
     }

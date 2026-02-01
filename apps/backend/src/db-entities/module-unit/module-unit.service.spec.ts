@@ -62,9 +62,13 @@ describe('ModuleUnitService.createForModule', () => {
       callback(prisma as any),
     );
     prisma.moduleUnit.create.mockResolvedValue(createdUnit as any);
-    prisma.moduleUnitQuestionGroup.create.mockResolvedValue(createdGroup as any);
+    prisma.moduleUnitQuestionGroup.create.mockResolvedValue(
+      createdGroup as any,
+    );
 
-    const result = await service.createForModule(moduleId, { title: 'New Unit' });
+    const result = await service.createForModule(moduleId, {
+      title: 'New Unit',
+    });
 
     expect(prisma.moduleUnit.aggregate).toHaveBeenCalledWith({
       where: { moduleId },

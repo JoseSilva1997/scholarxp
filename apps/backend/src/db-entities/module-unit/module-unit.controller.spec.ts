@@ -47,7 +47,7 @@ describe('ModuleUnitController.createForModule', () => {
     const created = { id: 11, title: 'Algebra' };
     (service.createForModule as any).mockResolvedValue(created);
 
-    const result = await controller.createForModule('5', dto, req as any);
+    const result = await controller.createForModule('5', dto, req);
 
     expect(permissions.assertHasAccess).toHaveBeenCalledWith(
       'modules.manageContent',

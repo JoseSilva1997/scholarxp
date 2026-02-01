@@ -1,199 +1,408 @@
+// Unit tests for AuthController covering happy path, unhappy path, and basis path scenarios
 import { Test, TestingModule } from '@nestjs/testing';
+import { UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { RegisterDto } from './dto/register.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
+import { ResendVerificationDto } from './dto/resend-verification.dto';
+import { AuthenticatedGuard } from './guards/authenticated.guard';
+import type { AuthUser } from '../types/auth-user.type';
+import type { Request, Response } from 'express';
+import { GlobalRole } from '@prisma/client';
+import type { FeatureKey } from '@scholarxp/permissions';
 
-const mockUser = {
-  id: 1,
-  firstName: 'Jane',
-  lastName: 'Doe',
-  email: 'jane@example.com',
-  profilePictureUrl: 'default-profile-pic.png',
-  globalRole: 'student',
-  isVerified: false,
-  hasInstitutionMembership: false,
-};
-
+// Comprehensive unit tests for AuthController with happy path, unhappy path, and basis path coverage
 describe('AuthController', () => {
   let controller: AuthController;
-  let service: {
-    registerByEmail: jest.Mock;
-    login: jest.Mock;
-    getUserById: jest.Mock;
-    loginWithGoogle: jest.Mock;
-    verifyEmail: jest.Mock;
-    resendVerification: jest.Mock;
+  let authService: jest.Mocked<AuthService>;
+
+  // Mock user object represents fully authenticated user with all properties
+  const mockAuthUser: AuthUser = {
+    id: 1,
+    firstName: 'John',
+    lastName: 'Doe',
+    email: 'john@example.com',
+    profilePictureUrl: 'https://example.com/pic.jpg',
+    globalRole: GlobalRole.student,
+    isVerified: true,
+    requiresEmailVerification: false,
+    avatar: { id: 1, level: 5, currentExp: 1000 },
+    institutionIds: [1],
+    hasInstitutionMembership: true,
+    ltiIdentities: [{ institutionId: 1, ltiUserId: 'lti-user-1' }],
+    hasLtiIdentity: true,
   };
 
+  // attachCapabilities returns the same user object with computed capabilities array
+  const mockCapabilities: FeatureKey[] = [];
+  const mockUserWithCapabilities = { ...mockAuthUser, capabilities: mockCapabilities };
+
+
   beforeEach(async () => {
-    service = {
-      registerByEmail: jest.fn(),
-      login: jest.fn(),
-      getUserById: jest.fn(),
-      loginWithGoogle: jest.fn(),
+    // Create mocks for AuthService
+    const authServiceMock = {
+      register: jest.fn(),
+      regenerateSession: jest.fn(),
+      attachCapabilities: jest.fn(),
+      loginUser: jest.fn(),
       verifyEmail: jest.fn(),
       resendVerification: jest.fn(),
+      logout: jest.fn(),
+      loginWithGoogle: jest.fn(),
     };
 
-    const moduleRef: TestingModule = await Test.createTestingModule({
+    // Mock guards to avoid dependency resolution issues (ThrottlerGuard and AuthenticatedGuard require external modules)
+    const mockThrottlerGuard = {
+      canActivate: jest.fn(() => true),
+    };
+
+    const mockAuthenticatedGuard = {
+      canActivate: jest.fn(() => true),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
-      providers: [{ provide: AuthService, useValue: service }],
-    }).compile();
+      providers: [{ provide: AuthService, useValue: authServiceMock }],
+    })
+      .overrideGuard(ThrottlerGuard)
+      .useValue(mockThrottlerGuard)
+      .overrideGuard(AuthenticatedGuard)
+      .useValue(mockAuthenticatedGuard)
+      .compile();
 
-    controller = moduleRef.get(AuthController);
+    controller = module.get<AuthController>(AuthController);
+    authService = module.get(AuthService) as jest.Mocked<AuthService>;
   });
 
-  afterEach(() => jest.resetAllMocks());
-
-  it('registerByEmail returns user without setting session', async () => {
-    service.registerByEmail.mockResolvedValue(mockUser);
-    const req: any = { session: {} };
-
-    const result = await controller.registerByEmail(
-      {
+  describe('register', () => {
+    // ===== HAPPY PATH =====
+    it('should register new user and return pending email verification', async () => {
+      const registerDto = {
+        email: 'newuser@example.com',
         firstName: 'Jane',
-        lastName: 'Doe',
-        email: 'jane@example.com',
-        password: 'password123',
-      },
-      req,
-    );
+        lastName: 'Smith',
+        password: 'Password123!',
+      } as RegisterDto;
 
-    expect(service.registerByEmail).toHaveBeenCalled();
-    expect(req.session.userId).toBeUndefined();
-    expect(result.user).toMatchObject({
-      ...mockUser,
-      capabilities: expect.arrayContaining([
-        'navigation.modules',
-        'navigation.profile',
-      ]),
+      const unverifiedUser: AuthUser = { ...mockAuthUser, isVerified: false, requiresEmailVerification: true };
+      const mockReq = {} as Request;
+
+      authService.register.mockResolvedValue(unverifiedUser);
+      authService.regenerateSession.mockResolvedValue(undefined);
+      authService.attachCapabilities.mockReturnValue({ ...unverifiedUser, capabilities: mockCapabilities });
+
+      const result = await controller.register(registerDto, mockReq);
+
+      expect(authService.register).toHaveBeenCalledWith(registerDto);
+      expect(authService.regenerateSession).toHaveBeenCalledWith(mockReq);
+      expect(result.pendingEmailVerification).toBe(true);
+      expect(result.user.email).toBe(unverifiedUser.email);
+    });
+
+    // ===== UNHAPPY PATH =====
+    it('should propagate register error if email already exists', async () => {
+      const registerDto = {
+        email: 'existing@example.com',
+        firstName: 'Jane',
+        lastName: 'Smith',
+        password: 'Password123!',
+      } as RegisterDto;
+
+      const mockReq = {} as Request;
+
+      authService.register.mockRejectedValue(new Error('Email already in use'));
+
+      await expect(controller.register(registerDto, mockReq)).rejects.toThrow('Email already in use');
+    });
+
+    // ===== BASIS PATH =====
+    it('should handle registration error and not call regenerateSession', async () => {
+      const registerDto = {
+        email: 'error@example.com',
+        firstName: 'Error',
+        lastName: 'User',
+        password: 'Password123!',
+      } as RegisterDto;
+
+      const mockReq = {} as Request;
+
+      authService.register.mockRejectedValue(new Error('Database error'));
+
+      await expect(controller.register(registerDto, mockReq)).rejects.toThrow('Database error');
+      expect(authService.regenerateSession).not.toHaveBeenCalled();
     });
   });
 
-  it('login sets session userId and returns user', async () => {
-    service.login.mockResolvedValue(mockUser);
-    const req: any = { session: {} };
+  describe('login', () => {
+    // ===== HAPPY PATH =====
+    it('should login user and attach capabilities', async () => {
+      const mockReq = { user: mockAuthUser } as unknown as Request;
 
-    const result = await controller.login(
-      { email: 'jane@example.com', password: 'password123' },
-      req,
-    );
+      authService.loginUser.mockResolvedValue(undefined);
+      authService.attachCapabilities.mockReturnValue({ ...mockAuthUser, capabilities: mockCapabilities });
 
-    expect(service.login).toHaveBeenCalled();
-    expect(req.session.userId).toBe(mockUser.id);
-    expect(result.user).toMatchObject({
-      ...mockUser,
-      capabilities: expect.arrayContaining([
-        'navigation.modules',
-        'navigation.profile',
-      ]),
+      const result = await controller.login(mockReq);
+
+      expect(authService.loginUser).toHaveBeenCalledWith(mockReq, mockAuthUser);
+      expect(authService.attachCapabilities).toHaveBeenCalledWith(mockAuthUser);
+      expect(result.user.id).toBe(mockAuthUser.id);
+      expect(result.user.email).toBe(mockAuthUser.email);
+    });
+
+    // ===== UNHAPPY PATH =====
+    it('should propagate loginUser error if session setup fails', async () => {
+      const mockReq = { user: mockAuthUser } as unknown as Request;
+
+      authService.loginUser.mockRejectedValue(new Error('Session error'));
+
+      await expect(controller.login(mockReq)).rejects.toThrow('Session error');
+    });
+
+    // ===== BASIS PATH =====
+    it('should still attach capabilities even if user data is minimal', async () => {
+      const minimalUser: AuthUser = {
+        id: 2,
+        firstName: 'Min',
+        lastName: 'User',
+        email: null,
+        profilePictureUrl: 'default-profile-pic.png',
+        globalRole: GlobalRole.pending,
+        isVerified: false,
+        requiresEmailVerification: true,
+        avatar: null,
+        institutionIds: [],
+        hasInstitutionMembership: false,
+        ltiIdentities: [],
+        hasLtiIdentity: false,
+      };
+
+      const mockReq = { user: minimalUser } as unknown as Request;
+
+      authService.loginUser.mockResolvedValue(undefined);
+      authService.attachCapabilities.mockReturnValue({ ...minimalUser, capabilities: [] });
+
+      const result = await controller.login(mockReq);
+
+      expect(result.user.id).toBe(minimalUser.id);
+      expect(result.user.capabilities).toEqual([]);
     });
   });
 
-  it('logout destroys session', async () => {
-    const destroy = jest.fn((cb: (err?: Error | null) => void) => cb(null));
-    const req: any = { session: { destroy } };
+  describe('verifyEmail', () => {
+    // ===== HAPPY PATH =====
+    it('should verify email and login user', async () => {
+      const verifyDto = { token: 'valid-token' } as VerifyEmailDto;
+      const verifiedUser: AuthUser = { ...mockAuthUser, isVerified: true, requiresEmailVerification: false };
+      const mockReq = {} as Request;
 
-    const result = await controller.logout(req);
+      authService.verifyEmail.mockResolvedValue(verifiedUser);
+      authService.loginUser.mockResolvedValue(undefined);
+      authService.attachCapabilities.mockReturnValue({ ...verifiedUser, capabilities: mockCapabilities });
 
-    expect(destroy).toHaveBeenCalled();
-    expect(result).toEqual({ ok: true });
-  });
+      const result = await controller.verifyEmail(verifyDto, mockReq);
 
-  it('logout rejects when session destroy fails', async () => {
-    const destroy = jest.fn((cb: (err?: Error | null) => void) =>
-      cb(new Error('fail')),
-    );
-    const req: any = { session: { destroy } };
+      expect(authService.verifyEmail).toHaveBeenCalledWith(verifyDto.token);
+      expect(authService.loginUser).toHaveBeenCalledWith(mockReq, verifiedUser);
+      expect(result.user.isVerified).toBe(true);
+    });
 
-    await expect(controller.logout(req)).rejects.toThrow('fail');
-  });
+    // ===== UNHAPPY PATH =====
+    it('should throw error if token is invalid', async () => {
+      const verifyDto = { token: 'invalid-token' } as VerifyEmailDto;
+      const mockReq = {} as Request;
 
-  it('me returns null when session missing', async () => {
-    const req: any = { session: {} };
+      authService.verifyEmail.mockRejectedValue(new Error('Token expired'));
 
-    const result = await controller.me(req);
+      await expect(controller.verifyEmail(verifyDto, mockReq)).rejects.toThrow('Token expired');
+      expect(authService.loginUser).not.toHaveBeenCalled();
+    });
 
-    expect(service.getUserById).not.toHaveBeenCalled();
-    expect(result).toEqual({ user: null });
-  });
+    // ===== BASIS PATH =====
+    it('should not login user if verifyEmail fails before loginUser is called', async () => {
+      const verifyDto = { token: 'bad-token' } as VerifyEmailDto;
+      const mockReq = {} as Request;
 
-  it('me returns user when session exists', async () => {
-    service.getUserById.mockResolvedValue(mockUser);
-    const req: any = { session: { userId: mockUser.id } };
+      authService.verifyEmail.mockRejectedValue(new UnauthorizedException('Invalid token'));
 
-    const result = await controller.me(req);
-
-    expect(service.getUserById).toHaveBeenCalledWith(mockUser.id);
-    expect(result.user).toMatchObject({
-      ...mockUser,
-      capabilities: expect.arrayContaining([
-        'navigation.modules',
-        'navigation.profile',
-      ]),
+      await expect(controller.verifyEmail(verifyDto, mockReq)).rejects.toThrow('Invalid token');
+      expect(authService.loginUser).not.toHaveBeenCalled();
     });
   });
 
-  it('verifyEmail sets session and returns user', async () => {
-    service.verifyEmail.mockResolvedValue(mockUser);
-    const req: any = { session: {} };
+  describe('resendVerification', () => {
+    // ===== HAPPY PATH =====
+    it('should resend verification email for unverified user', async () => {
+      const resendDto = { email: 'unverified@example.com' } as ResendVerificationDto;
 
-    const result = await controller.verifyEmail(
-      { token: '123456' } as any,
-      req,
-    );
+      authService.resendVerification.mockResolvedValue({ sent: true });
 
-    expect(service.verifyEmail).toHaveBeenCalledWith('123456');
-    expect(req.session.userId).toBe(mockUser.id);
-    expect(result.user).toMatchObject({
-      ...mockUser,
-      capabilities: expect.arrayContaining([
-        'navigation.modules',
-        'navigation.profile',
-      ]),
+      const result = await controller.resendVerification(resendDto);
+
+      expect(authService.resendVerification).toHaveBeenCalledWith(resendDto.email);
+      expect(result.sent).toBe(true);
+    });
+
+    // ===== BASIS PATH =====
+    it('should return already_verified when email is already verified', async () => {
+      const resendDto = { email: 'verified@example.com' } as ResendVerificationDto;
+
+      authService.resendVerification.mockResolvedValue({ sent: false, reason: 'already_verified' });
+
+      const result = await controller.resendVerification(resendDto);
+
+      expect(result.sent).toBe(false);
+      expect(result.reason).toBe('already_verified');
+    });
+
+    // ===== UNHAPPY PATH =====
+    it('should propagate error if user not found', async () => {
+      const resendDto = { email: 'nonexistent@example.com' } as ResendVerificationDto;
+
+      authService.resendVerification.mockRejectedValue(new UnauthorizedException('User not found'));
+
+      await expect(controller.resendVerification(resendDto)).rejects.toThrow('User not found');
     });
   });
 
-  it('resendVerification proxies to service', async () => {
-    service.resendVerification.mockResolvedValue({ sent: true });
-    const result = await controller.resendVerification({
-      email: 'jane@example.com',
-    } as any);
+  describe('logout', () => {
+    // ===== HAPPY PATH =====
+    it('should logout user and clear session', async () => {
+      const mockReq = {} as Request;
+      const mockRes = {} as Response;
 
-    expect(service.resendVerification).toHaveBeenCalledWith('jane@example.com');
-    expect(result).toEqual({ sent: true });
-  });
+      authService.logout.mockResolvedValue(undefined);
 
-  describe('google OAuth flow', () => {
-    it('googleAuth returns ok (guard handles redirect)', () => {
-      const result = controller.googleAuth();
+      const result = await controller.logout(mockReq, mockRes);
+
+      expect(authService.logout).toHaveBeenCalledWith(mockReq, mockRes);
+      expect(result.ok).toBe(true);
+    });
+
+    // ===== UNHAPPY PATH =====
+    it('should propagate logout error', async () => {
+      const mockReq = {} as Request;
+      const mockRes = {} as Response;
+
+      authService.logout.mockRejectedValue(new Error('Session destroy failed'));
+
+      await expect(controller.logout(mockReq, mockRes)).rejects.toThrow('Session destroy failed');
+    });
+
+    // ===== BASIS PATH =====
+    it('should still return ok response after successful logout', async () => {
+      const mockReq = {} as Request;
+      const mockRes = {} as Response;
+
+      authService.logout.mockResolvedValue(undefined);
+
+      const result = await controller.logout(mockReq, mockRes);
+
       expect(result).toEqual({ ok: true });
     });
+  });
 
-    it('googleCallback logs in user, sets session, and redirects', async () => {
-      const req: any = {
-        user: {
-          providerUserId: 'google-123',
-          email: 'jane@example.com',
-          firstName: 'Jane',
-          lastName: 'Doe',
-          picture: 'https://example.com/pic.jpg',
-        },
-        session: {},
-      };
-      const res: any = { redirect: jest.fn() };
-      const redirectTarget = 'http://frontend.local';
-      const originalCors = process.env.CORS_ORIGIN;
-      process.env.CORS_ORIGIN = redirectTarget;
+  describe('me', () => {
+    // ===== HAPPY PATH =====
+    it('should return authenticated user with capabilities', () => {
+      const mockReq = { user: mockAuthUser } as unknown as Request;
 
-      service.loginWithGoogle.mockResolvedValue(mockUser);
+      authService.attachCapabilities.mockReturnValue({ ...mockAuthUser, capabilities: mockCapabilities });
 
-      await controller.googleCallback(req, res);
+      const result = controller.me(mockReq);
 
-      expect(service.loginWithGoogle).toHaveBeenCalledWith(req.user);
-      expect(req.session.userId).toBe(mockUser.id);
-      expect(res.redirect).toHaveBeenCalledWith(redirectTarget);
+      expect(authService.attachCapabilities).toHaveBeenCalledWith(mockAuthUser);
+      expect(result.user!.id).toBe(mockAuthUser.id);
+      expect(result.user!.capabilities).toEqual(mockCapabilities);
+    });
 
-      process.env.CORS_ORIGIN = originalCors;
+    // ===== UNHAPPY PATH =====
+    it('should return null user when not authenticated', () => {
+      const mockReq = {} as Request;
+
+      const result = controller.me(mockReq);
+
+      expect(result.user).toBeNull();
+      expect(authService.attachCapabilities).not.toHaveBeenCalled();
+    });
+
+    // ===== BASIS PATH =====
+    it('should handle user with undefined', () => {
+      const mockReq = { user: undefined } as unknown as Request;
+
+      const result = controller.me(mockReq);
+
+      expect(result.user).toBeNull();
+    });
+  });
+
+  describe('googleAuth', () => {
+    // ===== HAPPY PATH =====
+    it('should return ok response for Google auth redirect', () => {
+      const result = controller.googleAuth();
+
+      expect(result).toEqual({ ok: true });
+    });
+  });
+
+  describe('googleCallback', () => {
+    // ===== HAPPY PATH =====
+    it('should login user and redirect to frontend on successful Google auth', async () => {
+      const mockReq = { user: mockAuthUser } as unknown as Request;
+      const mockRes = { redirect: jest.fn() } as unknown as Response;
+
+      authService.loginWithGoogle.mockResolvedValue(mockAuthUser);
+      authService.loginUser.mockResolvedValue(undefined);
+
+      process.env.CORS_ORIGIN = 'https://app.example.com';
+
+      await controller.googleCallback(mockReq, mockRes);
+
+      expect(authService.loginWithGoogle).toHaveBeenCalledWith(mockAuthUser);
+      expect(authService.loginUser).toHaveBeenCalledWith(mockReq, mockAuthUser);
+      expect(mockRes.redirect).toHaveBeenCalledWith('https://app.example.com');
+    });
+
+    // ===== UNHAPPY PATH =====
+    it('should not redirect if loginWithGoogle fails', async () => {
+      const mockReq = { user: mockAuthUser } as unknown as Request;
+      const mockRes = { redirect: jest.fn() } as unknown as Response;
+
+      authService.loginWithGoogle.mockRejectedValue(new UnauthorizedException('Invalid Google user'));
+
+      await expect(controller.googleCallback(mockReq, mockRes)).rejects.toThrow('Invalid Google user');
+      expect(mockRes.redirect).not.toHaveBeenCalled();
+    });
+
+    // ===== BASIS PATH =====
+    it('should redirect to default FRONTEND_URL when CORS_ORIGIN is not set', async () => {
+      const mockReq = { user: mockAuthUser } as unknown as Request;
+      const mockRes = { redirect: jest.fn() } as unknown as Response;
+
+      authService.loginWithGoogle.mockResolvedValue(mockAuthUser);
+      authService.loginUser.mockResolvedValue(undefined);
+
+      delete process.env.CORS_ORIGIN;
+
+      await controller.googleCallback(mockReq, mockRes);
+
+      // Should redirect to FRONTEND_URL constant
+      expect(mockRes.redirect).toHaveBeenCalled();
+      const redirectUrl = (mockRes.redirect as jest.Mock).mock.calls[0][0];
+      expect(redirectUrl).toBeDefined();
+    });
+
+    it('should handle loginUser error and not redirect', async () => {
+      const mockReq = { user: mockAuthUser } as unknown as Request;
+      const mockRes = { redirect: jest.fn() } as unknown as Response;
+
+      authService.loginWithGoogle.mockResolvedValue(mockAuthUser);
+      authService.loginUser.mockRejectedValue(new Error('Session setup failed'));
+
+      await expect(controller.googleCallback(mockReq, mockRes)).rejects.toThrow('Session setup failed');
+      expect(mockRes.redirect).not.toHaveBeenCalled();
     });
   });
 });

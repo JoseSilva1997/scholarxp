@@ -9,6 +9,8 @@ export type AuthUser = {
   profilePictureUrl: string;
   globalRole: import('@prisma/client').GlobalRole;
   isVerified: boolean;
+  // Flag used by frontend to prompt for verification without leaking server details.
+  requiresEmailVerification?: boolean;
   // Membership hints allow UI and guards to gate institution-scoped actions without extra lookups.
   institutionIds?: number[];
   hasInstitutionMembership?: boolean;
