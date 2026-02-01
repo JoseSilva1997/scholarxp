@@ -1,4 +1,4 @@
-// Modal prompting teachers to publish a module unit; keeps copy explicit about student visibility.
+// Modal prompting teachers to change lesson visibility; copy is supplied by caller.
 import styles from './ConfirmPublishModal.module.css';
 
 type ConfirmPublishModalProps = {
@@ -7,6 +7,9 @@ type ConfirmPublishModalProps = {
   onConfirm: () => void;
   isSubmitting?: boolean;
   errorMessage?: string;
+  title: string;
+  body: string;
+  confirmLabel: string;
 };
 
 export default function ConfirmPublishModal({
@@ -15,16 +18,17 @@ export default function ConfirmPublishModal({
   onConfirm,
   isSubmitting = false,
   errorMessage,
+  title,
+  body,
+  confirmLabel,
 }: ConfirmPublishModalProps) {
   if (!isOpen) return null;
 
   return (
     <div className={styles.backdrop} role="dialog" aria-modal="true" aria-label="Publish lesson">
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-        <h2 className={styles.title}>Ready to publish lesson?</h2>
-        <p className={styles.body}>
-          You can still edit it. Students will see its title but the contents will be locked until you set it live.
-        </p>
+        <h2 className={styles.title}>{title}</h2>
+        <p className={styles.body}>{body}</p>
         {errorMessage ? (
           <p className={styles.error} role="alert">
             {errorMessage}
@@ -40,7 +44,7 @@ export default function ConfirmPublishModal({
             onClick={onConfirm}
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Publishing…' : 'Publish'}
+            {isSubmitting ? `${confirmLabel}…` : confirmLabel}
           </button>
         </div>
       </div>

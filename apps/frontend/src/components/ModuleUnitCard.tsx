@@ -6,7 +6,7 @@ import lockIcon from '../assets/module-unit/module-unit-padlock-white.svg';
 import styles from './ModuleUnitCard.module.css';
 import ConfirmPublishModal from './Modals/ConfirmPublishModal';
 
-type ModuleUnitStatus = 'draft' | 'live' | 'locked';
+export type ModuleUnitStatus = 'draft' | 'live' | 'locked';
 
 export type QuestionUnitGroup = {
   id: string;
@@ -23,10 +23,10 @@ export type ModuleUnit = {
 
 type ModuleUnitCardProps = {
   unit: ModuleUnit;
-  onPublish?: (unitId: string) => Promise<void>;
+  onChangeStatus?: (unitId: string, status: ModuleUnitStatus) => Promise<void>;
 };
 
-export default function ModuleUnitCard({ unit, onPublish }: ModuleUnitCardProps) {
+export default function ModuleUnitCard({ unit, onChangeStatus }: ModuleUnitCardProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -46,16 +46,21 @@ export default function ModuleUnitCard({ unit, onPublish }: ModuleUnitCardProps)
           <div className={styles.header}>
             <button
               type="button"
-              className={styles.statusButton}
-              aria-label={`Module unit status: ${unit.status}`}
-              title={`Module unit status: ${unit.status}`}
-              onClick={() => {
-                if (unit.status === 'draft' && onPublish) {
-                  setShowPublishModal(true);
-                }
-              }}
-            >
-              <img src={statusIcon} alt="" aria-hidden="true" />
+          className={styles.statusButton}
+          aria-label={`Module unit status: ${unit.status}`}
+          title={`Module unit status: ${unit.status}`}
+          onClick={() => {
+            if ((unit.status === 'draft' || unit.status === 'locked') && onChangeStatus) {
+              setShowPublishModal(true);
+            }
+          }}
+        >
+          <img 
+            src={statusIcon} 
+            alt="" 
+            aria-hidden="true" 
+            className={unit.status !== 'locked' ? styles.iconCentered : ''} // The "locked" icon is visually centered already
+          />
             </button>
             <div className={styles.meta}>
               <h3 className={styles.title}>{unit.title}</h3>
@@ -110,11 +115,12 @@ export default function ModuleUnitCard({ unit, onPublish }: ModuleUnitCardProps)
         onCancel={() => setShowPublishModal(false)}
         isSubmitting={isSubmitting}
         onConfirm={async () => {
-          if (!onPublish) return;
+          if (!onChangeStatus) return;
           setIsSubmitting(true);
           setPublishError(null);
           try {
-            await onPublish(unit.id);
+            const targetStatus = unit.status === 'draft' ? 'locked' : 'live';
+            await onChangeStatus(unit.id, targetStatus);
             setShowPublishModal(false);
           } catch (err) {
             console.error('Publish module unit failed', err);
@@ -124,6 +130,17 @@ export default function ModuleUnitCard({ unit, onPublish }: ModuleUnitCardProps)
           }
         }}
         errorMessage={publishError ?? undefined}
+        title={
+          unit.status === 'draft'
+            ? 'Ready to publish lesson?'
+            : 'Go live?'
+        }
+        body={
+          unit.status === 'draft'
+            ? 'You can still edit it. Students will see its title but the contents will be locked until you set it live.'
+            : 'This will make practice available to all students.'
+        }
+        confirmLabel={unit.status === 'draft' ? 'Publish' : 'Go live'}
       />
     </div>
   );

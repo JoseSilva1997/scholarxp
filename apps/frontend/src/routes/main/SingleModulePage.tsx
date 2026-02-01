@@ -20,7 +20,7 @@ import MainSection from '../../components/MainSection';
 import ModuleSettingsPanel from '../../components/ModuleSettingsPanel';
 import CreateModuleUnitCard from '../../components/CreateModuleUnitCard';
 import CreateModuleUnitModal from '../../components/Modals/CreateModuleUnitModal';
-import ModuleUnitCard, { type ModuleUnit } from '../../components/ModuleUnitCard';
+import ModuleUnitCard, { type ModuleUnit, type ModuleUnitStatus } from '../../components/ModuleUnitCard';
 import StudentModuleUnitCard from '../../components/StudentModuleUnitCard';
 import { MODULE_EXP_MAX } from '../../constants/progression';
 import styles from './SingleModulePage.module.css';
@@ -152,11 +152,11 @@ export default function SingleModulePage() {
       .finally(() => setIsSavingUnit(false));
   };
 
-  const handlePublishUnit = async (unitId: string) => {
+  const handleChangeUnitStatus = async (unitId: string, status: ModuleUnitStatus) => {
     if (!module) return;
     try {
       const numericId = Number(unitId);
-      const updated = await updateModuleUnitStatus(numericId, 'locked');
+      const updated = await updateModuleUnitStatus(numericId, status);
       setModuleUnits((prev) =>
         prev.map((u) =>
           u.id === unitId
@@ -168,8 +168,8 @@ export default function SingleModulePage() {
         ),
       );
     } catch (err) {
-      setError('Could not publish the lesson. Please try again.');
-      logError(err, { feature: 'module-unit', action: 'publish', moduleUnitId: unitId });
+      setError('Could not update the lesson status. Please try again.');
+      logError(err, { feature: 'module-unit', action: 'status-change', moduleUnitId: unitId, status });
     }
   };
 
@@ -230,9 +230,10 @@ export default function SingleModulePage() {
               <div className={styles.metaRow}>
               </div>
             </header>
-            {canManageModuleContent && moduleUnits.map((unit) => {
-              return <ModuleUnitCard key={unit.id} unit={unit} onPublish={handlePublishUnit} />;
-            })}
+            {/* ...existing code... */}
+              {canManageModuleContent && moduleUnits.map((unit) => (
+                <ModuleUnitCard key={unit.id} unit={unit} onChangeStatus={handleChangeUnitStatus} />
+              ))}
             {canManageModuleContent ? (
               // Only show the creation entry point to roles granted modules.createContent so students stay read-only here.
               <div className={styles.createUnitCardRow}>

@@ -85,6 +85,9 @@
 .statusButton img {
   width: 30px;
   height: 30px;
+}
+
+.iconCentered {
   transform: translateX(2px); /* visually center the icon */
 }
 

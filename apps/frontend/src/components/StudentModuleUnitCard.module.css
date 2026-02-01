@@ -34,6 +34,9 @@
   background: var(--color-accent-secondary-strong);
   width: 24px;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .header {
@@ -90,6 +93,96 @@
 .actions {
   display: flex;
   align-items: center;
+}
+
+.dropdownButton {
+  border-radius: 8px;
+  height: 100%;
+  width: 100%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dropdownButton:focus-visible {
+  outline: 2px solid var(--color-accent-secondary);
+  outline-offset: 3px;
+}
+
+.chevron {
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--color-brand-surface-dark);
+  border-bottom: 2px solid var(--color-brand-surface-dark);
+  transform: rotate(45deg);
+  transition: transform 150ms ease;
+  margin-top: -2px;
+}
+
+.chevronOpen {
+  transform: rotate(-135deg);
+  margin-top: 2px;
+}
+
+.panel {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 0 16px;
+  margin: 0 24px 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #f9fafb;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 300ms ease-in-out, opacity 250ms ease-in-out, padding 300ms ease-in-out, margin 300ms ease-in-out;
+}
+
+.panelOpen {
+  max-height: 420px;
+  opacity: 1;
+  padding: 14px 16px;
+  margin: 12px 24px 12px 20px;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.groupTitle {
+  margin: 0;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.questions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  color: var(--text-secondary);
+}
+
+.question {
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.empty {
+  font-size: 13px;
+  color: var(--text-muted);
 }
 
 .practiceButton {

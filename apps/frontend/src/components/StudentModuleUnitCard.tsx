@@ -1,4 +1,5 @@
 // Student-facing module unit card; shows neutral badge and start practice CTA without edit or authoring controls.
+import { useState } from 'react';
 import styles from './StudentModuleUnitCard.module.css';
 import lockIcon from '../assets/module-unit/student-module-unit-padlock.svg';
 
@@ -10,6 +11,7 @@ type StudentModuleUnitCardProps = {
 
 export default function StudentModuleUnitCard({ unit }: StudentModuleUnitCardProps) {
   const isLocked = unit.status === 'locked';
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div className={styles.wrapper}>
@@ -41,8 +43,41 @@ export default function StudentModuleUnitCard({ unit }: StudentModuleUnitCardPro
             </div>
           </div>
         </div>
-        <div className={styles.rightContainer} aria-hidden="true" />
+        <div className={styles.rightContainer}>
+          <button
+            type="button"
+            className={styles.dropdownButton}
+            aria-expanded={isOpen}
+            aria-controls={`student-unit-panel-${unit.id}`}
+            aria-label={isOpen ? 'Collapse lesson details' : 'Expand lesson details'}
+            onClick={() => setIsOpen((open) => !open)}
+          >
+            <span className={`${styles.chevron} ${isOpen ? styles.chevronOpen : ''}`} aria-hidden="true" />
+          </button>
+        </div>
       </article>
+      <div
+        className={`${styles.panel} ${isOpen ? styles.panelOpen : ''}`}
+        id={`student-unit-panel-${unit.id}`}
+        aria-hidden={!isOpen}
+      >
+        {unit.questionGroups.map((group) => (
+          <div key={group.id} className={styles.group}>
+            <p className={styles.groupTitle}>{group.title}</p>
+            <div className={styles.questions}>
+              {group.questions && group.questions.length > 0 ? (
+                group.questions.map((q, idx) => (
+                  <span key={idx} className={styles.question}>
+                    {q}
+                  </span>
+                ))
+              ) : (
+                <span className={styles.empty}>No questions yet</span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
