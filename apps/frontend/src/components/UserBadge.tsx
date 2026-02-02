@@ -116,6 +116,7 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
             className={styles.menuItem}
             role="menuitem"
             onClick={async () => {
+              // Close first so the menu doesn't linger if navigation happens quickly.
               closeMenu();
               if (onLogout) await onLogout();
             }}

@@ -89,12 +89,13 @@ describe('AuthController', () => {
 
       const unverifiedUser: AuthUser = { ...mockAuthUser, isVerified: false, requiresEmailVerification: true };
       const mockReq = {} as Request;
+      const mockRes = {} as Response;
 
       authService.register.mockResolvedValue(unverifiedUser);
       authService.regenerateSession.mockResolvedValue(undefined);
       authService.attachCapabilities.mockReturnValue({ ...unverifiedUser, capabilities: mockCapabilities });
 
-      const result = await controller.register(registerDto, mockReq);
+      const result = await controller.register(registerDto, mockReq, mockRes);
 
       expect(authService.register).toHaveBeenCalledWith(registerDto);
       expect(authService.regenerateSession).toHaveBeenCalledWith(mockReq);
@@ -112,10 +113,11 @@ describe('AuthController', () => {
       } as RegisterDto;
 
       const mockReq = {} as Request;
+      const mockRes = {} as Response;
 
       authService.register.mockRejectedValue(new Error('Email already in use'));
 
-      await expect(controller.register(registerDto, mockReq)).rejects.toThrow('Email already in use');
+      await expect(controller.register(registerDto, mockReq, mockRes)).rejects.toThrow('Email already in use');
     });
 
     // ===== BASIS PATH =====
@@ -128,10 +130,11 @@ describe('AuthController', () => {
       } as RegisterDto;
 
       const mockReq = {} as Request;
+      const mockRes = {} as Response;
 
       authService.register.mockRejectedValue(new Error('Database error'));
 
-      await expect(controller.register(registerDto, mockReq)).rejects.toThrow('Database error');
+      await expect(controller.register(registerDto, mockReq, mockRes)).rejects.toThrow('Database error');
       expect(authService.regenerateSession).not.toHaveBeenCalled();
     });
   });
@@ -139,12 +142,20 @@ describe('AuthController', () => {
   describe('login', () => {
     // ===== HAPPY PATH =====
     it('should login user and attach capabilities', async () => {
-      const mockReq = { user: mockAuthUser } as unknown as Request;
+      const mockReq = {
+        user: mockAuthUser,
+        headers: {},
+        csrfToken: jest.fn(() => 'csrf-token-123'),
+      } as unknown as Request;
+      const mockRes = {
+        setHeader: jest.fn(),
+        getHeader: jest.fn(),
+      } as unknown as Response;
 
       authService.loginUser.mockResolvedValue(undefined);
-      authService.attachCapabilities.mockReturnValue({ ...mockAuthUser, capabilities: mockCapabilities });
+      authService.attachCapabilities.mockReturnValue({ ...mockAuthUser, capabilities: mockCapabilities } as any);
 
-      const result = await controller.login(mockReq);
+      const result = await controller.login(mockReq, mockRes);
 
       expect(authService.loginUser).toHaveBeenCalledWith(mockReq, mockAuthUser);
       expect(authService.attachCapabilities).toHaveBeenCalledWith(mockAuthUser);
@@ -154,11 +165,19 @@ describe('AuthController', () => {
 
     // ===== UNHAPPY PATH =====
     it('should propagate loginUser error if session setup fails', async () => {
-      const mockReq = { user: mockAuthUser } as unknown as Request;
+      const mockReq = {
+        user: mockAuthUser,
+        headers: {},
+        csrfToken: jest.fn(() => 'csrf-token-123'),
+      } as unknown as Request;
+      const mockRes = {
+        setHeader: jest.fn(),
+        getHeader: jest.fn(),
+      } as unknown as Response;
 
       authService.loginUser.mockRejectedValue(new Error('Session error'));
 
-      await expect(controller.login(mockReq)).rejects.toThrow('Session error');
+      await expect(controller.login(mockReq, mockRes)).rejects.toThrow('Session error');
     });
 
     // ===== BASIS PATH =====
@@ -179,12 +198,20 @@ describe('AuthController', () => {
         hasLtiIdentity: false,
       };
 
-      const mockReq = { user: minimalUser } as unknown as Request;
+      const mockReq = {
+        user: minimalUser,
+        headers: {},
+        csrfToken: jest.fn(() => 'csrf-token-123'),
+      } as unknown as Request;
+      const mockRes = {
+        setHeader: jest.fn(),
+        getHeader: jest.fn(),
+      } as unknown as Response;
 
       authService.loginUser.mockResolvedValue(undefined);
       authService.attachCapabilities.mockReturnValue({ ...minimalUser, capabilities: [] });
 
-      const result = await controller.login(mockReq);
+      const result = await controller.login(mockReq, mockRes);
 
       expect(result.user.id).toBe(minimalUser.id);
       expect(result.user.capabilities).toEqual([]);
@@ -197,12 +224,13 @@ describe('AuthController', () => {
       const verifyDto = { token: 'valid-token' } as VerifyEmailDto;
       const verifiedUser: AuthUser = { ...mockAuthUser, isVerified: true, requiresEmailVerification: false };
       const mockReq = {} as Request;
+      const mockRes = {} as Response;
 
       authService.verifyEmail.mockResolvedValue(verifiedUser);
       authService.loginUser.mockResolvedValue(undefined);
       authService.attachCapabilities.mockReturnValue({ ...verifiedUser, capabilities: mockCapabilities });
 
-      const result = await controller.verifyEmail(verifyDto, mockReq);
+      const result = await controller.verifyEmail(verifyDto, mockReq, mockRes);
 
       expect(authService.verifyEmail).toHaveBeenCalledWith(verifyDto.token);
       expect(authService.loginUser).toHaveBeenCalledWith(mockReq, verifiedUser);
@@ -213,10 +241,11 @@ describe('AuthController', () => {
     it('should throw error if token is invalid', async () => {
       const verifyDto = { token: 'invalid-token' } as VerifyEmailDto;
       const mockReq = {} as Request;
+      const mockRes = {} as Response;
 
       authService.verifyEmail.mockRejectedValue(new Error('Token expired'));
 
-      await expect(controller.verifyEmail(verifyDto, mockReq)).rejects.toThrow('Token expired');
+      await expect(controller.verifyEmail(verifyDto, mockReq, mockRes)).rejects.toThrow('Token expired');
       expect(authService.loginUser).not.toHaveBeenCalled();
     });
 
@@ -224,10 +253,11 @@ describe('AuthController', () => {
     it('should not login user if verifyEmail fails before loginUser is called', async () => {
       const verifyDto = { token: 'bad-token' } as VerifyEmailDto;
       const mockReq = {} as Request;
+      const mockRes = {} as Response;
 
       authService.verifyEmail.mockRejectedValue(new UnauthorizedException('Invalid token'));
 
-      await expect(controller.verifyEmail(verifyDto, mockReq)).rejects.toThrow('Invalid token');
+      await expect(controller.verifyEmail(verifyDto, mockReq, mockRes)).rejects.toThrow('Invalid token');
       expect(authService.loginUser).not.toHaveBeenCalled();
     });
   });
@@ -236,10 +266,12 @@ describe('AuthController', () => {
     // ===== HAPPY PATH =====
     it('should resend verification email for unverified user', async () => {
       const resendDto = { email: 'unverified@example.com' } as ResendVerificationDto;
+      const mockReq = {} as Request;
+      const mockRes = {} as Response;
 
       authService.resendVerification.mockResolvedValue({ sent: true });
 
-      const result = await controller.resendVerification(resendDto);
+      const result = await controller.resendVerification(resendDto, mockReq, mockRes);
 
       expect(authService.resendVerification).toHaveBeenCalledWith(resendDto.email);
       expect(result.sent).toBe(true);
@@ -248,10 +280,12 @@ describe('AuthController', () => {
     // ===== BASIS PATH =====
     it('should return already_verified when email is already verified', async () => {
       const resendDto = { email: 'verified@example.com' } as ResendVerificationDto;
+      const mockReq = {} as Request;
+      const mockRes = {} as Response;
 
       authService.resendVerification.mockResolvedValue({ sent: false, reason: 'already_verified' });
 
-      const result = await controller.resendVerification(resendDto);
+      const result = await controller.resendVerification(resendDto, mockReq, mockRes);
 
       expect(result.sent).toBe(false);
       expect(result.reason).toBe('already_verified');
@@ -260,18 +294,26 @@ describe('AuthController', () => {
     // ===== UNHAPPY PATH =====
     it('should propagate error if user not found', async () => {
       const resendDto = { email: 'nonexistent@example.com' } as ResendVerificationDto;
+      const mockReq = {} as Request;
+      const mockRes = {} as Response;
 
       authService.resendVerification.mockRejectedValue(new UnauthorizedException('User not found'));
 
-      await expect(controller.resendVerification(resendDto)).rejects.toThrow('User not found');
+      await expect(controller.resendVerification(resendDto, mockReq, mockRes)).rejects.toThrow('User not found');
     });
   });
 
   describe('logout', () => {
     // ===== HAPPY PATH =====
     it('should logout user and clear session', async () => {
-      const mockReq = {} as Request;
-      const mockRes = {} as Response;
+      const mockReq = {
+        isAuthenticated: jest.fn(() => true),
+        csrfToken: jest.fn(() => 'csrf-token-123'),
+      } as unknown as Request;
+      const mockRes = {
+        setHeader: jest.fn(),
+        getHeader: jest.fn((name: string) => (name === 'x-csrf-token' ? 'csrf-token-123' : undefined)),
+      } as unknown as Response;
 
       authService.logout.mockResolvedValue(undefined);
 
@@ -283,8 +325,14 @@ describe('AuthController', () => {
 
     // ===== UNHAPPY PATH =====
     it('should propagate logout error', async () => {
-      const mockReq = {} as Request;
-      const mockRes = {} as Response;
+      const mockReq = {
+        isAuthenticated: jest.fn(() => true),
+        csrfToken: jest.fn(() => 'csrf-token-123'),
+      } as unknown as Request;
+      const mockRes = {
+        setHeader: jest.fn(),
+        getHeader: jest.fn((name: string) => (name === 'x-csrf-token' ? 'csrf-token-123' : undefined)),
+      } as unknown as Response;
 
       authService.logout.mockRejectedValue(new Error('Session destroy failed'));
 
@@ -293,14 +341,20 @@ describe('AuthController', () => {
 
     // ===== BASIS PATH =====
     it('should still return ok response after successful logout', async () => {
-      const mockReq = {} as Request;
-      const mockRes = {} as Response;
+      const mockReq = {
+        isAuthenticated: jest.fn(() => false),
+        csrfToken: jest.fn(() => 'csrf-token-456'),
+      } as unknown as Request;
+      const mockRes = {
+        setHeader: jest.fn(),
+        getHeader: jest.fn((name: string) => (name === 'x-csrf-token' ? 'csrf-token-456' : undefined)),
+      } as unknown as Response;
 
       authService.logout.mockResolvedValue(undefined);
 
       const result = await controller.logout(mockReq, mockRes);
 
-      expect(result).toEqual({ ok: true });
+      expect(result).toEqual({ ok: true, csrfToken: 'csrf-token-456' });
     });
   });
 
@@ -335,6 +389,30 @@ describe('AuthController', () => {
       const result = controller.me(mockReq);
 
       expect(result.user).toBeNull();
+      expect(authService.attachCapabilities).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('csrf', () => {
+    // ===== HAPPY PATH =====
+    it('should return CSRF token when available', () => {
+      const csrfToken = 'csrf-token-xyz';
+      const mockReq = {
+        csrfToken: jest.fn(() => csrfToken),
+      } as unknown as Request;
+
+      const result = controller.csrf(mockReq);
+
+      expect(result.csrfToken).toBe(csrfToken);
+    });
+
+    // ===== UNHAPPY PATH =====
+    it('should return null when csrfToken is not available', () => {
+      const mockReq = {} as Request;
+
+      const result = controller.csrf(mockReq);
+
+      expect(result.csrfToken).toBeNull();
     });
   });
 

@@ -47,13 +47,53 @@ type ApiOptions = RequestInit & {
 // CSRF token maintained from backend responses; refreshed each request via response header.
 let csrfToken: string | null = null;
 
+export function clearCsrfToken() {
+  csrfToken = null;
+}
+
+// Explicit setter allows callers (e.g., logout response) to prime the token without an extra round-trip.
+export function setCsrfToken(token: string | null) {
+  csrfToken = token;
+}
+
+// Force-refresh the CSRF token by clearing cache and fetching from the server.
+export async function refreshCsrfToken(baseUrl?: string) {
+  csrfToken = null;
+  await fetchCsrfToken(baseUrl ?? API_BASE);
+}
+
+/**
+ * Ensures a CSRF token is loaded after explicit invalidation (e.g., logout) so the next
+ * state-changing request does not trip the server's CSRF guard.
+ */
+export async function ensureCsrfToken(baseUrl?: string) {
+  if (!csrfToken) {
+    await fetchCsrfToken(baseUrl ?? API_BASE);
+  }
+}
+
 async function fetchCsrfToken(baseUrl: string) {
-  const resp = await fetch(`${baseUrl}/auth/me`, {
+  const resp = await fetch(`${baseUrl}/auth/csrf`, {
     credentials: 'include',
   });
   const headerToken = resp.headers.get('x-csrf-token');
   if (headerToken) {
     csrfToken = headerToken;
+    logMessage('CSRF token refreshed from header', { token: csrfToken?.slice(0, 8) }, 'debug');
+    return;
+  }
+  // Fallback to body shape { csrfToken }
+  const contentType = resp.headers.get('content-type');
+  if (contentType?.includes('application/json')) {
+    try {
+      const body = (await resp.json()) as { csrfToken?: string };
+      if (body.csrfToken) {
+        csrfToken = body.csrfToken;
+        logMessage('CSRF token refreshed from body', { token: csrfToken?.slice(0, 8) }, 'debug');
+      }
+    } catch {
+      // ignore body parsing; rely on header
+    }
   }
 }
 
@@ -85,6 +125,7 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
   const headerToken = response.headers.get('x-csrf-token');
   if (headerToken) {
     csrfToken = headerToken;
+    logMessage('CSRF token updated from response header', { path, token: csrfToken?.slice(0, 8) }, 'debug');
   }
 
   if (!response.ok) {

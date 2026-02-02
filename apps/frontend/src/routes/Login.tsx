@@ -1,9 +1,11 @@
 import type { ChangeEvent, FormEvent } from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ApiError, login } from '../api/auth';
+import { ensureCsrfToken, clearCsrfToken } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { SocialAuthButtons } from '../components/SocialAuthButtons';
+import { logError } from '../utils/logger';
 import styles from './Login.module.css';
 
 export default function Login() {
@@ -12,6 +14,11 @@ export default function Login() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    // Preload a fresh CSRF token after logout so the first login attempt isn't rejected.
+    ensureCsrfToken().catch((error) => logError(error, { source: 'Login.ensureCsrfToken' }));
+  }, []);
 
   function handleChange(event: ChangeEvent<HTMLInputElement>) {
     const { name, value } = event.target;
@@ -24,6 +31,10 @@ export default function Login() {
     setIsSubmitting(true);
 
     try {
+      // Refresh CSRF token immediately before submitting to avoid stale tokens after logout.
+      clearCsrfToken(); // Drop any stale token explicitly, then fetch a new one.
+      await ensureCsrfToken();
+
       const { user } = await login({
         email: form.email.trim(),
         password: form.password,

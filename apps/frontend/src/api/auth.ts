@@ -35,8 +35,10 @@ export async function getCurrentUser(): Promise<AuthResponse> {
   });
 }
 
-export async function logout(): Promise<{ ok: boolean }> {
-  return apiFetch<{ ok: boolean }>('/auth/logout', {
+export type LogoutResponse = { ok: boolean; csrfToken?: string };
+
+export async function logout(): Promise<LogoutResponse> {
+  return apiFetch<LogoutResponse>('/auth/logout', {
     method: 'POST',
   });
 }

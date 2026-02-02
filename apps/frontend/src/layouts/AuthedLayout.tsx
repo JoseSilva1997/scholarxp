@@ -1,5 +1,5 @@
 // Authenticated app shell: keeps Header + Sidebar visible while swapping section content via nested routes.
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import SidebarNav from '../components/SidebarNav';
 import { useAuth } from '../context/AuthContext';
@@ -9,6 +9,13 @@ import styles from './AuthedLayout.module.css';
 function AuthedLayoutInner() {
   const { user, logout } = useAuth();
   const { isSidebarOpen, setSidebarOpen } = useUiLayout();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    // Force client-side redirect so the user sees immediate sign-out even if the API call errors or is slow.
+    await logout();
+    navigate('/login', { replace: true });
+  };
 
   const handleNavigate = () => {
     // Collapse the sidebar after navigation on small screens so content is not obstructed.
@@ -19,7 +26,7 @@ function AuthedLayoutInner() {
 
   return (
     <div className={styles.shell}>
-      <Header user={user} onLogout={logout} />
+      <Header user={user} onLogout={handleLogout} />
       <div className={`${styles.mainWrapper} ${!isSidebarOpen ? styles.mainWrapperCollapsed : ''}`}>
         <SidebarNav collapsed={!isSidebarOpen} onNavigate={handleNavigate} />
         <div className={styles.body}>

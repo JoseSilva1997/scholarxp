@@ -76,6 +76,7 @@ export class AuthService {
         secure: isProd,
       });
     }
+    console.log('User logged out');
   }
 
   // --- Local auth ---
