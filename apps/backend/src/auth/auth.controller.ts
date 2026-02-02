@@ -87,25 +87,20 @@ export class AuthController {
   }
 
   @Post('logout')
-  async logout(@Req() req: Request, @Res() res: Response) {
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     // Make logout idempotent: clear session when present; otherwise just respond ok.
     if (req.isAuthenticated?.() === true) {
       this.logger.debug(
         `Logout request session=${
-          (req as unknown as { sessionID?: string }).sessionID ?? 'none'
-        } userId=${(req.user as AuthUser | undefined)?.id ?? 'unknown'}`,
-      );
-      await this.authService.logout(req, res);
-    }
-    // CSRF is skipped for logout; still emit a fresh token for the next session/bootstrap.
-    this.setCsrfHeader(req, res);
-    const nextToken = (res.getHeader('x-csrf-token') as string | undefined) ?? 'none';
-    this.logger.debug(
-      `Logout response issued new CSRF header=${nextToken.slice(0, 8)}... session=${
         (req as unknown as { sessionID?: string }).sessionID ?? 'none'
-      }`,
-    );
-    // Return token so client cannot miss the rotation when session is destroyed.
+      } userId=${(req.user as AuthUser | undefined)?.id ?? 'unknown'}`,
+      );
+      const nextToken = await this.authService.logout(req, res);
+      // Return token so client cannot miss the rotation when session is replaced.
+      return { ok: true, csrfToken: nextToken };
+    }
+    // CSRF is skipped for logout; still emit a fresh token for the next session/bootstrap even when already logged out.
+    const nextToken = await this.authService.logout(req, res);
     return { ok: true, csrfToken: nextToken };
   }
 

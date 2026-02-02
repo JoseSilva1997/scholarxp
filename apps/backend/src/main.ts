@@ -39,6 +39,8 @@ async function bootstrap() {
   app.enableCors({
     origin: corsOrigin,
     credentials: true,
+    // Expose CSRF + tracing headers so the SPA can read and cache them.
+    exposedHeaders: ['x-csrf-token', 'x-request-id'],
   });
   app.use(helmet());
 
@@ -138,7 +140,7 @@ async function bootstrap() {
       return next();
     });
   });
-  // Expose a fresh CSRF token on every response so the frontend can echo it back on state-changing requests.
+// Expose a fresh CSRF token on every response so the frontend can echo it back on state-changing requests.
   app.use((req: Request, res: Response, next: NextFunction) => {
     const tokenFn = (req as unknown as { csrfToken?: () => string }).csrfToken;
     const shouldLogCsrf = req.path.startsWith('/auth');

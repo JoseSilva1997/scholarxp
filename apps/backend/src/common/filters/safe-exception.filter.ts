@@ -20,12 +20,21 @@ export class SafeExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
 
     const isHttp = exception instanceof HttpException;
+    const isCsrfError =
+      exception instanceof Error &&
+      (exception as { code?: string }).code === 'EBADCSRFTOKEN';
     const status = isHttp
       ? exception.getStatus()
-      : HttpStatus.INTERNAL_SERVER_ERROR;
+      : isCsrfError
+        ? HttpStatus.FORBIDDEN
+        : HttpStatus.INTERNAL_SERVER_ERROR;
 
     // Always log the detailed error server-side to aid debugging.
-    const message = isHttp ? exception.message : 'Unhandled exception';
+    const message = isHttp
+      ? exception.message
+      : isCsrfError
+        ? 'Invalid CSRF token'
+        : 'Unhandled exception';
     const stack =
       exception instanceof Error && exception.stack
         ? exception.stack
@@ -38,6 +47,19 @@ export class SafeExceptionFilter implements ExceptionFilter {
       this.logger.warn(logLine);
     }
 
+    // If the CSRF token was invalid, issue a fresh one so the client can recover on the next attempt.
+    if (isCsrfError) {
+      const tokenFn = (request as unknown as { csrfToken?: () => string }).csrfToken;
+      if (typeof tokenFn === 'function') {
+        try {
+          const nextToken = tokenFn();
+          response.setHeader('x-csrf-token', nextToken);
+        } catch {
+          // Swallow token regeneration errors; we still return a sanitized 403 response.
+        }
+      }
+    }
+
     if (isHttp) {
       // For expected/handled errors, forward the original payload so clients can show specific messages.
       const httpResponse = exception.getResponse();
@@ -47,7 +69,10 @@ export class SafeExceptionFilter implements ExceptionFilter {
 
     // For unexpected errors, return a safe, minimal payload to clients.
     response.status(status).json({
-      message: 'Something went wrong. Please try again.',
+      // Keep user-facing copy friendly; CSRF rejections are typically caused by stale sessions.
+      message: isCsrfError
+        ? 'Your session expired. Please refresh and try again.'
+        : 'Something went wrong. Please try again.',
     });
   }
 }

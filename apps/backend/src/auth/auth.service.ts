@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { AuthProvider, GlobalRole, Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import type { Request, Response } from 'express';
+import Tokens from 'csrf';
 import {
   listCapabilities,
   type FeatureKey,
@@ -62,21 +63,24 @@ export class AuthService {
 
   async logout(req: Request, res?: Response) {
     await new Promise<void>((resolve) => req.logout(() => resolve()));
+    // Preserve the old CSRF secret so the client can keep using its current token after logout.
+    const previousSecret = (req.session as unknown as { csrfSecret?: string })
+      .csrfSecret;
+    // Regenerate instead of destroy so we immediately provide a fresh anonymous session + CSRF secret.
     await new Promise<void>((resolve, reject) =>
-      req.session.destroy((err) =>
+      req.session.regenerate((err) =>
         err ? reject(new Error(String(err))) : resolve(),
       ),
     );
-    // Clear cookie to remove residual client state; mirror session cookie options.
-    const isProd = this.config.get('NODE_ENV') === 'production';
+    // Reuse prior secret when available to avoid breaking the token the client already has; otherwise mint a new one.
+    const tokens = new Tokens();
+    const secret = previousSecret ?? tokens.secretSync();
+    req.session.csrfSecret = secret;
+    const nextToken = tokens.create(secret);
     if (res) {
-      res.clearCookie('connect.sid', {
-        httpOnly: true,
-        sameSite: isProd ? 'none' : 'lax',
-        secure: isProd,
-      });
+      res.setHeader('x-csrf-token', nextToken);
     }
-    console.log('User logged out');
+    return nextToken;
   }
 
   // --- Local auth ---
