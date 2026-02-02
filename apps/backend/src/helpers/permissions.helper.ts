@@ -19,7 +19,7 @@ export function assertHasAccess(
   const options: AccessOptions =
     typeof messageOrOptions === 'string'
       ? { message: messageOrOptions }
-      : messageOrOptions ?? {};
+      : (messageOrOptions ?? {});
 
   const Exception = options.exception ?? ForbiddenException;
   const allowed = canAccess(feature, {

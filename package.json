@@ -10,5 +10,10 @@
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
     "test": "pnpm -r test"
+  },
+  "pnpm": {
+    "overrides": {
+      "test-exclude": "7.0.1"
+    }
   }
 }

@@ -4,7 +4,14 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InviteType, EnrollmentSource, type Module } from '@prisma/client';
+import {
+  EnrollmentSource,
+  InviteType,
+  Prisma,
+  type Module,
+  type ModuleInvite,
+  type UserModule,
+} from '@prisma/client';
 import { createHash, randomBytes } from 'crypto';
 import { CreateModuleInviteDto } from './dto/create-module-invite.dto';
 import { UpdateModuleInviteDto } from './dto/update-module-invite.dto';
@@ -97,7 +104,8 @@ export class ModuleInviteService {
     await this.assertModuleAllowsInvites(moduleId);
     await this.getOrThrow(id, moduleId);
 
-    const data: any = {};
+    // Prisma input type keeps us from accidentally writing fields we don't intend to update.
+    const data: Prisma.ModuleInviteUpdateInput = {};
     if (updateModuleInviteDto.maxUses !== undefined) {
       data.maxUses = updateModuleInviteDto.maxUses;
     }
@@ -116,11 +124,9 @@ export class ModuleInviteService {
   }
 
   async remove(moduleId: number, id: number, user: AuthUser) {
-    assertHasAccess(
-      'modules.invitations',
-      user,
-      { message: 'You do not have permission to manage module invites' },
-    );
+    assertHasAccess('modules.invitations', user, {
+      message: 'You do not have permission to manage module invites',
+    });
     await this.assertModuleAllowsInvites(moduleId);
     await this.getOrThrow(id, moduleId);
     const deleted = await this.prisma.moduleInvite.delete({ where: { id } });
@@ -130,7 +136,8 @@ export class ModuleInviteService {
   async redeem(dto: RedeemModuleInviteDto, user: AuthUser) {
     // Use shared capability evaluator so backend and frontend stay aligned on who can redeem links.
     assertHasAccess('modules.invitations.redemption', user, {
-      message: 'Only students non-affiliated with an institution can redeem invites.',
+      message:
+        'Only students non-affiliated with an institution can redeem invites.',
     });
     const tokenHash = this.hashToken(dto.token);
     const invite = await this.findAndValidateInvite(tokenHash);
@@ -169,9 +176,9 @@ export class ModuleInviteService {
 
   // Atomically increments invite usage and creates/updates enrollment to avoid race conditions.
   private async createEnrollmentWithIncrementedUsage(
-    invite: { id: number; moduleId: number },
+    invite: Pick<ModuleInvite, 'id' | 'moduleId'>,
     user: AuthUser,
-  ) {
+  ): Promise<UserModule> {
     return this.prisma.$transaction(async (tx) => {
       // Reload inside the transaction to guard against stale counters.
       const freshInvite = await tx.moduleInvite.findUnique({
@@ -183,7 +190,7 @@ export class ModuleInviteService {
       this.assertInviteIsActive(freshInvite);
 
       // Create enrollment first; if another redeem for the same user races, the unique constraint will fail and we avoid incrementing uses.
-      let enrollment;
+      let enrollment: UserModule;
       try {
         enrollment = await tx.userModule.create({
           data: {
@@ -195,8 +202,11 @@ export class ModuleInviteService {
             enrolledVia: EnrollmentSource.invite,
           },
         });
-      } catch (err: any) {
-        if (err?.code === 'P2002') {
+      } catch (err: unknown) {
+        if (
+          err instanceof Prisma.PrismaClientKnownRequestError &&
+          err.code === 'P2002'
+        ) {
           throw new BadRequestException(
             'You are already enrolled in this module',
           );
@@ -226,7 +236,10 @@ export class ModuleInviteService {
     });
   }
 
-  private async getOrThrow(id: number, moduleId?: number) {
+  private async getOrThrow(
+    id: number,
+    moduleId?: number,
+  ): Promise<ModuleInvite> {
     const record = await this.prisma.moduleInvite.findUnique({ where: { id } });
     if (!record) {
       throw new NotFoundException(`ModuleInvite ${id} not found`);
@@ -273,7 +286,8 @@ export class ModuleInviteService {
   }
 
   private sanitizeInvite<T extends { tokenHash?: string }>(invite: T) {
-    const { tokenHash, ...rest } = invite;
+    const { tokenHash: _tokenHash, ...rest } = invite;
+    void _tokenHash; // Explicitly ignore the hash so we never leak it outside this service.
     return rest;
   }
 

@@ -8,7 +8,8 @@ const {
   invalidCsrfTokenError: rawInvalidCsrfTokenError,
 } = csrfSync({
   // csrf-sync defaults to looking at x-csrf-token and the session secret; this aligns with current client.
-  getTokenFromRequest: (req) => req.headers['x-csrf-token'] as string | undefined,
+  getTokenFromRequest: (req) =>
+    req.headers['x-csrf-token'] as string | undefined,
   // Keep GET/HEAD/OPTIONS exempt; we log and handle skip logic in main.ts wrapper.
   ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
   // Skip protection for logout to mirror previous csurf behavior and avoid double-destroy race conditions.

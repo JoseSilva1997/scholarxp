@@ -1,7 +1,6 @@
 // AuthService centralizes credential validation, OAuth linking, session hygiene, and user projection.
 // We rely on Prisma for persistence and keep side effects (email, tokens) here for testability.
 import {
-  BadRequestException,
   ConflictException,
   Injectable,
   Logger,

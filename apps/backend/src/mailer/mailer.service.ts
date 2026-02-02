@@ -1,7 +1,7 @@
 // Provides a single place to send emails; can fall back to log-only in development but fails fast in production when misconfigured.
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import nodemailer, { Transporter } from 'nodemailer';
+import nodemailer from 'nodemailer';
 
 // Typed error used to let callers distinguish expected mail delivery failures from
 // unexpected exceptions. This keeps transport details out of user-facing responses
@@ -22,11 +22,24 @@ export type MailPayload = {
   html?: string;
 };
 
+// Minimal transporter interface to avoid nodemailer generic `any` surface area while keeping
+// the implementation swappable (e.g., stubbed in tests).
+type MailTransporter = {
+  sendMail: (message: {
+    from: string;
+    to: string;
+    subject: string;
+    text?: string;
+    html?: string;
+  }) => Promise<void>;
+};
+
 @Injectable()
 export class MailerService {
   private readonly logger = new Logger(MailerService.name);
   private readonly from: string;
-  private transporter?: Transporter;
+  // Optional because dev environments may rely on log-only fallback.
+  private transporter?: MailTransporter;
   private readonly allowLogFallback: boolean;
   private readonly hostSanitized: string | undefined;
 
@@ -65,7 +78,8 @@ export class MailerService {
       html: payload.html,
     };
 
-    if (!this.transporter) {
+    const transporter = this.transporter;
+    if (!transporter) {
       if (!this.allowLogFallback) {
         // Fail fast in production so misconfigurations don't silently drop emails.
         throw new Error(
@@ -77,7 +91,7 @@ export class MailerService {
     }
 
     try {
-      await this.transporter.sendMail(message);
+      await transporter.sendMail(message);
     } catch (error) {
       // Map transport-specific errors (like SES sandbox rejections) into a typed error
       // so upstream layers can return safe, actionable responses without leaking SMTP details.
@@ -147,7 +161,7 @@ export class MailerService {
     };
   }
 
-  private buildTransport(): Transporter | undefined {
+  private buildTransport(): MailTransporter | undefined {
     // Strip accidental schemes/trailing slashes to avoid DNS failures (e.g., "http://smtp.example.com/").
     const host = this.hostSanitized;
     const portValue = this.config.get<string>('SMTP_PORT');
@@ -162,12 +176,22 @@ export class MailerService {
     const pass = this.config.get<string>('SMTP_PASS');
 
     // Nodemailer accepts undefined auth to allow unauthenticated local relays.
-    return nodemailer.createTransport({
+    // The package ships loose `any` typings; cast is isolated here so callers stay type-safe.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    const transport = nodemailer.createTransport({
       host,
       port,
       secure,
       auth: user && pass ? { user, pass } : undefined,
     });
+
+    // Wrap the transport so downstream callers work with our narrow, lint-safe contract.
+    return {
+      sendMail: async (message) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+        await transport.sendMail(message);
+      },
+    };
   }
 
   private sanitizeHost(raw: string | undefined): string | undefined {
