@@ -53,6 +53,7 @@ export default function SingleModulePage() {
     () => canUserAccess('modules.manageContent', user),
     [user],
   );
+  const canManageInvites = useMemo(() => canUserAccess('modules.invitations', user), [user]);
 
   // Load the module once the id is known; guards against invalid ids to avoid noisy network calls.
   useEffect(() => {
@@ -281,6 +282,7 @@ export default function SingleModulePage() {
           isOpen={isSettingsOpen}
           onToggle={() => setIsSettingsOpen((open) => !open)}
           onSaved={(updated) => setModule(updated)}
+          canManageInvites={canManageInvites}
         />
       ) : null}
       <CreateModuleUnitModal

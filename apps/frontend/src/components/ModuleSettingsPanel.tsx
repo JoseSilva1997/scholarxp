@@ -18,6 +18,7 @@ type ModuleSettingsPanelProps = {
   isOpen: boolean;
   onToggle: () => void;
   onSaved: (updated: ModuleSummary) => void;
+  canManageInvites: boolean;
 };
 
 export default function ModuleSettingsPanel({
@@ -25,6 +26,7 @@ export default function ModuleSettingsPanel({
   isOpen,
   onToggle,
   onSaved,
+  canManageInvites,
 }: ModuleSettingsPanelProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -68,12 +70,17 @@ export default function ModuleSettingsPanel({
     () => Boolean(module && module.institutionId === null),
     [module],
   );
+  const canShowInvites = useMemo(
+    () => Boolean(canManageInvites && isInviteEnabled),
+    [canManageInvites, isInviteEnabled],
+  );
 
   useEffect(() => {
     // Load invites when the panel opens for eligible modules so the list stays fresh without extra clicks.
-    if (!isOpen || !module || !isInviteEnabled) return;
+    // Gate the fetch by capability to ensure institution-bound teachers never request invite data they cannot use.
+    if (!isOpen || !module || !canShowInvites) return;
     void loadInvites(module.id);
-  }, [isOpen, module, isInviteEnabled]);
+  }, [isOpen, module, canShowInvites]);
 
   async function loadInvites(moduleId: number) {
     setIsInvitesLoading(true);

@@ -34,8 +34,8 @@ export const permissionMatrix: PermissionMatrix = {
   'modules.settings': [{ roles: ['admin', 'institution_admin', 'teacher'] }],
   'modules.manageContent': [{ roles: ['admin', 'institution_admin', 'teacher'] }],
   'modules.invitations': [
-    { roles: ['admin', 'institution_admin'] },
-    { roles: ['teacher'], forbidsInstitution: true },
+    { roles: ['admin'] },
+    { roles: ['teacher', 'institution_admin'], forbidsInstitution: true },
   ],
   'navigation.modules': [{ roles: ['admin', 'institution_admin', 'teacher', 'student'] }],
   'navigation.quests': [{ roles: ['admin', 'institution_admin', 'student'] }],
