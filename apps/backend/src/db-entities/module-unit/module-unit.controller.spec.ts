@@ -3,6 +3,8 @@ import { runCrudControllerTests } from '../../test/test-helpers';
 import { ModuleUnitController } from './module-unit.controller';
 import { ModuleUnitService } from './module-unit.service';
 import * as permissions from '../../helpers/permissions.helper';
+import { ModuleAccessGuard } from '../../auth/guards/module-access.guard';
+import { SessionAuthGuard } from '../../auth/guards/session-auth.guard';
 
 runCrudControllerTests({
   name: 'ModuleUnitController',
@@ -29,10 +31,17 @@ describe('ModuleUnitController.createForModule', () => {
 
   beforeEach(async () => {
     jest.spyOn(permissions, 'assertHasAccess').mockReturnValue(undefined);
+    // Override guards to prevent dependency resolution issues in unit tests.
+    // SessionAuthGuard and ModuleAccessGuard have external dependencies we don't need to test here.
     const moduleRef = await Test.createTestingModule({
       controllers: [ModuleUnitController],
       providers: [{ provide: ModuleUnitService, useValue: service }],
-    }).compile();
+    })
+      .overrideGuard(SessionAuthGuard)
+      .useValue({ canActivate: jest.fn().mockReturnValue(true) })
+      .overrideGuard(ModuleAccessGuard)
+      .useValue({ canActivate: jest.fn().mockReturnValue(true) })
+      .compile();
     controller = moduleRef.get(ModuleUnitController);
   });
 
