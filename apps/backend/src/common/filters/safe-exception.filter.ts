@@ -8,6 +8,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import { generateToken, invalidCsrfTokenError } from '../security/csrf';
 
 @Catch()
 export class SafeExceptionFilter implements ExceptionFilter {
@@ -20,9 +21,7 @@ export class SafeExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
 
     const isHttp = exception instanceof HttpException;
-    const isCsrfError =
-      exception instanceof Error &&
-      (exception as { code?: string }).code === 'EBADCSRFTOKEN';
+    const isCsrfError = exception === invalidCsrfTokenError;
     const status = isHttp
       ? exception.getStatus()
       : isCsrfError
@@ -49,15 +48,11 @@ export class SafeExceptionFilter implements ExceptionFilter {
 
     // If the CSRF token was invalid, issue a fresh one so the client can recover on the next attempt.
     if (isCsrfError) {
-      const tokenFn = (request as unknown as { csrfToken?: () => string })
-        .csrfToken;
-      if (typeof tokenFn === 'function') {
-        try {
-          const nextToken = tokenFn();
-          response.setHeader('x-csrf-token', nextToken);
-        } catch {
-          // Swallow token regeneration errors; we still return a sanitized 403 response.
-        }
+      try {
+        const nextToken = generateToken(request);
+        response.setHeader('x-csrf-token', nextToken);
+      } catch {
+        // Swallow token regeneration errors; we still return a sanitized 403 response.
       }
     }
 

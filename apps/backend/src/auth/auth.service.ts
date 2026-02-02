@@ -11,7 +11,6 @@ import { ConfigService } from '@nestjs/config';
 import { AuthProvider, GlobalRole, Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import type { Request, Response } from 'express';
-import Tokens from 'csrf';
 import {
   listCapabilities,
   type FeatureKey,
@@ -23,6 +22,7 @@ import { MailDeliveryError, MailerService } from '../mailer/mailer.service';
 import { RegisterDto } from './dto/register.dto';
 import type { AuthUser } from '../types/auth-user.type';
 import type { GoogleProfile } from './strategies/google.strategy';
+import { generateToken } from '../common/security/csrf';
 
 type UserRecord = {
   id: number;
@@ -87,11 +87,12 @@ export class AuthService {
         err ? reject(new Error(String(err))) : resolve(),
       ),
     );
-    // Reuse prior secret when available to avoid breaking the token the client already has; otherwise mint a new one.
-    const tokens = new Tokens();
-    const secret = previousSecret ?? tokens.secretSync();
-    req.session.csrfSecret = secret;
-    const nextToken = tokens.create(secret);
+    // Reuse prior secret when available to avoid breaking the token the client already has; otherwise mint a new one via csrf-sync helper.
+    if (previousSecret) {
+      (req.session as unknown as { csrfSecret?: string }).csrfSecret =
+        previousSecret;
+    }
+    const nextToken = generateToken(req);
     if (res) {
       res.setHeader('x-csrf-token', nextToken);
     }

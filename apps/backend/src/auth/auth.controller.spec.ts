@@ -13,6 +13,11 @@ import type { Request, Response } from 'express';
 import { GlobalRole } from '@prisma/client';
 import type { FeatureKey } from '@scholarxp/permissions';
 import { FRONTEND_URL } from '@scholarxp/constants';
+import { generateToken } from '../common/security/csrf';
+
+jest.mock('../common/security/csrf', () => ({
+  generateToken: jest.fn(),
+}));
 
 // Comprehensive unit tests for AuthController with happy path, unhappy path, and basis path coverage
 describe('AuthController', () => {
@@ -455,9 +460,8 @@ describe('AuthController', () => {
     // ===== HAPPY PATH =====
     it('should return CSRF token when available', () => {
       const csrfToken = 'csrf-token-xyz';
-      const mockReq = {
-        csrfToken: jest.fn(() => csrfToken),
-      } as unknown as Request;
+      (generateToken as jest.Mock).mockReturnValueOnce(csrfToken);
+      const mockReq = {} as Request;
 
       const result = controller.csrf(mockReq);
 
@@ -466,6 +470,9 @@ describe('AuthController', () => {
 
     // ===== UNHAPPY PATH =====
     it('should return null when csrfToken is not available', () => {
+      (generateToken as jest.Mock).mockImplementationOnce(() => {
+        throw new Error('fail');
+      });
       const mockReq = {} as Request;
 
       const result = controller.csrf(mockReq);

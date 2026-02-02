@@ -5,12 +5,15 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import session, { type Store as SessionStore } from 'express-session';
 import connectPgSimple from 'connect-pg-simple';
-import csrf from 'csurf';
 import passport from 'passport';
-import type { Request, Response, NextFunction, RequestHandler } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { AppModule } from './app.module';
 import { FRONTEND_URL } from '@scholarxp/constants';
 import { SafeExceptionFilter } from './common/filters/safe-exception.filter';
+import {
+  csrfSynchronisedProtection,
+  generateToken,
+} from './common/security/csrf';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -87,45 +90,19 @@ async function bootstrap() {
   };
 
   // CSRF protection for state-changing requests; uses double-submit header `x-csrf-token`.
-  const csrfProtection = csrf({
-    cookie: false,
-    value: (req: Request) => req.headers['x-csrf-token'] as string,
-  }) as unknown as RequestHandler;
-  // For logout we want to skip validation but still seed a fresh token for the next session.
-  const csrfSeedOnly = csrf({
-    cookie: false,
-    ignoreMethods: ['GET', 'HEAD', 'OPTIONS', 'POST'],
-  }) as unknown as RequestHandler;
-  // Skip CSRF for logout to avoid double-destroy race; all other state-changing routes are protected.
+  // We keep the explicit wrapper to log decisions and to skip validation for logout while still
+  // issuing a fresh token for the next session bootstrap.
   app.use((req: Request, res: Response, next: NextFunction) => {
     const shouldLogCsrf = req.path.startsWith('/auth');
     const sessionId = (req as unknown as { sessionID?: string }).sessionID;
-    if (req.path === '/auth/logout' && req.method === 'POST') {
-      return csrfSeedOnly(req, res, (err?: unknown) => {
-        if (err) {
-          if (shouldLogCsrf) {
-            csrfLogger.warn(
-              `Logout CSRF seed failed session=${sessionId ?? 'none'} reason=${(err as Error).message ?? err}`,
-            );
-          }
-          return next(err);
-        }
-        if (shouldLogCsrf) {
-          csrfLogger.log(
-            `Seeded CSRF for logout; session=${sessionId ?? 'none'} token=${maskToken(
-              (req as unknown as { csrfToken?: () => string }).csrfToken?.(),
-            )}`,
-          );
-        }
-        return next();
-      });
-    }
+
     if (shouldLogCsrf) {
       csrfLogger.log(
         `Applying CSRF ${req.method} ${req.path} session=${sessionId ?? 'none'} header=${maskToken(req.headers['x-csrf-token'])}`,
       );
     }
-    return csrfProtection(req, res, (err?: unknown) => {
+
+    return csrfSynchronisedProtection(req, res, (err?: unknown) => {
       if (err) {
         if (shouldLogCsrf) {
           csrfLogger.warn(
@@ -142,23 +119,25 @@ async function bootstrap() {
       return next();
     });
   });
+
   // Expose a fresh CSRF token on every response so the frontend can echo it back on state-changing requests.
   app.use((req: Request, res: Response, next: NextFunction) => {
-    const tokenFn = (req as unknown as { csrfToken?: () => string }).csrfToken;
     const shouldLogCsrf = req.path.startsWith('/auth');
     const sessionId = (req as unknown as { sessionID?: string }).sessionID;
-    if (typeof tokenFn === 'function') {
-      const nextToken = tokenFn();
+    try {
+      const nextToken = generateToken(req);
       res.setHeader('x-csrf-token', nextToken);
       if (shouldLogCsrf) {
         csrfLogger.log(
           `Issued CSRF token for ${req.method} ${req.path} session=${sessionId ?? 'none'} token=${maskToken(nextToken)}`,
         );
       }
-    } else if (shouldLogCsrf) {
-      csrfLogger.warn(
-        `No csrfToken generator on ${req.method} ${req.path} session=${sessionId ?? 'none'}`,
-      );
+    } catch (err) {
+      if (shouldLogCsrf) {
+        csrfLogger.warn(
+          `Failed to issue CSRF token for ${req.method} ${req.path} session=${sessionId ?? 'none'} reason=${(err as Error).message ?? err}`,
+        );
+      }
     }
     next();
   });

@@ -20,6 +20,7 @@ import { VerifyEmailDto } from './dto/verify-email.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
 import type { AuthUser } from '../types/auth-user.type';
 import { CaptureRedirectGuard } from './guards/capture-redirect.guard';
+import { generateToken } from '../common/security/csrf';
 
 @Controller('auth')
 @UseGuards(ThrottlerGuard) // coarse guard; per-route limits below fine-tune if needed
@@ -117,9 +118,12 @@ export class AuthController {
   @Get('csrf')
   csrf(@Req() req: Request) {
     // Surface the CSRF token so unauthenticated clients can fetch it before posting credentials.
-    const tokenFn = (req as unknown as { csrfToken?: () => string }).csrfToken;
-    const csrfToken = typeof tokenFn === 'function' ? tokenFn() : null;
-    return { csrfToken };
+    try {
+      const csrfToken = generateToken(req);
+      return { csrfToken };
+    } catch {
+      return { csrfToken: null };
+    }
   }
 
   private setCsrfHeader(req: Request, res: Response) {
@@ -130,15 +134,11 @@ export class AuthController {
   }
 
   private getCsrfToken(req: Request): string | null {
-    const tokenFn = (req as unknown as { csrfToken?: () => string }).csrfToken;
-    if (typeof tokenFn === 'function') {
-      try {
-        return tokenFn();
-      } catch {
-        return null;
-      }
+    try {
+      return generateToken(req);
+    } catch {
+      return null;
     }
-    return null;
   }
 
   @Get('oauth/google')
