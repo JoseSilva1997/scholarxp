@@ -1,7 +1,6 @@
 // Unit tests for AuthController covering happy path, unhappy path, and basis path scenarios
 import { Test, TestingModule } from '@nestjs/testing';
-import { UnauthorizedException, BadRequestException } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
+import { UnauthorizedException } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
@@ -13,6 +12,7 @@ import type { AuthUser } from '../types/auth-user.type';
 import type { Request, Response } from 'express';
 import { GlobalRole } from '@prisma/client';
 import type { FeatureKey } from '@scholarxp/permissions';
+import { FRONTEND_URL } from '@scholarxp/constants';
 
 // Comprehensive unit tests for AuthController with happy path, unhappy path, and basis path coverage
 describe('AuthController', () => {
@@ -38,8 +38,10 @@ describe('AuthController', () => {
 
   // attachCapabilities returns the same user object with computed capabilities array
   const mockCapabilities: FeatureKey[] = [];
-  const mockUserWithCapabilities = { ...mockAuthUser, capabilities: mockCapabilities };
-
+  const mockUserWithCapabilities = {
+    ...mockAuthUser,
+    capabilities: mockCapabilities,
+  };
 
   beforeEach(async () => {
     // Create mocks for AuthService
@@ -74,7 +76,7 @@ describe('AuthController', () => {
       .compile();
 
     controller = module.get<AuthController>(AuthController);
-    authService = module.get(AuthService) as jest.Mocked<AuthService>;
+    authService = module.get(AuthService);
   });
 
   describe('register', () => {
@@ -87,13 +89,20 @@ describe('AuthController', () => {
         password: 'Password123!',
       } as RegisterDto;
 
-      const unverifiedUser: AuthUser = { ...mockAuthUser, isVerified: false, requiresEmailVerification: true };
+      const unverifiedUser: AuthUser = {
+        ...mockAuthUser,
+        isVerified: false,
+        requiresEmailVerification: true,
+      };
       const mockReq = {} as Request;
       const mockRes = {} as Response;
 
       authService.register.mockResolvedValue(unverifiedUser);
       authService.regenerateSession.mockResolvedValue(undefined);
-      authService.attachCapabilities.mockReturnValue({ ...unverifiedUser, capabilities: mockCapabilities });
+      authService.attachCapabilities.mockReturnValue({
+        ...unverifiedUser,
+        capabilities: mockCapabilities,
+      });
 
       const result = await controller.register(registerDto, mockReq, mockRes);
 
@@ -117,7 +126,9 @@ describe('AuthController', () => {
 
       authService.register.mockRejectedValue(new Error('Email already in use'));
 
-      await expect(controller.register(registerDto, mockReq, mockRes)).rejects.toThrow('Email already in use');
+      await expect(
+        controller.register(registerDto, mockReq, mockRes),
+      ).rejects.toThrow('Email already in use');
     });
 
     // ===== BASIS PATH =====
@@ -134,7 +145,9 @@ describe('AuthController', () => {
 
       authService.register.mockRejectedValue(new Error('Database error'));
 
-      await expect(controller.register(registerDto, mockReq, mockRes)).rejects.toThrow('Database error');
+      await expect(
+        controller.register(registerDto, mockReq, mockRes),
+      ).rejects.toThrow('Database error');
       expect(authService.regenerateSession).not.toHaveBeenCalled();
     });
   });
@@ -153,7 +166,10 @@ describe('AuthController', () => {
       } as unknown as Response;
 
       authService.loginUser.mockResolvedValue(undefined);
-      authService.attachCapabilities.mockReturnValue({ ...mockAuthUser, capabilities: mockCapabilities } as any);
+      authService.attachCapabilities.mockReturnValue({
+        ...mockAuthUser,
+        capabilities: mockCapabilities,
+      } as any);
 
       const result = await controller.login(mockReq, mockRes);
 
@@ -177,7 +193,9 @@ describe('AuthController', () => {
 
       authService.loginUser.mockRejectedValue(new Error('Session error'));
 
-      await expect(controller.login(mockReq, mockRes)).rejects.toThrow('Session error');
+      await expect(controller.login(mockReq, mockRes)).rejects.toThrow(
+        'Session error',
+      );
     });
 
     // ===== BASIS PATH =====
@@ -209,7 +227,10 @@ describe('AuthController', () => {
       } as unknown as Response;
 
       authService.loginUser.mockResolvedValue(undefined);
-      authService.attachCapabilities.mockReturnValue({ ...minimalUser, capabilities: [] });
+      authService.attachCapabilities.mockReturnValue({
+        ...minimalUser,
+        capabilities: [],
+      });
 
       const result = await controller.login(mockReq, mockRes);
 
@@ -222,13 +243,20 @@ describe('AuthController', () => {
     // ===== HAPPY PATH =====
     it('should verify email and login user', async () => {
       const verifyDto = { token: 'valid-token' } as VerifyEmailDto;
-      const verifiedUser: AuthUser = { ...mockAuthUser, isVerified: true, requiresEmailVerification: false };
+      const verifiedUser: AuthUser = {
+        ...mockAuthUser,
+        isVerified: true,
+        requiresEmailVerification: false,
+      };
       const mockReq = {} as Request;
       const mockRes = {} as Response;
 
       authService.verifyEmail.mockResolvedValue(verifiedUser);
       authService.loginUser.mockResolvedValue(undefined);
-      authService.attachCapabilities.mockReturnValue({ ...verifiedUser, capabilities: mockCapabilities });
+      authService.attachCapabilities.mockReturnValue({
+        ...verifiedUser,
+        capabilities: mockCapabilities,
+      });
 
       const result = await controller.verifyEmail(verifyDto, mockReq, mockRes);
 
@@ -245,7 +273,9 @@ describe('AuthController', () => {
 
       authService.verifyEmail.mockRejectedValue(new Error('Token expired'));
 
-      await expect(controller.verifyEmail(verifyDto, mockReq, mockRes)).rejects.toThrow('Token expired');
+      await expect(
+        controller.verifyEmail(verifyDto, mockReq, mockRes),
+      ).rejects.toThrow('Token expired');
       expect(authService.loginUser).not.toHaveBeenCalled();
     });
 
@@ -255,9 +285,13 @@ describe('AuthController', () => {
       const mockReq = {} as Request;
       const mockRes = {} as Response;
 
-      authService.verifyEmail.mockRejectedValue(new UnauthorizedException('Invalid token'));
+      authService.verifyEmail.mockRejectedValue(
+        new UnauthorizedException('Invalid token'),
+      );
 
-      await expect(controller.verifyEmail(verifyDto, mockReq, mockRes)).rejects.toThrow('Invalid token');
+      await expect(
+        controller.verifyEmail(verifyDto, mockReq, mockRes),
+      ).rejects.toThrow('Invalid token');
       expect(authService.loginUser).not.toHaveBeenCalled();
     });
   });
@@ -265,27 +299,44 @@ describe('AuthController', () => {
   describe('resendVerification', () => {
     // ===== HAPPY PATH =====
     it('should resend verification email for unverified user', async () => {
-      const resendDto = { email: 'unverified@example.com' } as ResendVerificationDto;
+      const resendDto = {
+        email: 'unverified@example.com',
+      } as ResendVerificationDto;
       const mockReq = {} as Request;
       const mockRes = {} as Response;
 
       authService.resendVerification.mockResolvedValue({ sent: true });
 
-      const result = await controller.resendVerification(resendDto, mockReq, mockRes);
+      const result = await controller.resendVerification(
+        resendDto,
+        mockReq,
+        mockRes,
+      );
 
-      expect(authService.resendVerification).toHaveBeenCalledWith(resendDto.email);
+      expect(authService.resendVerification).toHaveBeenCalledWith(
+        resendDto.email,
+      );
       expect(result.sent).toBe(true);
     });
 
     // ===== BASIS PATH =====
     it('should return already_verified when email is already verified', async () => {
-      const resendDto = { email: 'verified@example.com' } as ResendVerificationDto;
+      const resendDto = {
+        email: 'verified@example.com',
+      } as ResendVerificationDto;
       const mockReq = {} as Request;
       const mockRes = {} as Response;
 
-      authService.resendVerification.mockResolvedValue({ sent: false, reason: 'already_verified' });
+      authService.resendVerification.mockResolvedValue({
+        sent: false,
+        reason: 'already_verified',
+      });
 
-      const result = await controller.resendVerification(resendDto, mockReq, mockRes);
+      const result = await controller.resendVerification(
+        resendDto,
+        mockReq,
+        mockRes,
+      );
 
       expect(result.sent).toBe(false);
       expect(result.reason).toBe('already_verified');
@@ -293,13 +344,19 @@ describe('AuthController', () => {
 
     // ===== UNHAPPY PATH =====
     it('should propagate error if user not found', async () => {
-      const resendDto = { email: 'nonexistent@example.com' } as ResendVerificationDto;
+      const resendDto = {
+        email: 'nonexistent@example.com',
+      } as ResendVerificationDto;
       const mockReq = {} as Request;
       const mockRes = {} as Response;
 
-      authService.resendVerification.mockRejectedValue(new UnauthorizedException('User not found'));
+      authService.resendVerification.mockRejectedValue(
+        new UnauthorizedException('User not found'),
+      );
 
-      await expect(controller.resendVerification(resendDto, mockReq, mockRes)).rejects.toThrow('User not found');
+      await expect(
+        controller.resendVerification(resendDto, mockReq, mockRes),
+      ).rejects.toThrow('User not found');
     });
   });
 
@@ -333,7 +390,9 @@ describe('AuthController', () => {
 
       authService.logout.mockRejectedValue(new Error('Session destroy failed'));
 
-      await expect(controller.logout(mockReq, mockRes)).rejects.toThrow('Session destroy failed');
+      await expect(controller.logout(mockReq, mockRes)).rejects.toThrow(
+        'Session destroy failed',
+      );
     });
 
     // ===== BASIS PATH =====
@@ -359,7 +418,10 @@ describe('AuthController', () => {
     it('should return authenticated user with capabilities', () => {
       const mockReq = { user: mockAuthUser } as unknown as Request;
 
-      authService.attachCapabilities.mockReturnValue({ ...mockAuthUser, capabilities: mockCapabilities });
+      authService.attachCapabilities.mockReturnValue({
+        ...mockAuthUser,
+        capabilities: mockCapabilities,
+      });
 
       const result = controller.me(mockReq);
 
@@ -436,7 +498,7 @@ describe('AuthController', () => {
 
       expect(authService.loginWithGoogle).toHaveBeenCalledWith(mockAuthUser);
       expect(authService.loginUser).toHaveBeenCalledWith(mockReq, mockAuthUser);
-      expect(mockRes.redirect).toHaveBeenCalledWith('https://app.example.com');
+      expect(mockRes.redirect).toHaveBeenCalledWith('https://app.example.com/main');
     });
 
     // ===== UNHAPPY PATH =====
@@ -444,9 +506,13 @@ describe('AuthController', () => {
       const mockReq = { user: mockAuthUser } as unknown as Request;
       const mockRes = { redirect: jest.fn() } as unknown as Response;
 
-      authService.loginWithGoogle.mockRejectedValue(new UnauthorizedException('Invalid Google user'));
+      authService.loginWithGoogle.mockRejectedValue(
+        new UnauthorizedException('Invalid Google user'),
+      );
 
-      await expect(controller.googleCallback(mockReq, mockRes)).rejects.toThrow('Invalid Google user');
+      await expect(controller.googleCallback(mockReq, mockRes)).rejects.toThrow(
+        'Invalid Google user',
+      );
       expect(mockRes.redirect).not.toHaveBeenCalled();
     });
 
@@ -465,7 +531,7 @@ describe('AuthController', () => {
       // Should redirect to FRONTEND_URL constant
       expect(mockRes.redirect).toHaveBeenCalled();
       const redirectUrl = (mockRes.redirect as jest.Mock).mock.calls[0][0];
-      expect(redirectUrl).toBeDefined();
+      expect(redirectUrl).toBe(`${FRONTEND_URL}/main`);
     });
 
     it('should handle loginUser error and not redirect', async () => {
@@ -473,9 +539,13 @@ describe('AuthController', () => {
       const mockRes = { redirect: jest.fn() } as unknown as Response;
 
       authService.loginWithGoogle.mockResolvedValue(mockAuthUser);
-      authService.loginUser.mockRejectedValue(new Error('Session setup failed'));
+      authService.loginUser.mockRejectedValue(
+        new Error('Session setup failed'),
+      );
 
-      await expect(controller.googleCallback(mockReq, mockRes)).rejects.toThrow('Session setup failed');
+      await expect(controller.googleCallback(mockReq, mockRes)).rejects.toThrow(
+        'Session setup failed',
+      );
       expect(mockRes.redirect).not.toHaveBeenCalled();
     });
   });

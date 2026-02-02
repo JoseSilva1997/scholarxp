@@ -17,7 +17,6 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
-import { AuthenticatedGuard } from './guards/authenticated.guard';
 import type { AuthUser } from '../types/auth-user.type';
 
 @Controller('auth')
@@ -92,8 +91,8 @@ export class AuthController {
     if (req.isAuthenticated?.() === true) {
       this.logger.debug(
         `Logout request session=${
-        (req as unknown as { sessionID?: string }).sessionID ?? 'none'
-      } userId=${(req.user as AuthUser | undefined)?.id ?? 'unknown'}`,
+          (req as unknown as { sessionID?: string }).sessionID ?? 'none'
+        } userId=${(req.user as AuthUser | undefined)?.id ?? 'unknown'}`,
       );
       const nextToken = await this.authService.logout(req, res);
       // Return token so client cannot miss the rotation when session is replaced.
@@ -152,7 +151,22 @@ export class AuthController {
   async googleCallback(@Req() req: Request, @Res() res: Response) {
     const user = await this.authService.loginWithGoogle(req.user);
     await this.authService.loginUser(req, user);
-    const redirectTarget = process.env.CORS_ORIGIN ?? FRONTEND_URL;
+    // Redirect users straight into the authenticated shell instead of the marketing landing page so
+    // OAuth login feels consistent with email/password flows.
+    const redirectTarget = this.resolveOAuthRedirectTarget(
+      process.env.CORS_ORIGIN ?? FRONTEND_URL,
+    );
     res.redirect(redirectTarget);
+  }
+
+  private resolveOAuthRedirectTarget(baseOrigin: string): string {
+    // Some deployments provide a comma-separated list for CORS; pick the first and ensure we land on /main.
+    const primaryOrigin = baseOrigin.split(',')[0]?.trim() ?? baseOrigin;
+    try {
+      return new URL('/main', primaryOrigin).toString();
+    } catch {
+      // If the origin is malformed, fall back to a safe string concatenation while still targeting /main.
+      return `${primaryOrigin.replace(/\/$/, '')}/main`;
+    }
   }
 }

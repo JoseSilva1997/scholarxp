@@ -34,7 +34,9 @@ async function bootstrap() {
   // Standardize outward-facing errors and keep internal details in server logs.
   app.useGlobalFilters(new SafeExceptionFilter());
   // Required when running behind a proxy (Heroku/Render/NGINX) so secure cookies work.
-  const expressApp = app.getHttpAdapter().getInstance() as import('express').Application;
+  const expressApp = app
+    .getHttpAdapter()
+    .getInstance() as import('express').Application;
   expressApp.set('trust proxy', 1);
   app.enableCors({
     origin: corsOrigin,
@@ -120,7 +122,7 @@ async function bootstrap() {
     }
     if (shouldLogCsrf) {
       csrfLogger.log(
-        `Applying CSRF ${req.method} ${req.path} session=${sessionId ?? 'none'} header=${maskToken(req.headers['x-csrf-token'] as string | string[] | undefined)}`,
+        `Applying CSRF ${req.method} ${req.path} session=${sessionId ?? 'none'} header=${maskToken(req.headers['x-csrf-token'])}`,
       );
     }
     return csrfProtection(req, res, (err?: unknown) => {
@@ -140,7 +142,7 @@ async function bootstrap() {
       return next();
     });
   });
-// Expose a fresh CSRF token on every response so the frontend can echo it back on state-changing requests.
+  // Expose a fresh CSRF token on every response so the frontend can echo it back on state-changing requests.
   app.use((req: Request, res: Response, next: NextFunction) => {
     const tokenFn = (req as unknown as { csrfToken?: () => string }).csrfToken;
     const shouldLogCsrf = req.path.startsWith('/auth');

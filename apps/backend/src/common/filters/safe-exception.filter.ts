@@ -49,7 +49,8 @@ export class SafeExceptionFilter implements ExceptionFilter {
 
     // If the CSRF token was invalid, issue a fresh one so the client can recover on the next attempt.
     if (isCsrfError) {
-      const tokenFn = (request as unknown as { csrfToken?: () => string }).csrfToken;
+      const tokenFn = (request as unknown as { csrfToken?: () => string })
+        .csrfToken;
       if (typeof tokenFn === 'function') {
         try {
           const nextToken = tokenFn();

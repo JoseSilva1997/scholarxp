@@ -1,6 +1,5 @@
 // Unit tests for AuthService covering happy path scenarios for each public method
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuthProvider, GlobalRole } from '@prisma/client';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
@@ -47,7 +46,7 @@ describe('AuthService', () => {
     reason: 'signup' as const,
     expiresAt: new Date(Date.now() + 3600000),
     createdAt: new Date(),
-    consumedAt: null as null,
+    consumedAt: null,
   };
 
   beforeEach(async () => {
@@ -75,9 +74,9 @@ describe('AuthService', () => {
     }).compile();
 
     service = module.get<AuthService>(AuthService);
-    emailTokens = module.get(EmailVerificationTokenService) as jest.Mocked<EmailVerificationTokenService>;
-    mailer = module.get(MailerService) as jest.Mocked<MailerService>;
-    config = module.get(ConfigService) as jest.Mocked<ConfigService>;
+    emailTokens = module.get(EmailVerificationTokenService);
+    mailer = module.get(MailerService);
+    config = module.get(ConfigService);
   });
 
   describe('regenerateSession', () => {
@@ -100,7 +99,9 @@ describe('AuthService', () => {
         },
       } as unknown as Request;
 
-      await expect(service.regenerateSession(mockReq)).rejects.toThrow('Session error');
+      await expect(service.regenerateSession(mockReq)).rejects.toThrow(
+        'Session error',
+      );
     });
   });
 
@@ -132,7 +133,10 @@ describe('AuthService', () => {
       await service.loginUser(mockReq, authUser);
 
       expect(mockReq.session.regenerate).toHaveBeenCalled();
-      expect(mockReq.login).toHaveBeenCalledWith(authUser, expect.any(Function));
+      expect(mockReq.login).toHaveBeenCalledWith(
+        authUser,
+        expect.any(Function),
+      );
     });
 
     it('should throw error when login fails', async () => {
@@ -159,7 +163,9 @@ describe('AuthService', () => {
         hasLtiIdentity: false,
       };
 
-      await expect(service.loginUser(mockReq, authUser)).rejects.toThrow('Login failed');
+      await expect(service.loginUser(mockReq, authUser)).rejects.toThrow(
+        'Login failed',
+      );
     });
   });
 
@@ -193,7 +199,9 @@ describe('AuthService', () => {
         },
       } as unknown as Request;
 
-      await expect(service.logout(mockReq)).rejects.toThrow('Regenerate failed');
+      await expect(service.logout(mockReq)).rejects.toThrow(
+        'Regenerate failed',
+      );
     });
 
     it('should set CSRF header when response object is provided', async () => {
@@ -291,7 +299,9 @@ describe('AuthService', () => {
 
       prisma.user.findUnique.mockResolvedValue(mockUser);
 
-      await expect(service.register(registerDto)).rejects.toThrow('Email already in use');
+      await expect(service.register(registerDto)).rejects.toThrow(
+        'Email already in use',
+      );
     });
 
     it('should normalize email to lowercase with whitespace trimmed', async () => {
@@ -359,7 +369,10 @@ describe('AuthService', () => {
       });
       // Service gracefully swallows email delivery errors and still returns user
       mailer.sendVerificationCode.mockRejectedValue(
-        new MailDeliveryError('recipient_unverified', 'Email address is not verified'),
+        new MailDeliveryError(
+          'recipient_unverified',
+          'Email address is not verified',
+        ),
       );
 
       const result = await service.register(registerDto);
@@ -409,9 +422,9 @@ describe('AuthService', () => {
     it('should throw UnauthorizedException if user not found', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
 
-      await expect(service.validateLocal('nonexistent@example.com', 'password')).rejects.toThrow(
-        'Invalid credentials',
-      );
+      await expect(
+        service.validateLocal('nonexistent@example.com', 'password'),
+      ).rejects.toThrow('Invalid credentials');
     });
 
     it('should throw UnauthorizedException if password is invalid', async () => {
@@ -422,9 +435,9 @@ describe('AuthService', () => {
         updatedAt: new Date(),
       });
 
-      await expect(service.validateLocal('john@example.com', 'wrong-password')).rejects.toThrow(
-        'Invalid credentials',
-      );
+      await expect(
+        service.validateLocal('john@example.com', 'wrong-password'),
+      ).rejects.toThrow('Invalid credentials');
     });
 
     it('should throw UnauthorizedException if email is not verified', async () => {
@@ -437,18 +450,18 @@ describe('AuthService', () => {
         updatedAt: new Date(),
       });
 
-      await expect(service.validateLocal('john@example.com', 'password')).rejects.toThrow(
-        'Email not verified',
-      );
+      await expect(
+        service.validateLocal('john@example.com', 'password'),
+      ).rejects.toThrow('Email not verified');
     });
 
     it('should throw UnauthorizedException if password record does not exist', async () => {
       prisma.user.findUnique.mockResolvedValue(mockUser);
       prisma.userPassword.findUnique.mockResolvedValue(null);
 
-      await expect(service.validateLocal('john@example.com', 'password')).rejects.toThrow(
-        'Invalid credentials',
-      );
+      await expect(
+        service.validateLocal('john@example.com', 'password'),
+      ).rejects.toThrow('Invalid credentials');
     });
 
     it('should handle user without institution membership', async () => {
@@ -597,7 +610,9 @@ describe('AuthService', () => {
 
       prisma.user.findUnique.mockResolvedValue(null);
 
-      await expect(service.resendVerification(email)).rejects.toThrow('User not found');
+      await expect(service.resendVerification(email)).rejects.toThrow(
+        'User not found',
+      );
     });
 
     it('should return user-friendly error when mail send fails due to unverified recipient', async () => {
@@ -611,7 +626,10 @@ describe('AuthService', () => {
       });
       // Service gracefully swallows email delivery errors and returns success response
       mailer.sendVerificationCode.mockRejectedValue(
-        new MailDeliveryError('recipient_unverified', 'Email address is not verified'),
+        new MailDeliveryError(
+          'recipient_unverified',
+          'Email address is not verified',
+        ),
       );
 
       const result = await service.resendVerification(email);
