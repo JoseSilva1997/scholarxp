@@ -382,56 +382,195 @@
 }
 
 .inviteItem {
+  /* Improved card styling with gradient background and subtle shadows */
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  transition: all 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+}
+
+.inviteItem:hover {
+  border-color: #d1d5db;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.inviteItemInactive {
+  /* Fade out inactive invites to indicate they're not usable */
+  opacity: 0.65;
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+}
+
+.inviteItemInactive:hover {
+  border-color: #e5e7eb;
+  box-shadow: none;
+}
+
+.inviteCardHeader {
+  display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 10px;
-  padding: 10px 12px;
-  background: white;
-  border: 1px solid var(--border-subtle);
-  border-radius: 10px;
+  gap: 12px;
 }
 
 .inviteMeta {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
+  flex: 1;
+}
+
+.inviteMetaTop {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .inviteTitle {
+  /* Timestamp heading for the invite */
   margin: 0;
   font-weight: 600;
   color: var(--text-primary);
+  font-size: 14px;
+}
+
+.inviteStatus {
+  /* Badge showing active/inactive state */
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.inviteStatusActive {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.inviteStatusInactive {
+  background: #fee2e2;
+  color: #7f1d1d;
 }
 
 .inviteSubtext {
+  /* Expiry information and status */
   margin: 0;
   color: var(--text-muted);
   font-size: 13px;
 }
 
+.inviteUsage {
+  /* Usage counter showing how many times this invite has been used */
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.usageLabel {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.usageValue {
+  /* Monospace font for usage numbers to align visually */
+  color: var(--text-primary);
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+}
+
 .inviteActions {
+  /* Action buttons container, aligned to the right */
   display: flex;
   align-items: center;
   gap: 8px;
+  justify-self: flex-end;
 }
 
 .inviteHint {
+  /* Message shown when copy link is not available */
   font-size: 12px;
   color: var(--text-muted);
+  padding: 6px 8px;
+  background: #f3f4f6;
+  border-radius: 6px;
 }
 
-.dangerGhostButton {
+.copyButton {
+  /* Primary action button for copying the invite link with visual feedback */
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--btn-primary-gradient);
+  color: white;
+  border: 1px solid var(--color-accent-primary);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 120ms ease;
+  box-shadow: var(--btn-primary-shadow);
+}
+
+.copyButton:hover {
+  box-shadow: var(--btn-primary-shadow-hover);
+  transform: translateY(-1px);
+}
+
+.copyButton:active {
+  transform: translateY(0);
+}
+
+.copyButtonSuccess {
+  /* Success state with green color to confirm copy was successful */
+  background: #10b981;
+  border-color: #059669;
+}
+
+.copyButtonLabel {
+  font-size: 13px;
+}
+
+.revokeButton {
+  /* Secondary destructive action button to revoke an active invite */
   background: transparent;
   color: var(--error-600, #b31b1b);
-  border: 1px solid var(--error-100, #ffd7d7);
-  padding: 8px 10px;
-  border-radius: 10px;
+  border: 1px solid var(--error-200, #ffcccc);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
-  transition: border-color 120ms ease, color 120ms ease;
+  transition: all 120ms ease;
 }
 
-.dangerGhostButton:hover {
+.revokeButton:hover {
+  background: var(--error-50, #fef2f2);
   border-color: var(--error-300, #ffb3b3);
   color: var(--error-700, #8f1414);
+}
+
+.deleteButton {
+  /* Secondary action button to delete a revoked invite */
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid #e5e7eb;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.deleteButton:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
 }

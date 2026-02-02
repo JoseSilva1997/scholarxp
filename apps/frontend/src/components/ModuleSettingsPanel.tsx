@@ -41,6 +41,8 @@ export default function ModuleSettingsPanel({
   const [isCreatingInvite, setIsCreatingInvite] = useState(false);
   const [createExpiry, setCreateExpiry] = useState(48);
   const [createMaxUses, setCreateMaxUses] = useState(100);
+  // Track which invites have had their copy button clicked for visual feedback
+  const [copiedInviteId, setCopiedInviteId] = useState<number | null>(null);
 
   // Prevent body scroll when settings panel is open to avoid layout shift from scrollbar.
   useEffect(() => {
@@ -208,40 +210,68 @@ export default function ModuleSettingsPanel({
     }
   }
 
+  // Derive a human-friendly status so instructors can immediately see when a token is no longer usable
+  // (time-based expiry, usage cap, or explicit revocation) rather than relying on the raw expiry date alone.
   function formatExpiry(invite: ModuleInvite) {
+    const expiryDate = invite.expiresAt ? new Date(invite.expiresAt) : null;
+    const now = Date.now();
+    const hasUseCap = invite.maxUses != null;
+    const isUsageExhausted = hasUseCap && invite.uses >= (invite.maxUses ?? 0);
+    const isTimeExpired = expiryDate ? expiryDate.getTime() <= now : false;
+
     if (invite.revokedAt) return 'Revoked';
-    if (!invite.expiresAt) return 'No expiry';
-    const date = new Date(invite.expiresAt);
-    return `Expires ${date.toLocaleDateString()}`;
+    if (isUsageExhausted) return 'Expired (max uses reached)';
+    if (isTimeExpired) return 'Expired';
+    if (!expiryDate) return 'No expiry';
+
+    return `Expires ${expiryDate.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })}`;
   }
 
   function renderInviteActions(invite: ModuleInvite) {
     const link = inviteLinks[invite.id];
     const canCopy = Boolean(link);
+    // Check if this is the currently copied invite to show success state
+    const isCopied = copiedInviteId === invite.id;
+
+    // Handle copy with visual feedback showing success state for 2 seconds
+    const handleCopy = () => {
+      navigator.clipboard
+        .writeText(link ?? '')
+        .then(() => {
+          setCopiedInviteId(invite.id);
+          // Reset the copied state after 2 seconds
+          setTimeout(() => setCopiedInviteId(null), 2000);
+        })
+        .catch((err) =>
+          logError(err, { feature: 'module-invites', action: 'copy', inviteId: invite.id }),
+        );
+    };
+
     return (
       <div className={styles.inviteActions}>
         {canCopy ? (
           <button
             type="button"
-            className={styles.secondaryButton}
-            onClick={() => {
-              navigator.clipboard
-                .writeText(link ?? '')
-                .catch((err) =>
-                  logError(err, { feature: 'module-invites', action: 'copy', inviteId: invite.id }),
-                );
-            }}
+            className={`${styles.copyButton} ${isCopied ? styles.copyButtonSuccess : ''}`}
+            onClick={handleCopy}
             aria-label="Copy invite link"
+            title={isCopied ? 'Copied!' : 'Copy invite link'}
           >
             <CopyIcon/>
+            <span className={styles.copyButtonLabel}>{isCopied ? 'Copied!' : 'Copy'}</span>
           </button>
         ) : (
-          <span className={styles.inviteHint}>Create a new link to copy</span>
+          <span className={styles.inviteHint}>Link expires after creation</span>
         )}
         {!invite.revokedAt ? (
           <button
             type="button"
-            className={styles.dangerGhostButton}
+            className={styles.revokeButton}
             onClick={() => void handleRevoke(invite)}
           >
             Revoke
@@ -249,7 +279,7 @@ export default function ModuleSettingsPanel({
         ) : (
           <button
             type="button"
-            className={styles.dangerGhostButton}
+            className={styles.deleteButton}
             onClick={() => void handleDelete(invite)}
           >
             Delete
@@ -456,24 +486,46 @@ export default function ModuleSettingsPanel({
                 </p>
               ) : (
                 <ul className={styles.inviteList} aria-live="polite">
-                  {invites.map((invite) => (
-                    <li key={invite.id} className={styles.inviteItem}>
-                      <div className={styles.inviteMeta}>
-                        <p className={styles.inviteTitle}>
-                          Created {new Date(invite.createdAt).toLocaleDateString('en-US', { 
-                            month: 'short', 
-                            day: 'numeric' 
-                          })}
-                          {invite.revokedAt ? ' (revoked)' : ''}
-                        </p>
-                        <p className={styles.inviteSubtext}>
-                          {formatExpiry(invite)} • Uses {invite.uses}
-                          {invite.maxUses ? ` / ${invite.maxUses}` : ' (no cap)'}
-                        </p>
-                      </div>
-                      {renderInviteActions(invite)}
-                    </li>
-                  ))}
+                  {invites.map((invite) => {
+                    // Determine if invite is in an inactive state
+                    const isInactive = formatExpiry(invite).startsWith('Expired') || invite.revokedAt;
+                    return (
+                      <li key={invite.id} className={`${styles.inviteItem} ${isInactive ? styles.inviteItemInactive : ''}`}>
+                        <div className={styles.inviteCardHeader}>
+                          <div className={styles.inviteMeta}>
+                            <div className={styles.inviteMetaTop}>
+                              <p className={styles.inviteTitle}>
+                                {new Date(invite.createdAt).toLocaleDateString('en-US', { 
+                                  month: 'short', 
+                                  day: 'numeric'
+                                })} at {new Date(invite.createdAt).toLocaleTimeString('en-US', {
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </p>
+                              <span
+                                className={`${styles.inviteStatus} ${
+                                  isInactive
+                                    ? styles.inviteStatusInactive
+                                    : styles.inviteStatusActive
+                                }`}
+                              >
+                                {isInactive ? 'Inactive' : 'Active'}
+                              </span>
+                            </div>
+                            <p className={`${styles.inviteSubtext}`}>
+                              {formatExpiry(invite)}
+                            </p>
+                            <div className={styles.inviteUsage}>
+                              <span className={styles.usageLabel}>Usage:</span>
+                              <span className={styles.usageValue}>{invite.uses} {invite.maxUses ? `/ ${invite.maxUses}` : '(unlimited)'}</span>
+                            </div>
+                          </div>
+                        </div>
+                        {renderInviteActions(invite)}
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </>
