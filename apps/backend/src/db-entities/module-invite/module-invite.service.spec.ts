@@ -258,8 +258,38 @@ describe('ModuleInviteService', () => {
     } as any);
 
     await expect(service.redeem({ token }, teacher)).rejects.toThrow(
-      BadRequestException,
+      ForbiddenException,
     );
+    expect(prisma.userModule.create).not.toHaveBeenCalled();
+  });
+
+  it('blocks institution students from redeeming invite links', async () => {
+    const token = 'instudent';
+    const tokenHash = createHash('sha256').update(token).digest('hex');
+    prisma.moduleInvite.findFirst.mockResolvedValue({
+      id: 8,
+      moduleId: module.id,
+      createdByUserId: teacher.id,
+      type: InviteType.link,
+      tokenHash,
+      maxUses: 5,
+      uses: 0,
+      expiresAt: new Date(Date.now() + 1000 * 60),
+      revokedAt: null,
+      createdAt: new Date(),
+      emailLock: null,
+      module,
+    } as any);
+
+    await expect(
+      service.redeem(
+        { token },
+        {
+          ...student,
+          hasInstitutionMembership: true,
+        },
+      ),
+    ).rejects.toThrow(ForbiddenException);
     expect(prisma.userModule.create).not.toHaveBeenCalled();
   });
 });
