@@ -11,7 +11,7 @@ import {
   NAME_MAX_LENGTH,
   NAME_REGEX,
   NAME_REGEX_MESSAGE,
-} from '../../../validation/name.rules';
+} from '../../../constants';
 import { CreateUserDto } from './create-user.dto';
 
 export class UpdateUserDto extends PartialType(CreateUserDto) {
