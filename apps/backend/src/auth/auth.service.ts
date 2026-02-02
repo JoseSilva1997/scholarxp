@@ -56,8 +56,18 @@ export class AuthService {
     });
   }
 
-  async loginUser(req: Request, user: AuthUser) {
+  async loginUser(
+    req: Request,
+    user: AuthUser,
+    options?: { persistSession?: Record<string, unknown> },
+  ) {
+    const persist = options?.persistSession ?? {};
     await this.regenerateSession(req);
+    // Re-hydrate whitelisted session keys after regeneration so data captured before login survives.
+    Object.entries(persist).forEach(([key, value]) => {
+      // Session type lacks an index signature; cast through unknown to satisfy TS while keeping runtime safety.
+      (req.session as unknown as Record<string, unknown>)[key] = value;
+    });
     // Passport will call SessionSerializer.serializeUser via req.login.
     await new Promise<void>((resolve, reject) =>
       req.login(user, (err) =>

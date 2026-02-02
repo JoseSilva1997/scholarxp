@@ -498,7 +498,9 @@ describe('AuthController', () => {
 
       expect(authService.loginWithGoogle).toHaveBeenCalledWith(mockAuthUser);
       expect(authService.loginUser).toHaveBeenCalledWith(mockReq, mockAuthUser);
-      expect(mockRes.redirect).toHaveBeenCalledWith('https://app.example.com/main');
+      expect(mockRes.redirect).toHaveBeenCalledWith(
+        'https://app.example.com/main',
+      );
     });
 
     // ===== UNHAPPY PATH =====

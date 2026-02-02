@@ -1,6 +1,7 @@
 import type { ChangeEvent, FormEvent } from 'react';
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import type { Location } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ApiError, login } from '../api/auth';
 import { ensureCsrfToken, clearCsrfToken } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -10,10 +11,23 @@ import styles from './Login.module.css';
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { setUser } = useAuth();
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Capture where the user was headed (e.g., an invite link) so we can return them there after login.
+  const redirectFrom = (location.state as { from?: Location } | null)?.from;
+
+  useEffect(() => {
+    // Persist the post-auth destination so OAuth redirects (full page navigations) can restore it.
+    if (redirectFrom) {
+      const target = `${redirectFrom.pathname}${redirectFrom.search}${redirectFrom.hash}`;
+      sessionStorage.setItem('postAuthRedirect', target);
+    } else {
+      sessionStorage.removeItem('postAuthRedirect');
+    }
+  }, [redirectFrom]);
 
   useEffect(() => {
     // Preload a fresh CSRF token after logout so the first login attempt isn't rejected.
@@ -54,7 +68,11 @@ export default function Login() {
       }
 
       setUser(user);
-      navigate('/main', { replace: true });
+      const destination = redirectFrom
+        ? `${redirectFrom.pathname}${redirectFrom.search}${redirectFrom.hash}`
+        : '/main';
+      sessionStorage.removeItem('postAuthRedirect');
+      navigate(destination, { replace: true });
     } catch (err) {
       if (err instanceof ApiError) {
         const message = err.message || 'Unable to log you in right now.';

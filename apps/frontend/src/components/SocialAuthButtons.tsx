@@ -22,8 +22,14 @@ export function SocialAuthButtons({ context }: SocialAuthButtonsProps) {
 
   const handleRedirect = (provider: Provider) => {
     if (!apiBase) return;
+    // Persist the intended post-auth path so the backend can restore it after OAuth round-trips.
+    // Prefer the invite/main target captured by login flow; fall back to current location for safety.
+    const pendingRedirect =
+      sessionStorage.getItem('postAuthRedirect') ??
+      `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    const redirectParam = encodeURIComponent(pendingRedirect);
     // Use full-page redirect so OAuth flow can set cookies on the API domain.
-    const target = `${apiBase}/auth/oauth/${provider}?intent=${context}`;
+    const target = `${apiBase}/auth/oauth/${provider}?intent=${context}&redirect=${redirectParam}`;
     window.location.assign(target);
   };
 

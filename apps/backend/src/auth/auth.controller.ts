@@ -1,16 +1,8 @@
 // AuthController handles authentication entry points and keeps logic thin by deferring to AuthService.
-import {
-  Body,
-  Controller,
-  Get,
-  Post,
-  Req,
-  Res,
-  UseGuards,
-  Logger,
-} from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, Res, UseGuards, Logger } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import type { Request, Response } from 'express';
+import type { Session, SessionData } from 'express-session';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { FRONTEND_URL } from '@scholarxp/constants';
 import { AuthService } from './auth.service';
@@ -18,6 +10,7 @@ import { RegisterDto } from './dto/register.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
 import type { AuthUser } from '../types/auth-user.type';
+import { CaptureRedirectGuard } from './guards/capture-redirect.guard';
 
 @Controller('auth')
 @UseGuards(ThrottlerGuard) // coarse guard; per-route limits below fine-tune if needed
@@ -140,8 +133,8 @@ export class AuthController {
   }
 
   @Get('oauth/google')
-  @UseGuards(AuthGuard('google'))
-  // Passport handles redirect to Google; nothing else needed here.
+  @UseGuards(CaptureRedirectGuard, AuthGuard('google'))
+  // Guards handle redirect; handler exists to satisfy Nest route requirements.
   googleAuth() {
     return { ok: true };
   }
@@ -149,24 +142,54 @@ export class AuthController {
   @Get('oauth/google/callback')
   @UseGuards(AuthGuard('google'))
   async googleCallback(@Req() req: Request, @Res() res: Response) {
+    // Capture redirect before login regenerates the session.
+    const session = req.session as
+      | (Session & Partial<SessionData> & { postAuthRedirect?: string })
+      | undefined;
+    const sessionRedirect =
+      typeof session?.postAuthRedirect === 'string'
+        ? session.postAuthRedirect
+        : null;
+
     const user = await this.authService.loginWithGoogle(req.user);
-    await this.authService.loginUser(req, user);
+    await this.authService.loginUser(req, user, {
+      persistSession: sessionRedirect ? { postAuthRedirect: sessionRedirect } : {},
+    });
     // Redirect users straight into the authenticated shell instead of the marketing landing page so
     // OAuth login feels consistent with email/password flows.
+    if (session && 'postAuthRedirect' in (session ?? {})) {
+      delete session.postAuthRedirect;
+    }
     const redirectTarget = this.resolveOAuthRedirectTarget(
       process.env.CORS_ORIGIN ?? FRONTEND_URL,
+      sessionRedirect,
     );
     res.redirect(redirectTarget);
   }
 
-  private resolveOAuthRedirectTarget(baseOrigin: string): string {
+  private resolveOAuthRedirectTarget(
+    baseOrigin: string,
+    sessionRedirect?: string | null,
+  ): string {
     // Some deployments provide a comma-separated list for CORS; pick the first and ensure we land on /main.
     const primaryOrigin = baseOrigin.split(',')[0]?.trim() ?? baseOrigin;
+    const cleanedSessionRedirect =
+      sessionRedirect && sessionRedirect.startsWith('/')
+        ? sessionRedirect
+        : null;
     try {
-      return new URL('/main', primaryOrigin).toString();
+      const fallback = new URL('/main', primaryOrigin).toString();
+      if (cleanedSessionRedirect) {
+        return new URL(cleanedSessionRedirect, primaryOrigin).toString();
+      }
+      return fallback;
     } catch {
       // If the origin is malformed, fall back to a safe string concatenation while still targeting /main.
-      return `${primaryOrigin.replace(/\/$/, '')}/main`;
+      const base = `${primaryOrigin.replace(/\/$/, '')}/main`;
+      if (cleanedSessionRedirect) {
+        return `${primaryOrigin.replace(/\/$/, '')}${cleanedSessionRedirect}`;
+      }
+      return base;
     }
   }
 }

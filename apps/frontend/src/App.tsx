@@ -1,4 +1,6 @@
-import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
+import type { Location } from 'react-router-dom';
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import './App.css';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -17,6 +19,8 @@ import AcceptInvite from './routes/AcceptInvite';
 
 function AppLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const redirectFrom = (location.state as { from?: Location } | null)?.from;
   const isAuthRoute =
     location.pathname === '/login' ||
     location.pathname === '/register' ||
@@ -31,6 +35,18 @@ function AppLayout() {
   // Sidebar shell needs the wider canvas so we reuse the auth width treatment.
   const usesFullWidth = isAuthRoute || isShellRoute;
 
+  useEffect(() => {
+    if (!user || isLoading) return;
+    const pendingRedirect = sessionStorage.getItem('postAuthRedirect');
+    if (!pendingRedirect) return;
+    // Clear first to prevent loops if navigation fails.
+    sessionStorage.removeItem('postAuthRedirect');
+    if (pendingRedirect !== `${location.pathname}${location.search}${location.hash}`) {
+      // After OAuth callback we land on /main; hop to the originally requested route (e.g., invite with token).
+      navigate(pendingRedirect, { replace: true });
+    }
+  }, [isLoading, location.hash, location.pathname, location.search, navigate, user]);
+
   return (
     <div className={`App ${usesFullWidth ? 'App--auth' : ''}`}>
       {shouldShowHeader ? <Header user={user} onLogout={logout} /> : null}
@@ -42,7 +58,21 @@ function AppLayout() {
             <Route path="/" element={<Landing />} />
             <Route
               path="/login"
-              element={user && !isLoading ? <Navigate to="/main" replace /> : <Login />}
+              element={
+                user && !isLoading ? (
+                  // If user hit login while unauthenticated, send them back to their intended page post-login.
+                  <Navigate
+                    to={
+                      redirectFrom
+                        ? `${redirectFrom.pathname}${redirectFrom.search}${redirectFrom.hash}`
+                        : '/main'
+                    }
+                    replace
+                  />
+                ) : (
+                  <Login />
+                )
+              }
             />
             <Route
               path="/register"
@@ -74,11 +104,13 @@ type ProtectedRouteProps = {
 };
 
 function ProtectedRoute({ isLoading, isAuthed }: ProtectedRouteProps) {
+  const location = useLocation();
+  // Preserve the originally requested route (including query params) so post-login flow can return there.
   if (isLoading) {
     return null;
   }
   if (!isAuthed) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace state={{ from: location }} />;
   }
   return <Outlet />;
 }
