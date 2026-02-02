@@ -3,6 +3,18 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import nodemailer, { Transporter } from 'nodemailer';
 
+// Typed error used to let callers distinguish expected mail delivery failures from
+// unexpected exceptions. This keeps transport details out of user-facing responses
+// while still surfacing actionable reasons (e.g., SES sandbox recipient not verified).
+export class MailDeliveryError extends Error {
+  constructor(
+    public readonly reason: 'recipient_unverified' | 'transport_error',
+    public readonly details?: string,
+  ) {
+    super(reason);
+  }
+}
+
 export type MailPayload = {
   to: string;
   subject: string;
@@ -64,7 +76,15 @@ export class MailerService {
       return;
     }
 
-    await this.transporter.sendMail(message);
+    try {
+      await this.transporter.sendMail(message);
+    } catch (error) {
+      // Map transport-specific errors (like SES sandbox rejections) into a typed error
+      // so upstream layers can return safe, actionable responses without leaking SMTP details.
+      const normalized = this.normalizeMailError(error);
+      this.logger.error(`Mail send failed: ${normalized.reason}`, normalized.details);
+      throw new MailDeliveryError(normalized.reason, normalized.details);
+    }
   }
 
   /**
@@ -101,6 +121,27 @@ export class MailerService {
 </html>`;
 
     await this.sendMail({ to, subject, text, html });
+  }
+
+  private normalizeMailError(error: unknown): {
+    reason: 'recipient_unverified' | 'transport_error';
+    details: string;
+  } {
+    const message = error instanceof Error ? error.message : String(error);
+    const responseLine = (error as { response?: string }).response ?? '';
+    const combined = `${message} ${responseLine}`.toLowerCase();
+
+    if (combined.includes('email address is not verified')) {
+      return {
+        reason: 'recipient_unverified',
+        details: message,
+      };
+    }
+
+    return {
+      reason: 'transport_error',
+      details: message,
+    };
   }
 
   private buildTransport(): Transporter | undefined {

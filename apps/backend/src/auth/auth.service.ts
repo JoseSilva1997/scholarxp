@@ -1,8 +1,10 @@
 // AuthService centralizes credential validation, OAuth linking, session hygiene, and user projection.
 // We rely on Prisma for persistence and keep side effects (email, tokens) here for testability.
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -17,7 +19,7 @@ import {
 } from '@scholarxp/permissions';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailVerificationTokenService } from '../db-entities/email-verification-token/email-verification-token.service';
-import { MailerService } from '../mailer/mailer.service';
+import { MailDeliveryError, MailerService } from '../mailer/mailer.service';
 import { RegisterDto } from './dto/register.dto';
 import type { AuthUser } from '../types/auth-user.type';
 import type { GoogleProfile } from './strategies/google.strategy';
@@ -34,6 +36,9 @@ type UserRecord = {
 
 @Injectable()
 export class AuthService {
+  // Keep a scoped logger so we can correlate mail failures without leaking details to clients.
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailTokens: EmailVerificationTokenService,
@@ -124,7 +129,7 @@ export class AuthService {
       reason: 'signup',
       reuseExisting: true,
     });
-    await this.mailer.sendVerificationCode(email, token.token);
+    await this.safeSendVerification(email, token.token);
 
     return this.toAuthUser(user, null, undefined, true);
   }
@@ -187,7 +192,7 @@ export class AuthService {
       reason: 'signup',
       reuseExisting: false,
     });
-    await this.mailer.sendVerificationCode(normalizedEmail, token.token);
+    await this.safeSendVerification(normalizedEmail, token.token);
     return { sent: true };
   }
 
@@ -428,5 +433,34 @@ export class AuthService {
       ltiIdentities: membership?.ltiIdentities ?? [],
       hasLtiIdentity: membership?.hasLtiIdentity ?? false,
     } as AuthUser;
+  }
+
+  // Wrap verification email dispatch to catch transport failures and log them internally
+  // without surfacing details to the frontend. This prevents leaking SMTP errors to clients
+  // (e.g., SES sandbox rejections, non-existent email addresses) while allowing backend monitoring.
+  private async safeSendVerification(email: string, code: string) {
+    try {
+      await this.mailer.sendVerificationCode(email, code);
+    } catch (error) {
+      if (error instanceof MailDeliveryError) {
+        // Log the transport error with full context for backend monitoring and debugging.
+        this.logger.warn('Email delivery failed', {
+          reason: 'MailDeliveryError',
+          details: error.details,
+          email,
+          timestamp: new Date().toISOString(),
+        });
+      } else {
+        // Log unexpected errors with stack for investigation.
+        this.logger.error('Unexpected email delivery failure', {
+          reason: (error as Error)?.message,
+          stack: (error as Error)?.stack,
+          email,
+          timestamp: new Date().toISOString(),
+        });
+      }
+      // Gracefully return without throwing—the frontend doesn't need to know the email failed.
+      // This improves UX by not exposing email validation or delivery issues.
+    }
   }
 }

@@ -1,6 +1,6 @@
 // Unit tests for AuthService covering happy path scenarios for each public method
 import { Test, TestingModule } from '@nestjs/testing';
-import { UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuthProvider, GlobalRole } from '@prisma/client';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
@@ -8,7 +8,7 @@ import bcrypt from 'bcryptjs';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailVerificationTokenService } from '../db-entities/email-verification-token/email-verification-token.service';
-import { MailerService } from '../mailer/mailer.service';
+import { MailDeliveryError, MailerService } from '../mailer/mailer.service';
 import type { Request, Response } from 'express';
 
 // Unit tests for AuthService covering happy path scenarios for each public method
@@ -164,77 +164,71 @@ describe('AuthService', () => {
   });
 
   describe('logout', () => {
-    it('should logout user and clear session', async () => {
+    it('should logout user, regenerate session, and return next CSRF token', async () => {
       const mockReq = {
         logout: jest.fn((cb) => cb()),
         session: {
-          destroy: jest.fn((cb) => cb(null)),
+          regenerate: jest.fn((cb) => cb(null)),
+          csrfSecret: 'old-secret',
         },
       } as unknown as Request;
 
       const mockRes = {
-        clearCookie: jest.fn(),
+        setHeader: jest.fn(),
       } as unknown as Response;
 
-      config.get.mockReturnValue('production');
-
-      await service.logout(mockReq, mockRes);
+      const token = await service.logout(mockReq, mockRes);
 
       expect(mockReq.logout).toHaveBeenCalled();
-      expect(mockReq.session.destroy).toHaveBeenCalled();
-      expect(mockRes.clearCookie).toHaveBeenCalledWith('connect.sid', {
-        httpOnly: true,
-        sameSite: 'none',
-        secure: true,
-      });
+      expect(mockReq.session.regenerate).toHaveBeenCalled();
+      expect(mockRes.setHeader).toHaveBeenCalledWith('x-csrf-token', token);
+      expect(token).toBeDefined();
     });
 
-    it('should throw error when session destroy fails', async () => {
+    it('should throw error when session regeneration fails', async () => {
       const mockReq = {
         logout: jest.fn((cb) => cb()),
         session: {
-          destroy: jest.fn((cb) => cb(new Error('Destroy failed'))),
+          regenerate: jest.fn((cb) => cb(new Error('Regenerate failed'))),
         },
       } as unknown as Request;
 
-      await expect(service.logout(mockReq)).rejects.toThrow('Destroy failed');
+      await expect(service.logout(mockReq)).rejects.toThrow('Regenerate failed');
     });
 
-    it('should clear cookie with correct settings in development environment', async () => {
+    it('should set CSRF header when response object is provided', async () => {
       const mockReq = {
         logout: jest.fn((cb) => cb()),
         session: {
-          destroy: jest.fn((cb) => cb(null)),
+          regenerate: jest.fn((cb) => cb(null)),
         },
       } as unknown as Request;
 
       const mockRes = {
-        clearCookie: jest.fn(),
+        setHeader: jest.fn(),
       } as unknown as Response;
-
-      config.get.mockReturnValue('development');
 
       await service.logout(mockReq, mockRes);
 
-      expect(mockRes.clearCookie).toHaveBeenCalledWith('connect.sid', {
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: false,
-      });
+      expect(mockRes.setHeader).toHaveBeenCalledWith(
+        'x-csrf-token',
+        expect.any(String),
+      );
     });
 
     it('should handle logout without response object', async () => {
       const mockReq = {
         logout: jest.fn((cb) => cb()),
         session: {
-          destroy: jest.fn((cb) => cb(null)),
+          regenerate: jest.fn((cb) => cb(null)),
         },
       } as unknown as Request;
 
-      await service.logout(mockReq);
+      const token = await service.logout(mockReq);
 
       expect(mockReq.logout).toHaveBeenCalled();
-      expect(mockReq.session.destroy).toHaveBeenCalled();
+      expect(mockReq.session.regenerate).toHaveBeenCalled();
+      expect(token).toBeDefined();
     });
   });
 
@@ -332,6 +326,46 @@ describe('AuthService', () => {
       expect(prisma.user.findUnique).toHaveBeenCalledWith({
         where: { email: 'mixedcase@example.com' },
       });
+    });
+
+    it('should surface friendly error when SES rejects unverified recipient during signup', async () => {
+      const registerDto = {
+        email: 'test@test.com',
+        firstName: 'T',
+        lastName: 'User',
+        password: 'password',
+      };
+
+      const newUser = {
+        ...mockUser,
+        id: 42,
+        email: 'test@test.com',
+        isVerified: false,
+      };
+
+      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.$transaction.mockImplementation(async (callback) => {
+        const txClient = {
+          user: { create: jest.fn().mockResolvedValue(newUser) },
+          userPassword: { create: jest.fn() },
+          authIdentity: { create: jest.fn() },
+        };
+        return callback(txClient as any);
+      });
+
+      emailTokens.issueToken.mockResolvedValue({
+        ...mockVerificationToken,
+        userId: 42,
+      });
+      // Service gracefully swallows email delivery errors and still returns user
+      mailer.sendVerificationCode.mockRejectedValue(
+        new MailDeliveryError('recipient_unverified', 'Email address is not verified'),
+      );
+
+      const result = await service.register(registerDto);
+      expect(result.email).toBe('test@test.com');
+      expect(result.isVerified).toBe(false);
+      expect(result.requiresEmailVerification).toBe(true);
     });
   });
 
@@ -564,6 +598,24 @@ describe('AuthService', () => {
       prisma.user.findUnique.mockResolvedValue(null);
 
       await expect(service.resendVerification(email)).rejects.toThrow('User not found');
+    });
+
+    it('should return user-friendly error when mail send fails due to unverified recipient', async () => {
+      const email = 'test@test.com';
+      const unverifiedUser = { ...mockUser, isVerified: false, email };
+
+      prisma.user.findUnique.mockResolvedValue(unverifiedUser);
+      emailTokens.issueToken.mockResolvedValue({
+        ...mockVerificationToken,
+        userId: unverifiedUser.id,
+      });
+      // Service gracefully swallows email delivery errors and returns success response
+      mailer.sendVerificationCode.mockRejectedValue(
+        new MailDeliveryError('recipient_unverified', 'Email address is not verified'),
+      );
+
+      const result = await service.resendVerification(email);
+      expect(result.sent).toBe(true);
     });
   });
 

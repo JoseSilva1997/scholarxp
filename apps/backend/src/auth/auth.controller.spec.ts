@@ -308,30 +308,27 @@ describe('AuthController', () => {
     it('should logout user and clear session', async () => {
       const mockReq = {
         isAuthenticated: jest.fn(() => true),
-        csrfToken: jest.fn(() => 'csrf-token-123'),
       } as unknown as Request;
       const mockRes = {
         setHeader: jest.fn(),
-        getHeader: jest.fn((name: string) => (name === 'x-csrf-token' ? 'csrf-token-123' : undefined)),
       } as unknown as Response;
 
-      authService.logout.mockResolvedValue(undefined);
+      // authService.logout returns the CSRF token
+      authService.logout.mockResolvedValue('csrf-token-123');
 
       const result = await controller.logout(mockReq, mockRes);
 
       expect(authService.logout).toHaveBeenCalledWith(mockReq, mockRes);
-      expect(result.ok).toBe(true);
+      expect(result).toEqual({ ok: true, csrfToken: 'csrf-token-123' });
     });
 
     // ===== UNHAPPY PATH =====
     it('should propagate logout error', async () => {
       const mockReq = {
         isAuthenticated: jest.fn(() => true),
-        csrfToken: jest.fn(() => 'csrf-token-123'),
       } as unknown as Request;
       const mockRes = {
         setHeader: jest.fn(),
-        getHeader: jest.fn((name: string) => (name === 'x-csrf-token' ? 'csrf-token-123' : undefined)),
       } as unknown as Response;
 
       authService.logout.mockRejectedValue(new Error('Session destroy failed'));
@@ -343,14 +340,13 @@ describe('AuthController', () => {
     it('should still return ok response after successful logout', async () => {
       const mockReq = {
         isAuthenticated: jest.fn(() => false),
-        csrfToken: jest.fn(() => 'csrf-token-456'),
       } as unknown as Request;
       const mockRes = {
         setHeader: jest.fn(),
-        getHeader: jest.fn((name: string) => (name === 'x-csrf-token' ? 'csrf-token-456' : undefined)),
       } as unknown as Response;
 
-      authService.logout.mockResolvedValue(undefined);
+      // authService.logout returns the CSRF token directly
+      authService.logout.mockResolvedValue('csrf-token-456');
 
       const result = await controller.logout(mockReq, mockRes);
 
