@@ -31,6 +31,11 @@ export default function ModuleUnitCard({ unit, onChangeStatus }: ModuleUnitCardP
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
+  // Sum all questions across groups so the subtitle reflects actual question volume rather than group count.
+  const totalQuestions = unit.questionGroups.reduce(
+    (sum, group) => sum + (group.questions?.length ?? 0),
+    0,
+  );
 
   const statusIcon = {
     draft: draftIcon,
@@ -46,25 +51,25 @@ export default function ModuleUnitCard({ unit, onChangeStatus }: ModuleUnitCardP
           <div className={styles.header}>
             <button
               type="button"
-          className={styles.statusButton}
-          aria-label={`Module unit status: ${unit.status}`}
-          title={`Module unit status: ${unit.status}`}
-          onClick={() => {
-            if ((unit.status === 'draft' || unit.status === 'locked') && onChangeStatus) {
-              setShowPublishModal(true);
-            }
-          }}
-        >
-          <img 
-            src={statusIcon} 
-            alt="" 
-            aria-hidden="true" 
-            className={unit.status !== 'locked' ? styles.iconCentered : ''} // The "locked" icon is visually centered already
-          />
+              className={styles.statusButton}
+              aria-label={`Module unit status: ${unit.status}`}
+              title={`Module unit status: ${unit.status}`}
+              onClick={() => {
+                if ((unit.status === 'draft' || unit.status === 'locked') && onChangeStatus) {
+                  setShowPublishModal(true);
+                }
+              }}
+            >
+              <img
+                src={statusIcon}
+                alt=""
+                aria-hidden="true"
+                className={unit.status !== 'locked' ? styles.iconCentered : ''} // The "locked" icon is visually centered already
+              />
             </button>
             <div className={styles.meta}>
               <h3 className={styles.title}>{unit.title}</h3>
-              <p className={styles.subtitle}>{unit.questionGroups.length} Questions</p>
+              <p className={styles.subtitle}>{totalQuestions} Questions</p>
             </div>
             <div className={styles.actions}>
               <button type="button" className={styles.editButton} aria-label="Edit module unit">

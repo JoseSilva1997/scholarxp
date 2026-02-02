@@ -76,7 +76,7 @@ export default function CreateModuleUnitModal({ isOpen, onClose, onCreate }: Cre
               setTitle(e.target.value);
               if (error) setError(null);
             }}
-            placeholder="e.g., Arrays & ArrayLists"
+            placeholder="Enter titles of the lesson, e.g., 'Introduction to Algebra'"
             ref={inputRef}
           />
           {error ? (
