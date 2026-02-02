@@ -84,7 +84,8 @@ export default function Login() {
 
         <div className={styles.cardColumn}>
           <section className={styles.card}>
-            <p className={styles.subtitle}>Log in to continue your daily practice journey.</p>
+            <h1 className={styles.title}>Login</h1>
+            <p className={styles.subtitle}>Continue your daily practice journey.</p>
 
             <form className={styles.form} onSubmit={handleSubmit} noValidate>
               <div className={styles.field}>
