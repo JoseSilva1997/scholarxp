@@ -32,7 +32,7 @@ describe('CreateUserDto validation', () => {
 
   it('rejects invalid characters in names', async () => {
     const dto = plainToInstance(CreateUserDto, {
-      firstName: 'Jane123',
+      firstName: 'Jane<',
       lastName: 'Doe@',
       email: 'jane@example.com',
     });

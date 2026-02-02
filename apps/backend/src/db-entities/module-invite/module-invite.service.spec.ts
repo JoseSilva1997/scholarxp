@@ -4,7 +4,7 @@ import { GlobalRole, InviteType } from '@prisma/client';
 import { createHash } from 'crypto';
 import { ModuleInviteService } from './module-invite.service';
 import { createPrismaMock, type PrismaMock } from '../../test/test-helpers';
-import { MODULE_INVITE_DEFAULT_MAX_USES } from '../../constants';
+import { MODULE_INVITE_DEFAULT_MAX_USES } from '@scholarxp/constants';
 
 describe('ModuleInviteService', () => {
   let prisma: PrismaMock;
@@ -18,6 +18,12 @@ describe('ModuleInviteService', () => {
     globalRole: GlobalRole.teacher,
     isVerified: true,
     hasInstitutionMembership: false,
+  };
+  const student: any = {
+    ...teacher,
+    id: 2,
+    email: 'student@example.com',
+    globalRole: GlobalRole.student,
   };
 
   beforeEach(() => {
@@ -140,12 +146,12 @@ describe('ModuleInviteService', () => {
     prisma.userModule.create.mockResolvedValue({ id: 99 } as any);
     prisma.moduleInvite.updateMany.mockResolvedValue({ count: 1 } as any);
 
-    const result = await service.redeem({ token }, teacher);
+    const result = await service.redeem({ token }, student);
 
     expect(prisma.userModule.create).toHaveBeenCalledWith({
       data: {
         moduleId: module.id,
-        userId: teacher.id,
+        userId: student.id,
         roleInModule: 'student',
         userModuleLevel: 1,
         currentExp: 0,
@@ -186,7 +192,7 @@ describe('ModuleInviteService', () => {
       module,
     } as any);
 
-    await expect(service.redeem({ token }, teacher)).rejects.toThrow(
+    await expect(service.redeem({ token }, student)).rejects.toThrow(
       BadRequestException,
     );
   });
@@ -227,9 +233,33 @@ describe('ModuleInviteService', () => {
       return cb(prisma as any);
     });
 
-    await expect(service.redeem({ token }, teacher)).rejects.toThrow(
+    await expect(service.redeem({ token }, student)).rejects.toThrow(
       BadRequestException,
     );
     expect(prisma.moduleInvite.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('blocks instructors from redeeming invite links', async () => {
+    const token = 'teach';
+    const tokenHash = createHash('sha256').update(token).digest('hex');
+    prisma.moduleInvite.findFirst.mockResolvedValue({
+      id: 7,
+      moduleId: module.id,
+      createdByUserId: teacher.id,
+      type: InviteType.link,
+      tokenHash,
+      maxUses: 5,
+      uses: 0,
+      expiresAt: new Date(Date.now() + 1000 * 60),
+      revokedAt: null,
+      createdAt: new Date(),
+      emailLock: null,
+      module,
+    } as any);
+
+    await expect(service.redeem({ token }, teacher)).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(prisma.userModule.create).not.toHaveBeenCalled();
   });
 });

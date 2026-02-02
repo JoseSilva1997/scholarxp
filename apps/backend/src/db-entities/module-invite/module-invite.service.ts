@@ -4,7 +4,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InviteType, EnrollmentSource, type Module } from '@prisma/client';
+import {
+  InviteType,
+  EnrollmentSource,
+  type Module,
+  GlobalRole,
+} from '@prisma/client';
 import { createHash, randomBytes } from 'crypto';
 import { CreateModuleInviteDto } from './dto/create-module-invite.dto';
 import { UpdateModuleInviteDto } from './dto/update-module-invite.dto';
@@ -130,6 +135,7 @@ export class ModuleInviteService {
   async redeem(dto: RedeemModuleInviteDto, user: AuthUser) {
     const tokenHash = this.hashToken(dto.token);
     const invite = await this.findAndValidateInvite(tokenHash);
+    await this.assertUserCanRedeem(invite, user);
     const enrollment = await this.createEnrollmentWithIncrementedUsage(
       invite,
       user,
@@ -161,6 +167,46 @@ export class ModuleInviteService {
 
     this.assertInviteIsActive(invite);
     return invite;
+  }
+
+  // Prevent instructors/admins from downgrading themselves via invite links and block teachers already tied to the module.
+  private async assertUserCanRedeem(
+    invite: {
+      moduleId: number;
+      module: { createdByUserId: number | null };
+    },
+    user: AuthUser,
+  ) {
+    if (
+      user.globalRole === GlobalRole.teacher ||
+      user.globalRole === GlobalRole.institution_admin ||
+      user.globalRole === GlobalRole.admin
+    ) {
+      throw new BadRequestException(
+        'Instructors cannot redeem student invite links',
+      );
+    }
+
+    if (invite.module?.createdByUserId === user.id) {
+      throw new BadRequestException(
+        'Instructors cannot redeem student invite links',
+      );
+    }
+
+    const teachingMembership = await this.prisma.userModule.findFirst({
+      where: {
+        moduleId: invite.moduleId,
+        userId: user.id,
+        roleInModule: 'teacher',
+      },
+      select: { id: true },
+    });
+
+    if (teachingMembership) {
+      throw new BadRequestException(
+        'Instructors cannot redeem student invite links',
+      );
+    }
   }
 
   // Atomically increments invite usage and creates/updates enrollment to avoid race conditions.

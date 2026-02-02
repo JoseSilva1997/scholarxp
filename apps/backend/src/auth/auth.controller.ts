@@ -1,5 +1,14 @@
 // AuthController handles authentication entry points and keeps logic thin by deferring to AuthService.
-import { Body, Controller, Get, Post, Req, Res, UseGuards, Logger } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+  Logger,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import type { Request, Response } from 'express';
 import type { Session, SessionData } from 'express-session';
@@ -153,7 +162,9 @@ export class AuthController {
 
     const user = await this.authService.loginWithGoogle(req.user);
     await this.authService.loginUser(req, user, {
-      persistSession: sessionRedirect ? { postAuthRedirect: sessionRedirect } : {},
+      persistSession: sessionRedirect
+        ? { postAuthRedirect: sessionRedirect }
+        : {},
     });
     // Redirect users straight into the authenticated shell instead of the marketing landing page so
     // OAuth login feels consistent with email/password flows.

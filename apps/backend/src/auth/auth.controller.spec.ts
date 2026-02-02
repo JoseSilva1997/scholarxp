@@ -497,7 +497,12 @@ describe('AuthController', () => {
       await controller.googleCallback(mockReq, mockRes);
 
       expect(authService.loginWithGoogle).toHaveBeenCalledWith(mockAuthUser);
-      expect(authService.loginUser).toHaveBeenCalledWith(mockReq, mockAuthUser);
+      // loginUser is called with req, user, and options object for session persistence.
+      expect(authService.loginUser).toHaveBeenCalledWith(
+        mockReq,
+        mockAuthUser,
+        { persistSession: {} },
+      );
       expect(mockRes.redirect).toHaveBeenCalledWith(
         'https://app.example.com/main',
       );
