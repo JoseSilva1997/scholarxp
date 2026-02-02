@@ -87,42 +87,77 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
       </button>
       {isMenuOpen ? (
         <div className={styles.menu} role="menu">
-          <button
-            type="button"
-            className={styles.menuItem}
-            role="menuitem"
-            onClick={() => {
-              // Navigating via router keeps SPA context and closes the menu for consistent UX.
-              navigate('/main');
-              closeMenu();
-            }}
-          >
-            My content
-          </button>
-          <button
-            type="button"
-            className={styles.menuItem}
-            role="menuitem"
-            onClick={() => {
-              // Profile page is the natural destination for account settings today.
-              navigate('/main/profile');
-              closeMenu();
-            }}
-          >
-            Account settings
-          </button>
-          <button
-            type="button"
-            className={styles.menuItem}
-            role="menuitem"
-            onClick={async () => {
-              // Close first so the menu doesn't linger if navigation happens quickly.
-              closeMenu();
-              if (onLogout) await onLogout();
-            }}
-          >
-            Log out
-          </button>
+          {/* Panel Header with Profile Preview */}
+          <div className={styles.menuHeader}>
+            <img
+              src={avatarSrc}
+              alt=""
+              className={styles.menuHeaderAvatar}
+              onError={(event) => {
+                event.currentTarget.onerror = null;
+                event.currentTarget.src = defaultAvatar;
+              }}
+            />
+            <div className={styles.menuHeaderInfo}>
+              <div className={styles.menuHeaderName}>{formatName(user) || 'User'}</div>
+              <div className={styles.menuHeaderRole}>
+                {user.globalRole === 'student' ? 'Student' : 'Teacher'}
+              </div>
+            </div>
+          </div>
+
+          {/* Panel Content */}
+          <div className={styles.menuContent}>
+            {/* Main Actions */}
+            <div className={styles.menuSection}>
+              <button
+                type="button"
+                className={styles.menuItem}
+                role="menuitem"
+                onClick={() => {
+                  navigate('/main');
+                  closeMenu();
+                }}
+              >
+                <svg className={styles.menuItemIcon} fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" />
+                </svg>
+                My content
+              </button>
+              <button
+                type="button"
+                className={styles.menuItem}
+                role="menuitem"
+                onClick={() => {
+                  navigate('/main/profile');
+                  closeMenu();
+                }}
+              >
+                <svg className={styles.menuItemIcon} fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                </svg>
+                Account settings
+              </button>
+            </div>
+
+            {/* Logout Section */}
+            <div className={styles.menuFooter}>
+              <button
+                type="button"
+                className={styles.menuItem}
+                role="menuitem"
+                onClick={async () => {
+                  closeMenu();
+                  if (onLogout) await onLogout();
+                }}
+              >
+                <svg className={styles.menuItemIcon} fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z" />
+                </svg>
+                Log out
+              </button>
+            </div>
+          </div>
         </div>
       ) : null}
     </div>
