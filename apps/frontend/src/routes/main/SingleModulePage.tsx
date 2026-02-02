@@ -22,7 +22,7 @@ import CreateModuleUnitCard from '../../components/CreateModuleUnitCard';
 import CreateModuleUnitModal from '../../components/Modals/CreateModuleUnitModal';
 import ModuleUnitCard, { type ModuleUnit, type ModuleUnitStatus } from '../../components/ModuleUnitCard';
 import StudentModuleUnitCard from '../../components/StudentModuleUnitCard';
-import { MODULE_EXP_MAX } from '../../constants/progression';
+import { MODULE_EXP_MAX } from '@scholarxp/constants';
 import styles from './SingleModulePage.module.css';
 
 export default function SingleModulePage() {

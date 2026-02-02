@@ -13,7 +13,7 @@ import {
   NAME_REGEX,
   NAME_REGEX_MESSAGE,
   NAME_MAX_LENGTH,
-} from '../../../constants';
+} from '@scholarxp/constants';
 
 export class CreateUserDto {
   @Transform(({ value }: TransformFnParams) =>

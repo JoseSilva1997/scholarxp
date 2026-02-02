@@ -11,12 +11,12 @@ import {
   NAME_MAX_LENGTH,
   NAME_REGEX,
   NAME_REGEX_MESSAGE,
-} from '../../constants';
+} from '@scholarxp/constants';
 import {
   PASSWORD_COMPLEXITY_MESSAGE,
   PASSWORD_COMPLEXITY_REGEX,
   PASSWORD_MIN_LENGTH,
-} from '../../constants';
+} from '@scholarxp/constants';
 
 export class RegisterDto {
   @Transform(({ value }: TransformFnParams) =>

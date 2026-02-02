@@ -16,7 +16,7 @@ import {
   FRONTEND_URL,
   MODULE_INVITE_DEFAULT_EXPIRY_HOURS,
   MODULE_INVITE_DEFAULT_MAX_USES,
-} from '../../constants';
+} from '@scholarxp/constants';
 
 @Injectable()
 export class ModuleInviteService {

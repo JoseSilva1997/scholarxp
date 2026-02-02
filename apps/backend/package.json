@@ -22,6 +22,7 @@
     "migrate:test": "pnpm dotenv -e .env.test -- pnpm prisma migrate dev"
   },
   "dependencies": {
+    "@scholarxp/constants": "workspace:*",
     "@scholarxp/permissions": "workspace:*",
     "@nestjs/common": "^11.1.12",
     "@nestjs/config": "^4.0.2",

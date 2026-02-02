@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { AuthUser } from '../types/auth';
 import defaultAvatar from '../assets/default-profile-pic.png';
-import { STUDENT_EXP_MAX } from '../constants/progression';
+import { STUDENT_EXP_MAX } from '@scholarxp/constants';
 import expIcon from '../assets/exp_icon.svg';
 import styles from './UserBadge.module.css';
 

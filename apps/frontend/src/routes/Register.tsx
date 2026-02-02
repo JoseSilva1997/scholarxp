@@ -4,10 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ApiError, registerByEmail } from '../api/auth';
 import { SocialAuthButtons } from '../components/SocialAuthButtons';
 import styles from './Register.module.css';
-
-// Keep client-side validation aligned with backend rules so users see immediate feedback.
-const NAME_REGEX = /^[A-Za-zÀ-ÖØ-öø-ÿ'\- ]+$/;
-const NAME_MAX_LENGTH = 40;
+import { NAME_MAX_LENGTH, NAME_REGEX} from '@scholarxp/constants';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -56,6 +53,7 @@ export default function Register() {
     const trimmedFirst = form.firstName.trim();
     const trimmedLast = form.lastName.trim();
     const trimmedEmail = form.email.trim();
+    const INVALID_NAME_MESSAGE = 'First and last names cannot contain < > / @ # $ % ^ & * ( ) [ ] { } ; : " \' | ` ~ or \\';
 
     if (!trimmedFirst) {
       issues.push('First name is required.');
@@ -64,7 +62,7 @@ export default function Register() {
         issues.push(`First name must be at most ${NAME_MAX_LENGTH} characters.`);
       }
       if (!NAME_REGEX.test(trimmedFirst)) {
-        issues.push('First name can only include letters, spaces, apostrophes, or hyphens.');
+        issues.push(INVALID_NAME_MESSAGE);
       }
     }
 
@@ -74,8 +72,8 @@ export default function Register() {
       if (trimmedLast.length > NAME_MAX_LENGTH) {
         issues.push(`Last name must be at most ${NAME_MAX_LENGTH} characters.`);
       }
-      if (!NAME_REGEX.test(trimmedLast)) {
-        issues.push('Last name can only include letters, spaces, apostrophes, or hyphens.');
+      if (!NAME_REGEX.test(trimmedLast) && !issues.includes(INVALID_NAME_MESSAGE)) {
+        issues.push(INVALID_NAME_MESSAGE);
       }
     }
 

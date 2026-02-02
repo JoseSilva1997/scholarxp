@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import type { AuthUser } from '../types/auth';
 import logo from '../assets/logo.svg';
 import UserBadge from './UserBadge';
-import { STUDENT_EXP_MAX } from '../constants/progression';
+import { STUDENT_EXP_MAX } from '@scholarxp/constants';
 import styles from './Header.module.css';
 
 type HeaderProps = {

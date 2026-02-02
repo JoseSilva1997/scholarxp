@@ -4,7 +4,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import nodemailer from 'nodemailer';
 import { MailerService } from './mailer.service';
-import { FRONTEND_URL } from '../constants';
+import { FRONTEND_URL } from '@scholarxp/constants';
 
 jest.mock('nodemailer');
 const mockedNodemailer = nodemailer as unknown as {

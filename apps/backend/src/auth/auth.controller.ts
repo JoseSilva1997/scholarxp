@@ -12,7 +12,7 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import type { Request, Response } from 'express';
 import { ThrottlerGuard } from '@nestjs/throttler';
-import { FRONTEND_URL } from '../constants';
+import { FRONTEND_URL } from '@scholarxp/constants';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';

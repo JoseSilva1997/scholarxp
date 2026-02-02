@@ -9,7 +9,7 @@ import csrf from 'csurf';
 import passport from 'passport';
 import type { Request, Response, NextFunction, RequestHandler } from 'express';
 import { AppModule } from './app.module';
-import { FRONTEND_URL } from './constants';
+import { FRONTEND_URL } from '@scholarxp/constants';
 import { SafeExceptionFilter } from './common/filters/safe-exception.filter';
 
 async function bootstrap() {
