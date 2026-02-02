@@ -70,7 +70,7 @@ export default function SidebarNav({ collapsed = false, onNavigate }: SidebarNav
           <NavLink
             key={item.to}
             to={item.to}
-            className={({ isActive }) =>
+            className={({ isActive }: { isActive: boolean }) =>
               `${styles.link} ${isActive ? styles.linkActive : ''}`
             }
             onClick={onNavigate}

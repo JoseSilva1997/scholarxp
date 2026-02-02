@@ -400,8 +400,12 @@
 
 .inviteItemInactive {
   /* Fade out inactive invites to indicate they're not usable */
-  opacity: 0.65;
   background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+}
+
+.inviteItemInactive .inviteCardHeader {
+  /* Apply opacity only to the header content, not the actions */
+  opacity: 0.5;
 }
 
 .inviteItemInactive:hover {
@@ -558,19 +562,22 @@
 }
 
 .deleteButton {
-  /* Secondary action button to delete a revoked invite */
-  background: transparent;
-  color: var(--text-muted);
-  border: 1px solid #e5e7eb;
+  /* Secondary action button to delete a revoked or expired invite */
+  /* Positioned above the inactive invite's opacity filter with red background */
+  background: var(--error-600, #b31b1b);
+  color: white;
+  border: 1px solid var(--error-600, #b31b1b);
   padding: 8px 12px;
   border-radius: 8px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 120ms ease;
+  position: relative;
+  z-index: 1;
 }
 
 .deleteButton:hover {
-  background: #f3f4f6;
-  border-color: #d1d5db;
+  background: var(--error-700, #8f1414);
+  border-color: var(--error-700, #8f1414);
 }

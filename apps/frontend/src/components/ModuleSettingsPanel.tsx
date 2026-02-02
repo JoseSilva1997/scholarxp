@@ -238,6 +238,11 @@ export default function ModuleSettingsPanel({
     // Check if this is the currently copied invite to show success state
     const isCopied = copiedInviteId === invite.id;
 
+    // Determine if the invite is expired (time-based, usage-based, or revoked)
+    const expiryStatus = formatExpiry(invite);
+    const isExpired =
+      expiryStatus.startsWith('Expired') || invite.revokedAt;
+
     // Handle copy with visual feedback showing success state for 2 seconds
     const handleCopy = () => {
       navigator.clipboard
@@ -268,21 +273,21 @@ export default function ModuleSettingsPanel({
         ) : (
           <span className={styles.inviteHint}>Link expires after creation</span>
         )}
-        {!invite.revokedAt ? (
-          <button
-            type="button"
-            className={styles.revokeButton}
-            onClick={() => void handleRevoke(invite)}
-          >
-            Revoke
-          </button>
-        ) : (
+        {isExpired ? (
           <button
             type="button"
             className={styles.deleteButton}
             onClick={() => void handleDelete(invite)}
           >
             Delete
+          </button>
+        ) : (
+          <button
+            type="button"
+            className={styles.revokeButton}
+            onClick={() => void handleRevoke(invite)}
+          >
+            Revoke
           </button>
         )}
       </div>
