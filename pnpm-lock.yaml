@@ -49,6 +49,9 @@ importers:
       '@scholarxp/permissions':
         specifier: workspace:*
         version: link:../../packages/permissions
+      '@scholarxp/question-type-dtos':
+        specifier: workspace:*
+        version: link:../../packages/question-type-dtos
       bcryptjs:
         specifier: ^3.0.3
         version: 3.0.3
@@ -200,6 +203,9 @@ importers:
       '@scholarxp/permissions':
         specifier: workspace:*
         version: link:../../packages/permissions
+      '@scholarxp/question-type-dtos':
+        specifier: workspace:*
+        version: link:../../packages/question-type-dtos
       '@sentry/browser':
         specifier: ^8.55.0
         version: 8.55.0
@@ -253,6 +259,8 @@ importers:
   packages/constants: {}
 
   packages/permissions: {}
+
+  packages/question-type-dtos: {}
 
 packages:
 

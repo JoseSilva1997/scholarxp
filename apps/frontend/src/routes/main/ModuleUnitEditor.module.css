@@ -19,6 +19,22 @@
   gap: 12px;
 }
 
+.pageTitle {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--color-text);
+}
+
+.statusCard {
+  border: 1px solid var(--local-border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  background: var(--color-surface);
+  color: var(--color-muted);
+  box-shadow: var(--local-shadow);
+}
+
 
 .saveButton {
   align-self: center;

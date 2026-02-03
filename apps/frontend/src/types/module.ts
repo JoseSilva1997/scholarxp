@@ -35,6 +35,15 @@ export type ModuleUnitResponse = {
   questionGroups: ModuleUnitGroup[];
 };
 
+// Detailed payload for the editor screen; expands as more nested data (questions, variants, bodies) are added.
+export type ModuleUnitEditorDto = {
+  id: number;
+  moduleId: number | null;
+  title: string;
+  variantContext: string | null;
+  questionGroups: ModuleUnitGroup[];
+};
+
 export type ModuleInvite = {
   id: number;
   moduleId: number;

@@ -1,6 +1,11 @@
 // Module API helpers: fetch modules and module details with session cookies included.
 import { apiFetch } from './client';
-import type { ModuleSummary, ModuleUnitResponse, ModuleUnitStatus } from '../types/module';
+import type {
+  ModuleSummary,
+  ModuleUnitEditorDto,
+  ModuleUnitResponse,
+  ModuleUnitStatus,
+} from '../types/module';
 
 export async function listModules(): Promise<ModuleSummary[]> {
   return apiFetch<ModuleSummary[]>('/module', {
@@ -54,6 +59,12 @@ export async function updateModuleUnitStatus(
 
 export async function getModuleUnits(moduleId: number): Promise<ModuleUnitResponse[]> {
   return apiFetch<ModuleUnitResponse[]>(`/module/${moduleId}/units`, {
+    method: 'GET',
+  });
+}
+
+export async function getModuleUnitEditor(moduleId: number, moduleUnitId: number): Promise<ModuleUnitEditorDto> {
+  return apiFetch<ModuleUnitEditorDto>(`/module/${moduleId}/unit/${moduleUnitId}/editor`, {
     method: 'GET',
   });
 }

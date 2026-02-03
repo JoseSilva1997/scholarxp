@@ -3,6 +3,7 @@ import { ModuleUnitStatus } from '@prisma/client';
 import { CreateModuleUnitDto } from './dto/create-module-unit.dto';
 import { UpdateModuleUnitDto } from './dto/update-module-unit.dto';
 import { CreateModuleUnitMinimalDto } from './dto/create-module-unit-minimal.dto';
+import { ModuleUnitEditorDto } from './dto/module-unit-editor.dto';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
@@ -31,6 +32,33 @@ export class ModuleUnitService {
 
   async findOne(id: number) {
     return this.getOrThrow(id);
+  }
+
+  // Read payload tailored for the mudule-unit editor; expands with questions/variants later.
+  async findEditorPayload(id: number): Promise<ModuleUnitEditorDto> {
+    const record = await this.prisma.moduleUnit.findUnique({
+      where: { id },
+      include: {
+        questionGroups: {
+          orderBy: { sortOrder: 'asc' },
+        },
+      },
+    });
+    if (!record) {
+      throw new NotFoundException(`ModuleUnit ${id} not found`);
+    }
+    return {
+      id: record.id,
+      moduleId: record.moduleId,
+      title: record.title,
+      variantContext: record.variantContext,
+      questionGroups: record.questionGroups.map((group) => ({
+        id: group.id,
+        moduleUnitId: group.moduleUnitId,
+        name: group.name,
+        sortOrder: group.sortOrder,
+      })),
+    };
   }
 
   async update(id: number, updateModuleUnitDto: UpdateModuleUnitDto) {

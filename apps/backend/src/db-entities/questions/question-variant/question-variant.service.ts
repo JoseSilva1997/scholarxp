@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateQuestionVariantDto } from './dto/create-question-variant.dto';
 import { UpdateQuestionVariantDto } from './dto/update-question-variant.dto';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 
 @Injectable()
 export class QuestionVariantService {

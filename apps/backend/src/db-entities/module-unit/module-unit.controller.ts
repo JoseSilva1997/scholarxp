@@ -8,6 +8,7 @@ import {
   Delete,
   Req,
   UseGuards,
+  NotFoundException,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { ModuleUnitService } from './module-unit.service';
@@ -61,6 +62,20 @@ export class ModuleUnitController {
   @Get('module-unit/:id')
   findOne(@Param('id') id: string) {
     return this.moduleUnitService.findOne(+id);
+  }
+
+  @Get('module/:moduleId/unit/:unitId/editor')
+  @UseGuards(SessionAuthGuard, ModuleAccessGuard)
+  @ModuleAccess({ paramKey: 'moduleId', allowStudentRead: true })
+  async getEditorPayload(
+    @Param('moduleId') moduleId: string,
+    @Param('unitId') unitId: string,
+  ) {
+    const unit = await this.moduleUnitService.findEditorPayload(+unitId);
+    if (unit.moduleId !== +moduleId) {
+      throw new NotFoundException('Module unit not found');
+    }
+    return unit;
   }
 
   @Patch('module-unit/:id')

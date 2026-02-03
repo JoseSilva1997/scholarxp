@@ -1,4 +1,4 @@
-import { runCrudControllerTests } from '../../test/test-helpers';
+import { runCrudControllerTests } from '../../../test/test-helpers';
 import { QuestionUnitController } from './question-unit.controller';
 import { QuestionUnitService } from './question-unit.service';
 

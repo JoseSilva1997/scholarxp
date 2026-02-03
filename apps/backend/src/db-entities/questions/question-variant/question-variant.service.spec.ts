@@ -1,4 +1,4 @@
-import { runCrudServiceTests } from '../../test/test-helpers';
+import { runCrudServiceTests } from '../../../test/test-helpers';
 import { QuestionVariantService } from './question-variant.service';
 
 runCrudServiceTests({

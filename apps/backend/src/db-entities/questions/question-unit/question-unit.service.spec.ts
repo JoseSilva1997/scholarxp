@@ -1,7 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { createPrismaMock, PrismaMock } from '../../test/test-helpers';
-import { PrismaService } from '../../prisma/prisma.service';
+import { createPrismaMock, PrismaMock } from '../../../test/test-helpers';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { QuestionUnitService } from './question-unit.service';
 
 describe('QuestionUnitService', () => {
