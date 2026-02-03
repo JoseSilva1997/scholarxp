@@ -19,15 +19,10 @@ export default function StudentModuleUnitCard({ unit }: StudentModuleUnitCardPro
         <div className={styles.leftContainer} aria-hidden="true" />
         <div className={styles.content}>
           <div className={styles.header}>
-            <button
-              type="button"
-              className={styles.statusButton}
-              aria-label={isLocked ? 'Locked' : 'Available'}
-              title={isLocked ? 'Locked' : 'Available'}
-              disabled
-            >
+            {/* Badge placeholder: displays lock when unit is locked, badge when completed */}
+            <div className={styles.statusButton}>
               {isLocked ? <img src={lockIcon} alt="" aria-hidden="true" /> : null}
-            </button>
+            </div>
             <div className={styles.meta}>
               <h3 className={styles.title}>{unit.title}</h3>
             </div>
