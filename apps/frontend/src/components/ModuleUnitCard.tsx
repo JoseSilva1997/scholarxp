@@ -5,6 +5,7 @@ import checkIcon from '../assets/module-unit/module-unit-live-checkmark-white.sv
 import lockIcon from '../assets/module-unit/module-unit-padlock-white.svg';
 import styles from './ModuleUnitCard.module.css';
 import ConfirmPublishModal from './Modals/ConfirmPublishModal';
+import { useNavigate } from 'react-router-dom';
 
 export type ModuleUnitStatus = 'draft' | 'live' | 'locked';
 
@@ -31,6 +32,8 @@ export default function ModuleUnitCard({ unit, onChangeStatus }: ModuleUnitCardP
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const moduleId = window.location.pathname.split('/')[3]; // crude but effective way to get moduleId from URL
   // Sum all questions across groups so the subtitle reflects actual question volume rather than group count.
   const totalQuestions = unit.questionGroups.reduce(
     (sum, group) => sum + (group.questions?.length ?? 0),
@@ -72,7 +75,12 @@ export default function ModuleUnitCard({ unit, onChangeStatus }: ModuleUnitCardP
               <p className={styles.subtitle}>{totalQuestions} Questions</p>
             </div>
             <div className={styles.actions}>
-              <button type="button" className={styles.editButton} aria-label="Edit module unit">
+              <button 
+                type="button" 
+                className={styles.editButton} 
+                aria-label="Edit module unit"
+                onClick={() => {navigate(`/main/modules/${moduleId}/${unit.id}/editor`)}}
+                >
                 Edit
               </button>
             </div>

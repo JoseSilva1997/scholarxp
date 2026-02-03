@@ -1,0 +1,675 @@
+/* Layout and styling for the module unit editor workspace; restores row-based question + variant lanes. */
+.page {
+  --local-accent-primary-soft: rgba(76, 175, 80, 0.4);
+  --local-accent-secondary-soft: rgba(243, 206, 48, 0.4);
+  --local-border: rgba(15, 23, 42, 0.2);
+  --local-form-border: rgba(15, 23, 42, 0.2);
+  --local-surface-subtle: #e8f5e8;
+  --local-shadow: 0 12px 30px rgba(15, 23, 42, 0.15);
+}
+
+.page {
+  gap: 16px;
+}
+
+.pageHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+
+.saveButton {
+  align-self: center;
+  background: var(--btn-primary-gradient);
+  color: #fff;
+  border: none;
+  padding: 12px 18px;
+  border-radius: 999px;
+  font-weight: 700;
+  box-shadow: var(--btn-primary-shadow);
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.saveButton:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--btn-primary-shadow-hover);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 0.8fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.leftColumn,
+.rightColumn {
+  background: var(--color-surface);
+  border: 1px solid var(--local-border);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  box-shadow: var(--local-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.mainContent {
+  position: relative;
+  display: flex;
+  min-height: 600px;
+}
+
+.editorArea {
+  flex: 1;
+  padding: 20px;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--local-shadow);
+}
+
+.questionsPanel {
+  position: fixed;
+  top: 0;
+  right: -400px;
+  width: 380px;
+  height: 100vh;
+  background: var(--color-surface);
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+  transition: right 0.3s ease;
+  z-index: 1000;
+  overflow-y: auto;
+}
+
+.panelOpen {
+  right: 0;
+}
+
+.panelContent {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.togglePanelButton {
+  margin-left: auto;
+  padding: 8px 12px;
+  background: var(--local-accent-primary-soft);
+  border: 1px solid var(--local-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.togglePanelButton:hover {
+  background: var(--color-accent-primary-soft);
+}
+
+.closePanelButton {
+  margin-left: auto;
+  padding: 4px 8px;
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--color-muted);
+}
+
+.closePanelButton:hover {
+  color: var(--color-text);
+}
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-right: 8px;
+}
+
+.sectionHeader h2 {
+  margin: 0;
+}
+
+.helper {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+.editingMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-muted);
+}
+
+.editingLabel {
+  background: var(--color-accent-secondary);
+  color: var(--color-text);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.groupCard {
+  border: 1px solid var(--local-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-surface);
+}
+
+.groupHeader {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  color: var(--color-bg);
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--color-brand-surface-dark);
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.groupHeader:hover {
+  background: var(--color-brand-surface-dark-muted);
+}
+
+.groupHeader h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.groupTitleInput {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: var(--color-bg);
+  width: 100%;
+  outline: none;
+}
+
+.expandIcon {
+  font-size: 12px;
+  color: var(--color-bg);
+}
+
+.questionList {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.questionItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.questionBlock {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border: 1px solid var(--local-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.questionBlock:hover {
+  border-color: var(--color-accent-primary);
+}
+
+.questionBlock.selected {
+  color: var(--color-bg);
+  font-weight: 600;
+  border-color: var(--color-accent-primary);
+  background: var(--color-accent-primary);
+}
+
+.questionLabel {
+  font-weight: 500;
+}
+
+.questionType {
+  font-size: 12px;
+  color: var(--color-muted);
+  background: var(--color-bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.variantList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-left: 12px;
+}
+
+.variantBlock {
+  padding: 4px 8px;
+  border: 1px solid var(--local-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.variantBlock:hover {
+  border-color: var(--color-accent-secondary);
+}
+
+.selectedVariant {
+  border-color: var(--color-accent-secondary);
+  background: var(--local-accent-secondary-soft);
+}
+
+.selectedVariantFull {
+  background: var(--color-accent-secondary);
+  font-weight: 600;
+}
+
+.addVariantButton {
+  display: flex;
+  justify-content: start;
+  padding: 4px 8px;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  border: 1px dashed var(--local-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.addVariantIcon {
+  display: flex;
+  width: 14px;
+  height: 14px;
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  align-items: center;
+  justify-content: center;
+  align-content: center;
+  border-radius: 999px;
+  background-color: var(--color-brand-surface-dark);
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.addVariantButton:hover {
+  border-color: var(--color-accent-primary);
+  color: var(--color-accent-primary);
+}
+
+.addQuestion {
+  align-self: flex-start;
+  display: flex;
+  justify-content: start;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px dashed var(--local-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.addQuestionIcon {
+  display: flex;
+  width: 20px;
+  height: 20px;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  align-items: center;
+  justify-content: center;
+  align-content: center;
+  border-radius: 999px;
+  background-color: var(--color-brand-surface-dark);
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.addQuestion:hover {
+  border-color: var(--color-accent-primary);
+  color: var(--color-accent-primary);
+}
+
+.addGroup {
+  align-self: flex-start;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 4px 8px;
+  gap: 4px;
+  border: 1px dashed var(--local-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.addGroup:hover {
+  border-color: var(--color-accent-primary);
+  color: var(--color-accent-primary);
+}
+
+.addGroupIcon {
+  display: flex;
+  width: 24px;
+  height: 24px;
+  color: white;
+  font-size: 19px;
+  font-weight: 700;
+  align-items: center;
+  justify-content: center;
+  align-content: center;
+  border-radius: 999px;
+  background-color: var(--color-brand-surface-dark);
+  box-sizing: border-box;
+  flex-shrink: 0; 
+}
+
+.variantInstructions textarea,
+.label textarea,
+.label input,
+.optionInput,
+.rightColumn textarea {
+  width: 100%;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--local-border);
+  padding: 10px 12px;
+  font: inherit;
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
+.variantInstructions textarea {
+  min-height: 120px;
+}
+
+.typeToggle {
+  display: inline-flex;
+  gap: 8px;
+  background: var(--color-bg);
+  border-radius: 999px;
+  padding: 4px;
+  width: fit-content;
+  margin-bottom: 10px;
+}
+
+.typeChip {
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.typeChipActive {
+  background: var(--color-accent-primary-soft);
+  border-color: var(--color-accent-primary);
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.optionsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.optionCard {
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--color-surface-subtle);
+  margin-bottom: 12px;
+}
+
+.optionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.optionLabel {
+  font-weight: 700;
+}
+
+.correctToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.explanationLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.formActions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.primaryButton {
+  background: var(--btn-primary-gradient);
+  color: #fff;
+  border: none;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--btn-primary-shadow);
+}
+
+.secondaryButton {
+  background: transparent;
+  border: 1px solid var(--local-border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.variantInstructions {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.variantColumn {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (max-width: 1080px) {
+  .questionsPanel {
+    width: 320px;
+    right: -320px;
+  }
+
+  .editorArea {
+    padding: 15px;
+  }
+}
+
+@media (max-width: 720px) {
+  .pageHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .saveButton {
+    align-self: flex-start;
+  }
+
+  .questionsPanel {
+    width: 100vw;
+    right: -100vw;
+  }
+
+  .editorArea {
+    padding: 10px;
+  }
+
+  .questionRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .variantColumn {
+    width: 100%;
+  }
+}
+
+.formSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.optionsSection h3 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.optionsGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.optionCard {
+  border: 1px solid var(--local-border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  background: var(--color-surface-alt-muted);
+}
+
+.optionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.optionLabel {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.correctToggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.correctToggle input {
+  margin: 0;
+}
+
+.optionInput {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--local-form-border);
+  border-radius: var(--radius-md);
+  margin-bottom: 8px;
+}
+
+.explanationLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.explanationLabel textarea {
+  padding: 8px;
+  border: 1px solid var(--local-form-border);
+  border-radius: var(--radius-md);
+  resize: vertical;
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-weight: 500;
+}
+
+.label textarea {
+  padding: 8px;
+  border: 1px solid var(--local-form-border);
+  border-radius: var(--radius-md);
+  resize: vertical;
+  min-height: 80px;
+}
+
+.typeToggle {
+  display: flex;
+  gap: 8px;
+}
+
+.typeChip {
+  padding: 8px 16px;
+  border: 1px solid var(--local-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.typeChip:hover {
+  border-color: var(--color-accent-primary);
+}
+
+.typeChipActive {
+  background: var(--color-accent-primary);
+  color: #fff;
+  border-color: var(--color-accent-primary);
+}

@@ -7,19 +7,23 @@
   --color-bg: #f5f7fb;
   --color-surface: #fff;
   --color-surface-alt: #eaf2ff;
+  --color-surface-alt-muted: rgba(234, 242, 255, 0.5);
   --color-text: #303146;
   --color-muted: #334155;
   --color-brand-surface-dark: #303146;
+  --color-brand-surface-dark-muted: rgba(48, 49, 70, 0.7);
   --color-accent-primary: #4caf50; /* logo green */
   --color-accent-secondary: #f3ce30; /* logo yellow */
   --color-accent-secondary-strong: #f59e0b; /* Mmodule unit accents */
-  --color-accent-primary-soft: rgba(76, 175, 80, 0.12);
-  --color-border: rgba(15, 23, 42, 0.06);
+  --color-accent-primary-soft: rgba(76, 175, 80, 0.25);
+  --color-accent-secondary-soft: rgba(243, 206, 48, 0.25);
+  --color-border: rgba(15, 23, 42, 0.12);
   --color-border-strong: rgba(76, 175, 80, 0.2);
-  --color-form-field-border-soft: rgba(15, 23, 42, 0.2);
+  --color-form-field-border-soft: rgba(15, 23, 42, 0.3);
+  --color-surface-subtle: #f1f3f4;
 
   --shadow-lg: 0 16px 40px rgba(15, 23, 42, 0.12);
-  --shadow-md: 0 12px 30px rgba(15, 23, 42, 0.08);
+  --shadow-md: 0 12px 30px rgba(15, 23, 42, 0.12);
 
   --radius-lg: 20px;
   --radius-md: 14px;
