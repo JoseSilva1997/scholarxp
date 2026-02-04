@@ -1,0 +1,21 @@
+{
+  "name": "@scholarxp/api-contracts",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch --clean"
+  },
+  "devDependencies": {
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.3",
+    "@scholarxp/permissions": "workspace:*",
+    "@scholarxp/question-type-dtos": "workspace:*"
+  }
+}

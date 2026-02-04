@@ -7,7 +7,7 @@ import styles from './ModuleUnitCard.module.css';
 import ConfirmPublishModal from './Modals/ConfirmPublishModal';
 import { useNavigate } from 'react-router-dom';
 
-export type ModuleUnitStatus = 'draft' | 'live' | 'locked';
+export type ModuleUnitStatus = 'draft' | 'live' | 'locked' | 'archived';
 
 export type QuestionUnitGroup = {
   id: string;
@@ -44,6 +44,7 @@ export default function ModuleUnitCard({ unit, onChangeStatus }: ModuleUnitCardP
     draft: draftIcon,
     live: checkIcon,
     locked: lockIcon,
+    archived: lockIcon,
   }[unit.status];
 
   return (

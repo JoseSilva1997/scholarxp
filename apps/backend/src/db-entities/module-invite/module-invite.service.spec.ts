@@ -1,6 +1,6 @@
 // Targeted tests for ModuleInviteService enforcing capability checks and CRUD behavior.
 import { ForbiddenException, BadRequestException } from '@nestjs/common';
-import { GlobalRole, InviteType } from '@prisma/client';
+import { GlobalRole, InviteType, Prisma } from '@prisma/client';
 import { createHash } from 'crypto';
 import { ModuleInviteService } from './module-invite.service';
 import { createPrismaMock, type PrismaMock } from '../../test/test-helpers';
@@ -229,7 +229,12 @@ describe('ModuleInviteService', () => {
         createdAt: new Date(),
         emailLock: null,
       } as any);
-      prisma.userModule.create.mockRejectedValue({ code: 'P2002' } as any);
+      prisma.userModule.create.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Duplicate', {
+          code: 'P2002',
+          clientVersion: '5.x',
+        }),
+      );
       return cb(prisma as any);
     });
 

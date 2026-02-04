@@ -1,26 +1,18 @@
-import type { AuthResponse } from '../types/auth';
+import type { 
+  AuthResponse, 
+  LoginPayload, 
+  RegisterPayload, 
+  RegisterResponse,
+  LogoutResponse
+} from '@scholarxp/api-contracts';
 import { ApiError, apiFetch } from './client';
 
-export type RegisterByEmailPayload = {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
-};
-
-export type RegisterResponse = AuthResponse & { pendingEmailVerification?: boolean };
-
-export async function registerByEmail(payload: RegisterByEmailPayload): Promise<RegisterResponse> {
+export async function registerByEmail(payload: RegisterPayload): Promise<RegisterResponse> {
   return apiFetch<RegisterResponse>('/auth/register', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
 }
-
-export type LoginPayload = {
-  email: string;
-  password: string;
-};
 
 export async function login(payload: LoginPayload): Promise<AuthResponse> {
   return apiFetch<AuthResponse>('/auth/login', {
@@ -34,8 +26,6 @@ export async function getCurrentUser(): Promise<AuthResponse> {
     method: 'GET',
   });
 }
-
-export type LogoutResponse = { ok: boolean; csrfToken?: string };
 
 export async function logout(): Promise<LogoutResponse> {
   return apiFetch<LogoutResponse>('/auth/logout', {
@@ -58,3 +48,4 @@ export async function resendVerification(email: string): Promise<{ sent: boolean
 }
 
 export { ApiError };
+export type { LoginPayload, RegisterPayload, RegisterResponse, LogoutResponse };

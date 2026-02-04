@@ -154,6 +154,7 @@ interface CrudControllerTestConfig<TCreate, TUpdate> {
   updateDto: TUpdate;
   sampleResponse?: any;
   baseId?: number;
+  extraProviders?: any[];
 }
 
 export function runCrudControllerTests<TCreate, TUpdate>(
@@ -184,7 +185,10 @@ export function runCrudControllerTests<TCreate, TUpdate>(
       // Guards like ModuleAccessGuard have dependencies (PrismaService, Reflector) that aren't needed for controller unit tests.
       const moduleRef = await Test.createTestingModule({
         controllers: [config.controller],
-        providers: [{ provide: config.service, useValue: service }],
+        providers: [
+          { provide: config.service, useValue: service },
+          ...(config.extraProviders ?? []),
+        ],
       })
         .overrideGuard(ModuleAccessGuard)
         .useValue({ canActivate: jest.fn().mockReturnValue(true) })

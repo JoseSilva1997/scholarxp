@@ -1,5 +1,5 @@
 // DTO for creating a variant plus its content for a question unit.
-import { IsInt, IsNotEmpty, IsObject, IsOptional, IsString, Max, Min, IsIn, IsNumber } from 'class-validator';
+import { IsNotEmpty, IsObject, IsOptional, IsString, Max, Min, IsIn, IsNumber } from 'class-validator';
 import { QUESTION_TYPES } from '@scholarxp/question-type-dtos';
 import type { questionType, QuestionData } from '@scholarxp/question-type-dtos';
 import { CreateVariantPayload } from '@scholarxp/api-contracts';

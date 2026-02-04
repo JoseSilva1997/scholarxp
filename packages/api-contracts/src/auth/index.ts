@@ -1,0 +1,57 @@
+import type { FeatureKey } from '@scholarxp/permissions';
+
+/**
+ * Auth domain contracts for ScholarXP
+ */
+
+export type GlobalRole = 'pending' | 'admin' | 'institution_admin' | 'teacher' | 'student';
+
+export interface AuthUser {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  profilePictureUrl: string;
+  globalRole: GlobalRole;
+  isVerified: boolean;
+  institutionIds?: number[];
+  hasInstitutionMembership?: boolean;
+  ltiIdentities?: { institutionId: number; ltiUserId: string }[];
+  hasLtiIdentity?: boolean;
+  requiresEmailVerification?: boolean;
+  avatar?: {
+    id: number;
+    level: number;
+    currentExp: number;
+  } | null;
+  capabilities?: FeatureKey[];
+}
+
+export interface AuthResponse {
+  user: AuthUser | null;
+}
+
+export interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+export interface RegisterPayload {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+}
+
+export interface RegisterResponse extends AuthResponse {
+  pendingEmailVerification?: boolean;
+}
+
+export interface LogoutResponse {
+  ok: boolean;
+  csrfToken?: string;
+}
+
+export interface VerifyEmailPayload {
+  token: string;
+}

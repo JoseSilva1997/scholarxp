@@ -129,7 +129,7 @@ export default function SingleModulePage() {
   const handleCreateUnit = (title: string) => {
     if (!module) return;
     setIsSavingUnit(true);
-    createModuleUnit(module.id, title)
+    createModuleUnit(module.id, { title })
       .then((created) => {
         setModuleUnits((prev) => [
           {
@@ -157,7 +157,7 @@ export default function SingleModulePage() {
     if (!module) return;
     try {
       const numericId = Number(unitId);
-      const updated = await updateModuleUnitStatus(numericId, status);
+      const updated = await updateModuleUnitStatus(numericId, { status });
       setModuleUnits((prev) =>
         prev.map((u) =>
           u.id === unitId

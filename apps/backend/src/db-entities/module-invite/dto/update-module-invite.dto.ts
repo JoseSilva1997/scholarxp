@@ -5,8 +5,9 @@ import {
   IsOptional,
   Min,
 } from 'class-validator';
+import { UpdateInvitePayload } from '@scholarxp/api-contracts';
 
-export class UpdateModuleInviteDto {
+export class UpdateModuleInviteDto implements UpdateInvitePayload {
   @IsOptional()
   @IsInt()
   @Min(1)

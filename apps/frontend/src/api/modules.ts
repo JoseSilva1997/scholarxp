@@ -1,11 +1,13 @@
-// Module API helpers: fetch modules and module details with session cookies included.
-import { apiFetch } from './client';
-import type {
-  ModuleSummary,
-  ModuleUnitEditorDto,
+import type { 
+  CreateModulePayload,
+  UpdateModulePayload,
+  CreateModuleUnitMinimalPayload,
+  UpdateModuleUnitStatusPayload,
+  ModuleSummaryResponse as ModuleSummary,
   ModuleUnitResponse,
-  ModuleUnitStatus,
-} from '../types/module';
+  ModuleUnitEditorResponse as ModuleUnitEditorDto
+} from '@scholarxp/api-contracts';
+import { apiFetch } from './client';
 
 export async function listModules(): Promise<ModuleSummary[]> {
   return apiFetch<ModuleSummary[]>('/module', {
@@ -20,7 +22,7 @@ export async function getModuleById(id: number): Promise<ModuleSummary> {
 }
 
 export async function createModule(
-  payload: Pick<ModuleSummary, 'title' | 'variantContext' | 'description' | 'institutionId'>,
+  payload: CreateModulePayload,
 ): Promise<ModuleSummary> {
   return apiFetch<ModuleSummary>('/module', {
     method: 'POST',
@@ -30,9 +32,7 @@ export async function createModule(
 
 export async function updateModule(
   id: number,
-  payload: Partial<
-    Pick<ModuleSummary, 'title' | 'variantContext' | 'description' | 'institutionId'>
-  >,
+  payload: UpdateModulePayload,
 ): Promise<ModuleSummary> {
   return apiFetch<ModuleSummary>(`/module/${id}`, {
     method: 'PATCH',
@@ -40,20 +40,20 @@ export async function updateModule(
   });
 }
 
-export async function createModuleUnit(moduleId: number, title: string): Promise<ModuleUnitResponse> {
+export async function createModuleUnit(moduleId: number, payload: CreateModuleUnitMinimalPayload): Promise<ModuleUnitResponse> {
   return apiFetch<ModuleUnitResponse>(`/module/${moduleId}/units`, {
     method: 'POST',
-    body: JSON.stringify({ title }),
+    body: JSON.stringify(payload),
   });
 }
 
 export async function updateModuleUnitStatus(
   moduleUnitId: number,
-  status: ModuleUnitStatus,
+  payload: UpdateModuleUnitStatusPayload,
 ): Promise<ModuleUnitResponse> {
   return apiFetch<ModuleUnitResponse>(`/module-unit/${moduleUnitId}`, {
     method: 'PATCH',
-    body: JSON.stringify({ status }),
+    body: JSON.stringify(payload),
   });
 }
 

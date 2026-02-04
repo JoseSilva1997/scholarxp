@@ -17,8 +17,9 @@ import {
   PASSWORD_COMPLEXITY_REGEX,
   PASSWORD_MIN_LENGTH,
 } from '@scholarxp/constants';
+import { RegisterPayload } from '@scholarxp/api-contracts';
 
-export class RegisterDto {
+export class RegisterDto implements RegisterPayload {
   @Transform(({ value }: TransformFnParams) =>
     typeof value === 'string' ? value.trim() : (value as unknown),
   )

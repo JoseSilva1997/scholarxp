@@ -5,11 +5,15 @@ import { ModuleUnitService } from './module-unit.service';
 import * as permissions from '../../helpers/permissions.helper';
 import { ModuleAccessGuard } from '../../auth/guards/module-access.guard';
 import { SessionAuthGuard } from '../../auth/guards/session-auth.guard';
+import { QuestionUnitService } from '../questions/question-unit/question-unit.service';
 
 runCrudControllerTests({
   name: 'ModuleUnitController',
   controller: ModuleUnitController,
   service: ModuleUnitService,
+  extraProviders: [
+    { provide: QuestionUnitService, useValue: { findOne: jest.fn() } },
+  ],
   createDto: {
     moduleId: 1,
     variantContext: 'ctx',
@@ -28,6 +32,9 @@ describe('ModuleUnitController.createForModule', () => {
   const service = {
     createForModule: jest.fn(),
   } as unknown as ModuleUnitService;
+  const questionUnitService = {
+    findOne: jest.fn(),
+  } as unknown as QuestionUnitService;
 
   beforeEach(async () => {
     jest.spyOn(permissions, 'assertHasAccess').mockReturnValue(undefined);
@@ -35,7 +42,10 @@ describe('ModuleUnitController.createForModule', () => {
     // SessionAuthGuard and ModuleAccessGuard have external dependencies we don't need to test here.
     const moduleRef = await Test.createTestingModule({
       controllers: [ModuleUnitController],
-      providers: [{ provide: ModuleUnitService, useValue: service }],
+      providers: [
+        { provide: ModuleUnitService, useValue: service },
+        { provide: QuestionUnitService, useValue: questionUnitService },
+      ],
     })
       .overrideGuard(SessionAuthGuard)
       .useValue({ canActivate: jest.fn().mockReturnValue(true) })

@@ -27,7 +27,7 @@ import type {
 } from '../../components/question-types/QuestionTypeRegistry';
 import styles from './ModuleUnitEditor.module.css';
 
-// Local editor types derive from API contracts but allow for local UI state (like isDraft and string IDs for temp items).
+// Local editor types derived from API contracts but allow local UI state (like isDraft and string IDs for temp items).
 type QuestionContent = Omit<ModuleUnitEditorContent, 'id' | 'questionUnitId'> & {
   id: string;
   questionUnitId: string;

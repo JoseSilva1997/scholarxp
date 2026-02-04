@@ -1,6 +1,7 @@
 import { IsInt, IsOptional, Min } from 'class-validator';
+import { CreateInvitePayload } from '@scholarxp/api-contracts';
 
-export class CreateModuleInviteDto {
+export class CreateModuleInviteDto implements CreateInvitePayload {
   // Allow instructors to override the default expiry window; validated in hours to keep inputs simple.
   @IsOptional()
   @IsInt()

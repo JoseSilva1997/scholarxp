@@ -5,8 +5,9 @@ import {
   IsString,
   MaxLength,
 } from 'class-validator';
+import { CreateModulePayload } from '@scholarxp/api-contracts';
 
-export class CreateModuleDto {
+export class CreateModuleDto implements CreateModulePayload {
   @IsInt()
   @IsOptional()
   institutionId?: number;

@@ -1,26 +1,12 @@
 // API helpers for module invites: keep link creation/redeem calls centralized so UI stays lean.
-import { apiFetch } from './client';
-import type {
+import type { 
+  CreateInvitePayload, 
+  UpdateInvitePayload, 
+  RedeemInviteResponse, 
   CreateModuleInviteResponse,
-  ModuleInvite,
-} from '../types/module';
-
-type CreateInvitePayload = {
-  expiresInHours?: number;
-  maxUses?: number;
-};
-
-type UpdateInvitePayload = {
-  maxUses?: number;
-  expiresAt?: string;
-  revoke?: boolean;
-};
-
-type RedeemInviteResponse = {
-  moduleId: number;
-  inviteId: number;
-  enrollmentId: number;
-};
+  ModuleInviteResponse as ModuleInvite
+} from '@scholarxp/api-contracts';
+import { apiFetch } from './client';
 
 export async function createModuleInvite(
   moduleId: number,
