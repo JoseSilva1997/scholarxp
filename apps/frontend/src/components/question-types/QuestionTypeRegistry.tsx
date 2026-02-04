@@ -1,0 +1,130 @@
+/**
+ * Central registry for question types in the ScholarXP authoring tool.
+ * This file provides a uniform interface for rendering forms, validating input, and building API payloads.
+ */
+import React from 'react';
+import type { mcqQuestionDto, TrueFalseQuestionDto, questionType } from '@scholarxp/question-type-dtos';
+import { McqForm } from './forms/McqForm';
+import { TrueFalseForm } from './forms/TrueFalseForm';
+
+// Helper to keep IDs predictable for the UI session
+// These are used for client-side keys and matching until content is persisted to the backend.
+let nextId = 1;
+export const makeId = () => `local-${nextId++}`;
+
+export type QuestionType = questionType;
+
+/**
+ * Normalizes question type strings and provides a safe default.
+ * Use this when loading content from the backend to ensure the editor state is valid.
+ */
+export const normalizeQuestionType = (type: string | undefined | null): QuestionType => {
+  if (type && QUESTION_TYPE_CONFIGS[type as QuestionType]) {
+    return type as QuestionType;
+  }
+
+  return 'mcq'; // Default to MCQ for unknown or missing types
+};
+
+/**
+ * Standard props shared by all question type form components.
+ */
+export interface BaseQuestionFormProps {
+  options: { id: string; value: string; isCorrect: boolean; explanation: string }[];
+  onChangeOption: (id: string, value: string) => void;
+  onChangeExplanation: (id: string, value: string) => void;
+  onSelectCorrect: (id: string) => void;
+}
+
+/**
+ * Represents the internal state of the question being edited.
+ */
+export type QuestionForm = {
+  stem: string;
+  type: QuestionType;
+  options: { value: string; isCorrect: boolean; id: string }[];
+  explanations: string[];
+  hint: string;
+};
+
+/**
+ * Configuration schema for a specific question type.
+ * Defining these properties allows the editor to handle any type generically.
+ */
+export interface QuestionTypeConfig {
+  type: QuestionType;
+  label: string;
+  component: React.ComponentType<BaseQuestionFormProps>;
+  // Generates empty options/explanations when creating a new question or switching types.
+  getInitialOptions: (mcqOptionSlots: number) => { options: QuestionForm['options']; explanations: string[] };
+  // Transforms the generic form state into the specific DTO expected by the backend API.
+  buildQuestionData: (form: QuestionForm) => Record<string, unknown>;
+  // Quality check before permitting a save; returns an error message or null if valid.
+  validate: (form: QuestionForm) => string | null;
+}
+
+/**
+ * The single source of truth for supported question types in the editor.
+ * Adding a new type here (along with a Form component) automatically updates the Editor UI.
+ */
+export const QUESTION_TYPE_CONFIGS: Record<QuestionType, QuestionTypeConfig> = {
+  mcq: {
+    type: 'mcq',
+    label: 'Multiple Choice',
+    component: McqForm,
+    getInitialOptions: (slots) => ({
+      // Seed with empty MCQ slots based on the provided template length.
+      options: Array.from({ length: slots }, () => ({ id: makeId(), value: '', isCorrect: false })),
+      explanations: Array.from({ length: slots }, () => ''),
+    }),
+    buildQuestionData: (form) => {
+      // Map options and explanations into the mcqQuestionDto structure.
+      const correctIndex = form.options.findIndex((opt) => opt.isCorrect);
+      return {
+        options: form.options.map((opt, idx) => ({
+          optionText: opt.value,
+          explanation: form.explanations[idx] ?? '',
+        })),
+        correctOptionIndex: correctIndex,
+      } as mcqQuestionDto;
+    },
+    validate: (form) => {
+      // MCQ requires valid selection and at least some content.
+      const correctIndex = form.options.findIndex((opt) => opt.isCorrect);
+      if (correctIndex === -1) return 'Select which option is correct before saving.';
+      if (form.options.every(opt => !opt.value.trim())) return 'At least one option must have text.';
+      return null;
+    },
+  },
+  'true-false': {
+    type: 'true-false',
+    label: 'True/False',
+    component: TrueFalseForm,
+    getInitialOptions: () => ({
+      // T/F always has exactly two options.
+      options: [
+        { id: makeId(), value: '', isCorrect: false },
+        { id: makeId(), value: '', isCorrect: false },
+      ],
+      explanations: ['', ''],
+    }),
+    buildQuestionData: (form) => {
+      // T/F DTO expects binary choices; we slice the first two options just in case.
+      const correctIndex = form.options.findIndex((opt) => opt.isCorrect);
+      return {
+        options: form.options.slice(0, 2).map((opt, idx) => ({
+          optionText: opt.value,
+          explanation: form.explanations[idx] ?? '',
+        })),
+        correctOptionIndex: Math.min(correctIndex, 1),
+      } as TrueFalseQuestionDto;
+    },
+    validate: (form) => {
+      // Ensure one of the binary options is selected.
+      const correctIndex = form.options.findIndex((opt) => opt.isCorrect);
+      if (correctIndex === -1) return 'Select which option is correct before saving.';
+      return null;
+    },
+  },
+};
+

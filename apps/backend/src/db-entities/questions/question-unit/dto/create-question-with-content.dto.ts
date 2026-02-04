@@ -10,8 +10,9 @@ import {
   IsIn,
   IsNumber,
 } from 'class-validator';
+import type { questionType } from '@scholarxp/question-type-dtos';
 
-type QuestionType = 'mcq' | 'trueFalse';
+const QUESTION_TYPES: questionType[] = ['mcq', 'true-false'];
 
 export class CreateQuestionWithContentDto {
   @IsOptional()
@@ -26,8 +27,8 @@ export class CreateQuestionWithContentDto {
   @IsNotEmpty()
   questionStem: string;
 
-  @IsIn(['mcq', 'trueFalse'])
-  questionType: QuestionType;
+  @IsIn(QUESTION_TYPES)
+  questionType: questionType;
 
   @IsObject()
   @IsNotEmpty()

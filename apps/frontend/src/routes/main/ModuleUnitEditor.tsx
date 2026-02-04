@@ -10,12 +10,17 @@ import {
 } from '../../api/questions';
 import { logError } from '../../utils/logger';
 import { emptyMcqTemplate } from '@scholarxp/question-type-dtos';
-import type { mcqQuestionDto, TrueFalseQuestionDto } from '@scholarxp/question-type-dtos';
-import { McqForm } from '../../components/question-types/McqForm';
-import { TrueFalseForm } from '../../components/question-types/TrueFalseForm';
+import { 
+  QUESTION_TYPE_CONFIGS, 
+  makeId,
+  normalizeQuestionType,
+} from '../../components/question-types/QuestionTypeRegistry';
+import type { 
+  QuestionType, 
+  QuestionForm, 
+  QuestionTypeConfig, 
+} from '../../components/question-types/QuestionTypeRegistry';
 import styles from './ModuleUnitEditor.module.css';
-
-type QuestionType = 'mcq' | 'trueFalse';
 
 type Variant = {
   id: string;
@@ -50,18 +55,6 @@ type QuestionGroup = {
   title: string;
   questions: Question[];
 };
-
-type QuestionForm = {
-  stem: string;
-  type: QuestionType;
-  options: { value: string; isCorrect: boolean; id: string }[];
-  explanations: string[];
-  hint: string;
-};
-
-// Helpers keep ids predictable for now; will be replaced by backend ids later.
-let nextId = 1;
-const makeId = () => `${nextId++}`;
 
 export default function ModuleUnitEditor() {
   const { moduleId, unitId } = useParams<{ moduleId: string; unitId: string }>();
@@ -101,57 +94,67 @@ export default function ModuleUnitEditor() {
 
   const resetOptionsForType = useCallback(
     (type: QuestionType) => {
-      if (type === 'mcq') {
-        return {
-          options: Array.from({ length: mcqOptionSlots }, () => ({ id: makeId(), value: '', isCorrect: false })),
-          explanations: Array.from({ length: mcqOptionSlots }, () => ''),
-        };
-      }
-      return {
-        options: [
-          { id: makeId(), value: '', isCorrect: false },
-          { id: makeId(), value: '', isCorrect: false },
-        ],
-        explanations: ['', ''],
-      };
+      return QUESTION_TYPE_CONFIGS[type].getInitialOptions(mcqOptionSlots);
     },
     [mcqOptionSlots],
   );
 
-  const clearOppositeTypeCache = useCallback(
+  const clearOtherTypesCache = useCallback(
     (cacheKey: string, savedType: QuestionType) => {
-      const otherType: QuestionType = savedType === 'mcq' ? 'trueFalse' : 'mcq';
       const existing = questionTypeCacheRef.current.get(cacheKey) ?? {};
-      questionTypeCacheRef.current.set(cacheKey, {
-        ...existing,
-        [otherType]: resetOptionsForType(otherType),
+      const nextCache: Partial<Record<QuestionType, { options: QuestionForm['options']; explanations: string[] }>> = {
+        [savedType]: existing[savedType],
+      };
+
+      (Object.keys(QUESTION_TYPE_CONFIGS) as QuestionType[]).forEach((type) => {
+        if (type !== savedType) {
+          nextCache[type] = resetOptionsForType(type);
+        }
       });
+
+      questionTypeCacheRef.current.set(cacheKey, nextCache);
     },
     [resetOptionsForType],
   );
 
-  const buildMcqOptions = () => {
-    const slots = mcqOptionSlots;
-    const opts = form.options.slice(0, slots).map((opt, idx) => ({
-      optionText: opt.value,
-      explanation: form.explanations[idx] ?? '',
-    }));
-    while (opts.length < slots) {
-      opts.push({ optionText: '', explanation: '' });
-    }
-    return opts as mcqQuestionDto['options'];
-  };
+  const loadContentIntoForm = useCallback(
+    (content: QuestionContent | undefined, cacheKey: string) => {
+      if (!content) {
+        setForm(buildInitialForm());
+        return;
+      }
+      const type = normalizeQuestionType(content.type);
+      const data = content.questionData as { options?: { optionText: string; explanation?: string }[]; correctOptionIndex?: number };
+      const correctIndex = Number.isInteger(data?.correctOptionIndex) ? (data?.correctOptionIndex as number) : 0;
+      const baseOptions = QUESTION_TYPE_CONFIGS[type].getInitialOptions(mcqOptionSlots);
 
-  const buildTrueFalseOptions = () => {
-    const opts = form.options.slice(0, 2).map((opt, idx) => ({
-      optionText: opt.value,
-      explanation: form.explanations[idx] ?? '',
-    }));
-    while (opts.length < 2) {
-      opts.push({ optionText: '', explanation: '' });
-    }
-    return [opts[0], opts[1]] as TrueFalseQuestionDto['options'];
-  };
+      const mergedOptions = baseOptions.options.map((base, idx) => ({
+        ...base,
+        value: data?.options?.[idx]?.optionText ?? base.value,
+        isCorrect: idx === correctIndex,
+      }));
+      const mergedExplanations = baseOptions.explanations.map((base, idx) => {
+        return data?.options?.[idx]?.explanation ?? base;
+      });
+
+      setForm({
+        stem: content.questionStem,
+        type,
+        options: mergedOptions,
+        explanations: mergedExplanations,
+        hint: content.hint ?? '',
+      });
+      // Store loaded content in cache so type toggles can restore it later.
+      questionTypeCacheRef.current.set(cacheKey, {
+        ...(questionTypeCacheRef.current.get(cacheKey) ?? {}),
+        [type]: {
+          options: mergedOptions,
+          explanations: mergedExplanations,
+        },
+      });
+    },
+    [buildInitialForm, mcqOptionSlots],
+  );
 
   const [form, setForm] = useState<QuestionForm>(buildInitialForm);
 
@@ -250,51 +253,6 @@ export default function ModuleUnitEditor() {
     setGroups((prev) => prev.map((group) => (group.id === groupId ? { ...group, title: newTitle } : group)));
   };
 
-  const loadContentIntoForm = useCallback(
-    (content: QuestionContent | undefined, cacheKey: string) => {
-      if (!content) {
-        setForm(buildInitialForm());
-        return;
-      }
-      const type = content.type === 'trueFalse' ? 'trueFalse' : 'mcq';
-      const data = content.questionData as { options?: { optionText: string; explanation?: string }[]; correctOptionIndex?: number };
-      const correctIndex = Number.isInteger(data?.correctOptionIndex) ? (data?.correctOptionIndex as number) : 0;
-      const baseOptions =
-        type === 'mcq'
-          ? Array.from({ length: mcqOptionSlots }, () => ({ optionText: '', explanation: '' }))
-          : [
-              { optionText: '', explanation: '' },
-              { optionText: '', explanation: '' },
-            ];
-      const merged = baseOptions.map((base, idx) => ({
-        ...base,
-        ...(data?.options?.[idx] ?? {}),
-      }));
-      const mappedOptions = merged.map((opt, idx) => ({
-        id: makeId(),
-        value: opt.optionText ?? '',
-        isCorrect: idx === correctIndex,
-      }));
-      const mappedExplanations = merged.map((opt) => opt.explanation ?? '');
-      setForm({
-        stem: content.questionStem,
-        type,
-        options: mappedOptions,
-        explanations: mappedExplanations,
-        hint: content.hint ?? '',
-      });
-      // Store loaded content in cache so type toggles can restore it later.
-      questionTypeCacheRef.current.set(cacheKey, {
-        ...(questionTypeCacheRef.current.get(cacheKey) ?? {}),
-        [type]: {
-          options: mappedOptions,
-          explanations: mappedExplanations,
-        },
-      });
-    },
-    [buildInitialForm, mcqOptionSlots],
-  );
-
   const handleAddQuestion = (groupId: string) => {
     const group = groups.find((g) => g.id === groupId);
     const lastQuestion = group?.questions[group.questions.length - 1];
@@ -320,14 +278,12 @@ export default function ModuleUnitEditor() {
         group.id === groupId ? { ...group, questions: [...group.questions, newQuestion] } : group,
       ),
     );
-    // Seed cache for MCQ type so toggling away and back restores inputs.
-    questionTypeCacheRef.current.set(draftQuestionId, {
-      mcq: {
-        options: buildInitialForm().options,
-        explanations: buildInitialForm().explanations,
-      },
-      trueFalse: resetOptionsForType('trueFalse'),
+    // Seed cache for all types so toggling restores inputs.
+    const initialCache: Partial<Record<QuestionType, { options: QuestionForm['options']; explanations: string[] }>> = {};
+    (Object.keys(QUESTION_TYPE_CONFIGS) as QuestionType[]).forEach((type) => {
+      initialCache[type] = resetOptionsForType(type);
     });
+    questionTypeCacheRef.current.set(draftQuestionId, initialCache);
     setExpandedGroups((prev) => new Set([...prev, groupId]));
     setSelected({ groupId, questionId: draftQuestionId, variantId: null });
     setForm(buildInitialForm());
@@ -450,43 +406,24 @@ export default function ModuleUnitEditor() {
       setSaveError('Pick a question to save.');
       return;
     }
-    // Prevent saving a variant when the parent is still draft; enforce core-first save order.
-    const correctIndex = form.options.findIndex((opt) => opt.isCorrect);
-    if (correctIndex === -1) {
-      setSaveError('Select which option is correct before saving.');
+
+    const validationError = QUESTION_TYPE_CONFIGS[form.type].validate(form);
+    if (validationError) {
+      setSaveError(validationError);
       return;
     }
 
-    const payload =
-      form.type === 'mcq'
-        ? ({
-            questionGroupId: numericGroupId,
-            title: targetQuestion.title,
-            questionStem: form.stem,
-            questionType: 'mcq',
-            questionData: {
-              options: buildMcqOptions(),
-              correctOptionIndex: correctIndex,
-            } satisfies mcqQuestionDto,
-            hint: form.hint,
-            difficultyScore: 0,
-            source: 'author',
-            status: 'draft',
-        } as const)
-        : ({
-            questionGroupId: numericGroupId,
-            title: targetQuestion.title,
-            questionStem: form.stem,
-            questionType: 'trueFalse',
-            questionData: {
-              options: buildTrueFalseOptions(),
-              correctOptionIndex: Math.min(correctIndex, 1),
-            } satisfies TrueFalseQuestionDto,
-            hint: form.hint,
-            difficultyScore: 0,
-            source: 'author',
-            status: 'draft',
-          } as const);
+    const payload = {
+      questionGroupId: numericGroupId,
+      title: targetQuestion.title,
+      questionStem: form.stem,
+      questionType: form.type,
+      questionData: QUESTION_TYPE_CONFIGS[form.type].buildQuestionData(form),
+      hint: form.hint,
+      difficultyScore: 0,
+      source: 'author',
+      status: 'draft',
+    } as const;
 
     setIsSavingQuestion(true);
     if (selected.variantId) {
@@ -552,34 +489,16 @@ export default function ModuleUnitEditor() {
 
         if (variant.isDraft || !variant.content) {
           // Draft variants are created only when the user explicitly saves.
-          const variantPayload =
-            form.type === 'mcq'
-              ? ({
-                  variantLabel: (variant.label ?? 'Variant').replace(/\s+\(draft\)$/i, ''),
-                  questionStem: form.stem,
-                  questionType: 'mcq',
-                  questionData: {
-                    options: buildMcqOptions(),
-                    correctOptionIndex: correctIndex,
-                  } satisfies mcqQuestionDto,
-                  hint: form.hint,
-                  difficultyScore: 0,
-                  source: 'author',
-                  status: 'draft',
-                } as const)
-              : ({
-                  variantLabel: (variant.label ?? 'Variant').replace(/\s+\(draft\)$/i, ''),
-                  questionStem: form.stem,
-                  questionType: 'trueFalse',
-                  questionData: {
-                    options: buildTrueFalseOptions(),
-                    correctOptionIndex: Math.min(correctIndex, 1),
-                  } satisfies TrueFalseQuestionDto,
-                  hint: form.hint,
-                  difficultyScore: 0,
-                  source: 'author',
-                  status: 'draft',
-                } as const);
+          const variantPayload = {
+            variantLabel: (variant.label ?? 'Variant').replace(/\s+\(draft\)$/i, ''),
+            questionStem: form.stem,
+            questionType: form.type,
+            questionData: QUESTION_TYPE_CONFIGS[form.type].buildQuestionData(form),
+            hint: form.hint,
+            difficultyScore: 0,
+            source: 'author',
+            status: 'draft',
+          } as const;
 
           const createdVariant = await createVariantForQuestion(
             parsedModuleId,
@@ -627,7 +546,7 @@ export default function ModuleUnitEditor() {
         );
 
           setSelected({ groupId: targetGroupId, questionId: persistedQuestionId, variantId: String(createdVariant.variant.id) });
-          clearOppositeTypeCache(`${persistedQuestionId}-variant-${createdVariant.variant.id}`, payload.questionType as QuestionType);
+          clearOtherTypesCache(`${persistedQuestionId}-variant-${createdVariant.variant.id}`, payload.questionType as QuestionType);
         } else {
           await updateQuestionContentScoped(
             parsedModuleId,
@@ -687,7 +606,7 @@ export default function ModuleUnitEditor() {
               : group,
           ),
         );
-          clearOppositeTypeCache(`${persistedQuestionId}-variant-${selected.variantId}`, payload.questionType as QuestionType);
+          clearOtherTypesCache(`${persistedQuestionId}-variant-${selected.variantId}`, payload.questionType as QuestionType);
         }
       } else {
         // Save or update the core question content.
@@ -740,7 +659,7 @@ export default function ModuleUnitEditor() {
               : group,
           ),
         );
-        clearOppositeTypeCache(`${persistedQuestionId}-core`, payload.questionType as QuestionType);
+        clearOtherTypesCache(`${persistedQuestionId}-core`, payload.questionType as QuestionType);
       }
     } catch (err) {
       setSaveError('Could not save the question. Please try again.');
@@ -778,7 +697,7 @@ export default function ModuleUnitEditor() {
           const questions = (g.questions ?? []).map((q) => ({
             id: String(q.id),
             title: q.title,
-            type: (q.type === 'trueFalse' ? 'trueFalse' : 'mcq') as QuestionType,
+            type: normalizeQuestionType(q.type),
             variants: (q.variants ?? []).map((v) => ({
               id: String(v.id),
               label: v.variantLabel,
@@ -788,7 +707,7 @@ export default function ModuleUnitEditor() {
                     questionUnitId: String(v.content.questionUnitId ?? q.id),
                     questionStem: v.content.questionStem,
                     questionData: v.content.questionData,
-                    type: v.content.type,
+                    type: normalizeQuestionType(v.content.type),
                     hint: v.content.hint ?? null,
                     difficultyScore: v.content.difficultyScore ?? 0,
                     source: v.content.source ?? 'author',
@@ -802,7 +721,7 @@ export default function ModuleUnitEditor() {
                   questionUnitId: String(q.coreContent.questionUnitId),
                   questionStem: q.coreContent.questionStem,
                   questionData: q.coreContent.questionData,
-                  type: q.coreContent.type,
+                  type: normalizeQuestionType(q.coreContent.type),
                   hint: q.coreContent.hint ?? null,
                   difficultyScore: q.coreContent.difficultyScore ?? 0,
                   source: q.coreContent.source ?? 'author',
@@ -941,7 +860,7 @@ export default function ModuleUnitEditor() {
                               onClick={() => setSelected({ groupId: group.id, questionId: question.id, variantId: null })}
                             >
                               <span className={styles.questionLabel}>{question.title}</span>
-                              <span className={styles.questionType}>{question.type === 'mcq' ? 'MCQ' : 'True/False'}</span>
+                              <span className={styles.questionType}>{QUESTION_TYPE_CONFIGS[question.type].label}</span>
                             </button>
                             <div className={styles.variantList}>
                               {question.variants.map((variant) => (
@@ -1040,20 +959,16 @@ export default function ModuleUnitEditor() {
               </div>
               <label className={styles.label} id='question-type-lable'>Question Type (Select one):</label>
               <div className={styles.typeToggle}>
-                <button
-                  type="button"
-                  className={`${styles.typeChip} ${form.type === 'mcq' ? styles.typeChipActive : ''}`}
-                  onClick={() => handleTypeChange('mcq')}
-                >
-                  Multiple Choice
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.typeChip} ${form.type === 'trueFalse' ? styles.typeChipActive : ''}`}
-                  onClick={() => handleTypeChange('trueFalse')}
-                >
-                  True/False
-                </button>
+                {(Object.values(QUESTION_TYPE_CONFIGS) as QuestionTypeConfig[]).map((config) => (
+                  <button
+                    key={config.type}
+                    type="button"
+                    className={`${styles.typeChip} ${form.type === config.type ? styles.typeChipActive : ''}`}
+                    onClick={() => handleTypeChange(config.type)}
+                  >
+                    {config.label}
+                  </button>
+                ))}
               </div>
 
               <label className={styles.label}>
@@ -1066,33 +981,24 @@ export default function ModuleUnitEditor() {
                 />
               </label>
 
-              {form.type === 'mcq' ? (
-                <McqForm
-                  options={form.options.map((opt, idx) => ({
-                    ...opt,
-                    explanation: form.explanations[idx] ?? '',
-                  }))}
-                  onChangeOption={handleOptionChange}
-                  onChangeExplanation={(id, value) => {
-                    const idx = form.options.findIndex((o) => o.id === id);
-                    if (idx >= 0) handleExplanationChange(idx, value);
-                  }}
-                  onSelectCorrect={setCorrectOption}
-                />
-              ) : (
-                <TrueFalseForm
-                  options={form.options.slice(0, 2).map((opt, idx) => ({
-                    ...opt,
-                    explanation: form.explanations[idx] ?? '',
-                  }))}
-                  onChangeOption={handleOptionChange}
-                  onChangeExplanation={(id, value) => {
-                    const idx = form.options.findIndex((o) => o.id === id);
-                    if (idx >= 0) handleExplanationChange(idx, value);
-                  }}
-                  onSelectCorrect={setCorrectOption}
-                />
-              )}
+              {(() => {
+                const Config = QUESTION_TYPE_CONFIGS[form.type];
+                const FormComponent = Config.component;
+                return (
+                  <FormComponent
+                    options={form.options.map((opt, idx) => ({
+                      ...opt,
+                      explanation: form.explanations[idx] ?? '',
+                    }))}
+                    onChangeOption={handleOptionChange}
+                    onChangeExplanation={(id, value) => {
+                      const idx = form.options.findIndex((o) => o.id === id);
+                      if (idx >= 0) handleExplanationChange(idx, value);
+                    }}
+                    onSelectCorrect={setCorrectOption}
+                  />
+                );
+              })()}
 
               <label className={styles.label}>
                 💡 Hint (Optional)

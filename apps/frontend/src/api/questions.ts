@@ -1,10 +1,11 @@
 // Question creation API helpers scoped to module/unit authoring.
 import { apiFetch } from './client';
+import type { questionType } from '@scholarxp/question-type-dtos';
 
 // Shared payload for question content endpoints; kept narrow to satisfy backend whitelist validation.
 export type QuestionContentRequest = {
   questionStem: string;
-  questionType: 'mcq' | 'trueFalse';
+  questionType: questionType;
   questionData: Record<string, unknown>;
   hint?: string | null;
   difficultyScore: number;
