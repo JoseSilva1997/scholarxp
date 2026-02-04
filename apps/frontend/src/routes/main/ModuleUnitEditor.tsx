@@ -1,6 +1,6 @@
 // Module unit authoring workspace UI for adding questions, variants, and context before wiring backend.
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import MainSection from '../../components/MainSection';
 import { getModuleUnitEditor } from '../../api/modules';
 import {
@@ -797,6 +797,11 @@ export default function ModuleUnitEditor() {
   if (!parsedUnitId || !parsedModuleId) {
     return (
       <MainSection className={styles.page}>
+        <div className={styles.topBar}>
+          <Link className={styles.backLink} to={`/main/modules/${moduleId}`}>
+            ← Back to module
+          </Link>
+        </div>
         <div className={styles.statusCard} role="alert">
           Module unit not found.
         </div>
@@ -806,6 +811,11 @@ export default function ModuleUnitEditor() {
 
   return (
     <MainSection className={styles.page}>
+      <div className={styles.topBar}>
+        <Link className={styles.backLink} to={`/main/modules/${moduleId}`}>
+          ← Back to module
+        </Link>
+      </div>
       {isLoading ? (
         <div className={styles.statusCard}>Loading module unit…</div>
       ) : error ? (
