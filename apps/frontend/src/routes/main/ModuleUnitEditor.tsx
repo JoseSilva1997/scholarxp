@@ -415,7 +415,7 @@ export default function ModuleUnitEditor() {
 
     const payload = {
       questionGroupId: numericGroupId,
-      title: targetQuestion.title,
+      title: targetQuestion.title.replace(/\s+\(draft\)$/i, ''),
       questionStem: form.stem,
       questionType: form.type,
       questionData: QUESTION_TYPE_CONFIGS[form.type].buildQuestionData(form),
