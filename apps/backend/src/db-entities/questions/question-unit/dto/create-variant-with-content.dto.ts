@@ -2,8 +2,9 @@
 import { IsInt, IsNotEmpty, IsObject, IsOptional, IsString, Max, Min, IsIn, IsNumber } from 'class-validator';
 import { QUESTION_TYPES } from '@scholarxp/question-type-dtos';
 import type { questionType, QuestionData } from '@scholarxp/question-type-dtos';
+import { CreateVariantPayload } from '@scholarxp/api-contracts';
 
-export class CreateVariantWithContentDto {
+export class CreateVariantWithContentDto implements CreateVariantPayload {
   @IsString()
   @IsNotEmpty()
   variantLabel: string;
@@ -13,7 +14,7 @@ export class CreateVariantWithContentDto {
   questionStem: string;
 
   @IsIn(QUESTION_TYPES)
-  questionType: questionType;
+  type: questionType;
 
   @IsObject()
   @IsNotEmpty()

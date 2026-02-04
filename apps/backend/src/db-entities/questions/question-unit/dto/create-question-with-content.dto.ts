@@ -12,8 +12,9 @@ import {
 } from 'class-validator';
 import { QUESTION_TYPES } from '@scholarxp/question-type-dtos';
 import type { questionType, QuestionData } from '@scholarxp/question-type-dtos';
+import { CreateQuestionPayload } from '@scholarxp/api-contracts';
 
-export class CreateQuestionWithContentDto {
+export class CreateQuestionWithContentDto implements CreateQuestionPayload {
   @IsOptional()
   @IsInt()
   questionGroupId?: number;
@@ -27,7 +28,7 @@ export class CreateQuestionWithContentDto {
   questionStem: string;
 
   @IsIn(QUESTION_TYPES)
-  questionType: questionType;
+  type: questionType;
 
   @IsObject()
   @IsNotEmpty()

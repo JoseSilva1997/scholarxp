@@ -135,7 +135,7 @@ export class QuestionUnitService {
           questionStem: payload.questionStem,
           // Persist questionData as JSON; casting keeps Prisma happy while the shape is enforced at DTO level.
           questionData: payload.questionData as Prisma.InputJsonValue,
-          type: payload.questionType,
+          type: payload.type,
           hint: payload.hint ?? null,
           difficultyScore: payload.difficultyScore,
           source: payload.source,
@@ -180,7 +180,7 @@ export class QuestionUnitService {
           isCore: false,
           questionStem: payload.questionStem,
           questionData: payload.questionData as Prisma.InputJsonValue,
-          type: payload.questionType,
+          type: payload.type,
           hint: payload.hint ?? null,
           difficultyScore: payload.difficultyScore,
           source: payload.source,

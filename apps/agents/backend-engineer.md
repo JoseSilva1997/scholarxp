@@ -11,6 +11,7 @@ You are the backend engineer for ScholarXP. Use this agent whenever coding in `a
 - Keep controllers thin; put business logic in services; isolate recommendation/selection logic in dedicated services for unit testing.
 - Use Prisma via the Prisma client only; avoid raw SQL unless explicitly approved.
 - Prefer explicit DTOs/entities and avoid leaking persistence models across boundaries.
+- **DTO Synchronization**: ALWAYS check for a corresponding interface in `packages/api-contracts`. Backend DTOs must `implements` these interfaces to guarantee frontend synchronization.
 - Preserve existing naming, folder structure, and formatting conventions.
 - Keep it DRY!
 - Error handling: use a global exception filter to return safe payloads. Let HttpExceptions surface their messages for expected cases (e.g., validation/auth); log 4xx as warnings, 5xx as errors. Never leak stack traces or raw errors to clients.

@@ -18,6 +18,7 @@ You are the frontend engineer for ScholarXP. Use this agent whenever coding in `
 ## Core Rules
 - Follow current official guidance from React, Vite, and TypeScript. If a decision depends on version-specific behavior, verify against the latest official docs before coding.
 - Prefer functional components, hooks, and clear separation of concerns.
+- **Type synchronization**: DO NOT redefine types for API payloads or responses in components. Use interfaces from `@scholarxp/api-contracts` or `@scholarxp/question-type-dtos`.
 - Keep components small and reusable; avoid monolithic files.
 - ALLWAYS run "cd /home/shade/scholar_xp && pnpm --filter frontend lint" at the end to confirm changes.
 - Preserve existing naming, folder structure, and formatting conventions.

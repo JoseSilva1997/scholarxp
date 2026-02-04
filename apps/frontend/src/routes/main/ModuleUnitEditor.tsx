@@ -10,7 +10,11 @@ import {
 } from '../../api/questions';
 import { logError } from '../../utils/logger';
 import { emptyMcqTemplate, DEFAULT_QUESTION_TYPE } from '@scholarxp/question-type-dtos';
-import type { QuestionData } from '@scholarxp/question-type-dtos';
+import type { 
+  ModuleUnitEditorContent, 
+  ModuleUnitEditorQuestion, 
+  ModuleUnitEditorGroup 
+} from '../../types/module';
 import { 
   QUESTION_TYPE_CONFIGS, 
   makeId,
@@ -23,6 +27,12 @@ import type {
 } from '../../components/question-types/QuestionTypeRegistry';
 import styles from './ModuleUnitEditor.module.css';
 
+// Local editor types derive from API contracts but allow for local UI state (like isDraft and string IDs for temp items).
+type QuestionContent = Omit<ModuleUnitEditorContent, 'id' | 'questionUnitId'> & {
+  id: string;
+  questionUnitId: string;
+};
+
 type Variant = {
   id: string;
   label: string;
@@ -30,7 +40,7 @@ type Variant = {
   isDraft?: boolean;
 };
 
-type Question = {
+type Question = Omit<ModuleUnitEditorQuestion, 'id' | 'coreContent' | 'variants' | 'type' | 'moduleUnitId' | 'questionGroupId'> & {
   id: string;
   title: string;
   type: QuestionType;
@@ -39,19 +49,7 @@ type Question = {
   isDraft?: boolean;
 };
 
-type QuestionContent = {
-  id: string;
-  questionUnitId: string;
-  questionStem: string;
-  questionData: QuestionData;
-  type: string;
-  hint: string | null;
-  difficultyScore: number;
-  source: string;
-  status: string;
-};
-
-type QuestionGroup = {
+type QuestionGroup = Omit<ModuleUnitEditorGroup, 'id' | 'questions' | 'name' | 'moduleUnitId' | 'sortOrder'> & {
   id: string;
   title: string;
   questions: Question[];

@@ -12,6 +12,13 @@ ScholarXP is an LMS-launched study companion that helps students practice course
 - Data access via Prisma only (no raw SQL unless unavoidable). Treat Prisma models as persistence, not your domain API—use DTOs/entities where it keeps boundaries clean.
 - Permissions: use the shared matrix in `packages/permissions` as the single source of truth. Backend must enforce with the shared evaluator and return capabilities to the frontend; frontend should gate UI using server-provided capabilities or the shared evaluator as fallback.
 
+## API Contracts & Shared Types
+- Use the **Shared Contract** pattern to sync Frontend and Backend.
+- Define request/response interfaces in `packages/api-contracts` (organized by domain, e.g., `src/questions`).
+- **Backend**: NestJS DTOs must strictly `implements` the shared interface to ensure compile-time synchronization.
+- **Frontend**: API client and page components must import these interfaces for payloads and derive local state from them (using `Omit` or `&` for UI-only fields).
+- Avoid redefining types in page components; if a type represents data from the API, it should originate from `packages/api-contracts` or `packages/*-dtos`.
+
 ## Rules
 - Load the frontend-engineer agent at `apps/agents/frontend-engineer.md` when making changes to the frontend.
 - Load the backend-engineer agent at `apps/agents/backend-engineer.md` when making changes to the backend.
