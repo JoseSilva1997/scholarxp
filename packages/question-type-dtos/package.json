@@ -2,5 +2,8 @@
   "name": "@scholarxp/question-type-dtos",
   "version": "0.0.1",
   "private": true,
-  "main": "index.ts"
+  "main": "index.ts",
+  "dependencies": {
+    "zod": "^4.3.6"
+  }
 }

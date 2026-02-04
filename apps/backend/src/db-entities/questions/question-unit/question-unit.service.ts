@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { QuestionDataSchema } from '@scholarxp/question-type-dtos';
 import { CreateQuestionUnitDto } from './dto/create-question-unit.dto';
 import { UpdateQuestionUnitDto } from './dto/update-question-unit.dto';
 import { CreateQuestionWithContentDto } from './dto/create-question-with-content.dto';
@@ -83,6 +84,14 @@ export class QuestionUnitService {
       throw new NotFoundException('Module unit not found');
     }
 
+    // Validate structured question data using shared Zod schema.
+    const validation = QuestionDataSchema.safeParse(payload.questionData);
+    if (!validation.success) {
+      throw new BadRequestException(
+        `Invalid question data: ${validation.error.issues[0].message}`,
+      );
+    }
+
     // Pick or create target group; we upsert a default to avoid race conditions.
     let targetGroupId = payload.questionGroupId;
     if (targetGroupId) {
@@ -155,6 +164,14 @@ export class QuestionUnitService {
       throw new NotFoundException('Question not found');
     }
 
+    // Validate structured question data using shared Zod schema.
+    const validation = QuestionDataSchema.safeParse(payload.questionData);
+    if (!validation.success) {
+      throw new BadRequestException(
+        `Invalid question data: ${validation.error.issues[0].message}`,
+      );
+    }
+
     // Variants reuse the same structural validation as core content but are marked non-core.
     const variantResult = await this.prisma.$transaction(async (tx) => {
       const content = await tx.questionContent.create({
@@ -217,6 +234,16 @@ export class QuestionUnitService {
       content.questionUnit?.moduleUnit?.moduleId !== moduleId
     ) {
       throw new NotFoundException('Question content not found');
+    }
+
+    // If updating question data, validate it using shared Zod schema.
+    if (dto.questionData) {
+      const validation = QuestionDataSchema.safeParse(dto.questionData);
+      if (!validation.success) {
+        throw new BadRequestException(
+          `Invalid question data: ${validation.error.issues[0].message}`,
+        );
+      }
     }
 
     return this.prisma.questionContent.update({

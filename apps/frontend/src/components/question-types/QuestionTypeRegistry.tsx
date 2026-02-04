@@ -3,7 +3,7 @@
  * This file provides a uniform interface for rendering forms, validating input, and building API payloads.
  */
 import React from 'react';
-import { DEFAULT_QUESTION_TYPE } from '@scholarxp/question-type-dtos';
+import { DEFAULT_QUESTION_TYPE, McqQuestionSchema, TrueFalseQuestionSchema } from '@scholarxp/question-type-dtos';
 import type { McqQuestionDto, TrueFalseQuestionDto, questionType, QuestionData } from '@scholarxp/question-type-dtos';
 import { McqForm } from './forms/McqForm';
 import { TrueFalseForm } from './forms/TrueFalseForm';
@@ -90,10 +90,23 @@ export const QUESTION_TYPE_CONFIGS: Record<QuestionType, QuestionTypeConfig> = {
       } as McqQuestionDto;
     },
     validate: (form) => {
-      // MCQ requires valid selection and at least some content.
+      // Use shared Zod schema for structural validation.
+      const payload = QUESTION_TYPE_CONFIGS.mcq.buildQuestionData(form) as McqQuestionDto;
+      const result = McqQuestionSchema.safeParse(payload);
+      
+      if (!result.success) {
+        // Map the first zod error to a user-friendly string for the simple editor UI.
+        const firstError = result.error.issues[0];
+        if (firstError.path.includes('options')) {
+          return 'All options must have text.';
+        }
+        return firstError.message;
+      }
+
+      // Check for 'Select which option' manually as index 0 is valid but might be unselected.
       const correctIndex = form.options.findIndex((opt) => opt.isCorrect);
       if (correctIndex === -1) return 'Select which option is correct before saving.';
-      if (form.options.every(opt => !opt.value.trim())) return 'At least one option must have text.';
+
       return null;
     },
   },
@@ -121,9 +134,21 @@ export const QUESTION_TYPE_CONFIGS: Record<QuestionType, QuestionTypeConfig> = {
       } as TrueFalseQuestionDto;
     },
     validate: (form) => {
-      // Ensure one of the binary options is selected.
+      // Use shared Zod schema for structural validation.
+      const payload = QUESTION_TYPE_CONFIGS['true-false'].buildQuestionData(form) as TrueFalseQuestionDto;
+      const result = TrueFalseQuestionSchema.safeParse(payload);
+      
+      if (!result.success) {
+        const firstError = result.error.issues[0];
+        if (firstError.path.includes('options')) {
+          return 'Both true and false options must have text.';
+        }
+        return firstError.message;
+      }
+
       const correctIndex = form.options.findIndex((opt) => opt.isCorrect);
       if (correctIndex === -1) return 'Select which option is correct before saving.';
+      
       return null;
     },
   },

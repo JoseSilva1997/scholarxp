@@ -1,17 +1,20 @@
 // Central DTOs for question types shared across frontend and backend.
+import { z } from 'zod';
 
 /**
- * MCQ Question Data
+ * MCQ Question Data Schema
  */
-export type McqQuestionDto = {
-    options: [
-        { optionText: string; explanation?: string },
-        { optionText: string; explanation?: string },
-        { optionText: string; explanation?: string },
-        { optionText: string; explanation?: string }
-    ];
-    correctOptionIndex: number;
-}
+export const McqQuestionSchema = z.object({
+    options: z.tuple([
+        z.object({ optionText: z.string().min(1, 'Option text is required'), explanation: z.string().optional() }),
+        z.object({ optionText: z.string().min(1, 'Option text is required'), explanation: z.string().optional() }),
+        z.object({ optionText: z.string().min(1, 'Option text is required'), explanation: z.string().optional() }),
+        z.object({ optionText: z.string().min(1, 'Option text is required'), explanation: z.string().optional() }),
+    ]),
+    correctOptionIndex: z.number().min(0, 'Please select a correct option').max(3, 'Invalid option index'),
+});
+
+export type McqQuestionDto = z.infer<typeof McqQuestionSchema>;
 
 export const emptyMcqTemplate = (): McqQuestionDto => ({
     options: [
@@ -19,25 +22,32 @@ export const emptyMcqTemplate = (): McqQuestionDto => ({
         { optionText: '', explanation: '' },
         { optionText: '', explanation: '' },
         { optionText: '', explanation: '' },
-    ],
+    ] as any,
     correctOptionIndex: 0,
 });
 
 /**
- * True/False Question Data
+ * True/False Question Data Schema
  */
-export type TrueFalseQuestionDto = {
-    options: [
-        { optionText: string; explanation?: string },
-        { optionText: string; explanation?: string }
-    ];
-    correctOptionIndex: number;
-};
+export const TrueFalseQuestionSchema = z.object({
+    options: z.tuple([
+        z.object({ optionText: z.string().min(1, 'Option text is required'), explanation: z.string().optional() }),
+        z.object({ optionText: z.string().min(1, 'Option text is required'), explanation: z.string().optional() }),
+    ]),
+    correctOptionIndex: z.number().min(0, 'Please select a correct option').max(1, 'Invalid option index'),
+});
+
+export type TrueFalseQuestionDto = z.infer<typeof TrueFalseQuestionSchema>;
 
 /**
  * Union of all possible question content structures.
  */
-export type QuestionData = McqQuestionDto | TrueFalseQuestionDto;
+export const QuestionDataSchema = z.union([
+    McqQuestionSchema,
+    TrueFalseQuestionSchema,
+]);
+
+export type QuestionData = z.infer<typeof QuestionDataSchema>;
 
 /**
  * Runtime array of all supported question types.
