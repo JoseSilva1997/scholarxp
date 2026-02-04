@@ -1115,7 +1115,7 @@ export default function ModuleUnitEditor() {
             </button>
             <button
               type="button"
-              className={styles.primaryButton}
+              className={styles.saveQuestionButton}
               onClick={handleSaveQuestion}
               disabled={isSavingQuestion}
             >
