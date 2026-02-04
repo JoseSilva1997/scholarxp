@@ -1,5 +1,7 @@
 // DTO for the module unit editor read endpoint; expanded as nested question/variant payloads are added.
 // DTO returned to the module unit editor screen with nested questions and variants.
+import type { QuestionData } from '@scholarxp/question-type-dtos';
+
 export class ModuleUnitEditorDto {
   id: number;
   moduleId: number | null;
@@ -35,7 +37,7 @@ export class ModuleUnitEditorContentDto {
   id: number;
   questionUnitId: number;
   questionStem: string;
-  questionData: Record<string, unknown>;
+  questionData: QuestionData;
   type: string;
   hint: string | null;
   difficultyScore: number;

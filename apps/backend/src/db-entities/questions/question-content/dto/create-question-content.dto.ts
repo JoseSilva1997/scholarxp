@@ -6,12 +6,15 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  IsIn,
 } from 'class-validator';
+import { QUESTION_TYPES } from '@scholarxp/question-type-dtos';
+import type { questionType, QuestionData } from '@scholarxp/question-type-dtos';
 
 export class CreateQuestionContentDto {
-  @IsString()
+  @IsIn(QUESTION_TYPES)
   @IsNotEmpty()
-  type: string;
+  type: questionType;
 
   @IsString()
   @IsNotEmpty()
@@ -19,7 +22,7 @@ export class CreateQuestionContentDto {
 
   @IsObject()
   @IsNotEmpty()
-  questionData: Record<string, any>;
+  questionData: QuestionData;
 
   @IsInt()
   @IsNotEmpty()

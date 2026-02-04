@@ -10,9 +10,8 @@ import {
   IsIn,
   IsNumber,
 } from 'class-validator';
-import type { questionType } from '@scholarxp/question-type-dtos';
-
-const QUESTION_TYPES: questionType[] = ['mcq', 'true-false'];
+import { QUESTION_TYPES } from '@scholarxp/question-type-dtos';
+import type { questionType, QuestionData } from '@scholarxp/question-type-dtos';
 
 export class CreateQuestionWithContentDto {
   @IsOptional()
@@ -32,7 +31,7 @@ export class CreateQuestionWithContentDto {
 
   @IsObject()
   @IsNotEmpty()
-  questionData: Record<string, unknown>;
+  questionData: QuestionData;
 
   @IsOptional()
   @IsString()

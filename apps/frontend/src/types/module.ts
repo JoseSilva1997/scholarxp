@@ -1,4 +1,6 @@
 // Shared type for modules as returned by backend module endpoints.
+import type { QuestionData } from '@scholarxp/question-type-dtos';
+
 export type ModuleSummary = {
   id: number;
   institutionId?: number | null;
@@ -71,7 +73,7 @@ export type ModuleUnitEditorContent = {
   id: number;
   questionUnitId: number;
   questionStem: string;
-  questionData: Record<string, unknown>;
+  questionData: QuestionData;
   type: string;
   hint: string | null;
   difficultyScore: number;

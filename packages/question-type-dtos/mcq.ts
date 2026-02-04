@@ -1,4 +1,4 @@
-export type mcqQuestionDto = {
+export type McqQuestionDto = {
     options: [
         {
             optionText: string;
@@ -21,7 +21,7 @@ export type mcqQuestionDto = {
 }
 
 // Factory for an empty MCQ payload so downstream callers can track shape changes in one place.
-export const emptyMcqTemplate = (): mcqQuestionDto => ({
+export const emptyMcqTemplate = (): McqQuestionDto => ({
     options: [
         { optionText: '', explanation: '' },
         { optionText: '', explanation: '' },

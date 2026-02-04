@@ -9,7 +9,8 @@ import {
   updateQuestionContentScoped,
 } from '../../api/questions';
 import { logError } from '../../utils/logger';
-import { emptyMcqTemplate } from '@scholarxp/question-type-dtos';
+import { emptyMcqTemplate, DEFAULT_QUESTION_TYPE } from '@scholarxp/question-type-dtos';
+import type { QuestionData } from '@scholarxp/question-type-dtos';
 import { 
   QUESTION_TYPE_CONFIGS, 
   makeId,
@@ -42,7 +43,7 @@ type QuestionContent = {
   id: string;
   questionUnitId: string;
   questionStem: string;
-  questionData: Record<string, unknown>;
+  questionData: QuestionData;
   type: string;
   hint: string | null;
   difficultyScore: number;
@@ -84,7 +85,7 @@ export default function ModuleUnitEditor() {
   const buildInitialForm = useCallback(
     (): QuestionForm => ({
       stem: '',
-      type: 'mcq',
+      type: DEFAULT_QUESTION_TYPE,
       options: Array.from({ length: mcqOptionSlots }, () => ({ id: makeId(), value: '', isCorrect: false })),
       explanations: Array.from({ length: mcqOptionSlots }, () => ''),
       hint: '',
@@ -267,7 +268,7 @@ export default function ModuleUnitEditor() {
     const newQuestion: Question = {
       id: draftQuestionId,
       title: questionLabel,
-      type: 'mcq',
+      type: DEFAULT_QUESTION_TYPE,
       variants: [],
       coreContent: undefined,
       isDraft: true,
@@ -457,7 +458,7 @@ export default function ModuleUnitEditor() {
                             id: String(created.coreContent.id),
                             questionUnitId: String(created.questionUnit.id),
                             questionStem: payload.questionStem,
-                            questionData: payload.questionData as Record<string, unknown>,
+                            questionData: payload.questionData,
                             type: payload.questionType,
                             hint: payload.hint ?? null,
                             difficultyScore: payload.difficultyScore,
@@ -527,7 +528,7 @@ export default function ModuleUnitEditor() {
                                       id: String(createdVariant.variant.content.id),
                                       questionUnitId: String(createdVariant.variant.content.questionUnitId ?? persistedQuestionId),
                                       questionStem: createdVariant.variant.content.questionStem,
-                                      questionData: createdVariant.variant.content.questionData as Record<string, unknown>,
+                                      questionData: createdVariant.variant.content.questionData,
                                       type: createdVariant.variant.content.type,
                                       hint: createdVariant.variant.content.hint ?? null,
                                       difficultyScore: createdVariant.variant.content.difficultyScore ?? 0,
@@ -555,7 +556,7 @@ export default function ModuleUnitEditor() {
             Number(variant.content.id),
             {
               questionStem: payload.questionStem,
-              questionData: payload.questionData as Record<string, unknown>,
+              questionData: payload.questionData,
               type: payload.questionType,
               hint: payload.hint,
               difficultyScore: payload.difficultyScore,
@@ -581,7 +582,7 @@ export default function ModuleUnitEditor() {
                                         id: variant.content?.id ?? '',
                                         questionUnitId: persistedQuestionId,
                                         questionStem: '',
-                                        questionData: {},
+                                        questionData: payload.questionData,
                                         type: payload.questionType,
                                         hint: null,
                                         difficultyScore: payload.difficultyScore,
@@ -589,7 +590,7 @@ export default function ModuleUnitEditor() {
                                         status: payload.status,
                                       }),
                                       questionStem: payload.questionStem,
-                                      questionData: payload.questionData as Record<string, unknown>,
+                                      questionData: payload.questionData,
                                       type: payload.questionType,
                                       hint: payload.hint ?? null,
                                       difficultyScore: payload.difficultyScore,
@@ -625,7 +626,7 @@ export default function ModuleUnitEditor() {
           Number(persistedCoreContentId),
           {
             questionStem: payload.questionStem,
-            questionData: payload.questionData as Record<string, unknown>,
+            questionData: payload.questionData,
             type: payload.questionType,
             hint: payload.hint,
             difficultyScore: payload.difficultyScore,
@@ -643,7 +644,17 @@ export default function ModuleUnitEditor() {
                         ? {
                             ...q,
                             coreContent: {
-                              ...(q.coreContent ?? { id: persistedCoreContentId, questionUnitId: persistedQuestionId }),
+                              ...(q.coreContent ?? { 
+                                id: persistedCoreContentId, 
+                                questionUnitId: persistedQuestionId,
+                                questionStem: payload.questionStem,
+                                questionData: payload.questionData,
+                                type: payload.questionType,
+                                hint: payload.hint ?? null,
+                                difficultyScore: payload.difficultyScore,
+                                source: payload.source,
+                                status: payload.status,
+                              }),
                               questionStem: payload.questionStem,
                               questionData: payload.questionData,
                               type: payload.questionType,

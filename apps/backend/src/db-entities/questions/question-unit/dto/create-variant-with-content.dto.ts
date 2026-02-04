@@ -1,8 +1,7 @@
 // DTO for creating a variant plus its content for a question unit.
 import { IsInt, IsNotEmpty, IsObject, IsOptional, IsString, Max, Min, IsIn, IsNumber } from 'class-validator';
-import type { questionType } from '@scholarxp/question-type-dtos';
-
-const QUESTION_TYPES: questionType[] = ['mcq', 'true-false'];
+import { QUESTION_TYPES } from '@scholarxp/question-type-dtos';
+import type { questionType, QuestionData } from '@scholarxp/question-type-dtos';
 
 export class CreateVariantWithContentDto {
   @IsString()
@@ -18,7 +17,7 @@ export class CreateVariantWithContentDto {
 
   @IsObject()
   @IsNotEmpty()
-  questionData: Record<string, unknown>;
+  questionData: QuestionData;
 
   @IsOptional()
   @IsString()

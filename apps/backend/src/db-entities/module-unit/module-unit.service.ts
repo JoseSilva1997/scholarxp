@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ModuleUnitStatus, Prisma } from '@prisma/client';
+import { DEFAULT_QUESTION_TYPE } from '@scholarxp/question-type-dtos';
+import type { QuestionData } from '@scholarxp/question-type-dtos';
 import { CreateModuleUnitDto } from './dto/create-module-unit.dto';
 import { UpdateModuleUnitDto } from './dto/update-module-unit.dto';
 import { CreateModuleUnitMinimalDto } from './dto/create-module-unit-minimal.dto';
@@ -75,13 +77,13 @@ export class ModuleUnitService {
             id: q.id,
             questionGroupId: q.questionGroupId,
             title: q.title,
-            type: coreContent?.type ?? 'mcq',
+            type: coreContent?.type ?? DEFAULT_QUESTION_TYPE,
             coreContent: coreContent
               ? {
                   id: coreContent.id,
                   questionUnitId: coreContent.questionUnitId,
                   questionStem: coreContent.questionStem,
-                  questionData: coreContent.questionData as Record<string, unknown>,
+                  questionData: coreContent.questionData as unknown as QuestionData,
                   type: coreContent.type,
                   hint: coreContent.hint,
                   difficultyScore: coreContent.difficultyScore,
@@ -96,7 +98,7 @@ export class ModuleUnitService {
                 id: v.content.id,
                 questionUnitId: v.content.questionUnitId,
                 questionStem: v.content.questionStem,
-                questionData: v.content.questionData as Record<string, unknown>,
+                questionData: v.content.questionData as unknown as QuestionData,
                 type: v.content.type,
                 hint: v.content.hint,
                 difficultyScore: v.content.difficultyScore,

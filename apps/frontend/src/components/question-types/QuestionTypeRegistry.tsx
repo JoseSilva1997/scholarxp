@@ -3,7 +3,8 @@
  * This file provides a uniform interface for rendering forms, validating input, and building API payloads.
  */
 import React from 'react';
-import type { mcqQuestionDto, TrueFalseQuestionDto, questionType } from '@scholarxp/question-type-dtos';
+import { DEFAULT_QUESTION_TYPE } from '@scholarxp/question-type-dtos';
+import type { McqQuestionDto, TrueFalseQuestionDto, questionType, QuestionData } from '@scholarxp/question-type-dtos';
 import { McqForm } from './forms/McqForm';
 import { TrueFalseForm } from './forms/TrueFalseForm';
 
@@ -23,7 +24,7 @@ export const normalizeQuestionType = (type: string | undefined | null): Question
     return type as QuestionType;
   }
 
-  return 'mcq'; // Default to MCQ for unknown or missing types
+  return DEFAULT_QUESTION_TYPE; // Default to shared fallback for unknown or missing types
 };
 
 /**
@@ -58,7 +59,7 @@ export interface QuestionTypeConfig {
   // Generates empty options/explanations when creating a new question or switching types.
   getInitialOptions: (mcqOptionSlots: number) => { options: QuestionForm['options']; explanations: string[] };
   // Transforms the generic form state into the specific DTO expected by the backend API.
-  buildQuestionData: (form: QuestionForm) => Record<string, unknown>;
+  buildQuestionData: (form: QuestionForm) => QuestionData;
   // Quality check before permitting a save; returns an error message or null if valid.
   validate: (form: QuestionForm) => string | null;
 }
@@ -78,7 +79,7 @@ export const QUESTION_TYPE_CONFIGS: Record<QuestionType, QuestionTypeConfig> = {
       explanations: Array.from({ length: slots }, () => ''),
     }),
     buildQuestionData: (form) => {
-      // Map options and explanations into the mcqQuestionDto structure.
+      // Map options and explanations into the McqQuestionDto structure.
       const correctIndex = form.options.findIndex((opt) => opt.isCorrect);
       return {
         options: form.options.map((opt, idx) => ({
@@ -86,7 +87,7 @@ export const QUESTION_TYPE_CONFIGS: Record<QuestionType, QuestionTypeConfig> = {
           explanation: form.explanations[idx] ?? '',
         })),
         correctOptionIndex: correctIndex,
-      } as mcqQuestionDto;
+      } as McqQuestionDto;
     },
     validate: (form) => {
       // MCQ requires valid selection and at least some content.
