@@ -1038,6 +1038,7 @@ export default function ModuleUnitEditor() {
                 </div>
               )}
               </div>
+              <label className={styles.label} id='question-type-lable'>Question Type (Select one):</label>
               <div className={styles.typeToggle}>
                 <button
                   type="button"

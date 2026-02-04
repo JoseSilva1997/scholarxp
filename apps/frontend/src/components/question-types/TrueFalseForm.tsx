@@ -29,7 +29,7 @@ export function TrueFalseForm({
         {limitedOptions.map((option, index) => (
           <div key={option.id} className={styles.optionCard}>
             <div className={styles.optionHeader}>
-              <span className={styles.optionLabel}>{index === 0 ? 'True' : 'False'}</span>
+              <span className={styles.optionLabel}>{index === 0 ? 'Option 1' : 'Option 2'}</span>
               <label className={styles.correctToggle}>
                 <input
                   type="radio"
@@ -43,7 +43,7 @@ export function TrueFalseForm({
             <input
               value={option.value}
               onChange={(e) => onChangeOption(option.id, e.target.value)}
-              placeholder={`Enter ${index === 0 ? 'True' : 'False'} text...`}
+              placeholder={`Enter ${index === 0 ? 'Option 1' : 'Option 2'} text...`}
               className={styles.optionInput}
               maxLength={100}
             />
