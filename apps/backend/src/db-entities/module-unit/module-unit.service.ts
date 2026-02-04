@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { ModuleUnitStatus } from '@prisma/client';
+import { ModuleUnitStatus, Prisma } from '@prisma/client';
 import { CreateModuleUnitDto } from './dto/create-module-unit.dto';
 import { UpdateModuleUnitDto } from './dto/update-module-unit.dto';
 import { CreateModuleUnitMinimalDto } from './dto/create-module-unit-minimal.dto';
@@ -34,7 +34,7 @@ export class ModuleUnitService {
     return this.getOrThrow(id);
   }
 
-  // Read payload tailored for the mudule-unit editor; expands with questions/variants later.
+  // Read payload tailored for the module-unit editor; now includes groups, questions, and variants.
   async findEditorPayload(id: number): Promise<ModuleUnitEditorDto> {
     const record = await this.prisma.moduleUnit.findUnique({
       where: { id },
@@ -42,22 +42,86 @@ export class ModuleUnitService {
         questionGroups: {
           orderBy: { sortOrder: 'asc' },
         },
+        questionUnits: {
+          include: {
+            contents: true,
+            variants: {
+              include: { content: true },
+              orderBy: { id: 'asc' },
+            },
+          },
+        },
       },
-    });
+    }) as Prisma.ModuleUnitGetPayload<{
+      include: {
+        questionGroups: true;
+        questionUnits: {
+          include: {
+            contents: true;
+            variants: { include: { content: true } };
+          };
+        };
+      };
+    }> | null;
     if (!record) {
       throw new NotFoundException(`ModuleUnit ${id} not found`);
     }
+    const groupedQuestions = record.questionGroups.map((group) => {
+      const questions = record.questionUnits
+        .filter((q) => q.questionGroupId === group.id)
+        .map((q) => {
+          const coreContent = q.contents.find((c) => c.isCore);
+          return {
+            id: q.id,
+            questionGroupId: q.questionGroupId,
+            title: q.title,
+            type: coreContent?.type ?? 'mcq',
+            coreContent: coreContent
+              ? {
+                  id: coreContent.id,
+                  questionUnitId: coreContent.questionUnitId,
+                  questionStem: coreContent.questionStem,
+                  questionData: coreContent.questionData as Record<string, unknown>,
+                  type: coreContent.type,
+                  hint: coreContent.hint,
+                  difficultyScore: coreContent.difficultyScore,
+                  source: coreContent.source,
+                  status: coreContent.status,
+                }
+              : null,
+            variants: q.variants.map((v) => ({
+              id: v.id,
+              variantLabel: v.variantLabel,
+              content: {
+                id: v.content.id,
+                questionUnitId: v.content.questionUnitId,
+                questionStem: v.content.questionStem,
+                questionData: v.content.questionData as Record<string, unknown>,
+                type: v.content.type,
+                hint: v.content.hint,
+                difficultyScore: v.content.difficultyScore,
+                source: v.content.source,
+                status: v.content.status,
+              },
+            })),
+          };
+        });
+
+      return {
+        id: group.id,
+        moduleUnitId: group.moduleUnitId,
+        name: group.name,
+        sortOrder: group.sortOrder,
+        questions,
+      };
+    });
+
     return {
       id: record.id,
       moduleId: record.moduleId,
       title: record.title,
       variantContext: record.variantContext,
-      questionGroups: record.questionGroups.map((group) => ({
-        id: group.id,
-        moduleUnitId: group.moduleUnitId,
-        name: group.name,
-        sortOrder: group.sortOrder,
-      })),
+      questionGroups: groupedQuestions,
     };
   }
 

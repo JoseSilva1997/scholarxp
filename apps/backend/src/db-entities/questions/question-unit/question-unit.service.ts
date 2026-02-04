@@ -3,9 +3,13 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { CreateQuestionUnitDto } from './dto/create-question-unit.dto';
 import { UpdateQuestionUnitDto } from './dto/update-question-unit.dto';
+import { CreateQuestionWithContentDto } from './dto/create-question-with-content.dto';
+import { CreateVariantWithContentDto } from './dto/create-variant-with-content.dto';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { UpdateQuestionContentDto } from '../question-content/dto/update-question-content.dto';
 
 @Injectable()
 export class QuestionUnitService {
@@ -65,11 +69,159 @@ export class QuestionUnitService {
     return this.prisma.questionUnit.delete({ where: { id } });
   }
 
+  // Create a question unit and its core content in one transaction; validates module and group ownership.
+  async createQuestionWithContent(
+    moduleId: number,
+    moduleUnitId: number,
+    payload: CreateQuestionWithContentDto,
+  ) {
+    const moduleUnit = await this.prisma.moduleUnit.findUnique({
+      where: { id: moduleUnitId },
+      select: { id: true, moduleId: true },
+    });
+    if (!moduleUnit || moduleUnit.moduleId !== moduleId) {
+      throw new NotFoundException('Module unit not found');
+    }
+
+    // Pick or create target group; we upsert a default to avoid race conditions.
+    let targetGroupId = payload.questionGroupId;
+    if (targetGroupId) {
+      const group = await this.prisma.moduleUnitQuestionGroup.findFirst({
+        where: { id: targetGroupId, moduleUnitId },
+      });
+      if (!group) {
+        throw new NotFoundException('Question group not found');
+      }
+    } else {
+      const defaultGroup = await this.prisma.moduleUnitQuestionGroup.upsert({
+        where: {
+          moduleUnitId_name: {
+            moduleUnitId,
+            name: 'default',
+          },
+        },
+        update: {},
+        create: {
+          moduleUnitId,
+          name: 'default',
+          sortOrder: 1,
+        },
+      });
+      targetGroupId = defaultGroup.id;
+    }
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const questionUnit = await tx.questionUnit.create({
+        data: {
+          moduleUnitId,
+          questionGroupId: targetGroupId,
+          title: payload.title,
+        },
+      });
+
+      const coreContent = await tx.questionContent.create({
+        data: {
+          questionUnitId: questionUnit.id,
+          isCore: true,
+          questionStem: payload.questionStem,
+          // Persist questionData as JSON; casting keeps Prisma happy while the shape is enforced at DTO level.
+          questionData: payload.questionData as Prisma.InputJsonValue,
+          type: payload.questionType,
+          hint: payload.hint ?? null,
+          difficultyScore: payload.difficultyScore,
+          source: payload.source,
+          status: payload.status,
+        },
+      });
+
+      return { questionUnit, coreContent };
+    });
+
+    return result;
+  }
+
+  // Create a variant for an existing question unit with its own content and metadata.
+  async createVariantWithContent(
+    moduleId: number,
+    moduleUnitId: number,
+    questionUnitId: number,
+    payload: CreateVariantWithContentDto,
+  ) {
+    const questionUnit = await this.prisma.questionUnit.findUnique({
+      where: { id: questionUnitId },
+      select: { id: true, moduleUnitId: true, questionGroupId: true, moduleUnit: true },
+    });
+    if (!questionUnit || questionUnit.moduleUnitId !== moduleUnitId || questionUnit.moduleUnit?.moduleId !== moduleId) {
+      throw new NotFoundException('Question not found');
+    }
+
+    // Variants reuse the same structural validation as core content but are marked non-core.
+    const variantResult = await this.prisma.$transaction(async (tx) => {
+      const content = await tx.questionContent.create({
+        data: {
+          questionUnitId,
+          isCore: false,
+          questionStem: payload.questionStem,
+          questionData: payload.questionData as Prisma.InputJsonValue,
+          type: payload.questionType,
+          hint: payload.hint ?? null,
+          difficultyScore: payload.difficultyScore,
+          source: payload.source,
+          status: payload.status,
+        },
+      });
+
+      const variant = await tx.questionVariant.create({
+        data: {
+          questionUnitId,
+          contentId: content.id,
+          variantLabel: payload.variantLabel,
+        },
+        include: {
+          content: true,
+        },
+      });
+
+      return { variant };
+    });
+
+    return variantResult;
+  }
+
   private async getOrThrow(id: number) {
     const record = await this.prisma.questionUnit.findUnique({ where: { id } });
     if (!record) {
       throw new NotFoundException(`QuestionUnit ${id} not found`);
     }
     return record;
+  }
+
+  // Update content scoped to module/unit/question ownership to avoid cross-tenant edits.
+  async updateContentScoped(
+    moduleId: number,
+    moduleUnitId: number,
+    questionUnitId: number,
+    contentId: number,
+    dto: UpdateQuestionContentDto,
+  ) {
+    const content = await this.prisma.questionContent.findUnique({
+      where: { id: contentId },
+      include: {
+        questionUnit: { include: { moduleUnit: true } },
+      },
+    });
+    if (
+      !content ||
+      content.questionUnitId !== questionUnitId ||
+      content.questionUnit?.moduleUnitId !== moduleUnitId ||
+      content.questionUnit?.moduleUnit?.moduleId !== moduleId
+    ) {
+      throw new NotFoundException('Question content not found');
+    }
+
+    return this.prisma.questionContent.update({
+      where: { id: contentId },
+      data: dto as Prisma.QuestionContentUpdateInput,
+    });
   }
 }

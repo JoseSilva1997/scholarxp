@@ -41,7 +41,42 @@ export type ModuleUnitEditorDto = {
   moduleId: number | null;
   title: string;
   variantContext: string | null;
-  questionGroups: ModuleUnitGroup[];
+  questionGroups: ModuleUnitEditorGroup[];
+};
+
+export type ModuleUnitEditorGroup = {
+  id: number;
+  moduleUnitId: number;
+  name: string;
+  sortOrder: number;
+  questions: ModuleUnitEditorQuestion[];
+};
+
+export type ModuleUnitEditorQuestion = {
+  id: number;
+  questionGroupId: number | null;
+  title: string;
+  type: string;
+  coreContent: ModuleUnitEditorContent | null;
+  variants: ModuleUnitEditorVariant[];
+};
+
+export type ModuleUnitEditorVariant = {
+  id: number;
+  variantLabel: string;
+  content: ModuleUnitEditorContent;
+};
+
+export type ModuleUnitEditorContent = {
+  id: number;
+  questionUnitId: number;
+  questionStem: string;
+  questionData: Record<string, unknown>;
+  type: string;
+  hint: string | null;
+  difficultyScore: number;
+  source: string;
+  status: string;
 };
 
 export type ModuleInvite = {

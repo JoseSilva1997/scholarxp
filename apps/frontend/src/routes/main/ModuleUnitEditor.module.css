@@ -171,6 +171,37 @@
   font-size: 12px;
 }
 
+.navButton {
+  border: 1px solid var(--local-border);
+  background: var(--color-brand-surface-dark);
+  color: var(--color-bg);
+  border-radius: 999px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+  padding-bottom: 2px;
+}
+:global(#right-nav-button) {
+  padding-left: 8px;
+}
+:global(#left-nav-button) {
+  padding-right: 8px
+}
+
+.navButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.navButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.3;
+}
+
 .groupCard {
   border: 1px solid var(--local-border);
   border-radius: var(--radius-md);
@@ -254,6 +285,13 @@
   background: var(--color-accent-primary);
 }
 
+.questionBlock.variantSelected {
+  /* Keep a softer signal when a child variant is active so parent context stays visible. */
+  background: var(--local-accent-primary-soft);
+  color: var(--color-text);
+  border-color: var(--color-accent-primary);
+}
+
 .questionLabel {
   font-weight: 500;
 }
@@ -334,6 +372,13 @@
   color: var(--color-accent-primary);
 }
 
+.addVariantButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  border-color: var(--local-border);
+  color: var(--color-muted);
+}
+
 .addQuestion {
   align-self: flex-start;
   display: flex;
@@ -368,6 +413,13 @@
 .addQuestion:hover {
   border-color: var(--color-accent-primary);
   color: var(--color-accent-primary);
+}
+
+.addQuestion:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  border-color: var(--local-border);
+  color: var(--color-muted);
 }
 
 .addGroup {
@@ -504,6 +556,16 @@
   margin-top: 8px;
 }
 
+.inlineError {
+  margin: 6px 0;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: rgba(220, 38, 38, 0.08);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  color: #991b1b;
+  font-weight: 600;
+}
+
 .primaryButton {
   background: var(--btn-primary-gradient);
   color: #fff;
@@ -589,66 +651,6 @@
   font-size: 16px;
   font-weight: 600;
   color: var(--color-text);
-}
-
-.optionsGrid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-}
-
-.optionCard {
-  border: 1px solid var(--local-border);
-  border-radius: var(--radius-md);
-  padding: 12px;
-  background: var(--color-surface-alt-muted);
-}
-
-.optionHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.optionLabel {
-  font-weight: 600;
-  font-size: 14px;
-}
-
-.correctToggle {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.correctToggle input {
-  margin: 0;
-}
-
-.optionInput {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid var(--local-form-border);
-  border-radius: var(--radius-md);
-  margin-bottom: 8px;
-}
-
-.explanationLabel {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.explanationLabel textarea {
-  padding: 8px;
-  border: 1px solid var(--local-form-border);
-  border-radius: var(--radius-md);
-  resize: vertical;
 }
 
 .label {

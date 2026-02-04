@@ -20,11 +20,18 @@ import { ModuleAccessGuard } from '../../auth/guards/module-access.guard';
 import { ModuleAccess } from '../../auth/decorators/module-access.decorator';
 import { assertHasAccess } from '../../helpers/permissions.helper';
 import type { AuthUser } from '../../types/auth-user.type';
+import { QuestionUnitService } from '../questions/question-unit/question-unit.service';
+import { CreateQuestionWithContentDto } from '../questions/question-unit/dto/create-question-with-content.dto';
+import { CreateVariantWithContentDto } from '../questions/question-unit/dto/create-variant-with-content.dto';
+import { UpdateQuestionContentDto } from '../questions/question-content/dto/update-question-content.dto';
 
 // This controller serves both `/module-unit` CRUD endpoints and the module-scoped create route `/module/:moduleId/units`.
 @Controller()
 export class ModuleUnitController {
-  constructor(private readonly moduleUnitService: ModuleUnitService) {}
+  constructor(
+    private readonly moduleUnitService: ModuleUnitService,
+    private readonly questionUnitService: QuestionUnitService,
+  ) {}
 
   // Module-scoped creation aligned with frontend call: POST /module/:moduleId/units
   @Post('module/:moduleId/units')
@@ -62,6 +69,88 @@ export class ModuleUnitController {
   @Get('module-unit/:id')
   findOne(@Param('id') id: string) {
     return this.moduleUnitService.findOne(+id);
+  }
+
+  @Post('module/:moduleId/unit/:unitId/questions')
+  @UseGuards(SessionAuthGuard, ModuleAccessGuard)
+  @ModuleAccess({ paramKey: 'moduleId' })
+  async createQuestionForUnit(
+    @Param('moduleId') moduleId: string,
+    @Param('unitId') unitId: string,
+    @Body() body: CreateQuestionWithContentDto,
+    @Req() req: Request,
+  ) {
+    assertHasAccess('modules.manageContent', req.user as AuthUser);
+    const parsedModuleId = Number(moduleId);
+    const parsedUnitId = Number(unitId);
+    if (!Number.isFinite(parsedModuleId) || !Number.isFinite(parsedUnitId)) {
+      throw new NotFoundException('Module unit not found');
+    }
+    const result = await this.questionUnitService.createQuestionWithContent(
+      parsedModuleId,
+      parsedUnitId,
+      body,
+    );
+    return result;
+  }
+
+  @Post('module/:moduleId/unit/:unitId/questions/:questionId/variants')
+  @UseGuards(SessionAuthGuard, ModuleAccessGuard)
+  @ModuleAccess({ paramKey: 'moduleId' })
+  async createVariantForQuestion(
+    @Param('moduleId') moduleId: string,
+    @Param('unitId') unitId: string,
+    @Param('questionId') questionId: string,
+    @Body() body: CreateVariantWithContentDto,
+    @Req() req: Request,
+  ) {
+    assertHasAccess('modules.manageContent', req.user as AuthUser);
+    const parsedModuleId = Number(moduleId);
+    const parsedUnitId = Number(unitId);
+    const parsedQuestionId = Number(questionId);
+    if (!Number.isFinite(parsedModuleId) || !Number.isFinite(parsedUnitId) || !Number.isFinite(parsedQuestionId)) {
+      throw new NotFoundException('Module unit not found');
+    }
+    const result = await this.questionUnitService.createVariantWithContent(
+      parsedModuleId,
+      parsedUnitId,
+      parsedQuestionId,
+      body,
+    );
+    return result;
+  }
+
+  @Patch('module/:moduleId/unit/:unitId/questions/:questionId/content/:contentId')
+  @UseGuards(SessionAuthGuard, ModuleAccessGuard)
+  @ModuleAccess({ paramKey: 'moduleId' })
+  async updateQuestionContent(
+    @Param('moduleId') moduleId: string,
+    @Param('unitId') unitId: string,
+    @Param('questionId') questionId: string,
+    @Param('contentId') contentId: string,
+    @Body() body: UpdateQuestionContentDto,
+    @Req() req: Request,
+  ) {
+    assertHasAccess('modules.manageContent', req.user as AuthUser);
+    const parsedModuleId = Number(moduleId);
+    const parsedUnitId = Number(unitId);
+    const parsedQuestionId = Number(questionId);
+    const parsedContentId = Number(contentId);
+    if (
+      !Number.isFinite(parsedModuleId) ||
+      !Number.isFinite(parsedUnitId) ||
+      !Number.isFinite(parsedQuestionId) ||
+      !Number.isFinite(parsedContentId)
+    ) {
+      throw new NotFoundException('Module unit not found');
+    }
+    return this.questionUnitService.updateContentScoped(
+      parsedModuleId,
+      parsedUnitId,
+      parsedQuestionId,
+      parsedContentId,
+      body,
+    );
   }
 
   @Get('module/:moduleId/unit/:unitId/editor')
