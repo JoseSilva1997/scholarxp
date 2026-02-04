@@ -1,18 +1,46 @@
-export * from './mcq';
-export * from './true-false';
-
-import type { McqQuestionDto } from './mcq';
-import type { TrueFalseQuestionDto } from './true-false';
+// Central DTOs for question types shared across frontend and backend.
 
 /**
- * Union type for all supported question data structures.
- * Use this to type the 'questionData' field in DTOs and database models.
+ * MCQ Question Data
+ */
+export type McqQuestionDto = {
+    options: [
+        { optionText: string; explanation?: string },
+        { optionText: string; explanation?: string },
+        { optionText: string; explanation?: string },
+        { optionText: string; explanation?: string }
+    ];
+    correctOptionIndex: number;
+}
+
+export const emptyMcqTemplate = (): McqQuestionDto => ({
+    options: [
+        { optionText: '', explanation: '' },
+        { optionText: '', explanation: '' },
+        { optionText: '', explanation: '' },
+        { optionText: '', explanation: '' },
+    ],
+    correctOptionIndex: 0,
+});
+
+/**
+ * True/False Question Data
+ */
+export type TrueFalseQuestionDto = {
+    options: [
+        { optionText: string; explanation?: string },
+        { optionText: string; explanation?: string }
+    ];
+    correctOptionIndex: number;
+};
+
+/**
+ * Union of all possible question content structures.
  */
 export type QuestionData = McqQuestionDto | TrueFalseQuestionDto;
 
 /**
  * Runtime array of all supported question types.
- * Use this for validation (e.g. class-validator IsIn).
  */
 export const QUESTION_TYPES = ['mcq', 'true-false'] as const;
 
