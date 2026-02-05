@@ -1064,10 +1064,18 @@ const formatVariantLabel = (index: number, isDraft?: boolean) =>
               {groups.map((group) => (
                 <div key={group.id} className={styles.groupCard}>
                   <div className={styles.groupHeader}>
-                    <button
-                      type="button"
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      aria-expanded={expandedGroups.has(group.id)}
                       className={styles.groupToggle}
                       onClick={() => handleToggleGroup(group.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handleToggleGroup(group.id);
+                        }
+                      }}
                     >
                       {editingGroupId === group.id ? (
                         <input
@@ -1096,15 +1104,18 @@ const formatVariantLabel = (index: number, isDraft?: boolean) =>
                           type="button"
                           className={styles.iconButton}
                           aria-label={`Delete group ${group.title}`}
-                          onClick={() => setDeleteTarget({ type: 'group', groupId: group.id, title: group.title })}
-                      >
-                        <FiTrash2 aria-hidden />
-                      </button>
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteTarget({ type: 'group', groupId: group.id, title: group.title });
+                          }}
+                        >
+                          <FiTrash2 aria-hidden />
+                        </button>
                         <span className={styles.expandIcon}>
                           {expandedGroups.has(group.id) ? '▼' : '▶'}
                         </span>
                       </div>
-                    </button>
+                    </div>
                   </div>
                   {expandedGroups.has(group.id) && (
                     <div className={styles.questionList}>
@@ -1116,12 +1127,19 @@ const formatVariantLabel = (index: number, isDraft?: boolean) =>
                         return (
                           <div key={question.id} className={styles.questionItem}>
                             <div className={styles.questionRow}>
-                              <button
-                                type="button"
+                              <div
+                                role="button"
+                                tabIndex={0}
                                 className={`${styles.questionBlock} ${isSelected ? styles.selected : ''} ${isVariantSelected ? styles.variantSelected : ''}`}
                                 onClick={() =>
                                   setSelected({ groupId: group.id, questionId: question.id, variantId: null })
                                 }
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    setSelected({ groupId: group.id, questionId: question.id, variantId: null });
+                                  }
+                                }}
                               >
                                 <span className={styles.questionLabel}>{questionDisplayLabel}</span>
                                 <div className={styles.questionMeta}>
@@ -1143,7 +1161,7 @@ const formatVariantLabel = (index: number, isDraft?: boolean) =>
                                   <FiTrash2 aria-hidden />
                                 </button>
                                 </div>
-                              </button>
+                              </div>
                             </div>
                             <div className={styles.variantList}>
                               {question.variants.map((variant, variantIndex) => {
