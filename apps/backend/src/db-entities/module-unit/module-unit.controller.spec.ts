@@ -6,6 +6,7 @@ import * as permissions from '../../helpers/permissions.helper';
 import { ModuleAccessGuard } from '../../auth/guards/module-access.guard';
 import { SessionAuthGuard } from '../../auth/guards/session-auth.guard';
 import { QuestionUnitService } from '../questions/question-unit/question-unit.service';
+import { ModuleUnitQuestionGroupService } from '../module-unit-question-group/module-unit-question-group.service';
 
 runCrudControllerTests({
   name: 'ModuleUnitController',
@@ -13,6 +14,7 @@ runCrudControllerTests({
   service: ModuleUnitService,
   extraProviders: [
     { provide: QuestionUnitService, useValue: { findOne: jest.fn() } },
+    { provide: ModuleUnitQuestionGroupService, useValue: { findOne: jest.fn() } },
   ],
   createDto: {
     moduleId: 1,
@@ -35,6 +37,9 @@ describe('ModuleUnitController.createForModule', () => {
   const questionUnitService = {
     findOne: jest.fn(),
   } as unknown as QuestionUnitService;
+  const moduleUnitQuestionGroupService = {
+    findOne: jest.fn(),
+  } as unknown as ModuleUnitQuestionGroupService;
 
   beforeEach(async () => {
     jest.spyOn(permissions, 'assertHasAccess').mockReturnValue(undefined);
@@ -45,6 +50,7 @@ describe('ModuleUnitController.createForModule', () => {
       providers: [
         { provide: ModuleUnitService, useValue: service },
         { provide: QuestionUnitService, useValue: questionUnitService },
+        { provide: ModuleUnitQuestionGroupService, useValue: moduleUnitQuestionGroupService },
       ],
     })
       .overrideGuard(SessionAuthGuard)
