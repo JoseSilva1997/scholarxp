@@ -24,6 +24,8 @@ import { QuestionUnitService } from '../questions/question-unit/question-unit.se
 import { CreateQuestionWithContentDto } from '../questions/question-unit/dto/create-question-with-content.dto';
 import { CreateVariantWithContentDto } from '../questions/question-unit/dto/create-variant-with-content.dto';
 import { UpdateQuestionContentDto } from '../questions/question-content/dto/update-question-content.dto';
+import { ModuleUnitQuestionGroupService } from '../module-unit-question-group/module-unit-question-group.service';
+import { CreateModuleUnitQuestionGroupDto } from '../module-unit-question-group/dto/create-module-unit-question-group.dto';
 
 // This controller serves both `/module-unit` CRUD endpoints and the module-scoped create route `/module/:moduleId/units`.
 @Controller()
@@ -31,6 +33,7 @@ export class ModuleUnitController {
   constructor(
     private readonly moduleUnitService: ModuleUnitService,
     private readonly questionUnitService: QuestionUnitService,
+    private readonly moduleUnitQuestionGroupService: ModuleUnitQuestionGroupService,
   ) {}
 
   // Module-scoped creation aligned with frontend call: POST /module/:moduleId/units
@@ -92,6 +95,32 @@ export class ModuleUnitController {
       body,
     );
     return result;
+  }
+
+  @Post('module/:moduleId/unit/:unitId/question-groups')
+  @UseGuards(SessionAuthGuard, ModuleAccessGuard)
+  @ModuleAccess({ paramKey: 'moduleId' })
+  async createQuestionGroupForUnit(
+    @Param('moduleId') moduleId: string,
+    @Param('unitId') unitId: string,
+    @Body() body: CreateModuleUnitQuestionGroupDto,
+    @Req() req: Request,
+  ) {
+    assertHasAccess('modules.manageContent', req.user as AuthUser);
+    // Creating groups lazily avoids front-end race conditions when authors start with a draft group.
+    const parsedModuleId = Number(moduleId);
+    const parsedUnitId = Number(unitId);
+    if (!Number.isFinite(parsedModuleId) || !Number.isFinite(parsedUnitId)) {
+      throw new NotFoundException('Module unit not found');
+    }
+    if (body.moduleUnitId !== parsedUnitId) {
+      throw new NotFoundException('Module unit not found');
+    }
+    const unit = await this.moduleUnitService.findOne(parsedUnitId);
+    if (!unit || unit.moduleId !== parsedModuleId) {
+      throw new NotFoundException('Module unit not found');
+    }
+    return this.moduleUnitQuestionGroupService.create(body);
   }
 
   @Post('module/:moduleId/unit/:unitId/questions/:questionId/variants')

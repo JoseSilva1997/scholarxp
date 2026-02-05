@@ -3,9 +3,11 @@ import type {
   UpdateModulePayload,
   CreateModuleUnitMinimalPayload,
   UpdateModuleUnitStatusPayload,
+  CreateModuleUnitQuestionGroupPayload,
   ModuleSummaryResponse as ModuleSummary,
   ModuleUnitResponse,
-  ModuleUnitEditorResponse as ModuleUnitEditorDto
+  ModuleUnitEditorResponse as ModuleUnitEditorDto,
+  ModuleUnitGroupResponse,
 } from '@scholarxp/api-contracts';
 import { apiFetch } from './client';
 
@@ -66,5 +68,16 @@ export async function getModuleUnits(moduleId: number): Promise<ModuleUnitRespon
 export async function getModuleUnitEditor(moduleId: number, moduleUnitId: number): Promise<ModuleUnitEditorDto> {
   return apiFetch<ModuleUnitEditorDto>(`/module/${moduleId}/unit/${moduleUnitId}/editor`, {
     method: 'GET',
+  });
+}
+
+export async function createModuleUnitQuestionGroup(
+  moduleId: number,
+  moduleUnitId: number,
+  payload: CreateModuleUnitQuestionGroupPayload,
+) {
+  return apiFetch<ModuleUnitGroupResponse>(`/module/${moduleId}/unit/${moduleUnitId}/question-groups`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
   });
 }

@@ -5,7 +5,7 @@ import type { questionType, QuestionData } from '@scholarxp/question-type-dtos';
 // Shared payload for question content endpoints; kept narrow to satisfy backend whitelist validation.
 export type QuestionContentRequest = {
   questionStem: string;
-  questionType: questionType;
+  type: questionType;
   questionData: QuestionData;
   hint?: string | null;
   difficultyScore: number;

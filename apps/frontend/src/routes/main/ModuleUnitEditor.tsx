@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import MainSection from '../../components/MainSection';
-import { getModuleUnitEditor } from '../../api/modules';
+import { getModuleUnitEditor, createModuleUnitQuestionGroup } from '../../api/modules';
 import {
   createQuestionForUnit,
   createVariantForQuestion,
@@ -395,11 +395,40 @@ export default function ModuleUnitEditor() {
       setSaveError('Pick a question group first.');
       return;
     }
-    const numericGroupId = Number(targetGroupId);
+    let numericGroupId = Number(targetGroupId);
     if (!Number.isFinite(numericGroupId)) {
-      setSaveError('Save or choose an existing question group before saving questions.');
-      return;
+      try {
+        // First save for a draft group: create it on the server so subsequent questions have a stable id.
+        const createdGroup = await createModuleUnitQuestionGroup(parsedModuleId, parsedUnitId, {
+          moduleUnitId: parsedUnitId,
+          name: targetGroup.title,
+          sortOrder: groups.length + 1,
+        });
+        numericGroupId = Number(createdGroup.id ?? NaN);
+        if (!Number.isFinite(numericGroupId)) {
+          throw new Error('Invalid group id');
+        }
+        // Keep UI expanded and selection intact when replacing the temp group id with the persisted one.
+        setGroups((prev) =>
+          prev.map((group) =>
+            group.id === targetGroupId
+              ? { ...group, id: String(numericGroupId) }
+              : group,
+          ),
+        );
+        setExpandedGroups((prev) => new Set([...Array.from(prev).filter((id) => id !== targetGroupId), String(numericGroupId)]));
+        setSelected((prev) =>
+          prev
+            ? { ...prev, groupId: String(numericGroupId) }
+            : null,
+        );
+      } catch (err) {
+        setSaveError('Could not create question group. Please try again.');
+        logError(err, { feature: 'question-group', action: 'create', unitId: parsedUnitId });
+        return;
+      }
     }
+    const resolvedGroupId = String(numericGroupId);
     const targetQuestion = targetGroup.questions.find((q) => q.id === selected.questionId);
     if (!targetQuestion) {
       setSaveError('Pick a question to save.');
@@ -416,7 +445,7 @@ export default function ModuleUnitEditor() {
       questionGroupId: numericGroupId,
       title: targetQuestion.title.replace(/\s+\(draft\)$/i, ''),
       questionStem: form.stem,
-      questionType: form.type,
+      type: form.type,
       questionData: QUESTION_TYPE_CONFIGS[form.type].buildQuestionData(form),
       hint: form.hint,
       difficultyScore: 0,
@@ -442,7 +471,7 @@ export default function ModuleUnitEditor() {
         persistedTitle = created.questionUnit.title.replace(/\s+\(draft\)$/i, '');
         setGroups((prev) =>
           prev.map((group) =>
-            group.id === targetGroupId
+            group.id === resolvedGroupId
               ? {
                   ...group,
                   questions: group.questions.map((q) =>
@@ -457,7 +486,7 @@ export default function ModuleUnitEditor() {
                             questionUnitId: String(created.questionUnit.id),
                             questionStem: payload.questionStem,
                             questionData: payload.questionData,
-                            type: payload.questionType,
+                            type: payload.type,
                             hint: payload.hint ?? null,
                             difficultyScore: payload.difficultyScore,
                             source: payload.source,
@@ -473,8 +502,8 @@ export default function ModuleUnitEditor() {
         );
         setSelected((prev) =>
           prev
-            ? { ...prev, questionId: persistedQuestionId }
-            : { groupId: targetGroupId, questionId: persistedQuestionId, variantId: selected.variantId },
+            ? { ...prev, questionId: persistedQuestionId, groupId: resolvedGroupId }
+            : { groupId: resolvedGroupId, questionId: persistedQuestionId, variantId: selected.variantId },
         );
       }
 
@@ -491,7 +520,7 @@ export default function ModuleUnitEditor() {
           const variantPayload = {
             variantLabel: (variant.label ?? 'Variant').replace(/\s+\(draft\)$/i, ''),
             questionStem: form.stem,
-            questionType: form.type,
+            type: form.type,
             questionData: QUESTION_TYPE_CONFIGS[form.type].buildQuestionData(form),
             hint: form.hint,
             difficultyScore: 0,
@@ -508,7 +537,7 @@ export default function ModuleUnitEditor() {
 
           setGroups((prev) =>
             prev.map((group) =>
-              group.id === targetGroupId
+              group.id === resolvedGroupId
                 ? {
                     ...group,
                     questions: group.questions.map((q) =>
@@ -544,8 +573,8 @@ export default function ModuleUnitEditor() {
           ),
         );
 
-          setSelected({ groupId: targetGroupId, questionId: persistedQuestionId, variantId: String(createdVariant.variant.id) });
-          clearOtherTypesCache(`${persistedQuestionId}-variant-${createdVariant.variant.id}`, payload.questionType as QuestionType);
+          setSelected({ groupId: resolvedGroupId, questionId: persistedQuestionId, variantId: String(createdVariant.variant.id) });
+          clearOtherTypesCache(`${persistedQuestionId}-variant-${createdVariant.variant.id}`, payload.type as QuestionType);
         } else {
           await updateQuestionContentScoped(
             parsedModuleId,
@@ -555,7 +584,7 @@ export default function ModuleUnitEditor() {
             {
               questionStem: payload.questionStem,
               questionData: payload.questionData,
-              type: payload.questionType,
+              type: payload.type,
               hint: payload.hint,
               difficultyScore: payload.difficultyScore,
               source: payload.source,
@@ -564,7 +593,7 @@ export default function ModuleUnitEditor() {
           );
           setGroups((prev) =>
             prev.map((group) =>
-              group.id === targetGroupId
+              group.id === resolvedGroupId
                 ? {
                     ...group,
                     questions: group.questions.map((q) =>
@@ -581,7 +610,7 @@ export default function ModuleUnitEditor() {
                                         questionUnitId: persistedQuestionId,
                                         questionStem: '',
                                         questionData: payload.questionData,
-                                        type: payload.questionType,
+                                        type: payload.type,
                                         hint: null,
                                         difficultyScore: payload.difficultyScore,
                                         source: payload.source,
@@ -589,7 +618,7 @@ export default function ModuleUnitEditor() {
                                       }),
                                       questionStem: payload.questionStem,
                                       questionData: payload.questionData,
-                                      type: payload.questionType,
+                                      type: payload.type,
                                       hint: payload.hint ?? null,
                                       difficultyScore: payload.difficultyScore,
                                       source: payload.source,
@@ -605,7 +634,7 @@ export default function ModuleUnitEditor() {
               : group,
           ),
         );
-          clearOtherTypesCache(`${persistedQuestionId}-variant-${selected.variantId}`, payload.questionType as QuestionType);
+          clearOtherTypesCache(`${persistedQuestionId}-variant-${selected.variantId}`, payload.type as QuestionType);
         }
       } else {
         // Save or update the core question content.
@@ -625,7 +654,7 @@ export default function ModuleUnitEditor() {
           {
             questionStem: payload.questionStem,
             questionData: payload.questionData,
-            type: payload.questionType,
+            type: payload.type,
             hint: payload.hint,
             difficultyScore: payload.difficultyScore,
             source: payload.source,
@@ -634,7 +663,7 @@ export default function ModuleUnitEditor() {
         );
         setGroups((prev) =>
           prev.map((group) =>
-            group.id === targetGroupId
+            group.id === resolvedGroupId
               ? {
                   ...group,
                   questions: group.questions.map((q) =>
@@ -647,7 +676,7 @@ export default function ModuleUnitEditor() {
                                 questionUnitId: persistedQuestionId,
                                 questionStem: payload.questionStem,
                                 questionData: payload.questionData,
-                                type: payload.questionType,
+                                type: payload.type,
                                 hint: payload.hint ?? null,
                                 difficultyScore: payload.difficultyScore,
                                 source: payload.source,
@@ -655,7 +684,7 @@ export default function ModuleUnitEditor() {
                               }),
                               questionStem: payload.questionStem,
                               questionData: payload.questionData,
-                              type: payload.questionType,
+                              type: payload.type,
                               hint: payload.hint ?? null,
                               difficultyScore: payload.difficultyScore,
                               source: payload.source,
@@ -668,7 +697,7 @@ export default function ModuleUnitEditor() {
               : group,
           ),
         );
-        clearOtherTypesCache(`${persistedQuestionId}-core`, payload.questionType as QuestionType);
+        clearOtherTypesCache(`${persistedQuestionId}-core`, payload.type as QuestionType);
       }
     } catch (err) {
       setSaveError('Could not save the question. Please try again.');

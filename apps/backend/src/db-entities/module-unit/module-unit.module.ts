@@ -3,9 +3,10 @@ import { ModuleUnitService } from './module-unit.service';
 import { ModuleUnitController } from './module-unit.controller';
 import { AuthModule } from '../../auth/auth.module';
 import { QuestionUnitModule } from '../questions/question-unit/question-unit.module';
+import { ModuleUnitQuestionGroupModule } from '../module-unit-question-group/module-unit-question-group.module';
 
 @Module({
-  imports: [AuthModule, QuestionUnitModule],
+  imports: [AuthModule, QuestionUnitModule, ModuleUnitQuestionGroupModule],
   controllers: [ModuleUnitController],
   providers: [ModuleUnitService],
 })

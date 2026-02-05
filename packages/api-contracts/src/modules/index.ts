@@ -27,6 +27,18 @@ export interface ModuleUnitGroupResponse {
   sortOrder: number;
 }
 
+export interface CreateModuleUnitQuestionGroupPayload {
+  moduleUnitId: number;
+  name: string;
+  sortOrder: number;
+}
+
+export interface CreateModuleUnitQuestionGroupPayload {
+  moduleUnitId: number;
+  name: string;
+  sortOrder: number;
+}
+
 export interface ModuleUnitResponse {
   id: number;
   moduleId: number | null;
