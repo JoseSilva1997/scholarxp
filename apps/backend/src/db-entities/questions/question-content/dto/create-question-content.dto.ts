@@ -10,6 +10,7 @@ import {
 } from 'class-validator';
 import { QUESTION_TYPES } from '@scholarxp/question-type-dtos';
 import type { questionType, QuestionData } from '@scholarxp/question-type-dtos';
+import { QuestionSource } from '@scholarxp/api-contracts';
 
 export class CreateQuestionContentDto {
   @IsIn(QUESTION_TYPES)
@@ -41,8 +42,8 @@ export class CreateQuestionContentDto {
   difficultyScore: number;
 
   @IsString()
-  @IsNotEmpty()
-  source: string;
+  @IsIn(['human', 'ai-generated'])
+  source: QuestionSource;
 
   @IsString()
   @IsNotEmpty()

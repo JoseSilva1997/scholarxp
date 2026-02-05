@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { FiTrash2 } from 'react-icons/fi';
+import type { QuestionSource } from '@scholarxp/api-contracts';
 import MainSection from '../../components/MainSection';
 import { getModuleUnitEditor, createModuleUnitQuestionGroup, deleteModuleUnitQuestionGroup } from '../../api/modules';
 import {
@@ -99,6 +100,12 @@ const formatQuestionLabel = (index: number, isDraft?: boolean) =>
 
 const formatVariantLabel = (index: number, isDraft?: boolean) =>
   `Variant ${index + 1}${isDraft ? ' (draft)' : ''}`;
+
+// Keep source values aligned with api-contracts QuestionSource union.
+const SOURCE_HUMAN: QuestionSource = 'human';
+const SOURCE_AI: QuestionSource = 'ai-generated';
+const normalizeSource = (value?: string | null): QuestionSource =>
+  value === SOURCE_AI ? SOURCE_AI : SOURCE_HUMAN;
 
   const buildInitialForm = useCallback(
     (): QuestionForm => ({
@@ -642,7 +649,7 @@ const formatVariantLabel = (index: number, isDraft?: boolean) =>
       questionData: QUESTION_TYPE_CONFIGS[form.type].buildQuestionData(form),
       hint: form.hint,
       difficultyScore: 0,
-      source: 'author',
+      source: SOURCE_HUMAN,
       status: 'draft',
     } as const;
 
@@ -719,7 +726,7 @@ const formatVariantLabel = (index: number, isDraft?: boolean) =>
             questionData: QUESTION_TYPE_CONFIGS[form.type].buildQuestionData(form),
             hint: form.hint,
             difficultyScore: 0,
-            source: 'author',
+            source: SOURCE_HUMAN,
             status: 'draft',
           } as const;
 
@@ -754,7 +761,7 @@ const formatVariantLabel = (index: number, isDraft?: boolean) =>
                                       type: createdVariant.variant.content.type,
                                       hint: createdVariant.variant.content.hint ?? null,
                                       difficultyScore: createdVariant.variant.content.difficultyScore ?? 0,
-                                      source: createdVariant.variant.content.source ?? 'author',
+                                      source: normalizeSource(createdVariant.variant.content.source),
                                       status: createdVariant.variant.content.status ?? 'draft',
                                     },
                                   }
@@ -943,7 +950,7 @@ const formatVariantLabel = (index: number, isDraft?: boolean) =>
                     type: normalizeQuestionType(v.content.type),
                     hint: v.content.hint ?? null,
                     difficultyScore: v.content.difficultyScore ?? 0,
-                    source: v.content.source ?? 'author',
+                    source: normalizeSource(v.content.source),
                     status: v.content.status ?? 'draft',
                   }
                 : undefined,
@@ -957,7 +964,7 @@ const formatVariantLabel = (index: number, isDraft?: boolean) =>
                   type: normalizeQuestionType(q.coreContent.type),
                   hint: q.coreContent.hint ?? null,
                   difficultyScore: q.coreContent.difficultyScore ?? 0,
-                  source: q.coreContent.source ?? 'author',
+                  source: normalizeSource(q.coreContent.source),
                   status: q.coreContent.status ?? 'draft',
                 }
               : undefined,

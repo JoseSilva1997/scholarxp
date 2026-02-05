@@ -4,6 +4,11 @@
 import type { QuestionData, questionType } from '@scholarxp/question-type-dtos';
 
 /**
+ * Supported sources for question content.
+ */
+export type QuestionSource = 'human' | 'ai-generated';
+
+/**
  * Base structure for any question content (core or variant).
  */
 export interface QuestionContentPayload {
@@ -12,7 +17,7 @@ export interface QuestionContentPayload {
   questionData: QuestionData;
   hint?: string | null;
   difficultyScore: number;
-  source: string;
+  source: QuestionSource;
   status: string;
 }
 
@@ -42,7 +47,7 @@ export interface QuestionContentResponse {
   type: string;
   hint: string | null;
   difficultyScore: number;
-  source: string;
+  source: QuestionSource;
   status: string;
 }
 

@@ -2,7 +2,7 @@
 import { IsNotEmpty, IsObject, IsOptional, IsString, Max, Min, IsIn, IsNumber } from 'class-validator';
 import { QUESTION_TYPES } from '@scholarxp/question-type-dtos';
 import type { questionType, QuestionData } from '@scholarxp/question-type-dtos';
-import { CreateVariantPayload } from '@scholarxp/api-contracts';
+import { CreateVariantPayload, QuestionSource } from '@scholarxp/api-contracts';
 
 export class CreateVariantWithContentDto implements CreateVariantPayload {
   @IsString()
@@ -30,8 +30,8 @@ export class CreateVariantWithContentDto implements CreateVariantPayload {
   difficultyScore: number;
 
   @IsString()
-  @IsNotEmpty()
-  source: string;
+  @IsIn(['human', 'ai-generated'])
+  source: QuestionSource;
 
   @IsString()
   @IsNotEmpty()
