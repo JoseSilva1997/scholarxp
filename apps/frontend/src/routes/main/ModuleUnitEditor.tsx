@@ -1,6 +1,7 @@
 // Module unit authoring workspace UI for adding questions, variants, and context before wiring backend.
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { FiTrash2 } from 'react-icons/fi';
 import MainSection from '../../components/MainSection';
 import { getModuleUnitEditor, createModuleUnitQuestionGroup } from '../../api/modules';
 import {
@@ -25,6 +26,7 @@ import type {
   QuestionForm, 
   QuestionTypeConfig, 
 } from '../../components/question-types/QuestionTypeRegistry';
+import ConfirmDeleteModal from '../../components/Modals/ConfirmDeleteModal';
 import styles from './ModuleUnitEditor.module.css';
 
 // Local editor types derived from API contracts but allow local UI state (like isDraft and string IDs for temp items).
@@ -55,6 +57,11 @@ type QuestionGroup = Omit<ModuleUnitEditorGroup, 'id' | 'questions' | 'name' | '
   questions: Question[];
 };
 
+type DeleteTarget =
+  | { type: 'group'; groupId: string; title: string }
+  | { type: 'question'; groupId: string; questionId: string; title: string }
+  | { type: 'variant'; groupId: string; questionId: string; variantId: string; label: string };
+
 export default function ModuleUnitEditor() {
   const { moduleId, unitId } = useParams<{ moduleId: string; unitId: string }>();
   const [unitTitle, setUnitTitle] = useState('');
@@ -67,18 +74,23 @@ export default function ModuleUnitEditor() {
   const [isSavingQuestion, setIsSavingQuestion] = useState(false);
   const [isSavingVariant, setIsSavingVariant] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
 
   const [selected, setSelected] = useState<{ groupId: string; questionId: string | null; variantId: string | null } | null>(null);
 
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
-  // Track per-group counters for default question titles; avoids cross-group interference.
-  const groupQuestionCountersRef = useRef<Map<string, number>>(new Map());
   // Cache per-question, per-type option/explanation inputs so toggling types can restore prior edits.
   const questionTypeCacheRef = useRef<
     Map<string, Partial<Record<QuestionType, { options: QuestionForm['options']; explanations: string[] }>>>
   >(new Map());
 
-  const mcqOptionSlots = useMemo(() => emptyMcqTemplate().options.length, []);
+const mcqOptionSlots = useMemo(() => emptyMcqTemplate().options.length, []);
+
+const formatQuestionLabel = (index: number, isDraft?: boolean) =>
+  `Question ${index + 1}${isDraft ? ' (draft)' : ''}`;
+
+const formatVariantLabel = (index: number, isDraft?: boolean) =>
+  `Variant ${index + 1}${isDraft ? ' (draft)' : ''}`;
 
   const buildInitialForm = useCallback(
     (): QuestionForm => ({
@@ -164,18 +176,26 @@ export default function ModuleUnitEditor() {
     return group.questions.find((q) => q.id === selected.questionId) ?? null;
   }, [groups, selected]);
 
+  useEffect(() => {
+    if (!selected) {
+      // Reset the editor form when nothing is selected so stale content is not edited accidentally.
+      setForm(buildInitialForm());
+    }
+  }, [selected, buildInitialForm]);
+
   // Keep a linear navigation list (core question first, then its variants) to drive prev/next controls.
   const navigationItems = useMemo(() => {
     if (!selected) return [];
     const group = groups.find((g) => g.id === selected.groupId);
     const question = group?.questions.find((q) => q.id === selected.questionId);
     if (!question) return [];
+    const questionIndex = group?.questions.findIndex((q) => q.id === question.id) ?? 0;
     const items: { questionId: string; variantId: string | null; label: string }[] = [
-      { questionId: question.id, variantId: null, label: question.title },
+      { questionId: question.id, variantId: null, label: formatQuestionLabel(questionIndex, question.isDraft) },
       ...question.variants.map((variant) => ({
         questionId: question.id,
         variantId: variant.id,
-        label: variant.label,
+        label: formatVariantLabel(question.variants.findIndex((v) => v.id === variant.id), variant.isDraft),
       })),
     ];
     return items;
@@ -207,12 +227,41 @@ export default function ModuleUnitEditor() {
 
   const activeLabel = useMemo(() => {
     if (!selectedQuestion) return null;
+    const group = selected ? groups.find((g) => g.id === selected.groupId) : null;
+    const questionIndex = group?.questions.findIndex((q) => q.id === selectedQuestion.id) ?? -1;
     if (selected?.variantId) {
-      const variant = selectedQuestion.variants.find((v) => v.id === selected.variantId);
-      return variant?.label ?? selectedQuestion.title;
+      const variantIndex = selectedQuestion.variants.findIndex((v) => v.id === selected.variantId);
+      if (variantIndex >= 0) {
+        return formatVariantLabel(variantIndex, selectedQuestion.variants[variantIndex]?.isDraft);
+      }
     }
-    return selectedQuestion.title;
-  }, [selectedQuestion, selected]);
+    return questionIndex >= 0 ? formatQuestionLabel(questionIndex, selectedQuestion.isDraft) : selectedQuestion.title;
+  }, [groups, selectedQuestion, selected]);
+
+  const deleteCopy = useMemo(() => {
+    if (!deleteTarget) {
+      return { title: '', body: '', confirmLabel: 'Delete' };
+    }
+    if (deleteTarget.type === 'group') {
+      return {
+        title: `Delete group "${deleteTarget.title}"?`,
+        body: 'Deleting this group will remove all core questions and variants inside it. This keeps the unit list tidy but cannot be undone here.',
+        confirmLabel: 'Delete group',
+      };
+    }
+    if (deleteTarget.type === 'question') {
+      return {
+        title: `Delete question "${deleteTarget.title}"?`,
+        body: 'Deleting this question will also remove every variant tied to it. Students will no longer see this question in practice sets.',
+        confirmLabel: 'Delete question',
+      };
+    }
+    return {
+      title: `Delete variant "${deleteTarget.label}"?`,
+      body: 'Deleting this variant removes it from the question set. Other variants and the core question stay intact.',
+      confirmLabel: 'Delete variant',
+    };
+  }, [deleteTarget]);
 
   const handleAddGroup = () => {
     const newGroup: QuestionGroup = {
@@ -220,7 +269,6 @@ export default function ModuleUnitEditor() {
       title: `New Group ${groups.length + 1}`,
       questions: [],
     };
-    groupQuestionCountersRef.current.set(newGroup.id, 1);
     setGroups((prev) => [...prev, newGroup]);
     setExpandedGroups((prev) => new Set([...prev, newGroup.id]));
     setSelected({ groupId: newGroup.id, questionId: null, variantId: null });
@@ -256,16 +304,14 @@ export default function ModuleUnitEditor() {
     const group = groups.find((g) => g.id === groupId);
     const lastQuestion = group?.questions[group.questions.length - 1];
     if (lastQuestion && !isQuestionSaved(lastQuestion)) {
-      setSaveError(`Save ${lastQuestion.title} before adding another question in this group.`);
+      const lastIndex = (group?.questions.length ?? 1) - 1;
+      setSaveError(`Save ${formatQuestionLabel(lastIndex, lastQuestion.isDraft)} before adding another question in this group.`);
       return;
     }
     const draftQuestionId = `temp-${makeId()}`;
-    const currentCount = groupQuestionCountersRef.current.get(groupId) ?? 1;
-    const questionLabel = `Question ${currentCount} (draft)`;
-    groupQuestionCountersRef.current.set(groupId, currentCount + 1);
     const newQuestion: Question = {
       id: draftQuestionId,
-      title: questionLabel,
+      title: formatQuestionLabel(group?.questions.length ?? 0, true),
       type: DEFAULT_QUESTION_TYPE,
       variants: [],
       coreContent: undefined,
@@ -301,12 +347,11 @@ export default function ModuleUnitEditor() {
       const lastVariant = question.variants[question.variants.length - 1];
       setSaveError(
         lastVariant
-          ? `Save ${lastVariant.label} before creating another variant.`
+          ? `Save ${formatVariantLabel(question.variants.length - 1, lastVariant.isDraft)} before creating another variant.`
           : 'Save the core question before creating variants.',
       );
       return;
     }
-    const nextLabel = question ? `Variant ${question.variants.length + 1} (draft)` : 'Variant (draft)';
     const draftVariantId = `temp-variant-${makeId()}`;
     // Keep draft variants local until the user explicitly saves.
     setGroups((prev) =>
@@ -320,21 +365,114 @@ export default function ModuleUnitEditor() {
                   ? q
                   : {
                       ...q,
-                      variants: [
-                        ...q.variants,
-                        {
-                          id: draftVariantId,
-                          label: nextLabel,
-                          isDraft: true,
+                          variants: [
+                            ...q.variants,
+                            {
+                              id: draftVariantId,
+                              label: formatVariantLabel(q.variants.length, true),
+                              isDraft: true,
+                            },
+                          ],
                         },
-                      ],
-                    },
               ),
             },
       ),
     );
     setSelected({ groupId, questionId, variantId: draftVariantId });
     setForm(buildInitialForm());
+    setSaveError(null);
+  };
+
+  const clearQuestionCaches = (question: Question) => {
+    // Remove cached option sets tied to a question so deleted items don't leak stale UI state.
+    questionTypeCacheRef.current.delete(`${question.id}-core`);
+    question.variants.forEach((variant) => {
+      questionTypeCacheRef.current.delete(`${question.id}-variant-${variant.id}`);
+    });
+  };
+
+  const computeFallbackSelection = (nextGroups: QuestionGroup[]) => {
+    // Walk groups in order to find the next available question for selection.
+    for (const group of nextGroups) {
+      const firstQuestion = group.questions[0];
+      if (firstQuestion) {
+        return { groupId: group.id, questionId: firstQuestion.id, variantId: null };
+      }
+    }
+    return null;
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deleteTarget) return;
+
+    let nextGroups = groups;
+    let nextSelected: typeof selected = selected;
+    const nextExpanded = new Set(expandedGroups);
+
+    if (deleteTarget.type === 'group') {
+      const { groupId } = deleteTarget;
+      const removedGroup = groups.find((g) => g.id === groupId);
+      removedGroup?.questions.forEach(clearQuestionCaches);
+      nextExpanded.delete(groupId);
+      if (editingGroupId === groupId) {
+        setEditingGroupId(null);
+      }
+      nextGroups = groups.filter((group) => group.id !== groupId);
+      if (selected?.groupId === groupId) {
+        nextSelected = null;
+      }
+    } else if (deleteTarget.type === 'question') {
+      const { groupId, questionId } = deleteTarget;
+      const targetGroup = groups.find((g) => g.id === groupId);
+      const targetQuestion = targetGroup?.questions.find((q) => q.id === questionId);
+      if (targetQuestion) {
+        clearQuestionCaches(targetQuestion);
+      }
+      nextGroups = groups.map((group) =>
+        group.id === groupId
+          ? { ...group, questions: group.questions.filter((q) => q.id !== questionId) }
+          : group,
+      );
+      if (selected?.groupId === groupId && selected.questionId === questionId) {
+        const updatedGroup = nextGroups.find((g) => g.id === groupId);
+        const fallbackQuestion = updatedGroup?.questions[0];
+        nextSelected = fallbackQuestion
+          ? { groupId, questionId: fallbackQuestion.id, variantId: null }
+          : null;
+      }
+    } else if (deleteTarget.type === 'variant') {
+      const { groupId, questionId, variantId } = deleteTarget;
+      nextGroups = groups.map((group) =>
+        group.id === groupId
+          ? {
+              ...group,
+              questions: group.questions.map((question) =>
+                question.id === questionId
+                  ? { ...question, variants: question.variants.filter((v) => v.id !== variantId) }
+                  : question,
+              ),
+            }
+          : group,
+      );
+      questionTypeCacheRef.current.delete(`${questionId}-variant-${variantId}`);
+      if (
+        selected?.groupId === groupId &&
+        selected.questionId === questionId &&
+        selected.variantId === variantId
+      ) {
+        // Drop back to the core question so the editor stays on a valid item.
+        nextSelected = { groupId, questionId, variantId: null };
+      }
+    }
+
+    const resolvedSelection = nextSelected ?? computeFallbackSelection(nextGroups);
+    setGroups(nextGroups);
+    setExpandedGroups(nextExpanded);
+    setSelected(resolvedSelection);
+    if (!resolvedSelection) {
+      setForm(buildInitialForm());
+    }
+    setDeleteTarget(null);
     setSaveError(null);
   };
 
@@ -434,6 +572,8 @@ export default function ModuleUnitEditor() {
       setSaveError('Pick a question to save.');
       return;
     }
+    const questionIndex = targetGroup.questions.findIndex((q) => q.id === targetQuestion.id);
+    const resolvedQuestionTitle = formatQuestionLabel(Math.max(questionIndex, 0), false);
 
     const validationError = QUESTION_TYPE_CONFIGS[form.type].validate(form);
     if (validationError) {
@@ -443,7 +583,9 @@ export default function ModuleUnitEditor() {
 
     const payload = {
       questionGroupId: numericGroupId,
-      title: targetQuestion.title.replace(/\s+\(draft\)$/i, ''),
+      // For auto-numbered labels we overwrite with the derived title to keep server and UI aligned.
+      // We avoid "(draft)" in persisted titles so published lists stay clean.
+      title: resolvedQuestionTitle,
       questionStem: form.stem,
       type: form.type,
       questionData: QUESTION_TYPE_CONFIGS[form.type].buildQuestionData(form),
@@ -461,14 +603,14 @@ export default function ModuleUnitEditor() {
     try {
       let persistedQuestionId = targetQuestion.id;
       let persistedCoreContentId = targetQuestion.coreContent?.id ?? null;
-      let persistedTitle = targetQuestion.title;
+      let persistedTitle = resolvedQuestionTitle;
 
       if (targetQuestion.isDraft) {
         // Persist the draft question before handling variants to guarantee a server id.
         const created = await createQuestionForUnit(parsedModuleId, parsedUnitId, payload);
         persistedQuestionId = String(created.questionUnit.id);
         persistedCoreContentId = String(created.coreContent.id);
-        persistedTitle = created.questionUnit.title.replace(/\s+\(draft\)$/i, '');
+        persistedTitle = resolvedQuestionTitle;
         setGroups((prev) =>
           prev.map((group) =>
             group.id === resolvedGroupId
@@ -514,11 +656,13 @@ export default function ModuleUnitEditor() {
           setSaveError('Variant not found.');
           return;
         }
+        const variantIndex = targetQuestion.variants.findIndex((v) => v.id === selected.variantId);
+        const resolvedVariantLabel = variantIndex >= 0 ? formatVariantLabel(variantIndex, false) : variant.label;
 
         if (variant.isDraft || !variant.content) {
           // Draft variants are created only when the user explicitly saves.
           const variantPayload = {
-            variantLabel: (variant.label ?? 'Variant').replace(/\s+\(draft\)$/i, ''),
+            variantLabel: resolvedVariantLabel,
             questionStem: form.stem,
             type: form.type,
             questionData: QUESTION_TYPE_CONFIGS[form.type].buildQuestionData(form),
@@ -544,17 +688,17 @@ export default function ModuleUnitEditor() {
                       q.id === persistedQuestionId || q.id === targetQuestion.id
                         ? {
                             ...q,
-                            variants: q.variants.map((v) =>
-                              v.id === variant.id
-                                ? {
-                                    ...v,
-                                    id: String(createdVariant.variant.id),
-                                    label: variantPayload.variantLabel,
-                                    isDraft: false,
-                                    content: {
-                                      id: String(createdVariant.variant.content.id),
-                                      questionUnitId: String(createdVariant.variant.content.questionUnitId ?? persistedQuestionId),
-                                      questionStem: createdVariant.variant.content.questionStem,
+                              variants: q.variants.map((v) =>
+                                v.id === variant.id
+                                  ? {
+                                      ...v,
+                                      id: String(createdVariant.variant.id),
+                                      label: resolvedVariantLabel,
+                                      isDraft: false,
+                                      content: {
+                                        id: String(createdVariant.variant.content.id),
+                                        questionUnitId: String(createdVariant.variant.content.questionUnitId ?? persistedQuestionId),
+                                        questionStem: createdVariant.variant.content.questionStem,
                                       questionData: createdVariant.variant.content.questionData,
                                       type: createdVariant.variant.content.type,
                                       hint: createdVariant.variant.content.hint ?? null,
@@ -767,8 +911,6 @@ export default function ModuleUnitEditor() {
                 }
               : undefined,
           }));
-          // Seed per-group counters based on existing questions.
-          groupQuestionCountersRef.current.set(String(g.id), questions.length + 1);
           return {
             id: String(g.id),
             title: g.name,
@@ -870,57 +1012,122 @@ export default function ModuleUnitEditor() {
 
               {groups.map((group) => (
                 <div key={group.id} className={styles.groupCard}>
-                  <button
-                    type="button"
-                    className={styles.groupHeader}
-                    onClick={() => handleToggleGroup(group.id)}
-                  >
-                    {editingGroupId === group.id ? (
-                      <input
-                        type="text"
-                        value={group.title}
-                        onChange={(e) => handleUpdateGroupTitle(group.id, e.target.value)}
-                        onBlur={() => setEditingGroupId(null)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') setEditingGroupId(null);
-                        }}
-                        className={styles.groupTitleInput}
-                        autoFocus
-                      />
-                    ) : (
-                      <h3 onClick={(e) => { e.stopPropagation(); setEditingGroupId(group.id); }}>{group.title}</h3>
-                    )}
-                    <span className={styles.expandIcon}>
-                      {expandedGroups.has(group.id) ? '▼' : '▶'}
-                    </span>
-                  </button>
+                  <div className={styles.groupHeader}>
+                    <button
+                      type="button"
+                      className={styles.groupToggle}
+                      onClick={() => handleToggleGroup(group.id)}
+                    >
+                      {editingGroupId === group.id ? (
+                        <input
+                          type="text"
+                          value={group.title}
+                          onChange={(e) => handleUpdateGroupTitle(group.id, e.target.value)}
+                          onBlur={() => setEditingGroupId(null)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') setEditingGroupId(null);
+                          }}
+                          className={styles.groupTitleInput}
+                          autoFocus
+                        />
+                      ) : (
+                        <h3
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingGroupId(group.id);
+                          }}
+                        >
+                          {group.title}
+                        </h3>
+                      )}
+                      <div>
+                        <button
+                          type="button"
+                          className={styles.iconButton}
+                          aria-label={`Delete group ${group.title}`}
+                          onClick={() => setDeleteTarget({ type: 'group', groupId: group.id, title: group.title })}
+                      >
+                        <FiTrash2 aria-hidden />
+                      </button>
+                        <span className={styles.expandIcon}>
+                          {expandedGroups.has(group.id) ? '▼' : '▶'}
+                        </span>
+                      </div>
+                    </button>
+                  </div>
                   {expandedGroups.has(group.id) && (
                     <div className={styles.questionList}>
-                      {group.questions.map((question) => {
+                      {group.questions.map((question, questionIndex) => {
                         const isSelected = selected?.groupId === group.id && selected?.questionId === question.id;
                         const isVariantSelected = Boolean(isSelected && selected?.variantId);
                         const allowNewVariant = canAddVariant(question);
+                        const questionDisplayLabel = formatQuestionLabel(questionIndex, question.isDraft);
                         return (
                           <div key={question.id} className={styles.questionItem}>
-                            <button
-                              type="button"
-                              className={`${styles.questionBlock} ${isSelected ? styles.selected : ''} ${isVariantSelected ? styles.variantSelected : ''}`}
-                              onClick={() => setSelected({ groupId: group.id, questionId: question.id, variantId: null })}
-                            >
-                              <span className={styles.questionLabel}>{question.title}</span>
-                              <span className={styles.questionType}>{QUESTION_TYPE_CONFIGS[question.type].label}</span>
-                            </button>
-                            <div className={styles.variantList}>
-                              {question.variants.map((variant) => (
+                            <div className={styles.questionRow}>
+                              <button
+                                type="button"
+                                className={`${styles.questionBlock} ${isSelected ? styles.selected : ''} ${isVariantSelected ? styles.variantSelected : ''}`}
+                                onClick={() =>
+                                  setSelected({ groupId: group.id, questionId: question.id, variantId: null })
+                                }
+                              >
+                                <span className={styles.questionLabel}>{questionDisplayLabel}</span>
+                                <div className={styles.questionMeta}>
+                                <span className={styles.questionType}>{QUESTION_TYPE_CONFIGS[question.type].label}</span>
                                 <button
-                                  key={variant.id}
                                   type="button"
-                                  className={`${styles.variantBlock} ${selected?.questionId === question.id ? styles.selectedVariant : ''} ${selected?.variantId === variant.id ? styles.selectedVariantFull : ''}`}
-                                  onClick={() => setSelected({ groupId: group.id, questionId: question.id, variantId: variant.id })}
+                                  className={`${styles.iconButton} ${styles.dangerIcon}`}
+                                  aria-label={`Delete question ${questionDisplayLabel}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDeleteTarget({
+                                      type: 'question',
+                                      groupId: group.id,
+                                      questionId: question.id,
+                                      title: questionDisplayLabel,
+                                    });
+                                  }}
                                 >
-                                  {variant.label}
+                                  <FiTrash2 aria-hidden />
                                 </button>
-                              ))}
+                                </div>
+                              </button>
+                            </div>
+                            <div className={styles.variantList}>
+                              {question.variants.map((variant, variantIndex) => {
+                                const variantDisplayLabel = formatVariantLabel(variantIndex, variant.isDraft);
+                                return (
+                                  <div key={variant.id} className={styles.variantItem}>
+                                    <button
+                                      type="button"
+                                      className={`${styles.variantBlock} ${selected?.questionId === question.id ? styles.selectedVariant : ''} ${selected?.variantId === variant.id ? styles.selectedVariantFull : ''}`}
+                                      onClick={() =>
+                                        setSelected({ groupId: group.id, questionId: question.id, variantId: variant.id })
+                                      }
+                                    >
+                                      {variantDisplayLabel}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className={`${styles.iconButton} ${styles.dangerIcon}`}
+                                      aria-label={`Delete variant ${variantDisplayLabel}`}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setDeleteTarget({
+                                          type: 'variant',
+                                          groupId: group.id,
+                                          questionId: question.id,
+                                          variantId: variant.id,
+                                          label: variantDisplayLabel,
+                                        });
+                                      }}
+                                    >
+                                      <FiTrash2 aria-hidden />
+                                    </button>
+                                  </div>
+                                );
+                              })}
                               <button
                                 type="button"
                                 className={styles.addVariantButton}
@@ -1081,6 +1288,14 @@ export default function ModuleUnitEditor() {
       </div>
         </>
       )}
+      <ConfirmDeleteModal
+        isOpen={Boolean(deleteTarget)}
+        title={deleteCopy.title}
+        body={deleteCopy.body}
+        confirmLabel={deleteCopy.confirmLabel}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+      />
     </MainSection>
   );
 }

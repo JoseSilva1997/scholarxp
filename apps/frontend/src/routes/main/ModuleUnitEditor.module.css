@@ -88,7 +88,7 @@
 
 .grid {
   display: grid;
-  grid-template-columns: 0.8fr 1fr;
+  grid-template-columns: 0.6fr 1fr;
   gap: 20px;
   align-items: start;
 }
@@ -248,19 +248,30 @@
   align-items: center;
   color: var(--color-bg);
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: 12px 12px 12px 16px;
   background: var(--color-brand-surface-dark);
   border: none;
-  text-align: left;
-  cursor: pointer;
-  transition: background 0.2s;
+  gap: 8px;
 }
 
-.groupHeader:hover {
+.groupToggle {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0;
+  background: transparent;
+  border: none;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.groupToggle:hover {
   background: var(--color-brand-surface-dark-muted);
 }
 
-.groupHeader h3 {
+.groupToggle h3 {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
@@ -282,6 +293,39 @@
   color: var(--color-bg);
 }
 
+.iconButton {
+  border: none;
+  background: transparent;
+  color: var(--color-muted);
+  padding: 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s, background 0.2s;
+}
+
+.iconButton:hover {
+  color: var(--color-accent-primary);
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.dangerIcon:hover {
+  color: var(--color-danger, #b00020);
+  background: rgba(176, 0, 32, 0.08);
+}
+
+.groupHeader .iconButton {
+  color: var(--color-bg);
+  margin-right: 6px;
+}
+
+.groupHeader .iconButton:hover {
+  color: var(--color-bg);
+  background: rgba(255, 255, 255, 0.12);
+}
+
 .questionList {
   padding: 12px 16px;
   display: flex;
@@ -295,6 +339,12 @@
   gap: 4px;
 }
 
+.questionRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .questionBlock {
   display: flex;
   align-items: center;
@@ -305,6 +355,14 @@
   background: var(--color-surface);
   cursor: pointer;
   transition: border-color 0.2s, background 0.2s;
+  flex: 1;
+}
+
+.questionMeta {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
 }
 
 .questionBlock:hover {
@@ -344,6 +402,12 @@
   margin-left: 12px;
 }
 
+.variantItem {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .variantBlock {
   padding: 4px 8px;
   border: 1px solid var(--local-border);
@@ -352,6 +416,7 @@
   font-size: 12px;
   cursor: pointer;
   transition: border-color 0.2s;
+  flex: 1;
 }
 
 .variantBlock:hover {

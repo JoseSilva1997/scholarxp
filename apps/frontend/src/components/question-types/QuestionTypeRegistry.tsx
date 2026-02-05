@@ -71,7 +71,7 @@ export interface QuestionTypeConfig {
 export const QUESTION_TYPE_CONFIGS: Record<QuestionType, QuestionTypeConfig> = {
   mcq: {
     type: 'mcq',
-    label: 'Multiple Choice',
+    label: 'MCQ',
     component: McqForm,
     getInitialOptions: (slots) => ({
       // Seed with empty MCQ slots based on the provided template length.
