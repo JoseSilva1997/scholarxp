@@ -10,13 +10,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@scholarxp/api-contracts": "workspace:*",
     "@scholarxp/constants": "workspace:*",
     "@scholarxp/permissions": "workspace:*",
     "@scholarxp/question-type-dtos": "workspace:*",
-    "@scholarxp/api-contracts": "workspace:*",
     "@sentry/browser": "^8.55.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-icons": "^5.5.0",
     "react-router-dom": "^7.13.0"
   },
   "devDependencies": {

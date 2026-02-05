@@ -541,6 +541,11 @@
   margin-bottom: 12px;
 }
 
+:global(#question-type-label) {
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
 .optionsGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
