@@ -81,3 +81,16 @@ export async function createModuleUnitQuestionGroup(
     body: JSON.stringify(payload),
   });
 }
+
+export async function deleteModuleUnitQuestionGroup(
+  moduleId: number,
+  moduleUnitId: number,
+  questionGroupId: number,
+) {
+  return apiFetch<void>(
+    `/module/${moduleId}/unit/${moduleUnitId}/question-groups/${questionGroupId}`,
+    {
+      method: 'DELETE',
+    },
+  );
+}

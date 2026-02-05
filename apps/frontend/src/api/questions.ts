@@ -99,3 +99,27 @@ export async function updateQuestionContentScoped(
     body: JSON.stringify(payload),
   });
 }
+
+export async function deleteQuestionFromUnit(
+  moduleId: number,
+  unitId: number,
+  questionId: number,
+) {
+  return apiFetch<void>(`/module/${moduleId}/unit/${unitId}/questions/${questionId}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function deleteVariantFromQuestion(
+  moduleId: number,
+  unitId: number,
+  questionId: number,
+  variantId: number,
+) {
+  return apiFetch<void>(
+    `/module/${moduleId}/unit/${unitId}/questions/${questionId}/variants/${variantId}`,
+    {
+      method: 'DELETE',
+    },
+  );
+}

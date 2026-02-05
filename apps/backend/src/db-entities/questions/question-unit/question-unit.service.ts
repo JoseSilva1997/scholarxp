@@ -65,6 +65,7 @@ export class QuestionUnitService {
     });
   }
 
+  // Legacy single-tenant delete retained for admin endpoints; scoped deletes should be preferred.
   async remove(id: number) {
     await this.getOrThrow(id);
     return this.prisma.questionUnit.delete({ where: { id } });
@@ -203,6 +204,56 @@ export class QuestionUnitService {
     });
 
     return variantResult;
+  }
+
+  // Remove a question and all of its content/variants within module/unit scope.
+  async removeScoped(moduleId: number, moduleUnitId: number, questionUnitId: number) {
+    const question = await this.prisma.questionUnit.findUnique({
+      where: { id: questionUnitId },
+      include: {
+        moduleUnit: true,
+      },
+    });
+
+    if (
+      !question ||
+      question.moduleUnitId !== moduleUnitId ||
+      question.moduleUnit?.moduleId !== moduleId
+    ) {
+      throw new NotFoundException('Question not found');
+    }
+
+    // Cascades clean up variants and contents via FK onDelete rules.
+    return this.prisma.questionUnit.delete({ where: { id: questionUnitId } });
+  }
+
+  // Remove a variant scoped to module/unit/question to avoid cross-tenant deletes.
+  async removeVariantScoped(
+    moduleId: number,
+    moduleUnitId: number,
+    questionUnitId: number,
+    variantId: number,
+  ) {
+    const variant = await this.prisma.questionVariant.findUnique({
+      where: { id: variantId },
+      include: {
+        questionUnit: {
+          include: { moduleUnit: true },
+        },
+      },
+    });
+
+    if (
+      !variant ||
+      variant.questionUnitId !== questionUnitId ||
+      variant.questionUnit?.moduleUnitId !== moduleUnitId ||
+      variant.questionUnit?.moduleUnit?.moduleId !== moduleId
+    ) {
+      throw new NotFoundException('Variant not found');
+    }
+
+    // Deleting the variant cascades to its content because of FK onDelete rules.
+    return this.prisma.questionVariant.delete({ where: { id: variantId } });
   }
 
   private async getOrThrow(id: number) {

@@ -182,6 +182,91 @@ export class ModuleUnitController {
     );
   }
 
+  @Delete('module/:moduleId/unit/:unitId/questions/:questionId')
+  @UseGuards(SessionAuthGuard, ModuleAccessGuard)
+  @ModuleAccess({ paramKey: 'moduleId' })
+  async deleteQuestion(
+    @Param('moduleId') moduleId: string,
+    @Param('unitId') unitId: string,
+    @Param('questionId') questionId: string,
+    @Req() req: Request,
+  ) {
+    assertHasAccess('modules.manageContent', req.user as AuthUser);
+    const parsedModuleId = Number(moduleId);
+    const parsedUnitId = Number(unitId);
+    const parsedQuestionId = Number(questionId);
+    if (
+      !Number.isFinite(parsedModuleId) ||
+      !Number.isFinite(parsedUnitId) ||
+      !Number.isFinite(parsedQuestionId)
+    ) {
+      throw new NotFoundException('Question not found');
+    }
+    return this.questionUnitService.removeScoped(
+      parsedModuleId,
+      parsedUnitId,
+      parsedQuestionId,
+    );
+  }
+
+  @Delete('module/:moduleId/unit/:unitId/questions/:questionId/variants/:variantId')
+  @UseGuards(SessionAuthGuard, ModuleAccessGuard)
+  @ModuleAccess({ paramKey: 'moduleId' })
+  async deleteVariant(
+    @Param('moduleId') moduleId: string,
+    @Param('unitId') unitId: string,
+    @Param('questionId') questionId: string,
+    @Param('variantId') variantId: string,
+    @Req() req: Request,
+  ) {
+    assertHasAccess('modules.manageContent', req.user as AuthUser);
+    const parsedModuleId = Number(moduleId);
+    const parsedUnitId = Number(unitId);
+    const parsedQuestionId = Number(questionId);
+    const parsedVariantId = Number(variantId);
+    if (
+      !Number.isFinite(parsedModuleId) ||
+      !Number.isFinite(parsedUnitId) ||
+      !Number.isFinite(parsedQuestionId) ||
+      !Number.isFinite(parsedVariantId)
+    ) {
+      throw new NotFoundException('Variant not found');
+    }
+    return this.questionUnitService.removeVariantScoped(
+      parsedModuleId,
+      parsedUnitId,
+      parsedQuestionId,
+      parsedVariantId,
+    );
+  }
+
+  @Delete('module/:moduleId/unit/:unitId/question-groups/:groupId')
+  @UseGuards(SessionAuthGuard, ModuleAccessGuard)
+  @ModuleAccess({ paramKey: 'moduleId' })
+  async deleteQuestionGroup(
+    @Param('moduleId') moduleId: string,
+    @Param('unitId') unitId: string,
+    @Param('groupId') groupId: string,
+    @Req() req: Request,
+  ) {
+    assertHasAccess('modules.manageContent', req.user as AuthUser);
+    const parsedModuleId = Number(moduleId);
+    const parsedUnitId = Number(unitId);
+    const parsedGroupId = Number(groupId);
+    if (
+      !Number.isFinite(parsedModuleId) ||
+      !Number.isFinite(parsedUnitId) ||
+      !Number.isFinite(parsedGroupId)
+    ) {
+      throw new NotFoundException('Question group not found');
+    }
+    return this.moduleUnitQuestionGroupService.removeScoped(
+      parsedModuleId,
+      parsedUnitId,
+      parsedGroupId,
+    );
+  }
+
   @Get('module/:moduleId/unit/:unitId/editor')
   @UseGuards(SessionAuthGuard, ModuleAccessGuard)
   @ModuleAccess({ paramKey: 'moduleId', allowStudentRead: true })

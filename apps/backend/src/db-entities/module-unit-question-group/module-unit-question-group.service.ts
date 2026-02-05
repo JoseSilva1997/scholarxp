@@ -37,6 +37,29 @@ export class ModuleUnitQuestionGroupService {
     return this.prisma.moduleUnitQuestionGroup.delete({ where: { id } });
   }
 
+  // Remove a group and all questions within the same module/unit scope.
+  async removeScoped(moduleId: number, moduleUnitId: number, groupId: number) {
+    const group = await this.prisma.moduleUnitQuestionGroup.findUnique({
+      where: { id: groupId },
+      include: { moduleUnit: true },
+    });
+
+    if (
+      !group ||
+      group.moduleUnitId !== moduleUnitId ||
+      group.moduleUnit?.moduleId !== moduleId
+    ) {
+      throw new NotFoundException('Question group not found');
+    }
+
+    // Delete questions in this group first to avoid leaving orphans; cascades handle contents/variants.
+    await this.prisma.questionUnit.deleteMany({
+      where: { questionGroupId: groupId, moduleUnitId },
+    });
+
+    return this.prisma.moduleUnitQuestionGroup.delete({ where: { id: groupId } });
+  }
+
   private async getOrThrow(id: number) {
     const record = await this.prisma.moduleUnitQuestionGroup.findUnique({
       where: { id },

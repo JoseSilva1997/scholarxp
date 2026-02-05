@@ -3,11 +3,13 @@ import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { FiTrash2 } from 'react-icons/fi';
 import MainSection from '../../components/MainSection';
-import { getModuleUnitEditor, createModuleUnitQuestionGroup } from '../../api/modules';
+import { getModuleUnitEditor, createModuleUnitQuestionGroup, deleteModuleUnitQuestionGroup } from '../../api/modules';
 import {
   createQuestionForUnit,
   createVariantForQuestion,
   updateQuestionContentScoped,
+  deleteQuestionFromUnit,
+  deleteVariantFromQuestion,
 } from '../../api/questions';
 import { logError } from '../../utils/logger';
 import { emptyMcqTemplate, DEFAULT_QUESTION_TYPE } from '@scholarxp/question-type-dtos';
@@ -75,6 +77,12 @@ export default function ModuleUnitEditor() {
   const [isSavingVariant, setIsSavingVariant] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  useEffect(() => {
+    // Reset delete error whenever the target changes to avoid showing stale errors.
+    setDeleteError(null);
+  }, [deleteTarget]);
 
   const [selected, setSelected] = useState<{ groupId: string; questionId: string | null; variantId: string | null } | null>(null);
 
@@ -402,8 +410,11 @@ const formatVariantLabel = (index: number, isDraft?: boolean) =>
     return null;
   };
 
-  const handleConfirmDelete = () => {
-    if (!deleteTarget) return;
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget || !parsedModuleId || !parsedUnitId) return;
+
+    setIsDeleting(true);
+    setDeleteError(null);
 
     let nextGroups = groups;
     let nextSelected: typeof selected = selected;
@@ -411,6 +422,17 @@ const formatVariantLabel = (index: number, isDraft?: boolean) =>
 
     if (deleteTarget.type === 'group') {
       const { groupId } = deleteTarget;
+      const numericId = Number(groupId);
+      if (Number.isFinite(numericId)) {
+        try {
+          await deleteModuleUnitQuestionGroup(parsedModuleId, parsedUnitId, numericId);
+        } catch (err) {
+          setDeleteError('Could not delete this group. Please try again.');
+          logError(err, { feature: 'question-group', action: 'delete', unitId: parsedUnitId });
+          setIsDeleting(false);
+          return;
+        }
+      }
       const removedGroup = groups.find((g) => g.id === groupId);
       removedGroup?.questions.forEach(clearQuestionCaches);
       nextExpanded.delete(groupId);
@@ -423,6 +445,17 @@ const formatVariantLabel = (index: number, isDraft?: boolean) =>
       }
     } else if (deleteTarget.type === 'question') {
       const { groupId, questionId } = deleteTarget;
+      const numericId = Number(questionId);
+      if (Number.isFinite(numericId)) {
+        try {
+          await deleteQuestionFromUnit(parsedModuleId, parsedUnitId, numericId);
+        } catch (err) {
+          setDeleteError('Could not delete this question. Please try again.');
+          logError(err, { feature: 'question', action: 'delete', unitId: parsedUnitId });
+          setIsDeleting(false);
+          return;
+        }
+      }
       const targetGroup = groups.find((g) => g.id === groupId);
       const targetQuestion = targetGroup?.questions.find((q) => q.id === questionId);
       if (targetQuestion) {
@@ -442,6 +475,23 @@ const formatVariantLabel = (index: number, isDraft?: boolean) =>
       }
     } else if (deleteTarget.type === 'variant') {
       const { groupId, questionId, variantId } = deleteTarget;
+      const numericQuestionId = Number(questionId);
+      const numericVariantId = Number(variantId);
+      if (Number.isFinite(numericQuestionId) && Number.isFinite(numericVariantId)) {
+        try {
+          await deleteVariantFromQuestion(
+            parsedModuleId,
+            parsedUnitId,
+            numericQuestionId,
+            numericVariantId,
+          );
+        } catch (err) {
+          setDeleteError('Could not delete this variant. Please try again.');
+          logError(err, { feature: 'variant', action: 'delete', unitId: parsedUnitId });
+          setIsDeleting(false);
+          return;
+        }
+      }
       nextGroups = groups.map((group) =>
         group.id === groupId
           ? {
@@ -474,6 +524,7 @@ const formatVariantLabel = (index: number, isDraft?: boolean) =>
     }
     setDeleteTarget(null);
     setSaveError(null);
+    setIsDeleting(false);
   };
 
   const setCorrectOption = (id: string) => {
@@ -1293,8 +1344,13 @@ const formatVariantLabel = (index: number, isDraft?: boolean) =>
         title={deleteCopy.title}
         body={deleteCopy.body}
         confirmLabel={deleteCopy.confirmLabel}
-        onCancel={() => setDeleteTarget(null)}
-        onConfirm={handleConfirmDelete}
+        isSubmitting={isDeleting}
+        errorMessage={deleteError ?? undefined}
+        onCancel={() => {
+          setDeleteTarget(null);
+          setDeleteError(null);
+        }}
+        onConfirm={() => void handleConfirmDelete()}
       />
     </MainSection>
   );
