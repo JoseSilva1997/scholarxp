@@ -18,7 +18,7 @@ export interface QuestionContentPayload {
   hint?: string | null;
   difficultyScore: number;
   source: QuestionSource;
-  status: string;
+  isArchived: boolean;
 }
 
 /**
@@ -48,7 +48,7 @@ export interface QuestionContentResponse {
   hint: string | null;
   difficultyScore: number;
   source: QuestionSource;
-  status: string;
+  isArchived: boolean;
 }
 
 /**

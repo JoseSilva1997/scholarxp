@@ -91,7 +91,7 @@ export interface ModuleUnitEditorContentResponse {
   hint: string | null;
   difficultyScore: number;
   source: string;
-  status: string;
+  isArchived: boolean;
 }
 
 export interface ModuleUnitEditorVariantResponse {

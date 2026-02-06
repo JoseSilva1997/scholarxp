@@ -209,7 +209,7 @@ model QuestionContent {
   hint             String?
   difficultyScore  Float             @map("difficulty_score")
   source           String
-  status           String
+  isArchived       Boolean           @default(false) @map("is_archived")
   createdAt        DateTime          @default(now()) @map("created_at")
   updatedAt        DateTime          @updatedAt @map("updated_at")
   questionUnit     QuestionUnit      @relation(fields: [questionUnitId], references: [id], onDelete: Cascade)

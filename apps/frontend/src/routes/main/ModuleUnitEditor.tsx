@@ -650,7 +650,8 @@ const normalizeSource = (value?: string | null): QuestionSource =>
       hint: form.hint,
       difficultyScore: 0,
       source: SOURCE_HUMAN,
-      status: 'draft',
+      // Draft questions default to live; archive toggle is handled explicitly.
+      isArchived: false,
     } as const;
 
     setIsSavingQuestion(true);
@@ -684,16 +685,16 @@ const normalizeSource = (value?: string | null): QuestionSource =>
                           coreContent: {
                             id: String(created.coreContent.id),
                             questionUnitId: String(created.questionUnit.id),
-                            questionStem: payload.questionStem,
-                            questionData: payload.questionData,
-                            type: payload.type,
-                            hint: payload.hint ?? null,
-                            difficultyScore: payload.difficultyScore,
-                            source: payload.source,
-                            status: payload.status,
-                          },
-                          isDraft: false,
-                        }
+                          questionStem: payload.questionStem,
+                          questionData: payload.questionData,
+                          type: payload.type,
+                          hint: payload.hint ?? null,
+                          difficultyScore: payload.difficultyScore,
+                          source: payload.source,
+                          isArchived: payload.isArchived,
+                        },
+                        isDraft: false,
+                      }
                       : q,
                   ),
                 }
@@ -727,7 +728,7 @@ const normalizeSource = (value?: string | null): QuestionSource =>
             hint: form.hint,
             difficultyScore: 0,
             source: SOURCE_HUMAN,
-            status: 'draft',
+            isArchived: false,
           } as const;
 
           const createdVariant = await createVariantForQuestion(
@@ -756,13 +757,13 @@ const normalizeSource = (value?: string | null): QuestionSource =>
                                       content: {
                                         id: String(createdVariant.variant.content.id),
                                         questionUnitId: String(createdVariant.variant.content.questionUnitId ?? persistedQuestionId),
-                                        questionStem: createdVariant.variant.content.questionStem,
+                                      questionStem: createdVariant.variant.content.questionStem,
                                       questionData: createdVariant.variant.content.questionData,
                                       type: createdVariant.variant.content.type,
                                       hint: createdVariant.variant.content.hint ?? null,
                                       difficultyScore: createdVariant.variant.content.difficultyScore ?? 0,
                                       source: normalizeSource(createdVariant.variant.content.source),
-                                      status: createdVariant.variant.content.status ?? 'draft',
+                                      isArchived: Boolean(createdVariant.variant.content.isArchived),
                                     },
                                   }
                                 : v,
@@ -790,7 +791,7 @@ const normalizeSource = (value?: string | null): QuestionSource =>
               hint: payload.hint,
               difficultyScore: payload.difficultyScore,
               source: payload.source,
-              status: payload.status,
+              isArchived: payload.isArchived,
             },
           );
           setGroups((prev) =>
@@ -811,12 +812,12 @@ const normalizeSource = (value?: string | null): QuestionSource =>
                                         id: variant.content?.id ?? '',
                                         questionUnitId: persistedQuestionId,
                                         questionStem: '',
-                                        questionData: payload.questionData,
-                                        type: payload.type,
-                                        hint: null,
-                                        difficultyScore: payload.difficultyScore,
-                                        source: payload.source,
-                                        status: payload.status,
+                                      questionData: payload.questionData,
+                                      type: payload.type,
+                                      hint: null,
+                                      difficultyScore: payload.difficultyScore,
+                                      source: payload.source,
+                                        isArchived: payload.isArchived,
                                       }),
                                       questionStem: payload.questionStem,
                                       questionData: payload.questionData,
@@ -824,7 +825,7 @@ const normalizeSource = (value?: string | null): QuestionSource =>
                                       hint: payload.hint ?? null,
                                       difficultyScore: payload.difficultyScore,
                                       source: payload.source,
-                                      status: payload.status,
+                                      isArchived: payload.isArchived,
                                     },
                                   }
                                 : v,
@@ -860,7 +861,7 @@ const normalizeSource = (value?: string | null): QuestionSource =>
             hint: payload.hint,
             difficultyScore: payload.difficultyScore,
             source: payload.source,
-            status: payload.status,
+            isArchived: payload.isArchived,
           },
         );
         setGroups((prev) =>
@@ -882,7 +883,7 @@ const normalizeSource = (value?: string | null): QuestionSource =>
                                 hint: payload.hint ?? null,
                                 difficultyScore: payload.difficultyScore,
                                 source: payload.source,
-                                status: payload.status,
+                                isArchived: payload.isArchived,
                               }),
                               questionStem: payload.questionStem,
                               questionData: payload.questionData,
@@ -890,7 +891,7 @@ const normalizeSource = (value?: string | null): QuestionSource =>
                               hint: payload.hint ?? null,
                               difficultyScore: payload.difficultyScore,
                               source: payload.source,
-                              status: payload.status,
+                              isArchived: payload.isArchived,
                             },
                           }
                         : q,
@@ -951,7 +952,7 @@ const normalizeSource = (value?: string | null): QuestionSource =>
                     hint: v.content.hint ?? null,
                     difficultyScore: v.content.difficultyScore ?? 0,
                     source: normalizeSource(v.content.source),
-                    status: v.content.status ?? 'draft',
+                    isArchived: Boolean(v.content.isArchived),
                   }
                 : undefined,
             })),
@@ -965,7 +966,7 @@ const normalizeSource = (value?: string | null): QuestionSource =>
                   hint: q.coreContent.hint ?? null,
                   difficultyScore: q.coreContent.difficultyScore ?? 0,
                   source: normalizeSource(q.coreContent.source),
-                  status: q.coreContent.status ?? 'draft',
+                  isArchived: Boolean(q.coreContent.isArchived),
                 }
               : undefined,
           }));

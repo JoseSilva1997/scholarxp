@@ -9,10 +9,11 @@ import {
   Min,
   IsIn,
   IsNumber,
+  IsBoolean,
 } from 'class-validator';
 import { QUESTION_TYPES } from '@scholarxp/question-type-dtos';
 import type { questionType, QuestionData } from '@scholarxp/question-type-dtos';
-import { CreateQuestionPayload, QuestionSource } from '@scholarxp/api-contracts';
+import type { CreateQuestionPayload, QuestionSource } from '@scholarxp/api-contracts';
 
 export class CreateQuestionWithContentDto implements CreateQuestionPayload {
   @IsOptional()
@@ -47,7 +48,7 @@ export class CreateQuestionWithContentDto implements CreateQuestionPayload {
   @IsIn(['human', 'ai-generated'])
   source: QuestionSource;
 
-  @IsString()
-  @IsNotEmpty()
-  status: string;
+  @IsBoolean()
+  // Treat new questions as live unless explicitly archived.
+  isArchived: boolean = false;
 }

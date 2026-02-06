@@ -10,7 +10,7 @@ import {
 } from 'class-validator';
 import { QUESTION_TYPES } from '@scholarxp/question-type-dtos';
 import type { questionType, QuestionData } from '@scholarxp/question-type-dtos';
-import { QuestionSource } from '@scholarxp/api-contracts';
+import type { QuestionSource } from '@scholarxp/api-contracts';
 
 export class CreateQuestionContentDto {
   @IsIn(QUESTION_TYPES)
@@ -45,7 +45,7 @@ export class CreateQuestionContentDto {
   @IsIn(['human', 'ai-generated'])
   source: QuestionSource;
 
-  @IsString()
-  @IsNotEmpty()
-  status: string;
+  @IsBoolean()
+  // Default to live content when callers omit the archive flag for backward compatibility.
+  isArchived: boolean = false;
 }

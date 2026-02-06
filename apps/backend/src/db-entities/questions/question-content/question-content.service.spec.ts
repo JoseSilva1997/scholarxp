@@ -15,9 +15,9 @@ runCrudServiceTests({
     hint: 'Arithmetic',
     difficultyScore: 0.5,
     source: 'system',
-    status: 'draft',
+    isArchived: false,
   },
   updateDto: {
-    status: 'published',
+    isArchived: true,
   },
 });

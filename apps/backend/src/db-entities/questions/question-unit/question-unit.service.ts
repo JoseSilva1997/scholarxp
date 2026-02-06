@@ -140,7 +140,8 @@ export class QuestionUnitService {
           hint: payload.hint ?? null,
           difficultyScore: payload.difficultyScore,
           source: payload.source,
-          status: payload.status,
+          // Treat missing flag as live to preserve legacy behavior while eliminating string status values.
+          isArchived: payload.isArchived ?? false,
         },
       });
 
@@ -185,7 +186,8 @@ export class QuestionUnitService {
           hint: payload.hint ?? null,
           difficultyScore: payload.difficultyScore,
           source: payload.source,
-          status: payload.status,
+          // Variants inherit the same archived flag semantics as core content.
+          isArchived: payload.isArchived ?? false,
         },
       });
 

@@ -1,8 +1,8 @@
 // DTO for creating a variant plus its content for a question unit.
-import { IsNotEmpty, IsObject, IsOptional, IsString, Max, Min, IsIn, IsNumber } from 'class-validator';
+import { IsNotEmpty, IsObject, IsOptional, IsString, Max, Min, IsIn, IsNumber, IsBoolean } from 'class-validator';
 import { QUESTION_TYPES } from '@scholarxp/question-type-dtos';
 import type { questionType, QuestionData } from '@scholarxp/question-type-dtos';
-import { CreateVariantPayload, QuestionSource } from '@scholarxp/api-contracts';
+import type { CreateVariantPayload, QuestionSource } from '@scholarxp/api-contracts';
 
 export class CreateVariantWithContentDto implements CreateVariantPayload {
   @IsString()
@@ -33,7 +33,7 @@ export class CreateVariantWithContentDto implements CreateVariantPayload {
   @IsIn(['human', 'ai-generated'])
   source: QuestionSource;
 
-  @IsString()
-  @IsNotEmpty()
-  status: string;
+  @IsBoolean()
+  // New variants are live by default; archiving is explicit.
+  isArchived: boolean = false;
 }

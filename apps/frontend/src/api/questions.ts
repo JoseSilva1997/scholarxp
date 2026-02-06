@@ -10,7 +10,7 @@ export type QuestionContentRequest = {
   hint?: string | null;
   difficultyScore: number;
   source: string;
-  status: string;
+  isArchived: boolean;
 };
 
 export type CreateQuestionRequest = QuestionContentRequest & {
@@ -35,7 +35,7 @@ export type CreateQuestionResponse = {
     hint: string | null;
     difficultyScore: number;
     source: string;
-    status: string;
+    isArchived: boolean;
   };
 };
 
@@ -65,7 +65,7 @@ export type CreateVariantResponse = {
       hint: string | null;
       difficultyScore: number;
       source: string;
-      status: string;
+      isArchived: boolean;
     };
   };
 };

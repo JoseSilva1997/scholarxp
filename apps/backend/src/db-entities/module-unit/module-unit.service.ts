@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { ModuleUnitStatus, Prisma } from '@prisma/client';
 import { DEFAULT_QUESTION_TYPE } from '@scholarxp/question-type-dtos';
 import type { QuestionData } from '@scholarxp/question-type-dtos';
+import type { QuestionSource } from '@scholarxp/api-contracts';
 import { CreateModuleUnitDto } from './dto/create-module-unit.dto';
 import { UpdateModuleUnitDto } from './dto/update-module-unit.dto';
 import { CreateModuleUnitMinimalDto } from './dto/create-module-unit-minimal.dto';
@@ -87,8 +88,9 @@ export class ModuleUnitService {
                   type: coreContent.type,
                   hint: coreContent.hint,
                   difficultyScore: coreContent.difficultyScore,
-                  source: coreContent.source,
-                  status: coreContent.status,
+                  source: coreContent.source as QuestionSource,
+                  // Archive flag keeps the editor aligned with backend status simplification.
+                  isArchived: coreContent.isArchived,
                 }
               : null,
             variants: q.variants.map((v) => ({
@@ -102,8 +104,8 @@ export class ModuleUnitService {
                 type: v.content.type,
                 hint: v.content.hint,
                 difficultyScore: v.content.difficultyScore,
-                source: v.content.source,
-                status: v.content.status,
+                source: v.content.source as QuestionSource,
+                isArchived: v.content.isArchived,
               },
             })),
           };

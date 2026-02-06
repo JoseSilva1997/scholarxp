@@ -43,5 +43,5 @@ export class ModuleUnitEditorContentDto {
   hint: string | null;
   difficultyScore: number;
   source: QuestionSource;
-  status: string;
+  isArchived: boolean;
 }
