@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { ModuleUnitStatus, Prisma } from '@prisma/client';
 import { CreateModuleUnitQuestionGroupDto } from './dto/create-module-unit-question-group.dto';
 import { UpdateModuleUnitQuestionGroupDto } from './dto/update-module-unit-question-group.dto';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -15,7 +15,11 @@ export class ModuleUnitQuestionGroupService {
 
   create(createModuleUnitQuestionGroupDto: CreateModuleUnitQuestionGroupDto) {
     return this.prisma.moduleUnitQuestionGroup.create({
-      data: createModuleUnitQuestionGroupDto,
+      data: {
+        ...createModuleUnitQuestionGroupDto,
+        // New groups are active by default; archiving is an explicit author action.
+        isArchived: false,
+      },
     });
   }
 
@@ -52,19 +56,54 @@ export class ModuleUnitQuestionGroupService {
 
     if (
       !group ||
+      group.isArchived ||
       group.moduleUnitId !== moduleUnitId ||
       group.moduleUnit?.moduleId !== moduleId
     ) {
       throw new NotFoundException('Question group not found');
     }
 
-    // Delete questions in this group first to avoid leaving orphans; cascades handle contents/variants.
-    await this.prisma.questionUnit.deleteMany({
-      where: { questionGroupId: groupId, moduleUnitId },
+    const hasAttempts = await this.prisma.questionAttempt.count({
+      where: {
+        moduleUnitId,
+        question: {
+          questionGroupId: groupId,
+          moduleUnitId,
+        },
+      },
     });
+    const shouldArchive =
+      group.moduleUnit?.status === ModuleUnitStatus.live || hasAttempts > 0;
 
-    return this.prisma.moduleUnitQuestionGroup.delete({
-      where: { id: groupId },
+    if (!shouldArchive) {
+      // Draft units without attempts can still hard delete safely.
+      await this.prisma.questionUnit.deleteMany({
+        where: { questionGroupId: groupId, moduleUnitId },
+      });
+      return this.prisma.moduleUnitQuestionGroup.delete({
+        where: { id: groupId },
+      });
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      // Archive instead of deleting so existing attempts remain historically valid.
+      await tx.questionUnit.updateMany({
+        where: { questionGroupId: groupId, moduleUnitId },
+        data: { isArchived: true },
+      });
+      await tx.questionContent.updateMany({
+        where: {
+          questionUnit: {
+            moduleUnitId,
+            questionGroupId: groupId,
+          },
+        },
+        data: { isArchived: true },
+      });
+      return tx.moduleUnitQuestionGroup.update({
+        where: { id: groupId },
+        data: { isArchived: true },
+      });
     });
   }
 
@@ -82,6 +121,7 @@ export class ModuleUnitQuestionGroupService {
 
     if (
       !group ||
+      group.isArchived ||
       group.moduleUnitId !== moduleUnitId ||
       group.moduleUnit?.moduleId !== moduleId
     ) {
@@ -92,6 +132,22 @@ export class ModuleUnitQuestionGroupService {
     const nextName = rawName.trim();
     if (!nextName) {
       throw new BadRequestException('Question group name cannot be empty');
+    }
+
+    // Ignore archived groups when checking duplicate names so archived labels can be reused.
+    const duplicate = await this.prisma.moduleUnitQuestionGroup.findFirst({
+      where: {
+        moduleUnitId,
+        isArchived: false,
+        name: nextName,
+        id: { not: groupId },
+      },
+      select: { id: true },
+    });
+    if (duplicate) {
+      throw new ConflictException(
+        'A question group with this name already exists in this module unit',
+      );
     }
 
     try {
@@ -116,7 +172,7 @@ export class ModuleUnitQuestionGroupService {
     const record = await this.prisma.moduleUnitQuestionGroup.findUnique({
       where: { id },
     });
-    if (!record) {
+    if (!record || record.isArchived) {
       throw new NotFoundException(`ModuleUnitQuestionGroup ${id} not found`);
     }
     return record;

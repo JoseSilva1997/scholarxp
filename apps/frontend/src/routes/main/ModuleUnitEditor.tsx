@@ -1,7 +1,7 @@
 // Module unit authoring workspace UI for adding questions, variants, and context before wiring backend.
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { FiCheck, FiEdit2, FiTrash2, FiX } from 'react-icons/fi';
+import { FiArchive, FiCheck, FiEdit2, FiTrash2, FiX } from 'react-icons/fi';
 import { VscSparkleFilled } from "react-icons/vsc";
 import { FaCirclePlus, FaCircleChevronLeft, FaCircleChevronRight } from "react-icons/fa6";
 import { IconContext } from 'react-icons';
@@ -15,6 +15,7 @@ import { getModuleUnitGroupName } from '@scholarxp/api-contracts';
 import MainSection from '../../components/MainSection';
 import {
   getModuleUnitEditor,
+  getModuleUnits,
   createModuleUnitQuestionGroup,
   deleteModuleUnitQuestionGroup,
   updateModuleUnitQuestionGroupName,
@@ -98,6 +99,8 @@ export default function ModuleUnitEditor() {
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  // Keep delete UI semantics aligned with unit lifecycle: live units show archive affordances.
+  const [isUnitLive, setIsUnitLive] = useState(false);
   useEffect(() => {
     // Reset delete error whenever the target changes to avoid showing stale errors.
     setDeleteError(null);
@@ -282,26 +285,34 @@ const normalizeSource = (value?: string | null): QuestionSource =>
     if (!deleteTarget) {
       return { title: '', body: '', confirmLabel: 'Delete' };
     }
+    // Live units archive content for future sessions, so modal language must warn about practice impact.
+    const actionLabel = isUnitLive ? 'Archive' : 'Delete';
     if (deleteTarget.type === 'group') {
       return {
-        title: `Delete group "${deleteTarget.title}"?`,
-        body: 'Deleting this group will remove all core questions and variants inside it. This keeps the unit list tidy but cannot be undone here.',
-        confirmLabel: 'Delete group',
+        title: `${actionLabel} group "${deleteTarget.title}"?`,
+        body: isUnitLive
+          ? 'Archiving this group removes it from future student practice in this live unit, including all questions and variants in the group.'
+          : 'Deleting this group will remove all core questions and variants inside it. This keeps the unit list tidy but cannot be undone here.',
+        confirmLabel: `${actionLabel} group`,
       };
     }
     if (deleteTarget.type === 'question') {
       return {
-        title: `Delete question "${deleteTarget.title}"?`,
-        body: 'Deleting this question will also remove every variant tied to it. Students will no longer see this question in practice sets.',
-        confirmLabel: 'Delete question',
+        title: `${actionLabel} question "${deleteTarget.title}"?`,
+        body: isUnitLive
+          ? 'Archiving this question removes it and its variants from future student practice in this live unit.'
+          : 'Deleting this question will also remove every variant tied to it. Students will no longer see this question in practice sets.',
+        confirmLabel: `${actionLabel} question`,
       };
     }
     return {
-      title: `Delete variant "${deleteTarget.label}"?`,
-      body: 'Deleting this variant removes it from the question set. Other variants and the core question stay intact.',
-      confirmLabel: 'Delete variant',
+      title: `${actionLabel} variant "${deleteTarget.label}"?`,
+      body: isUnitLive
+        ? 'Archiving this variant removes it from future student practice in this live unit. Other variants and the core question stay intact.'
+        : 'Deleting this variant removes it from the question set. Other variants and the core question stay intact.',
+      confirmLabel: `${actionLabel} variant`,
     };
-  }, [deleteTarget]);
+  }, [deleteTarget, isUnitLive]);
 
   const handleAddGroup = () => {
     const nextGroupSortOrder = deriveNextGroupSortOrder(groups);
@@ -1016,8 +1027,14 @@ const normalizeSource = (value?: string | null): QuestionSource =>
       setIsLoading(true);
       setError(null);
       try {
-        const unit = await getModuleUnitEditor(parsedModuleId, parsedUnitId);
+        const [unit, moduleUnits] = await Promise.all([
+          getModuleUnitEditor(parsedModuleId, parsedUnitId),
+          getModuleUnits(parsedModuleId),
+        ]);
         if (cancelled) return;
+        // Use module-unit list as source of truth for status so iconography tracks publish state.
+        const currentUnit = moduleUnits.find((candidate) => candidate.id === parsedUnitId);
+        setIsUnitLive(currentUnit?.status === 'live');
         setUnitTitle(unit.title);
         setVariantInstructions(unit.variantContext ?? '');
         const mappedGroups = (unit.questionGroups ?? []).map((g) => {
@@ -1249,10 +1266,10 @@ const normalizeSource = (value?: string | null): QuestionSource =>
                         </div>
                       )}
                       <div className={styles.groupHeaderActions}>
-                        <button
-                          type="button"
-                          className={styles.iconButton}
-                          aria-label={`Delete group ${group.title}`}
+                          <button
+                            type="button"
+                            className={styles.iconButton}
+                            aria-label={`${isUnitLive ? 'Archive' : 'Delete'} group ${group.title}`}
                           onClick={(e) => {
                             e.stopPropagation();
                             if (editingGroupId === group.id) {
@@ -1261,7 +1278,7 @@ const normalizeSource = (value?: string | null): QuestionSource =>
                             setDeleteTarget({ type: 'group', groupId: group.id, title: group.title });
                           }}
                         >
-                          <FiTrash2 aria-hidden />
+                          {isUnitLive ? <FiArchive aria-hidden /> : <FiTrash2 aria-hidden />}
                         </button>
                         <span className={styles.expandIcon}>
                           {expandedGroups.has(group.id) ? '▼' : '▶'}
@@ -1299,7 +1316,7 @@ const normalizeSource = (value?: string | null): QuestionSource =>
                                 <button
                                   type="button"
                                   className={`${styles.iconButton} ${styles.dangerIcon}`}
-                                  aria-label={`Delete question ${questionDisplayLabel}`}
+                                  aria-label={`${isUnitLive ? 'Archive' : 'Delete'} question ${questionDisplayLabel}`}
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setDeleteTarget({
@@ -1310,7 +1327,7 @@ const normalizeSource = (value?: string | null): QuestionSource =>
                                     });
                                   }}
                                 >
-                                  <FiTrash2 aria-hidden />
+                                  {isUnitLive ? <FiArchive aria-hidden /> : <FiTrash2 aria-hidden />}
                                 </button>
                                 </div>
                               </div>
@@ -1332,7 +1349,7 @@ const normalizeSource = (value?: string | null): QuestionSource =>
                                     <button
                                       type="button"
                                       className={`${styles.iconButton} ${styles.dangerIcon}`}
-                                      aria-label={`Delete variant ${variantDisplayLabel}`}
+                                      aria-label={`${isUnitLive ? 'Archive' : 'Delete'} variant ${variantDisplayLabel}`}
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setDeleteTarget({
@@ -1344,7 +1361,7 @@ const normalizeSource = (value?: string | null): QuestionSource =>
                                         });
                                       }}
                                     >
-                                      <FiTrash2/>
+                                      {isUnitLive ? <FiArchive aria-hidden /> : <FiTrash2 aria-hidden />}
                                     </button>
                                   </div>
                                 );

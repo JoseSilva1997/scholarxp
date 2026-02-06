@@ -161,10 +161,13 @@ model ModuleUnitQuestionGroup {
   moduleUnitId  Int            @map("module_unit_id")
   name          String
   sortOrder     Int            @map("sort_order")
+  // Group archive flag lets us hide groups from future authoring/assessment without deleting attempt history.
+  isArchived    Boolean        @default(false) @map("is_archived")
   moduleUnit    ModuleUnit     @relation(fields: [moduleUnitId], references: [id], onDelete: Cascade)
   questionUnits QuestionUnit[]
 
-  @@unique([moduleUnitId, name])
+  // Keep a non-unique lookup index in Prisma; active-only uniqueness is enforced via a partial unique index in SQL migration.
+  @@index([moduleUnitId, name])
   @@map("module_unit_question_groups")
 }
 
@@ -188,6 +191,8 @@ model QuestionUnit {
   moduleUnitId    Int?                      @map("module_unit_id")
   questionGroupId Int?                      @map("question_group_id")
   title           String
+  // Question archive flag allows post-live removals from future sets while preserving historical attempts.
+  isArchived      Boolean                   @default(false) @map("is_archived")
   createdAt       DateTime                  @default(now()) @map("created_at")
   updatedAt       DateTime                  @updatedAt @map("updated_at")
   moduleUnit      ModuleUnit?               @relation(fields: [moduleUnitId], references: [id], onDelete: Cascade)

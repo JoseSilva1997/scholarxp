@@ -31,6 +31,7 @@ export class ModuleUnitService {
       orderBy: { sortOrder: 'asc' },
       include: {
         questionGroups: {
+          where: { isArchived: false },
           orderBy: { sortOrder: 'asc' },
         },
       },
@@ -47,12 +48,21 @@ export class ModuleUnitService {
       where: { id },
       include: {
         questionGroups: {
+          where: { isArchived: false },
           orderBy: { sortOrder: 'asc' },
         },
         questionUnits: {
+          where: { isArchived: false },
           include: {
-            contents: true,
+            contents: {
+              where: { isArchived: false },
+            },
             variants: {
+              where: {
+                content: {
+                  isArchived: false,
+                },
+              },
               include: { content: true },
               orderBy: { id: 'asc' },
             },

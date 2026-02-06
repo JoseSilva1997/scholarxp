@@ -1,5 +1,5 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { ModuleUnitStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { createPrismaMock } from '../../test/test-helpers';
 import { runCrudServiceTests } from '../../test/test-helpers';
@@ -15,6 +15,10 @@ runCrudServiceTests({
     name: 'Group 1',
     sortOrder: 1,
   },
+  formatCreateData: (dto) => ({
+    ...dto,
+    isArchived: false,
+  }),
   updateDto: {
     name: 'Updated Group',
   },
@@ -37,13 +41,16 @@ describe('ModuleUnitQuestionGroupService.renameScoped', () => {
       moduleUnitId: 3,
       name: 'Group 3',
       sortOrder: 3,
+      isArchived: false,
       moduleUnit: { id: 3, moduleId: 2 },
     } as any);
+    prisma.moduleUnitQuestionGroup.findFirst.mockResolvedValue(null);
     prisma.moduleUnitQuestionGroup.update.mockResolvedValue({
       id: 8,
       moduleUnitId: 3,
       name: 'Exam Review',
       sortOrder: 3,
+      isArchived: false,
     } as any);
 
     const result = await service.renameScoped(2, 3, 8, '  Exam Review  ');
@@ -51,6 +58,15 @@ describe('ModuleUnitQuestionGroupService.renameScoped', () => {
     expect(prisma.moduleUnitQuestionGroup.update).toHaveBeenCalledWith({
       where: { id: 8 },
       data: { name: 'Exam Review' },
+    });
+    expect(prisma.moduleUnitQuestionGroup.findFirst).toHaveBeenCalledWith({
+      where: {
+        moduleUnitId: 3,
+        isArchived: false,
+        name: 'Exam Review',
+        id: { not: 8 },
+      },
+      select: { id: true },
     });
     expect(result.name).toBe('Exam Review');
   });
@@ -70,8 +86,10 @@ describe('ModuleUnitQuestionGroupService.renameScoped', () => {
       moduleUnitId: 3,
       name: 'Group 3',
       sortOrder: 3,
+      isArchived: false,
       moduleUnit: { id: 3, moduleId: 2 },
     } as any);
+    prisma.moduleUnitQuestionGroup.findFirst.mockResolvedValue(null);
     prisma.moduleUnitQuestionGroup.update.mockRejectedValue(
       new Prisma.PrismaClientKnownRequestError('unique', {
         clientVersion: 'test',
@@ -82,5 +100,55 @@ describe('ModuleUnitQuestionGroupService.renameScoped', () => {
     await expect(service.renameScoped(2, 3, 8, 'Group 1')).rejects.toThrow(
       ConflictException,
     );
+  });
+
+  it('archives a scoped group when unit is live', async () => {
+    prisma.moduleUnitQuestionGroup.findUnique.mockResolvedValue({
+      id: 11,
+      moduleUnitId: 3,
+      name: 'Group 2',
+      sortOrder: 2,
+      isArchived: false,
+      moduleUnit: { id: 3, moduleId: 2, status: ModuleUnitStatus.live },
+    } as any);
+    prisma.questionAttempt.count.mockResolvedValue(0);
+    prisma.$transaction.mockImplementation(async (cb: any) => cb(prisma));
+    prisma.questionUnit.updateMany.mockResolvedValue({ count: 2 } as any);
+    prisma.questionContent.updateMany.mockResolvedValue({ count: 4 } as any);
+    prisma.moduleUnitQuestionGroup.update.mockResolvedValue({
+      id: 11,
+      isArchived: true,
+    } as any);
+
+    await service.removeScoped(2, 3, 11);
+
+    expect(prisma.moduleUnitQuestionGroup.delete).not.toHaveBeenCalled();
+    expect(prisma.moduleUnitQuestionGroup.update).toHaveBeenCalledWith({
+      where: { id: 11 },
+      data: { isArchived: true },
+    });
+  });
+
+  it('hard deletes a scoped group when draft and no attempts', async () => {
+    prisma.moduleUnitQuestionGroup.findUnique.mockResolvedValue({
+      id: 11,
+      moduleUnitId: 3,
+      name: 'Group 2',
+      sortOrder: 2,
+      isArchived: false,
+      moduleUnit: { id: 3, moduleId: 2, status: ModuleUnitStatus.draft },
+    } as any);
+    prisma.questionAttempt.count.mockResolvedValue(0);
+    prisma.questionUnit.deleteMany.mockResolvedValue({ count: 2 } as any);
+    prisma.moduleUnitQuestionGroup.delete.mockResolvedValue({ id: 11 } as any);
+
+    await service.removeScoped(2, 3, 11);
+
+    expect(prisma.questionUnit.deleteMany).toHaveBeenCalledWith({
+      where: { questionGroupId: 11, moduleUnitId: 3 },
+    });
+    expect(prisma.moduleUnitQuestionGroup.delete).toHaveBeenCalledWith({
+      where: { id: 11 },
+    });
   });
 });

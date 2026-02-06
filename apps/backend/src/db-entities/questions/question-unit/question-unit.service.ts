@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { ModuleUnitStatus, Prisma } from '@prisma/client';
 import { QuestionDataSchema } from '@scholarxp/question-type-dtos';
 import {
   getModuleUnitGroupName,
@@ -34,7 +34,13 @@ export class QuestionUnitService {
       );
     }
 
-    return this.prisma.questionUnit.create({ data });
+    return this.prisma.questionUnit.create({
+      data: {
+        ...data,
+        // Questions start active; archive is used for post-live removals.
+        isArchived: false,
+      },
+    });
   }
 
   findAll() {
@@ -85,7 +91,7 @@ export class QuestionUnitService {
     let targetGroupId = payload.questionGroupId;
     if (targetGroupId) {
       const group = await this.prisma.moduleUnitQuestionGroup.findFirst({
-        where: { id: targetGroupId, moduleUnitId },
+        where: { id: targetGroupId, moduleUnitId, isArchived: false },
       });
       if (!group) {
         throw new NotFoundException('Question group not found');
@@ -100,6 +106,8 @@ export class QuestionUnitService {
           moduleUnitId,
           questionGroupId: targetGroupId,
           title: payload.title,
+          // Author-created questions are active unless explicitly archived later.
+          isArchived: false,
         },
       });
 
@@ -208,20 +216,41 @@ export class QuestionUnitService {
 
     if (
       !question ||
+      question.isArchived ||
       question.moduleUnitId !== moduleUnitId ||
       question.moduleUnit?.moduleId !== moduleId
     ) {
       throw new NotFoundException('Question not found');
     }
 
-    // Cascades clean up variants and contents via FK onDelete rules.
-    return this.prisma.questionUnit.delete({ where: { id: questionUnitId } });
+    const hasAttempts = await this.prisma.questionAttempt.count({
+      where: { questionId: questionUnitId, moduleUnitId },
+    });
+    const shouldArchive =
+      question.moduleUnit?.status === ModuleUnitStatus.live || hasAttempts > 0;
+
+    if (!shouldArchive) {
+      // Draft units with no attempts can hard delete safely.
+      return this.prisma.questionUnit.delete({ where: { id: questionUnitId } });
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      // Archive both question record and its content so future set selection ignores it.
+      await tx.questionContent.updateMany({
+        where: { questionUnitId },
+        data: { isArchived: true },
+      });
+      return tx.questionUnit.update({
+        where: { id: questionUnitId },
+        data: { isArchived: true },
+      });
+    });
   }
 
   private async resolveFallbackGroupId(moduleUnitId: number): Promise<number> {
     // Reuse the first existing group for legacy units and only create Group 1 when no groups exist.
     const existingGroup = await this.prisma.moduleUnitQuestionGroup.findFirst({
-      where: { moduleUnitId },
+      where: { moduleUnitId, isArchived: false },
       select: { id: true },
       orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
     });
@@ -229,21 +258,39 @@ export class QuestionUnitService {
       return existingGroup.id;
     }
 
-    const createdGroup = await this.prisma.moduleUnitQuestionGroup.upsert({
-      where: {
-          moduleUnitId_name: {
-            moduleUnitId,
-            name: getModuleUnitGroupName(MODULE_UNIT_GROUP_START_ORDER),
-          },
-      },
-      update: {},
-      create: {
-        moduleUnitId,
-        name: getModuleUnitGroupName(MODULE_UNIT_GROUP_START_ORDER),
-        sortOrder: MODULE_UNIT_GROUP_START_ORDER,
-      },
-    });
-    return createdGroup.id;
+    try {
+      const createdGroup = await this.prisma.moduleUnitQuestionGroup.create({
+        data: {
+          moduleUnitId,
+          name: getModuleUnitGroupName(MODULE_UNIT_GROUP_START_ORDER),
+          sortOrder: MODULE_UNIT_GROUP_START_ORDER,
+          // Ensure lazily created fallback group is active for assignment.
+          isArchived: false,
+        },
+      });
+      return createdGroup.id;
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        // Another request created the same active fallback group concurrently; reuse it.
+        const concurrentGroup =
+          await this.prisma.moduleUnitQuestionGroup.findFirst({
+            where: {
+              moduleUnitId,
+              isArchived: false,
+              name: getModuleUnitGroupName(MODULE_UNIT_GROUP_START_ORDER),
+            },
+            select: { id: true },
+            orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+          });
+        if (concurrentGroup) {
+          return concurrentGroup.id;
+        }
+      }
+      throw error;
+    }
   }
 
   // Remove a variant scoped to module/unit/question to avoid cross-tenant deletes.
@@ -266,18 +313,35 @@ export class QuestionUnitService {
       !variant ||
       variant.questionUnitId !== questionUnitId ||
       variant.questionUnit?.moduleUnitId !== moduleUnitId ||
-      variant.questionUnit?.moduleUnit?.moduleId !== moduleId
+      variant.questionUnit?.moduleUnit?.moduleId !== moduleId ||
+      variant.questionUnit?.isArchived
     ) {
       throw new NotFoundException('Variant not found');
     }
 
-    // Deleting the variant cascades to its content because of FK onDelete rules.
-    return this.prisma.questionVariant.delete({ where: { id: variantId } });
+    const hasAttempts = await this.prisma.questionAttempt.count({
+      where: { contentId: variant.contentId, moduleUnitId },
+    });
+    const shouldArchive =
+      variant.questionUnit?.moduleUnit?.status === ModuleUnitStatus.live ||
+      hasAttempts > 0;
+
+    if (!shouldArchive) {
+      // Draft units with no attempts can hard delete variant records.
+      return this.prisma.questionVariant.delete({ where: { id: variantId } });
+    }
+
+    // Variant archive is represented by archiving its content row (variant itself has no archive flag).
+    await this.prisma.questionContent.update({
+      where: { id: variant.contentId },
+      data: { isArchived: true },
+    });
+    return variant;
   }
 
   private async getOrThrow(id: number) {
     const record = await this.prisma.questionUnit.findUnique({ where: { id } });
-    if (!record) {
+    if (!record || record.isArchived) {
       throw new NotFoundException(`QuestionUnit ${id} not found`);
     }
     return record;
