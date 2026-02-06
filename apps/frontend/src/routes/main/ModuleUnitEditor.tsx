@@ -315,6 +315,11 @@ const normalizeSource = (value?: string | null): QuestionSource =>
   }, [deleteTarget, isUnitLive]);
 
   const handleAddGroup = () => {
+    // Live units are treated as content-frozen for new author additions in the editor UI.
+    if (isUnitLive) {
+      setSaveError('This module unit is live. New groups cannot be added.');
+      return;
+    }
     const nextGroupSortOrder = deriveNextGroupSortOrder(groups);
     const newGroup: QuestionGroup = {
       id: makeId(),
@@ -419,6 +424,11 @@ const normalizeSource = (value?: string | null): QuestionSource =>
   };
 
   const handleAddQuestion = (groupId: string) => {
+    // Prevent new question drafts once the unit is live so authoring matches publish constraints.
+    if (isUnitLive) {
+      setSaveError('This module unit is live. New questions cannot be added.');
+      return;
+    }
     const group = groups.find((g) => g.id === groupId);
     const lastQuestion = group?.questions[group.questions.length - 1];
     if (lastQuestion && !isQuestionSaved(lastQuestion)) {
@@ -454,6 +464,11 @@ const normalizeSource = (value?: string | null): QuestionSource =>
   };
 
   const handleAddVariant = (groupId: string, questionId: string) => {
+    // Prevent new variant drafts once the unit is live so students do not get shifting assessed scope.
+    if (isUnitLive) {
+      setSaveError('This module unit is live. New variants cannot be added.');
+      return;
+    }
     const group = groups.find((g) => g.id === groupId);
     const question = group?.questions.find((q) => q.id === questionId);
     if (!question) return;
@@ -1371,7 +1386,7 @@ const normalizeSource = (value?: string | null): QuestionSource =>
                                 className={styles.addVariantButton}
                                 onClick={() => handleAddVariant(group.id, question.id)}
                                 aria-label="Add variant"
-                                disabled={isSavingVariant || !allowNewVariant}
+                                disabled={isUnitLive || isSavingVariant || !allowNewVariant}
                               >
                                 <IconContext.Provider value={{ className: styles.plusVariantIcon }}>
                                 <FaCirclePlus/>
@@ -1390,7 +1405,7 @@ const normalizeSource = (value?: string | null): QuestionSource =>
                         type="button"
                         className={styles.addQuestion}
                         onClick={() => handleAddQuestion(group.id)}
-                        disabled={!allowNewQuestion}
+                        disabled={isUnitLive || !allowNewQuestion}
                       >
                         <IconContext.Provider value={{ className: styles.plusQuestionIcon }}>
                           <FaCirclePlus/>
@@ -1404,7 +1419,12 @@ const normalizeSource = (value?: string | null): QuestionSource =>
                 </div>
               ))}
 
-              <button type="button" className={styles.addGroup} onClick={handleAddGroup}>
+              <button
+                type="button"
+                className={styles.addGroup}
+                onClick={handleAddGroup}
+                disabled={isUnitLive}
+              >
                   <IconContext.Provider value={{ className: styles.plusGroupIcon }}>
                       <FaCirclePlus/>
                   </IconContext.Provider>
