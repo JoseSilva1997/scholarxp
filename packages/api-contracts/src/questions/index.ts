@@ -38,6 +38,12 @@ export interface CreateVariantPayload extends QuestionContentPayload {
 }
 
 /**
+ * Payload for updating question content fields.
+ */
+export interface UpdateQuestionContentPayload
+  extends Partial<QuestionContentPayload> {}
+
+/**
  * Standard response structure for question content.
  */
 export interface QuestionContentResponse {
@@ -60,4 +66,23 @@ export interface QuestionUnitResponse {
   moduleUnitId: number | null;
   questionGroupId: number | null;
   title: string;
+}
+
+/**
+ * Response for creating a question unit with its core content.
+ */
+export interface CreateQuestionResponse {
+  questionUnit: QuestionUnitResponse;
+  coreContent: QuestionContentResponse & { isCore: boolean };
+}
+
+/**
+ * Response for creating a new variant under a question.
+ */
+export interface CreateVariantResponse {
+  variant: {
+    id: number;
+    variantLabel: string;
+    content: QuestionContentResponse;
+  };
 }

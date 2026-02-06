@@ -1,36 +1,17 @@
 // Question creation API helpers scoped to module/unit authoring.
 import { apiFetch } from './client';
-import type { questionType, QuestionData } from '@scholarxp/question-type-dtos';
 import type {
   CreateQuestionPayload,
+  CreateQuestionResponse,
   CreateVariantPayload,
-  QuestionContentResponse,
-  QuestionSource,
-  QuestionUnitResponse,
+  CreateVariantResponse,
+  UpdateQuestionContentPayload,
 } from '@scholarxp/api-contracts';
-
-// Shared payload for question content endpoints; kept narrow to satisfy backend whitelist validation.
-export type QuestionContentRequest = {
-  questionStem: string;
-  type: questionType;
-  questionData: QuestionData;
-  hint?: string | null;
-  difficultyScore?: number;
-  source: QuestionSource;
-  isArchived: boolean;
-};
-
-export type CreateQuestionRequest = CreateQuestionPayload;
-
-export type CreateQuestionResponse = {
-  questionUnit: QuestionUnitResponse;
-  coreContent: QuestionContentResponse & { isCore: boolean };
-};
 
 export async function createQuestionForUnit(
   moduleId: number,
   unitId: number,
-  payload: CreateQuestionRequest,
+  payload: CreateQuestionPayload,
 ): Promise<CreateQuestionResponse> {
   return apiFetch<CreateQuestionResponse>(`/module/${moduleId}/unit/${unitId}/questions`, {
     method: 'POST',
@@ -38,31 +19,11 @@ export async function createQuestionForUnit(
   });
 }
 
-export type CreateVariantRequest = CreateVariantPayload;
-
-export type CreateVariantResponse = {
-  variant: {
-    id: number;
-    variantLabel: string;
-    content: {
-      id: number;
-      questionUnitId: number;
-      questionStem: string;
-      questionData: QuestionData;
-      type: string;
-      hint: string | null;
-      difficultyScore: number;
-      source: QuestionSource;
-      isArchived: boolean;
-    };
-  };
-};
-
 export async function createVariantForQuestion(
   moduleId: number,
   unitId: number,
   questionId: number,
-  payload: CreateVariantRequest,
+  payload: CreateVariantPayload,
 ): Promise<CreateVariantResponse> {
   return apiFetch<CreateVariantResponse>(
     `/module/${moduleId}/unit/${unitId}/questions/${questionId}/variants`,
@@ -73,7 +34,7 @@ export async function createVariantForQuestion(
   );
 }
 
-export type UpdateQuestionContentRequest = Partial<QuestionContentRequest> & { type?: string };
+export type UpdateQuestionContentRequest = UpdateQuestionContentPayload;
 
 export async function updateQuestionContentScoped(
   moduleId: number,

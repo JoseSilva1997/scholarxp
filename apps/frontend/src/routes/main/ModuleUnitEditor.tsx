@@ -4,7 +4,12 @@ import { useParams, Link } from 'react-router-dom';
 import { FiTrash2 } from 'react-icons/fi';
 import { VscSparkleFilled } from "react-icons/vsc";
 import { IconContext } from 'react-icons';
-import type { QuestionSource } from '@scholarxp/api-contracts';
+import type {
+  CreateQuestionPayload,
+  CreateVariantPayload,
+  QuestionSource,
+  UpdateQuestionContentPayload,
+} from '@scholarxp/api-contracts';
 import MainSection from '../../components/MainSection';
 import { getModuleUnitEditor, createModuleUnitQuestionGroup, deleteModuleUnitQuestionGroup } from '../../api/modules';
 import {
@@ -35,9 +40,11 @@ import ConfirmDeleteModal from '../../components/Modals/ConfirmDeleteModal';
 import styles from './ModuleUnitEditor.module.css';
 
 // Local editor types derived from API contracts but allow local UI state (like isDraft and string IDs for temp items).
-type QuestionContent = Omit<ModuleUnitEditorContent, 'id' | 'questionUnitId'> & {
+type QuestionContent = Omit<ModuleUnitEditorContent, 'id' | 'questionUnitId' | 'difficultyScore'> & {
   id: string;
   questionUnitId: string;
+  // Backend owns defaulting difficulty on create, so editor drafts can omit it.
+  difficultyScore?: number;
 };
 
 type Variant = {
@@ -653,7 +660,7 @@ const normalizeSource = (value?: string | null): QuestionSource =>
       source: SOURCE_HUMAN,
       // Draft questions default to live; archive toggle is handled explicitly.
       isArchived: false,
-    } as const;
+    } satisfies CreateQuestionPayload;
 
     setIsSavingQuestion(true);
     if (selected.variantId) {
@@ -728,7 +735,7 @@ const normalizeSource = (value?: string | null): QuestionSource =>
             hint: form.hint,
             source: SOURCE_HUMAN,
             isArchived: false,
-          } as const;
+          } satisfies CreateVariantPayload;
 
           const createdVariant = await createVariantForQuestion(
             parsedModuleId,
@@ -777,19 +784,21 @@ const normalizeSource = (value?: string | null): QuestionSource =>
           setSelected({ groupId: resolvedGroupId, questionId: persistedQuestionId, variantId: String(createdVariant.variant.id) });
           clearOtherTypesCache(`${persistedQuestionId}-variant-${createdVariant.variant.id}`, payload.type as QuestionType);
         } else {
+          const variantUpdatePayload = {
+            questionStem: payload.questionStem,
+            questionData: payload.questionData,
+            type: payload.type,
+            hint: payload.hint,
+            source: payload.source,
+            isArchived: payload.isArchived,
+          } satisfies UpdateQuestionContentPayload;
+
           await updateQuestionContentScoped(
             parsedModuleId,
             parsedUnitId,
             Number(persistedQuestionId),
             Number(variant.content.id),
-            {
-              questionStem: payload.questionStem,
-              questionData: payload.questionData,
-              type: payload.type,
-              hint: payload.hint,
-              source: payload.source,
-              isArchived: payload.isArchived,
-            },
+            variantUpdatePayload,
           );
           setGroups((prev) =>
             prev.map((group) =>
@@ -844,19 +853,21 @@ const normalizeSource = (value?: string | null): QuestionSource =>
           setSaveError('Question content missing.');
           return;
         }
+        const coreUpdatePayload = {
+          questionStem: payload.questionStem,
+          questionData: payload.questionData,
+          type: payload.type,
+          hint: payload.hint,
+          source: payload.source,
+          isArchived: payload.isArchived,
+        } satisfies UpdateQuestionContentPayload;
+
         await updateQuestionContentScoped(
           parsedModuleId,
           parsedUnitId,
           Number(persistedQuestionId),
           Number(persistedCoreContentId),
-          {
-            questionStem: payload.questionStem,
-            questionData: payload.questionData,
-            type: payload.type,
-            hint: payload.hint,
-            source: payload.source,
-            isArchived: payload.isArchived,
-          },
+          coreUpdatePayload,
         );
         setGroups((prev) =>
           prev.map((group) =>
@@ -942,6 +953,7 @@ const normalizeSource = (value?: string | null): QuestionSource =>
                     questionData: v.content.questionData,
                     type: normalizeQuestionType(v.content.type),
                     hint: v.content.hint ?? null,
+                    difficultyScore: v.content.difficultyScore,
                     source: normalizeSource(v.content.source),
                     isArchived: Boolean(v.content.isArchived),
                   }
@@ -955,6 +967,7 @@ const normalizeSource = (value?: string | null): QuestionSource =>
                   questionData: q.coreContent.questionData,
                   type: normalizeQuestionType(q.coreContent.type),
                   hint: q.coreContent.hint ?? null,
+                  difficultyScore: q.coreContent.difficultyScore,
                   source: normalizeSource(q.coreContent.source),
                   isArchived: Boolean(q.coreContent.isArchived),
                 }
