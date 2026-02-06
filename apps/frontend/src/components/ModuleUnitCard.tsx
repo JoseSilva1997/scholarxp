@@ -1,13 +1,14 @@
 // Displays a module unit with status, title, edit, and dropdown for question groups; keeps interactions local for now.
 import { useState } from 'react';
-import draftIcon from '../assets/module-unit/module-unit-draft-white.svg';
-import checkIcon from '../assets/module-unit/module-unit-live-checkmark-white.svg';
-import lockIcon from '../assets/module-unit/module-unit-padlock-white.svg';
+import { RiDraftLine } from "react-icons/ri";
+import { RiLock2Fill } from "react-icons/ri";
+import { FaCheck } from "react-icons/fa6";
+import { IconContext } from 'react-icons';
 import styles from './ModuleUnitCard.module.css';
 import ConfirmPublishModal from './Modals/ConfirmPublishModal';
 import { useNavigate } from 'react-router-dom';
 
-export type ModuleUnitStatus = 'draft' | 'live' | 'locked' | 'archived';
+export type ModuleUnitStatus = 'draft' | 'live' | 'locked';
 
 export type QuestionUnitGroup = {
   id: string;
@@ -41,10 +42,9 @@ export default function ModuleUnitCard({ unit, onChangeStatus }: ModuleUnitCardP
   );
 
   const statusIcon = {
-    draft: draftIcon,
-    live: checkIcon,
-    locked: lockIcon,
-    archived: lockIcon,
+    draft: <RiDraftLine/>,
+    live: <FaCheck />,
+    locked: <RiLock2Fill/>,
   }[unit.status];
 
   return (
@@ -64,12 +64,9 @@ export default function ModuleUnitCard({ unit, onChangeStatus }: ModuleUnitCardP
                 }
               }}
             >
-              <img
-                src={statusIcon}
-                alt=""
-                aria-hidden="true"
-                className={unit.status !== 'locked' ? styles.iconCentered : ''} // The "locked" icon is visually centered already
-              />
+              <IconContext.Provider value={{className: styles.statusIcon}}>
+                 {statusIcon}
+              </IconContext.Provider>
             </button>
             <div className={styles.meta}>
               <h3 className={styles.title}>{unit.title}</h3>

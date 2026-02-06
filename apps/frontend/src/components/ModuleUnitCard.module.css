@@ -228,6 +228,12 @@
   color: var(--text-muted);
 }
 
+.statusIcon {
+  color: var(--color-bg);
+  width: 36px;
+  height: 36px;
+}
+
 @media (max-width: 640px) {
   .header {
     grid-template-columns: auto 1fr;
@@ -240,3 +246,4 @@
     justify-self: end;
   }
 }
+
