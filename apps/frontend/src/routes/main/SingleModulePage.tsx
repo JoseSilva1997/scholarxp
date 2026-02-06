@@ -79,6 +79,8 @@ export default function SingleModulePage() {
               id: String(u.id),
               title: u.title,
               status: u.status,
+              // Persist API count so cards show an accurate question total even when group previews are collapsed.
+              questionCount: u.questionCount ?? 0,
               questionGroups: (u.questionGroups ?? []).map((g) => ({
                 id: String(g.id),
                 title: g.name,
@@ -136,6 +138,8 @@ export default function SingleModulePage() {
             id: String(created.id),
             title: created.title,
             status: created.status,
+            // New units start with backend-provided count (typically 0) to keep subtitle stable.
+            questionCount: created.questionCount ?? 0,
             questionGroups: created.questionGroups.map((g) => ({
               id: String(g.id),
               title: g.name,

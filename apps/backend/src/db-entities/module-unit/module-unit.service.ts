@@ -34,8 +34,19 @@ export class ModuleUnitService {
           where: { isArchived: false },
           orderBy: { sortOrder: 'asc' },
         },
+        // Count only active questions so card subtitles stay accurate after archives/deletes.
+        questionUnits: {
+          where: { isArchived: false },
+          select: { id: true },
+        },
       },
-    });
+    }).then((units) =>
+      units.map((unit) => ({
+        ...unit,
+        // Derive count from active questions at read time to avoid stale denormalized values.
+        questionCount: unit.questionUnits.length,
+      })),
+    );
   }
 
   async findOne(id: number) {

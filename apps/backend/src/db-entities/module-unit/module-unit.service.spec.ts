@@ -104,3 +104,61 @@ describe('ModuleUnitService.createForModule', () => {
     });
   });
 });
+
+describe('ModuleUnitService.findByModule', () => {
+  let service: ModuleUnitService;
+  let prisma: ReturnType<typeof createPrismaMock>;
+
+  beforeEach(() => {
+    prisma = createPrismaMock();
+    service = new ModuleUnitService(prisma as unknown as PrismaService);
+  });
+
+  it('derives questionCount from active questions in each unit', async () => {
+    prisma.moduleUnit.findMany.mockResolvedValue([
+      {
+        id: 1,
+        moduleId: 77,
+        variantContext: '',
+        title: 'Unit A',
+        questionCount: 999,
+        status: ModuleUnitStatus.draft,
+        sortOrder: 1,
+        createdAt: new Date(),
+        questionGroups: [{ id: 11, moduleUnitId: 1, name: 'Group 1', sortOrder: 1 }],
+        questionUnits: [{ id: 101 }, { id: 102 }],
+      },
+      {
+        id: 2,
+        moduleId: 77,
+        variantContext: '',
+        title: 'Unit B',
+        questionCount: 999,
+        status: ModuleUnitStatus.live,
+        sortOrder: 2,
+        createdAt: new Date(),
+        questionGroups: [],
+        questionUnits: [{ id: 201 }],
+      },
+    ] as any);
+
+    const result = await service.findByModule(77);
+
+    expect(prisma.moduleUnit.findMany).toHaveBeenCalledWith({
+      where: { moduleId: 77 },
+      orderBy: { sortOrder: 'asc' },
+      include: {
+        questionGroups: {
+          where: { isArchived: false },
+          orderBy: { sortOrder: 'asc' },
+        },
+        questionUnits: {
+          where: { isArchived: false },
+          select: { id: true },
+        },
+      },
+    });
+    expect(result[0]?.questionCount).toBe(2);
+    expect(result[1]?.questionCount).toBe(1);
+  });
+});

@@ -2,13 +2,15 @@
 import { useMemo, useState } from 'react';
 import { RiDraftLine } from "react-icons/ri";
 import { RiLock2Fill } from "react-icons/ri";
+import { RiArchiveFill } from "react-icons/ri";
 import { FaCheck } from "react-icons/fa6";
 import { IconContext } from 'react-icons';
 import styles from './ModuleUnitCard.module.css';
 import ConfirmPublishModal from './Modals/ConfirmPublishModal';
 import { useNavigate } from 'react-router-dom';
+import type { ModuleUnitStatus } from '@scholarxp/api-contracts';
 
-export type ModuleUnitStatus = 'draft' | 'live' | 'locked';
+export type { ModuleUnitStatus } from '@scholarxp/api-contracts';
 
 export type QuestionUnitGroup = {
   id: string;
@@ -20,6 +22,7 @@ export type ModuleUnit = {
   id: string;
   title: string;
   status: ModuleUnitStatus;
+  questionCount: number;
   questionGroups: QuestionUnitGroup[];
 };
 
@@ -36,16 +39,15 @@ export default function ModuleUnitCard({ unit, onChangeStatus }: ModuleUnitCardP
   const [publishError, setPublishError] = useState<string | null>(null);
   const navigate = useNavigate();
   const moduleId = window.location.pathname.split('/')[3]; // crude but effective way to get moduleId from URL
-  // Sum all questions across groups so the subtitle reflects actual question volume rather than group count.
-  const totalQuestions = unit.questionGroups.reduce(
-    (sum, group) => sum + (group.questions?.length ?? 0),
-    0,
-  );
+  // Use backend-provided count because group previews may not include question arrays in list endpoints.
+  const totalQuestions = unit.questionCount;
 
   const statusIcon = {
     draft: <RiDraftLine/>,
     live: <FaCheck />,
     locked: <RiLock2Fill/>,
+    // Archived units are read-only historical snapshots in the author list.
+    archived: <RiArchiveFill />,
   }[unit.status];
 
   const editWarningCopy = useMemo(() => {
@@ -94,7 +96,9 @@ export default function ModuleUnitCard({ unit, onChangeStatus }: ModuleUnitCardP
             </button>
             <div className={styles.meta}>
               <h3 className={styles.title}>{unit.title}</h3>
-              <p className={styles.subtitle}>{totalQuestions} Questions</p>
+              <p className={styles.subtitle}>
+                {totalQuestions} {totalQuestions === 1 ? 'Question' : 'Questions'}
+              </p>
             </div>
             <div className={styles.actions}>
               <button 
