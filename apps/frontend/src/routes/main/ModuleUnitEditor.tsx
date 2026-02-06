@@ -1,7 +1,7 @@
 // Module unit authoring workspace UI for adding questions, variants, and context before wiring backend.
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { FiTrash2 } from 'react-icons/fi';
+import { FiCheck, FiEdit2, FiTrash2, FiX } from 'react-icons/fi';
 import { VscSparkleFilled } from "react-icons/vsc";
 import { FaCirclePlus, FaCircleChevronLeft, FaCircleChevronRight } from "react-icons/fa6";
 import { IconContext } from 'react-icons';
@@ -100,6 +100,7 @@ export default function ModuleUnitEditor() {
   const [selected, setSelected] = useState<{ groupId: string; questionId: string | null; variantId: string | null } | null>(null);
 
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
+  const [editingGroupTitle, setEditingGroupTitle] = useState('');
   // Cache per-question, per-type option/explanation inputs so toggling types can restore prior edits.
   const questionTypeCacheRef = useRef<
     Map<string, Partial<Record<QuestionType, { options: QuestionForm['options']; explanations: string[] }>>>
@@ -332,6 +333,26 @@ const normalizeSource = (value?: string | null): QuestionSource =>
 
   const handleUpdateGroupTitle = (groupId: string, newTitle: string) => {
     setGroups((prev) => prev.map((group) => (group.id === groupId ? { ...group, title: newTitle } : group)));
+  };
+
+  const startEditingGroupTitle = (groupId: string, currentTitle: string) => {
+    // Keep edits in a dedicated draft state so cancel can restore the original title.
+    setEditingGroupId(groupId);
+    setEditingGroupTitle(currentTitle);
+  };
+
+  const cancelEditingGroupTitle = () => {
+    setEditingGroupId(null);
+    setEditingGroupTitle('');
+  };
+
+  const saveEditingGroupTitle = (groupId: string) => {
+    // Trim to avoid persisting accidental leading/trailing whitespace in display names.
+    const nextTitle = editingGroupTitle.trim();
+    if (!nextTitle) return;
+    handleUpdateGroupTitle(groupId, nextTitle);
+    setEditingGroupId(null);
+    setEditingGroupTitle('');
   };
 
   const handleAddQuestion = (groupId: string) => {
@@ -1095,8 +1116,12 @@ const normalizeSource = (value?: string | null): QuestionSource =>
                       tabIndex={0}
                       aria-expanded={expandedGroups.has(group.id)}
                       className={styles.groupToggle}
-                      onClick={() => handleToggleGroup(group.id)}
+                      onClick={() => {
+                        if (editingGroupId === group.id) return;
+                        handleToggleGroup(group.id);
+                      }}
                       onKeyDown={(e) => {
+                        if (editingGroupId === group.id) return;
                         if (e.key === 'Enter' || e.key === ' ') {
                           e.preventDefault();
                           handleToggleGroup(group.id);
@@ -1104,34 +1129,76 @@ const normalizeSource = (value?: string | null): QuestionSource =>
                       }}
                     >
                       {editingGroupId === group.id ? (
-                        <input
-                          type="text"
-                          value={group.title}
-                          onChange={(e) => handleUpdateGroupTitle(group.id, e.target.value)}
-                          onBlur={() => setEditingGroupId(null)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') setEditingGroupId(null);
-                          }}
-                          className={styles.groupTitleInput}
-                          autoFocus
-                        />
+                        <div className={styles.groupTitleEditRow} onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="text"
+                            value={editingGroupTitle}
+                            onChange={(e) => setEditingGroupTitle(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                saveEditingGroupTitle(group.id);
+                              }
+                              if (e.key === 'Escape') {
+                                e.preventDefault();
+                                cancelEditingGroupTitle();
+                              }
+                            }}
+                            className={styles.groupTitleInput}
+                            autoFocus
+                          />
+                          <div className={styles.groupEditControls}>
+                            <button
+                              type="button"
+                              className={styles.iconButton}
+                              aria-label={`Save group name ${group.title}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                saveEditingGroupTitle(group.id);
+                              }}
+                              disabled={!editingGroupTitle.trim()}
+                            >
+                              <FiCheck aria-hidden />
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.iconButton}
+                              aria-label={`Cancel renaming ${group.title}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                cancelEditingGroupTitle();
+                              }}
+                            >
+                              <FiX aria-hidden />
+                            </button>
+                          </div>
+                        </div>
                       ) : (
-                        <h3
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingGroupId(group.id);
-                          }}
-                        >
-                          {group.title}
-                        </h3>
+                        <div className={styles.groupTitleRow}>
+                          <h3>{group.title}</h3>
+                          <button
+                            type="button"
+                            className={styles.iconButton}
+                            aria-label={`Rename group ${group.title}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              startEditingGroupTitle(group.id, group.title);
+                            }}
+                          >
+                            <FiEdit2 aria-hidden />
+                          </button>
+                        </div>
                       )}
-                      <div>
+                      <div className={styles.groupHeaderActions}>
                         <button
                           type="button"
                           className={styles.iconButton}
                           aria-label={`Delete group ${group.title}`}
                           onClick={(e) => {
                             e.stopPropagation();
+                            if (editingGroupId === group.id) {
+                              cancelEditingGroupTitle();
+                            }
                             setDeleteTarget({ type: 'group', groupId: group.id, title: group.title });
                           }}
                         >

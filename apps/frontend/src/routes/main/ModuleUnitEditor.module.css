@@ -283,6 +283,20 @@
   font-weight: 600;
 }
 
+.groupTitleEditRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+/* Row that keeps the group title and its edit icon together. */
+.groupTitleRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .groupTitleInput {
   margin: 0;
   font-size: 16px;
@@ -292,6 +306,13 @@
   color: var(--color-bg);
   width: 100%;
   outline: none;
+}
+
+.groupEditControls,
+.groupHeaderActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .expandIcon {
