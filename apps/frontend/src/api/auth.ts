@@ -1,6 +1,9 @@
 import type { 
   AuthResponse, 
   LoginPayload, 
+  VerifyEmailPayload,
+  ResendVerificationPayload,
+  ResendVerificationResponse,
   RegisterPayload, 
   RegisterResponse,
   LogoutResponse
@@ -34,16 +37,20 @@ export async function logout(): Promise<LogoutResponse> {
 }
 
 export async function verifyEmail(token: string): Promise<AuthResponse> {
+  const payload: VerifyEmailPayload = { token };
   return apiFetch<AuthResponse>('/auth/verify-email', {
     method: 'POST',
-    body: JSON.stringify({ token }),
+    body: JSON.stringify(payload),
   });
 }
 
-export async function resendVerification(email: string): Promise<{ sent: boolean; alreadyVerified?: boolean; reason?: string }> {
-  return apiFetch('/auth/resend-verification', {
+export async function resendVerification(
+  email: string,
+): Promise<ResendVerificationResponse> {
+  const payload: ResendVerificationPayload = { email };
+  return apiFetch<ResendVerificationResponse>('/auth/resend-verification', {
     method: 'POST',
-    body: JSON.stringify({ email }),
+    body: JSON.stringify(payload),
   });
 }
 

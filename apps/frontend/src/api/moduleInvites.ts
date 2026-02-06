@@ -4,7 +4,7 @@ import type {
   UpdateInvitePayload, 
   RedeemInviteResponse, 
   CreateModuleInviteResponse,
-  ModuleInviteResponse as ModuleInvite
+  ModuleInviteResponse
 } from '@scholarxp/api-contracts';
 import { apiFetch } from './client';
 
@@ -19,9 +19,9 @@ export async function createModuleInvite(
   });
 }
 
-export async function listModuleInvites(moduleId: number): Promise<ModuleInvite[]> {
+export async function listModuleInvites(moduleId: number): Promise<ModuleInviteResponse[]> {
   // Listing stays scoped to a module to respect backend gating for institution-less modules.
-  return apiFetch<ModuleInvite[]>(`/modules/${moduleId}/invites`, {
+  return apiFetch<ModuleInviteResponse[]>(`/modules/${moduleId}/invites`, {
     method: 'GET',
   });
 }
@@ -30,9 +30,9 @@ export async function updateModuleInvite(
   moduleId: number,
   inviteId: number,
   payload: UpdateInvitePayload,
-): Promise<ModuleInvite> {
+): Promise<ModuleInviteResponse> {
   // Patch allows toggling revoke/expiry/usage caps without rebuilding the invite.
-  return apiFetch<ModuleInvite>(`/modules/${moduleId}/invites/${inviteId}`, {
+  return apiFetch<ModuleInviteResponse>(`/modules/${moduleId}/invites/${inviteId}`, {
     method: 'PATCH',
     body: JSON.stringify(payload),
   });
@@ -41,9 +41,9 @@ export async function updateModuleInvite(
 export async function deleteModuleInvite(
   moduleId: number,
   inviteId: number,
-): Promise<ModuleInvite> {
+): Promise<ModuleInviteResponse> {
   // Delete lets instructors clean up old links; backend returns sanitized invite for audit UI if needed.
-  return apiFetch<ModuleInvite>(`/modules/${moduleId}/invites/${inviteId}`, {
+  return apiFetch<ModuleInviteResponse>(`/modules/${moduleId}/invites/${inviteId}`, {
     method: 'DELETE',
   });
 }

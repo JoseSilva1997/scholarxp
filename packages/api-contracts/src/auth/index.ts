@@ -55,3 +55,16 @@ export interface LogoutResponse {
 export interface VerifyEmailPayload {
   token: string;
 }
+
+export interface ResendVerificationPayload {
+  email: string;
+}
+
+export interface ResendVerificationResponse {
+  sent: boolean;
+  reason?: 'already_verified';
+}
+
+export interface UpdateUserRolePayload {
+  globalRole: Exclude<GlobalRole, 'pending'>;
+}

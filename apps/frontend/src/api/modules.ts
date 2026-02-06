@@ -4,29 +4,29 @@ import type {
   CreateModuleUnitMinimalPayload,
   UpdateModuleUnitStatusPayload,
   CreateModuleUnitQuestionGroupPayload,
-  ModuleSummaryResponse as ModuleSummary,
+  ModuleSummaryResponse,
   ModuleUnitResponse,
-  ModuleUnitEditorResponse as ModuleUnitEditorDto,
+  ModuleUnitEditorResponse,
   ModuleUnitGroupResponse,
 } from '@scholarxp/api-contracts';
 import { apiFetch } from './client';
 
-export async function listModules(): Promise<ModuleSummary[]> {
-  return apiFetch<ModuleSummary[]>('/module', {
+export async function listModules(): Promise<ModuleSummaryResponse[]> {
+  return apiFetch<ModuleSummaryResponse[]>('/module', {
     method: 'GET',
   });
 }
 
-export async function getModuleById(id: number): Promise<ModuleSummary> {
-  return apiFetch<ModuleSummary>(`/module/${id}`, {
+export async function getModuleById(id: number): Promise<ModuleSummaryResponse> {
+  return apiFetch<ModuleSummaryResponse>(`/module/${id}`, {
     method: 'GET',
   });
 }
 
 export async function createModule(
   payload: CreateModulePayload,
-): Promise<ModuleSummary> {
-  return apiFetch<ModuleSummary>('/module', {
+): Promise<ModuleSummaryResponse> {
+  return apiFetch<ModuleSummaryResponse>('/module', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
@@ -35,8 +35,8 @@ export async function createModule(
 export async function updateModule(
   id: number,
   payload: UpdateModulePayload,
-): Promise<ModuleSummary> {
-  return apiFetch<ModuleSummary>(`/module/${id}`, {
+): Promise<ModuleSummaryResponse> {
+  return apiFetch<ModuleSummaryResponse>(`/module/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(payload),
   });
@@ -65,8 +65,8 @@ export async function getModuleUnits(moduleId: number): Promise<ModuleUnitRespon
   });
 }
 
-export async function getModuleUnitEditor(moduleId: number, moduleUnitId: number): Promise<ModuleUnitEditorDto> {
-  return apiFetch<ModuleUnitEditorDto>(`/module/${moduleId}/unit/${moduleUnitId}/editor`, {
+export async function getModuleUnitEditor(moduleId: number, moduleUnitId: number): Promise<ModuleUnitEditorResponse> {
+  return apiFetch<ModuleUnitEditorResponse>(`/module/${moduleId}/unit/${moduleUnitId}/editor`, {
     method: 'GET',
   });
 }
