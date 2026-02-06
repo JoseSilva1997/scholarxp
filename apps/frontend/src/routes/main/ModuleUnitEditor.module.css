@@ -655,7 +655,7 @@
 .formActions {
   display: flex;
   gap: 10px;
-  justify-content: flex-end;
+  justify-content: space-between;
   margin-top: 8px;
 }
 
@@ -681,7 +681,8 @@
 }
 
 .secondaryButton {
-  background: transparent;
+  color: var(--color-surface);
+  background: var(--color-brand-surface-dark);
   border: 1px solid var(--local-border);
   border-radius: 12px;
   padding: 12px 16px;
@@ -835,4 +836,9 @@
   background: var(--color-accent-primary);
   color: #fff;
   border-color: var(--color-accent-primary);
+}
+
+.aiSparkle {
+  margin-left: 4px;
+  color: var(--color-accent-secondary);
 }

@@ -2,6 +2,8 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { FiTrash2 } from 'react-icons/fi';
+import { VscSparkleFilled } from "react-icons/vsc";
+import { IconContext } from 'react-icons';
 import type { QuestionSource } from '@scholarxp/api-contracts';
 import MainSection from '../../components/MainSection';
 import { getModuleUnitEditor, createModuleUnitQuestionGroup, deleteModuleUnitQuestionGroup } from '../../api/modules';
@@ -1039,6 +1041,10 @@ const normalizeSource = (value?: string | null): QuestionSource =>
     );
   }
 
+  const handleGenerateVariant = () => {
+    alert('Comming Soon! 😎')
+  }
+
   return (
     <MainSection className={styles.page}>
       <div className={styles.topBar}>
@@ -1349,9 +1355,15 @@ const normalizeSource = (value?: string | null): QuestionSource =>
           ) : null}
 
           <div className={styles.formActions}>
-            <button type="button" className={styles.secondaryButton}>
-              Generate Variant
-            </button>
+            <div 
+              role="button" 
+              className={styles.secondaryButton}
+              onClick={handleGenerateVariant}>
+                Generate Variant
+              <IconContext.Provider value={{ className: styles.aiSparkle }}>
+                <VscSparkleFilled/>
+              </IconContext.Provider>
+            </div>
             <button
               type="button"
               className={styles.saveQuestionButton}
