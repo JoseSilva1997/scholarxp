@@ -33,11 +33,18 @@ export interface CreateModuleUnitQuestionGroupPayload {
   sortOrder: number;
 }
 
-export interface CreateModuleUnitQuestionGroupPayload {
-  moduleUnitId: number;
-  name: string;
-  sortOrder: number;
-}
+// Shared naming contract for module unit question groups across backend and frontend.
+export const MODULE_UNIT_GROUP_NAME_PREFIX = 'Group';
+export const MODULE_UNIT_GROUP_START_ORDER = 1;
+
+export const getModuleUnitGroupName = (sortOrder: number): string => {
+  // Clamp invalid values so callers always receive a stable, user-facing name.
+  const normalizedSortOrder =
+    Number.isFinite(sortOrder) && sortOrder >= MODULE_UNIT_GROUP_START_ORDER
+      ? Math.floor(sortOrder)
+      : MODULE_UNIT_GROUP_START_ORDER;
+  return `${MODULE_UNIT_GROUP_NAME_PREFIX} ${normalizedSortOrder}`;
+};
 
 export interface ModuleUnitResponse {
   id: number;

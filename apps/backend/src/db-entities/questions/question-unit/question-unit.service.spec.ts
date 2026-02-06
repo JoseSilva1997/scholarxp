@@ -39,47 +39,75 @@ describe('QuestionUnitService', () => {
     expect(result).toEqual(created);
   });
 
-  it('create assigns default group when questionGroupId is missing', async () => {
+  it('create assigns Group 1 when questionGroupId is missing and no groups exist', async () => {
     const dto = { moduleUnitId: 5, title: 'Unit title' };
-    const defaultGroup = {
+    const starterGroup = {
       id: 10,
       moduleUnitId: 5,
-      name: 'default',
+      name: 'Group 1',
       sortOrder: 1,
     };
     const created = {
       id: 1,
       ...dto,
-      questionGroupId: defaultGroup.id,
+      questionGroupId: starterGroup.id,
       sortOrder: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+    prisma.moduleUnitQuestionGroup.findFirst.mockResolvedValue(null as any);
     prisma.moduleUnitQuestionGroup.upsert.mockResolvedValue(
-      defaultGroup as any,
+      starterGroup as any,
     );
     prisma.questionUnit.create.mockResolvedValue(created);
 
     const result = await service.create(dto);
 
+    expect(prisma.moduleUnitQuestionGroup.findFirst).toHaveBeenCalledWith({
+      where: { moduleUnitId: 5 },
+      select: { id: true },
+      orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+    });
     expect(prisma.moduleUnitQuestionGroup.upsert).toHaveBeenCalledWith({
       where: {
         moduleUnitId_name: {
           moduleUnitId: 5,
-          name: 'default',
+          name: 'Group 1',
         },
       },
       update: {},
       create: {
         moduleUnitId: 5,
-        name: 'default',
+        name: 'Group 1',
         sortOrder: 1,
       },
     });
     expect(prisma.questionUnit.create).toHaveBeenCalledWith({
-      data: { ...dto, questionGroupId: defaultGroup.id },
+      data: { ...dto, questionGroupId: starterGroup.id },
     });
     expect(result).toEqual(created);
+  });
+
+  it('create reuses first existing group when questionGroupId is missing', async () => {
+    const dto = { moduleUnitId: 5, title: 'Unit title' };
+    prisma.moduleUnitQuestionGroup.findFirst.mockResolvedValue({
+      id: 42,
+    } as any);
+    prisma.questionUnit.create.mockResolvedValue({
+      id: 1,
+      ...dto,
+      questionGroupId: 42,
+      sortOrder: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as any);
+
+    await service.create(dto);
+
+    expect(prisma.moduleUnitQuestionGroup.upsert).not.toHaveBeenCalled();
+    expect(prisma.questionUnit.create).toHaveBeenCalledWith({
+      data: { ...dto, questionGroupId: 42 },
+    });
   });
 
   it('create throws when questionGroupId is missing and moduleUnitId is absent', async () => {

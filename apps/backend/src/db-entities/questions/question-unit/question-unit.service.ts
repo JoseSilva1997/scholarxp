@@ -5,6 +5,10 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { QuestionDataSchema } from '@scholarxp/question-type-dtos';
+import {
+  getModuleUnitGroupName,
+  MODULE_UNIT_GROUP_START_ORDER,
+} from '@scholarxp/api-contracts';
 import { CreateQuestionUnitDto } from './dto/create-question-unit.dto';
 import { UpdateQuestionUnitDto } from './dto/update-question-unit.dto';
 import { CreateQuestionWithContentDto } from './dto/create-question-with-content.dto';
@@ -25,25 +29,9 @@ export class QuestionUnitService {
           'moduleUnitId is required when questionGroupId is not provided',
         );
       }
-      // Use upsert to atomically find-or-create the default group and avoid
-      // unique constraint races on (moduleUnitId, name) when multiple requests
-      // create question units concurrently.
-      const defaultGroup = await this.prisma.moduleUnitQuestionGroup.upsert({
-        where: {
-          moduleUnitId_name: {
-            moduleUnitId: data.moduleUnitId,
-            name: 'default',
-          },
-        },
-        update: {},
-        create: {
-          moduleUnitId: data.moduleUnitId,
-          name: 'default',
-          sortOrder: 1,
-        },
-      });
-
-      data.questionGroupId = defaultGroup.id;
+      data.questionGroupId = await this.resolveFallbackGroupId(
+        data.moduleUnitId,
+      );
     }
 
     return this.prisma.questionUnit.create({ data });
@@ -93,7 +81,7 @@ export class QuestionUnitService {
       );
     }
 
-    // Pick or create target group; we upsert a default to avoid race conditions.
+    // Pick or create target group while preserving existing group ordering semantics.
     let targetGroupId = payload.questionGroupId;
     if (targetGroupId) {
       const group = await this.prisma.moduleUnitQuestionGroup.findFirst({
@@ -103,21 +91,7 @@ export class QuestionUnitService {
         throw new NotFoundException('Question group not found');
       }
     } else {
-      const defaultGroup = await this.prisma.moduleUnitQuestionGroup.upsert({
-        where: {
-          moduleUnitId_name: {
-            moduleUnitId,
-            name: 'default',
-          },
-        },
-        update: {},
-        create: {
-          moduleUnitId,
-          name: 'default',
-          sortOrder: 1,
-        },
-      });
-      targetGroupId = defaultGroup.id;
+      targetGroupId = await this.resolveFallbackGroupId(moduleUnitId);
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
@@ -242,6 +216,34 @@ export class QuestionUnitService {
 
     // Cascades clean up variants and contents via FK onDelete rules.
     return this.prisma.questionUnit.delete({ where: { id: questionUnitId } });
+  }
+
+  private async resolveFallbackGroupId(moduleUnitId: number): Promise<number> {
+    // Reuse the first existing group for legacy units and only create Group 1 when no groups exist.
+    const existingGroup = await this.prisma.moduleUnitQuestionGroup.findFirst({
+      where: { moduleUnitId },
+      select: { id: true },
+      orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+    });
+    if (existingGroup) {
+      return existingGroup.id;
+    }
+
+    const createdGroup = await this.prisma.moduleUnitQuestionGroup.upsert({
+      where: {
+          moduleUnitId_name: {
+            moduleUnitId,
+            name: getModuleUnitGroupName(MODULE_UNIT_GROUP_START_ORDER),
+          },
+      },
+      update: {},
+      create: {
+        moduleUnitId,
+        name: getModuleUnitGroupName(MODULE_UNIT_GROUP_START_ORDER),
+        sortOrder: MODULE_UNIT_GROUP_START_ORDER,
+      },
+    });
+    return createdGroup.id;
   }
 
   // Remove a variant scoped to module/unit/question to avoid cross-tenant deletes.

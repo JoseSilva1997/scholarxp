@@ -31,7 +31,7 @@ describe('ModuleUnitService.createForModule', () => {
     service = new ModuleUnitService(prisma as unknown as PrismaService);
   });
 
-  it('creates a module unit with defaults, next sort order, and default group', async () => {
+  it('creates a module unit with defaults, next sort order, and Group 1 starter group', async () => {
     const moduleId = 7;
     const nextSortOrder = 3;
     const createdUnit = {
@@ -47,7 +47,7 @@ describe('ModuleUnitService.createForModule', () => {
     const createdGroup = {
       id: 99,
       moduleUnitId: createdUnit.id,
-      name: 'default',
+      name: 'Group 1',
       sortOrder: 1,
     };
 
@@ -87,7 +87,7 @@ describe('ModuleUnitService.createForModule', () => {
     expect(prisma.moduleUnitQuestionGroup.create).toHaveBeenCalledWith({
       data: {
         moduleUnitId: createdUnit.id,
-        name: 'default',
+        name: 'Group 1',
         sortOrder: 1,
       },
     });
@@ -97,7 +97,7 @@ describe('ModuleUnitService.createForModule', () => {
         {
           id: createdGroup.id,
           moduleUnitId: createdUnit.id,
-          name: 'default',
+          name: 'Group 1',
           sortOrder: 1,
         },
       ],

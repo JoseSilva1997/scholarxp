@@ -11,6 +11,7 @@ import type {
   QuestionSource,
   UpdateQuestionContentPayload,
 } from '@scholarxp/api-contracts';
+import { getModuleUnitGroupName } from '@scholarxp/api-contracts';
 import MainSection from '../../components/MainSection';
 import { getModuleUnitEditor, createModuleUnitQuestionGroup, deleteModuleUnitQuestionGroup } from '../../api/modules';
 import {
@@ -67,6 +68,7 @@ type Question = Omit<ModuleUnitEditorQuestion, 'id' | 'coreContent' | 'variants'
 type QuestionGroup = Omit<ModuleUnitEditorGroup, 'id' | 'questions' | 'name' | 'moduleUnitId' | 'sortOrder'> & {
   id: string;
   title: string;
+  sortOrder: number;
   questions: Question[];
 };
 
@@ -110,6 +112,10 @@ const formatQuestionLabel = (index: number, isDraft?: boolean) =>
 
 const formatVariantLabel = (index: number, isDraft?: boolean) =>
   `Variant ${index + 1}${isDraft ? ' (draft)' : ''}`;
+
+const deriveNextGroupSortOrder = (existingGroups: QuestionGroup[]) =>
+  // Keep order independent from naming by assigning the next sort slot separately.
+  existingGroups.reduce((maxValue, group) => Math.max(maxValue, group.sortOrder), 0) + 1;
 
 // Keep source values aligned with api-contracts QuestionSource union.
 const SOURCE_HUMAN: QuestionSource = 'human';
@@ -289,9 +295,12 @@ const normalizeSource = (value?: string | null): QuestionSource =>
   }, [deleteTarget]);
 
   const handleAddGroup = () => {
+    const nextGroupSortOrder = deriveNextGroupSortOrder(groups);
     const newGroup: QuestionGroup = {
       id: makeId(),
-      title: `New Group ${groups.length + 1}`,
+      // Mirror title numbering with sort order so labels stay monotonic even after manual renames.
+      title: getModuleUnitGroupName(nextGroupSortOrder),
+      sortOrder: nextGroupSortOrder,
       questions: [],
     };
     setGroups((prev) => [...prev, newGroup]);
@@ -608,7 +617,7 @@ const normalizeSource = (value?: string | null): QuestionSource =>
         const createdGroup = await createModuleUnitQuestionGroup(parsedModuleId, parsedUnitId, {
           moduleUnitId: parsedUnitId,
           name: targetGroup.title,
-          sortOrder: groups.length + 1,
+          sortOrder: targetGroup.sortOrder,
         });
         numericGroupId = Number(createdGroup.id ?? NaN);
         if (!Number.isFinite(numericGroupId)) {
@@ -977,6 +986,7 @@ const normalizeSource = (value?: string | null): QuestionSource =>
           return {
             id: String(g.id),
             title: g.name,
+            sortOrder: g.sortOrder,
             questions,
           };
         });
@@ -1255,7 +1265,7 @@ const normalizeSource = (value?: string | null): QuestionSource =>
                   <IconContext.Provider value={{ className: styles.plusGroupIcon }}>
                       <FaCirclePlus/>
                   </IconContext.Provider>
-                New Group
+                Add Group
               </button>
 
               <div className={styles.variantInstructions}>

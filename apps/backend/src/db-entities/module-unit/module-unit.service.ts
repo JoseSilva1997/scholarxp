@@ -2,7 +2,11 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { ModuleUnitStatus, Prisma } from '@prisma/client';
 import { DEFAULT_QUESTION_TYPE } from '@scholarxp/question-type-dtos';
 import type { QuestionData } from '@scholarxp/question-type-dtos';
-import type { QuestionSource } from '@scholarxp/api-contracts';
+import {
+  getModuleUnitGroupName,
+  MODULE_UNIT_GROUP_START_ORDER,
+  type QuestionSource,
+} from '@scholarxp/api-contracts';
 import { CreateModuleUnitDto } from './dto/create-module-unit.dto';
 import { UpdateModuleUnitDto } from './dto/update-module-unit.dto';
 import { CreateModuleUnitMinimalDto } from './dto/create-module-unit-minimal.dto';
@@ -160,14 +164,14 @@ export class ModuleUnitService {
     return (result._max.sortOrder ?? 0) + 1;
   }
 
-  // Atomically create a module unit and its default question group in a transaction.
+  // Create a module unit and its starter question group in a transaction.
   // Returns the unit with the embedded question group for consistency with API shape.
   private async createUnitWithDefaultGroup(
     moduleId: number,
     title: string,
     sortOrder: number,
   ) {
-    const { unit, defaultGroup } = await this.prisma.$transaction(
+    const { unit, starterGroup } = await this.prisma.$transaction(
       async (tx) => {
         const createdUnit = await tx.moduleUnit.create({
           data: {
@@ -183,12 +187,13 @@ export class ModuleUnitService {
         const createdGroup = await tx.moduleUnitQuestionGroup.create({
           data: {
             moduleUnitId: createdUnit.id,
-            name: 'default',
-            sortOrder: 1,
+            // Seed with Group 1 so untouched titles render cleanly in authoring/student views.
+            name: getModuleUnitGroupName(MODULE_UNIT_GROUP_START_ORDER),
+            sortOrder: MODULE_UNIT_GROUP_START_ORDER,
           },
         });
 
-        return { unit: createdUnit, defaultGroup: createdGroup };
+        return { unit: createdUnit, starterGroup: createdGroup };
       },
     );
 
@@ -196,10 +201,10 @@ export class ModuleUnitService {
       ...unit,
       questionGroups: [
         {
-          id: defaultGroup.id,
+          id: starterGroup.id,
           moduleUnitId: unit.id,
-          name: defaultGroup.name,
-          sortOrder: defaultGroup.sortOrder,
+          name: starterGroup.name,
+          sortOrder: starterGroup.sortOrder,
         },
       ],
     };
