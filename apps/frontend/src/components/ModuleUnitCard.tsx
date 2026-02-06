@@ -1,5 +1,5 @@
 // Displays a module unit with status, title, edit, and dropdown for question groups; keeps interactions local for now.
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { RiDraftLine } from "react-icons/ri";
 import { RiLock2Fill } from "react-icons/ri";
 import { FaCheck } from "react-icons/fa6";
@@ -31,6 +31,7 @@ type ModuleUnitCardProps = {
 export default function ModuleUnitCard({ unit, onChangeStatus }: ModuleUnitCardProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [showPublishModal, setShowPublishModal] = useState(false);
+  const [showEditWarningModal, setShowEditWarningModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -46,6 +47,29 @@ export default function ModuleUnitCard({ unit, onChangeStatus }: ModuleUnitCardP
     live: <FaCheck />,
     locked: <RiLock2Fill/>,
   }[unit.status];
+
+  const editWarningCopy = useMemo(() => {
+    // Tailor warning language by lifecycle so instructors understand student impact before entering editor.
+    if (unit.status === 'live') {
+      return {
+        title: 'Edit live lesson?',
+        body: 'This lesson is live. Changes can affect future student practice availability and question scope.',
+        confirmLabel: 'Edit live lesson',
+      };
+    }
+    if (unit.status === 'locked') {
+      return {
+        title: 'Edit locked lesson?',
+        body: 'This lesson is locked. You can still update content before it goes live.',
+        confirmLabel: 'Edit locked lesson',
+      };
+    }
+    return {
+      title: 'Edit draft lesson?',
+      body: 'You are about to edit this draft lesson.',
+      confirmLabel: 'Edit draft lesson',
+    };
+  }, [unit.status]);
 
   return (
     <div className={styles.wrapper}>
@@ -77,7 +101,10 @@ export default function ModuleUnitCard({ unit, onChangeStatus }: ModuleUnitCardP
                 type="button" 
                 className={styles.editButton} 
                 aria-label="Edit module unit"
-                onClick={() => {navigate(`/main/modules/${moduleId}/${unit.id}/editor`)}}
+                onClick={() => {
+                  // Route transitions are gated by explicit confirmation so instructors see lifecycle warnings first.
+                  setShowEditWarningModal(true);
+                }}
                 >
                 Edit
               </button>
@@ -152,6 +179,18 @@ export default function ModuleUnitCard({ unit, onChangeStatus }: ModuleUnitCardP
             : 'This will make practice available to all students.'
         }
         confirmLabel={unit.status === 'draft' ? 'Publish' : 'Go live'}
+      />
+
+      <ConfirmPublishModal
+        isOpen={showEditWarningModal}
+        onCancel={() => setShowEditWarningModal(false)}
+        onConfirm={() => {
+          setShowEditWarningModal(false);
+          navigate(`/main/modules/${moduleId}/${unit.id}/editor`);
+        }}
+        title={editWarningCopy.title}
+        body={editWarningCopy.body}
+        confirmLabel={editWarningCopy.confirmLabel}
       />
     </div>
   );
