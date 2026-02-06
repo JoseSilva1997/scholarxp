@@ -1181,9 +1181,6 @@ const normalizeSource = (value?: string | null): QuestionSource =>
             <div>
                 <h1 className={styles.pageTitle}>{unitTitle || 'Module unit title'}</h1>
             </div>
-            <button type="button" className={styles.saveButton}>
-              Save
-            </button>
           </div>
 
           <div className={styles.grid}>

@@ -57,35 +57,6 @@
   box-shadow: var(--local-shadow);
 }
 
-
-.saveButton {
-  align-self: center;
-  background: var(--btn-primary-gradient);
-  color: #fff;
-  border: none;
-  padding: 12px 18px;
-  border-radius: 999px;
-  font-weight: 700;
-  box-shadow: var(--btn-primary-shadow);
-  transition: transform 120ms ease, box-shadow 120ms ease;
-  cursor: pointer;
-}
-
-.saveButton:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--btn-primary-shadow-hover);
-}
-
-.saveButton:focus {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-}
-
-.saveButton:active {
-  transform: translateY(0);
-  box-shadow: var(--btn-primary-shadow);
-}
-
 .grid {
   display: grid;
   grid-template-columns: 0.6fr 1fr;
@@ -740,11 +711,6 @@
   .pageHeader {
     flex-direction: column;
     align-items: stretch;
-  }
-
-  .saveButton {
-    align-self: flex-start;
-    padding: 10px 16px;
   }
 
   .questionsPanel {
