@@ -1,8 +1,21 @@
 // DTO for creating a variant plus its content for a question unit.
-import { IsNotEmpty, IsObject, IsOptional, IsString, Max, Min, IsIn, IsNumber, IsBoolean } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsObject,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+  IsIn,
+  IsNumber,
+  IsBoolean,
+} from 'class-validator';
 import { QUESTION_TYPES } from '@scholarxp/question-type-dtos';
 import type { questionType, QuestionData } from '@scholarxp/question-type-dtos';
-import type { CreateVariantPayload, QuestionSource } from '@scholarxp/api-contracts';
+import type {
+  CreateVariantPayload,
+  QuestionSource,
+} from '@scholarxp/api-contracts';
 
 export class CreateVariantWithContentDto implements CreateVariantPayload {
   @IsString()
@@ -24,10 +37,12 @@ export class CreateVariantWithContentDto implements CreateVariantPayload {
   @IsString()
   hint?: string | null;
 
+  // Variants share the same default baseline to keep initial calibration consistent.
+  @IsOptional()
   @IsNumber()
   @Min(0)
-  @Max(100)
-  difficultyScore: number;
+  @Max(1)
+  difficultyScore: number = 0.5;
 
   @IsString()
   @IsIn(['human', 'ai-generated'])

@@ -39,7 +39,7 @@ export class ModuleUnitService {
 
   // Read payload tailored for the module-unit editor; now includes groups, questions, and variants.
   async findEditorPayload(id: number): Promise<ModuleUnitEditorDto> {
-    const record = await this.prisma.moduleUnit.findUnique({
+    const record = (await this.prisma.moduleUnit.findUnique({
       where: { id },
       include: {
         questionGroups: {
@@ -55,7 +55,7 @@ export class ModuleUnitService {
           },
         },
       },
-    }) as Prisma.ModuleUnitGetPayload<{
+    })) as Prisma.ModuleUnitGetPayload<{
       include: {
         questionGroups: true;
         questionUnits: {
@@ -84,7 +84,8 @@ export class ModuleUnitService {
                   id: coreContent.id,
                   questionUnitId: coreContent.questionUnitId,
                   questionStem: coreContent.questionStem,
-                  questionData: coreContent.questionData as unknown as QuestionData,
+                  questionData:
+                    coreContent.questionData as unknown as QuestionData,
                   type: coreContent.type,
                   hint: coreContent.hint,
                   difficultyScore: coreContent.difficultyScore,

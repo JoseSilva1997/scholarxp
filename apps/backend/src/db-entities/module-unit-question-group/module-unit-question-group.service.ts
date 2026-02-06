@@ -57,7 +57,9 @@ export class ModuleUnitQuestionGroupService {
       where: { questionGroupId: groupId, moduleUnitId },
     });
 
-    return this.prisma.moduleUnitQuestionGroup.delete({ where: { id: groupId } });
+    return this.prisma.moduleUnitQuestionGroup.delete({
+      where: { id: groupId },
+    });
   }
 
   private async getOrThrow(id: number) {

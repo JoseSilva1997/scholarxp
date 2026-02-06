@@ -14,7 +14,10 @@ runCrudControllerTests({
   service: ModuleUnitService,
   extraProviders: [
     { provide: QuestionUnitService, useValue: { findOne: jest.fn() } },
-    { provide: ModuleUnitQuestionGroupService, useValue: { findOne: jest.fn() } },
+    {
+      provide: ModuleUnitQuestionGroupService,
+      useValue: { findOne: jest.fn() },
+    },
   ],
   createDto: {
     moduleId: 1,
@@ -50,7 +53,10 @@ describe('ModuleUnitController.createForModule', () => {
       providers: [
         { provide: ModuleUnitService, useValue: service },
         { provide: QuestionUnitService, useValue: questionUnitService },
-        { provide: ModuleUnitQuestionGroupService, useValue: moduleUnitQuestionGroupService },
+        {
+          provide: ModuleUnitQuestionGroupService,
+          useValue: moduleUnitQuestionGroupService,
+        },
       ],
     })
       .overrideGuard(SessionAuthGuard)

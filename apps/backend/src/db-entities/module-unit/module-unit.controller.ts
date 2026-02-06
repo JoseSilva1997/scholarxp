@@ -137,7 +137,11 @@ export class ModuleUnitController {
     const parsedModuleId = Number(moduleId);
     const parsedUnitId = Number(unitId);
     const parsedQuestionId = Number(questionId);
-    if (!Number.isFinite(parsedModuleId) || !Number.isFinite(parsedUnitId) || !Number.isFinite(parsedQuestionId)) {
+    if (
+      !Number.isFinite(parsedModuleId) ||
+      !Number.isFinite(parsedUnitId) ||
+      !Number.isFinite(parsedQuestionId)
+    ) {
       throw new NotFoundException('Module unit not found');
     }
     const result = await this.questionUnitService.createVariantWithContent(
@@ -149,7 +153,9 @@ export class ModuleUnitController {
     return result;
   }
 
-  @Patch('module/:moduleId/unit/:unitId/questions/:questionId/content/:contentId')
+  @Patch(
+    'module/:moduleId/unit/:unitId/questions/:questionId/content/:contentId',
+  )
   @UseGuards(SessionAuthGuard, ModuleAccessGuard)
   @ModuleAccess({ paramKey: 'moduleId' })
   async updateQuestionContent(
@@ -209,7 +215,9 @@ export class ModuleUnitController {
     );
   }
 
-  @Delete('module/:moduleId/unit/:unitId/questions/:questionId/variants/:variantId')
+  @Delete(
+    'module/:moduleId/unit/:unitId/questions/:questionId/variants/:variantId',
+  )
   @UseGuards(SessionAuthGuard, ModuleAccessGuard)
   @ModuleAccess({ paramKey: 'moduleId' })
   async deleteVariant(

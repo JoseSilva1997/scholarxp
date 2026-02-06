@@ -138,7 +138,8 @@ export class QuestionUnitService {
           questionData: payload.questionData as Prisma.InputJsonValue,
           type: payload.type,
           hint: payload.hint ?? null,
-          difficultyScore: payload.difficultyScore,
+          // Guard against missing client fields so creation remains backwards compatible.
+          difficultyScore: payload.difficultyScore ?? 0.5,
           source: payload.source,
           // Treat missing flag as live to preserve legacy behavior while eliminating string status values.
           isArchived: payload.isArchived ?? false,
@@ -160,9 +161,18 @@ export class QuestionUnitService {
   ) {
     const questionUnit = await this.prisma.questionUnit.findUnique({
       where: { id: questionUnitId },
-      select: { id: true, moduleUnitId: true, questionGroupId: true, moduleUnit: true },
+      select: {
+        id: true,
+        moduleUnitId: true,
+        questionGroupId: true,
+        moduleUnit: true,
+      },
     });
-    if (!questionUnit || questionUnit.moduleUnitId !== moduleUnitId || questionUnit.moduleUnit?.moduleId !== moduleId) {
+    if (
+      !questionUnit ||
+      questionUnit.moduleUnitId !== moduleUnitId ||
+      questionUnit.moduleUnit?.moduleId !== moduleId
+    ) {
       throw new NotFoundException('Question not found');
     }
 
@@ -184,7 +194,8 @@ export class QuestionUnitService {
           questionData: payload.questionData as Prisma.InputJsonValue,
           type: payload.type,
           hint: payload.hint ?? null,
-          difficultyScore: payload.difficultyScore,
+          // Keep variant creation resilient to older clients that do not send difficulty yet.
+          difficultyScore: payload.difficultyScore ?? 0.5,
           source: payload.source,
           // Variants inherit the same archived flag semantics as core content.
           isArchived: payload.isArchived ?? false,
@@ -209,7 +220,11 @@ export class QuestionUnitService {
   }
 
   // Remove a question and all of its content/variants within module/unit scope.
-  async removeScoped(moduleId: number, moduleUnitId: number, questionUnitId: number) {
+  async removeScoped(
+    moduleId: number,
+    moduleUnitId: number,
+    questionUnitId: number,
+  ) {
     const question = await this.prisma.questionUnit.findUnique({
       where: { id: questionUnitId },
       include: {

@@ -1,6 +1,13 @@
 // Question creation API helpers scoped to module/unit authoring.
 import { apiFetch } from './client';
 import type { questionType, QuestionData } from '@scholarxp/question-type-dtos';
+import type {
+  CreateQuestionPayload,
+  CreateVariantPayload,
+  QuestionContentResponse,
+  QuestionSource,
+  QuestionUnitResponse,
+} from '@scholarxp/api-contracts';
 
 // Shared payload for question content endpoints; kept narrow to satisfy backend whitelist validation.
 export type QuestionContentRequest = {
@@ -8,35 +15,16 @@ export type QuestionContentRequest = {
   type: questionType;
   questionData: QuestionData;
   hint?: string | null;
-  difficultyScore: number;
-  source: string;
+  difficultyScore?: number;
+  source: QuestionSource;
   isArchived: boolean;
 };
 
-export type CreateQuestionRequest = QuestionContentRequest & {
-  questionGroupId?: number;
-  title: string;
-};
+export type CreateQuestionRequest = CreateQuestionPayload;
 
 export type CreateQuestionResponse = {
-  questionUnit: {
-    id: number;
-    moduleUnitId: number | null;
-    questionGroupId: number | null;
-    title: string;
-  };
-  coreContent: {
-    id: number;
-    questionUnitId: number;
-    isCore: boolean;
-    questionStem: string;
-    questionData: QuestionData;
-    type: string;
-    hint: string | null;
-    difficultyScore: number;
-    source: string;
-    isArchived: boolean;
-  };
+  questionUnit: QuestionUnitResponse;
+  coreContent: QuestionContentResponse & { isCore: boolean };
 };
 
 export async function createQuestionForUnit(
@@ -50,7 +38,7 @@ export async function createQuestionForUnit(
   });
 }
 
-export type CreateVariantRequest = QuestionContentRequest & { variantLabel: string };
+export type CreateVariantRequest = CreateVariantPayload;
 
 export type CreateVariantResponse = {
   variant: {
@@ -64,7 +52,7 @@ export type CreateVariantResponse = {
       type: string;
       hint: string | null;
       difficultyScore: number;
-      source: string;
+      source: QuestionSource;
       isArchived: boolean;
     };
   };

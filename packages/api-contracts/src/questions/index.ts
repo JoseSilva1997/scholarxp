@@ -16,7 +16,8 @@ export interface QuestionContentPayload {
   type: questionType;
   questionData: QuestionData;
   hint?: string | null;
-  difficultyScore: number;
+  // Optional on create so backend can default new content difficulty to 0.5.
+  difficultyScore?: number;
   source: QuestionSource;
   isArchived: boolean;
 }

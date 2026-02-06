@@ -2,9 +2,7 @@
 import { IsInt, IsNotEmpty, IsString } from 'class-validator';
 import { CreateModuleUnitQuestionGroupPayload } from '@scholarxp/api-contracts';
 
-export class CreateModuleUnitQuestionGroupDto
-  implements CreateModuleUnitQuestionGroupPayload
-{
+export class CreateModuleUnitQuestionGroupDto implements CreateModuleUnitQuestionGroupPayload {
   @IsInt()
   @IsNotEmpty()
   moduleUnitId: number;
