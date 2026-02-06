@@ -25,6 +25,12 @@ export default function StudentModuleUnitCard({ unit }: StudentModuleUnitCardPro
             </div>
             <div className={styles.meta}>
               <h3 className={styles.title}>{unit.title}</h3>
+              {/* Only live units expose question totals; locked units stay title-only until practice is available. */}
+              {unit.status === 'live' ? (
+                <p className={styles.subtitle}>
+                  {unit.questionCount} {unit.questionCount === 1 ? 'Question' : 'Questions'}
+                </p>
+              ) : null}
             </div>
             <div className={styles.actions}>
               <button 
