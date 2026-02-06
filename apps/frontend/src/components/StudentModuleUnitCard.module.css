@@ -166,17 +166,27 @@
 .questions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px 12px;
   color: var(--text-secondary);
 }
 
 .question {
-  padding: 4px 10px;
-  border-radius: 6px;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  font-size: 13px;
-  font-weight: 500;
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: 0;
+  color: var(--color-brand-surface-dark);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+  cursor: default;
+}
+
+.question:hover {
+  color: var(--color-accent-secondary-strong);
+  text-decoration-thickness: 2px;
 }
 
 .empty {
