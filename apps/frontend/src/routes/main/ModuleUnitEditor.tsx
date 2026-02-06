@@ -13,7 +13,13 @@ import type {
 } from '@scholarxp/api-contracts';
 import { getModuleUnitGroupName } from '@scholarxp/api-contracts';
 import MainSection from '../../components/MainSection';
-import { getModuleUnitEditor, createModuleUnitQuestionGroup, deleteModuleUnitQuestionGroup } from '../../api/modules';
+import {
+  getModuleUnitEditor,
+  createModuleUnitQuestionGroup,
+  deleteModuleUnitQuestionGroup,
+  updateModuleUnitQuestionGroupName,
+} from '../../api/modules';
+import { ApiError } from '../../api/client';
 import {
   createQuestionForUnit,
   createVariantForQuestion,
@@ -101,6 +107,8 @@ export default function ModuleUnitEditor() {
 
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editingGroupTitle, setEditingGroupTitle] = useState('');
+  const [renamingGroupId, setRenamingGroupId] = useState<string | null>(null);
+  const editingGroupInputRef = useRef<HTMLInputElement | null>(null);
   // Cache per-question, per-type option/explanation inputs so toggling types can restore prior edits.
   const questionTypeCacheRef = useRef<
     Map<string, Partial<Record<QuestionType, { options: QuestionForm['options']; explanations: string[] }>>>
@@ -344,15 +352,59 @@ const normalizeSource = (value?: string | null): QuestionSource =>
   const cancelEditingGroupTitle = () => {
     setEditingGroupId(null);
     setEditingGroupTitle('');
+    if (editingGroupInputRef.current) {
+      editingGroupInputRef.current.setCustomValidity('');
+    }
   };
 
-  const saveEditingGroupTitle = (groupId: string) => {
+  const saveEditingGroupTitle = async (groupId: string) => {
+    const inputEl = editingGroupInputRef.current;
+    if (inputEl) {
+      // Clear stale API errors before applying current validation state.
+      inputEl.setCustomValidity('');
+    }
     // Trim to avoid persisting accidental leading/trailing whitespace in display names.
     const nextTitle = editingGroupTitle.trim();
-    if (!nextTitle) return;
-    handleUpdateGroupTitle(groupId, nextTitle);
-    setEditingGroupId(null);
-    setEditingGroupTitle('');
+    if (!nextTitle) {
+      if (inputEl) {
+        inputEl.setCustomValidity('Group name cannot be empty.');
+        inputEl.reportValidity();
+      }
+      return;
+    }
+    const numericGroupId = Number(groupId);
+    if (!Number.isFinite(numericGroupId)) {
+      // Draft groups only exist client-side until first question save creates them on the server.
+      handleUpdateGroupTitle(groupId, nextTitle);
+      setEditingGroupId(null);
+      setEditingGroupTitle('');
+      return;
+    }
+
+    if (!parsedModuleId || !parsedUnitId) return;
+
+    setRenamingGroupId(groupId);
+    try {
+      await updateModuleUnitQuestionGroupName(parsedModuleId, parsedUnitId, numericGroupId, {
+        name: nextTitle,
+      });
+      handleUpdateGroupTitle(groupId, nextTitle);
+      setEditingGroupId(null);
+      setEditingGroupTitle('');
+    } catch (err) {
+      if (inputEl) {
+        // Surface expected backend 4xx messages; keep unexpected failures generic.
+        const message =
+          err instanceof ApiError && err.status >= 400 && err.status < 500
+            ? err.message
+            : 'Could not rename this group. Please try again.';
+        inputEl.setCustomValidity(message);
+        inputEl.reportValidity();
+      }
+      logError(err, { feature: 'question-group', action: 'rename', unitId: parsedUnitId });
+    } finally {
+      setRenamingGroupId(null);
+    }
   };
 
   const handleAddQuestion = (groupId: string) => {
@@ -1132,12 +1184,17 @@ const normalizeSource = (value?: string | null): QuestionSource =>
                         <div className={styles.groupTitleEditRow} onClick={(e) => e.stopPropagation()}>
                           <input
                             type="text"
+                            ref={editingGroupInputRef}
+                            required
                             value={editingGroupTitle}
-                            onChange={(e) => setEditingGroupTitle(e.target.value)}
+                            onChange={(e) => {
+                              setEditingGroupTitle(e.target.value);
+                              e.currentTarget.setCustomValidity('');
+                            }}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') {
                                 e.preventDefault();
-                                saveEditingGroupTitle(group.id);
+                                void saveEditingGroupTitle(group.id);
                               }
                               if (e.key === 'Escape') {
                                 e.preventDefault();
@@ -1154,9 +1211,9 @@ const normalizeSource = (value?: string | null): QuestionSource =>
                               aria-label={`Save group name ${group.title}`}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                saveEditingGroupTitle(group.id);
+                                void saveEditingGroupTitle(group.id);
                               }}
-                              disabled={!editingGroupTitle.trim()}
+                              disabled={!editingGroupTitle.trim() || renamingGroupId === group.id}
                             >
                               <FiCheck aria-hidden />
                             </button>
@@ -1168,6 +1225,7 @@ const normalizeSource = (value?: string | null): QuestionSource =>
                                 e.stopPropagation();
                                 cancelEditingGroupTitle();
                               }}
+                              disabled={renamingGroupId === group.id}
                             >
                               <FiX aria-hidden />
                             </button>
@@ -1180,11 +1238,12 @@ const normalizeSource = (value?: string | null): QuestionSource =>
                             type="button"
                             className={styles.iconButton}
                             aria-label={`Rename group ${group.title}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              startEditingGroupTitle(group.id, group.title);
-                            }}
-                          >
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startEditingGroupTitle(group.id, group.title);
+                          }}
+                          disabled={renamingGroupId === group.id}
+                        >
                             <FiEdit2 aria-hidden />
                           </button>
                         </div>

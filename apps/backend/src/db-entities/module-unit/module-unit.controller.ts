@@ -26,6 +26,7 @@ import { CreateVariantWithContentDto } from '../questions/question-unit/dto/crea
 import { UpdateQuestionContentDto } from '../questions/question-content/dto/update-question-content.dto';
 import { ModuleUnitQuestionGroupService } from '../module-unit-question-group/module-unit-question-group.service';
 import { CreateModuleUnitQuestionGroupDto } from '../module-unit-question-group/dto/create-module-unit-question-group.dto';
+import { UpdateModuleUnitQuestionGroupNameDto } from '../module-unit-question-group/dto/update-module-unit-question-group-name.dto';
 
 // This controller serves both `/module-unit` CRUD endpoints and the module-scoped create route `/module/:moduleId/units`.
 @Controller()
@@ -272,6 +273,35 @@ export class ModuleUnitController {
       parsedModuleId,
       parsedUnitId,
       parsedGroupId,
+    );
+  }
+
+  @Patch('module/:moduleId/unit/:unitId/question-groups/:groupId')
+  @UseGuards(SessionAuthGuard, ModuleAccessGuard)
+  @ModuleAccess({ paramKey: 'moduleId' })
+  async renameQuestionGroup(
+    @Param('moduleId') moduleId: string,
+    @Param('unitId') unitId: string,
+    @Param('groupId') groupId: string,
+    @Body() body: UpdateModuleUnitQuestionGroupNameDto,
+    @Req() req: Request,
+  ) {
+    assertHasAccess('modules.manageContent', req.user as AuthUser);
+    const parsedModuleId = Number(moduleId);
+    const parsedUnitId = Number(unitId);
+    const parsedGroupId = Number(groupId);
+    if (
+      !Number.isFinite(parsedModuleId) ||
+      !Number.isFinite(parsedUnitId) ||
+      !Number.isFinite(parsedGroupId)
+    ) {
+      throw new NotFoundException('Question group not found');
+    }
+    return this.moduleUnitQuestionGroupService.renameScoped(
+      parsedModuleId,
+      parsedUnitId,
+      parsedGroupId,
+      body.name,
     );
   }
 

@@ -4,6 +4,7 @@ import type {
   CreateModuleUnitMinimalPayload,
   UpdateModuleUnitStatusPayload,
   CreateModuleUnitQuestionGroupPayload,
+  UpdateModuleUnitQuestionGroupNamePayload,
   ModuleSummaryResponse,
   ModuleUnitResponse,
   ModuleUnitEditorResponse,
@@ -91,6 +92,21 @@ export async function deleteModuleUnitQuestionGroup(
     `/module/${moduleId}/unit/${moduleUnitId}/question-groups/${questionGroupId}`,
     {
       method: 'DELETE',
+    },
+  );
+}
+
+export async function updateModuleUnitQuestionGroupName(
+  moduleId: number,
+  moduleUnitId: number,
+  questionGroupId: number,
+  payload: UpdateModuleUnitQuestionGroupNamePayload,
+) {
+  return apiFetch<ModuleUnitGroupResponse>(
+    `/module/${moduleId}/unit/${moduleUnitId}/question-groups/${questionGroupId}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
     },
   );
 }

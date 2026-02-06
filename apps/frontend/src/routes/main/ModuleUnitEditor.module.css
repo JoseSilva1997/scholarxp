@@ -236,6 +236,7 @@
 
 /* Slightly larger icon for clarity inside the compact nav button. */
 .navIcon {
+  color: var(--color-brand-surface-dark);
   width: 28px;
   height: 28px;
   font-size: 18px;
@@ -823,16 +824,19 @@
 }
 
 .plusVariantIcon {
+  color: var(--color-brand-surface-dark);
   width: 14px;
   height: 14px;
 }
 
 .plusQuestionIcon {
+  color: var(--color-brand-surface-dark);
   width: 20px;
   height: 20px;
 }
 
 .plusGroupIcon {
+  color: var(--color-brand-surface-dark);
   width: 22px;
   height: 22px;
 }

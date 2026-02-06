@@ -33,6 +33,10 @@ export interface CreateModuleUnitQuestionGroupPayload {
   sortOrder: number;
 }
 
+export interface UpdateModuleUnitQuestionGroupNamePayload {
+  name: string;
+}
+
 // Shared naming contract for module unit question groups across backend and frontend.
 export const MODULE_UNIT_GROUP_NAME_PREFIX = 'Group';
 export const MODULE_UNIT_GROUP_START_ORDER = 1;

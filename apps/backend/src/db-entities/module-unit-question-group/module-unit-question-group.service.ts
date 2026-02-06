@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { CreateModuleUnitQuestionGroupDto } from './dto/create-module-unit-question-group.dto';
 import { UpdateModuleUnitQuestionGroupDto } from './dto/update-module-unit-question-group.dto';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -60,6 +66,50 @@ export class ModuleUnitQuestionGroupService {
     return this.prisma.moduleUnitQuestionGroup.delete({
       where: { id: groupId },
     });
+  }
+
+  // Rename a group within module/unit scope so author actions stay tenant-safe.
+  async renameScoped(
+    moduleId: number,
+    moduleUnitId: number,
+    groupId: number,
+    rawName: string,
+  ) {
+    const group = await this.prisma.moduleUnitQuestionGroup.findUnique({
+      where: { id: groupId },
+      include: { moduleUnit: true },
+    });
+
+    if (
+      !group ||
+      group.moduleUnitId !== moduleUnitId ||
+      group.moduleUnit?.moduleId !== moduleId
+    ) {
+      throw new NotFoundException('Question group not found');
+    }
+
+    // Normalize whitespace to keep labels consistent across cards/editor panes.
+    const nextName = rawName.trim();
+    if (!nextName) {
+      throw new BadRequestException('Question group name cannot be empty');
+    }
+
+    try {
+      return await this.prisma.moduleUnitQuestionGroup.update({
+        where: { id: groupId },
+        data: { name: nextName },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException(
+          'A question group with this name already exists in this module unit',
+        );
+      }
+      throw error;
+    }
   }
 
   private async getOrThrow(id: number) {
