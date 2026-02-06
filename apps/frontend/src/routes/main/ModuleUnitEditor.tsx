@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { FiTrash2 } from 'react-icons/fi';
 import { VscSparkleFilled } from "react-icons/vsc";
+import { FaPlusCircle } from "react-icons/fa";
 import { IconContext } from 'react-icons';
 import type {
   CreateQuestionPayload,
@@ -1207,7 +1208,7 @@ const normalizeSource = (value?: string | null): QuestionSource =>
                                         });
                                       }}
                                     >
-                                      <FiTrash2 aria-hidden />
+                                      <FiTrash2/>
                                     </button>
                                   </div>
                                 );
@@ -1219,7 +1220,9 @@ const normalizeSource = (value?: string | null): QuestionSource =>
                                 aria-label="Add variant"
                                 disabled={isSavingVariant || !allowNewVariant}
                               >
-                                <div className={styles.addVariantIcon}>+</div>
+                                <IconContext.Provider value={{ className: styles.plusVariantIcon }}>
+                                <FaPlusCircle/>
+                                </IconContext.Provider>
                                 Variant
                               </button>
                             </div>
@@ -1236,7 +1239,9 @@ const normalizeSource = (value?: string | null): QuestionSource =>
                         onClick={() => handleAddQuestion(group.id)}
                         disabled={!allowNewQuestion}
                       >
-                        <div className={styles.addQuestionIcon}>+</div>
+                        <IconContext.Provider value={{ className: styles.plusQuestionIcon }}>
+                          <FaPlusCircle/>
+                        </IconContext.Provider>
                         Add Question
                       </button>
                         );
@@ -1247,7 +1252,9 @@ const normalizeSource = (value?: string | null): QuestionSource =>
               ))}
 
               <button type="button" className={styles.addGroup} onClick={handleAddGroup}>
-                <div className={styles.addGroupIcon}>+</div>
+                  <IconContext.Provider value={{ className: styles.plusGroupIcon }}>
+                      <FaPlusCircle/>
+                  </IconContext.Provider>
                 New Group
               </button>
 

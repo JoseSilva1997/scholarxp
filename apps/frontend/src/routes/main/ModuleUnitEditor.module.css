@@ -449,22 +449,6 @@
   transition: border-color 0.2s, color 0.2s;
 }
 
-.addVariantIcon {
-  display: flex;
-  width: 14px;
-  height: 14px;
-  color: white;
-  font-size: 10px;
-  font-weight: 600;
-  align-items: center;
-  justify-content: center;
-  align-content: center;
-  border-radius: 999px;
-  background-color: var(--color-brand-surface-dark);
-  box-sizing: border-box;
-  flex-shrink: 0;
-}
-
 .addVariantButton:hover {
   border-color: var(--color-accent-primary);
   color: var(--color-accent-primary);
@@ -490,22 +474,6 @@
   color: var(--color-muted);
   cursor: pointer;
   transition: border-color 0.2s, color 0.2s;
-}
-
-.addQuestionIcon {
-  display: flex;
-  width: 20px;
-  height: 20px;
-  color: white;
-  font-size: 16px;
-  font-weight: 600;
-  align-items: center;
-  justify-content: center;
-  align-content: center;
-  border-radius: 999px;
-  background-color: var(--color-brand-surface-dark);
-  box-sizing: border-box;
-  flex-shrink: 0;
 }
 
 .addQuestion:hover {
@@ -538,22 +506,6 @@
 .addGroup:hover {
   border-color: var(--color-accent-primary);
   color: var(--color-accent-primary);
-}
-
-.addGroupIcon {
-  display: flex;
-  width: 24px;
-  height: 24px;
-  color: white;
-  font-size: 19px;
-  font-weight: 700;
-  align-items: center;
-  justify-content: center;
-  align-content: center;
-  border-radius: 999px;
-  background-color: var(--color-brand-surface-dark);
-  box-sizing: border-box;
-  flex-shrink: 0; 
 }
 
 .variantInstructions textarea,
@@ -841,4 +793,19 @@
 .aiSparkle {
   margin-left: 4px;
   color: var(--color-accent-secondary);
+}
+
+.plusVariantIcon {
+  width: 14px;
+  height: 14px;
+}
+
+.plusQuestionIcon {
+  width: 20px;
+  height: 20px;
+}
+
+.plusGroupIcon {
+  width: 22px;
+  height: 22px;
 }
