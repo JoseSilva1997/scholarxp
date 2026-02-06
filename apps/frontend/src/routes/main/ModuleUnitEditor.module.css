@@ -204,35 +204,41 @@
   font-size: 12px;
 }
 
-.navButton {
-  border: 1px solid var(--local-border);
-  background: var(--color-brand-surface-dark);
-  color: var(--color-bg);
-  border-radius: 999px;
-  width: 28px;
-  height: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background 0.2s, border-color 0.2s;
-  padding-bottom: 2px;
-}
-:global(#right-nav-button) {
-  padding-left: 8px;
-}
-:global(#left-nav-button) {
-  padding-right: 8px
-}
-
 .navButton:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
+/* Icon-only navigation buttons (prev/next) used in the editor header.
+   Keep them visually minimal while preserving accessible focus outlines. */
+.navButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  color: var(--color-muted);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.navButton:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
 .navButton:disabled {
   cursor: not-allowed;
   opacity: 0.3;
+}
+
+/* Slightly larger icon for clarity inside the compact nav button. */
+.navIcon {
+  width: 28px;
+  height: 28px;
+  font-size: 18px;
 }
 
 .groupCard {

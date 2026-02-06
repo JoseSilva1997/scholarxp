@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { FiTrash2 } from 'react-icons/fi';
 import { VscSparkleFilled } from "react-icons/vsc";
-import { FaPlusCircle } from "react-icons/fa";
+import { FaCirclePlus, FaCircleChevronLeft, FaCircleChevronRight } from "react-icons/fa6";
 import { IconContext } from 'react-icons';
 import type {
   CreateQuestionPayload,
@@ -1221,7 +1221,7 @@ const normalizeSource = (value?: string | null): QuestionSource =>
                                 disabled={isSavingVariant || !allowNewVariant}
                               >
                                 <IconContext.Provider value={{ className: styles.plusVariantIcon }}>
-                                <FaPlusCircle/>
+                                <FaCirclePlus/>
                                 </IconContext.Provider>
                                 Variant
                               </button>
@@ -1240,7 +1240,7 @@ const normalizeSource = (value?: string | null): QuestionSource =>
                         disabled={!allowNewQuestion}
                       >
                         <IconContext.Provider value={{ className: styles.plusQuestionIcon }}>
-                          <FaPlusCircle/>
+                          <FaCirclePlus/>
                         </IconContext.Provider>
                         Add Question
                       </button>
@@ -1253,7 +1253,7 @@ const normalizeSource = (value?: string | null): QuestionSource =>
 
               <button type="button" className={styles.addGroup} onClick={handleAddGroup}>
                   <IconContext.Provider value={{ className: styles.plusGroupIcon }}>
-                      <FaPlusCircle/>
+                      <FaCirclePlus/>
                   </IconContext.Provider>
                 New Group
               </button>
@@ -1282,8 +1282,10 @@ const normalizeSource = (value?: string | null): QuestionSource =>
                     disabled={!canGoPrev}
                     aria-label="Previous question or variant"
                     id='left-nav-button'
-                  >
-                    ◀
+                    >
+                    <IconContext.Provider value={{ className: styles.navIcon}}>
+                        <FaCircleChevronLeft/>
+                    </IconContext.Provider>
                   </button>
                   <strong>{activeLabel}</strong>
                   <button
@@ -1294,7 +1296,9 @@ const normalizeSource = (value?: string | null): QuestionSource =>
                     aria-label="Next question or variant"
                     id='right-nav-button'
                   >
-                    ▶
+                    <IconContext.Provider value={{ className: styles.navIcon}}>
+                        <FaCircleChevronRight/>
+                    </IconContext.Provider>
                   </button>
                 </div>
               ) : (
