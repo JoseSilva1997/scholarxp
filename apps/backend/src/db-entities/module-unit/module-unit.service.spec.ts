@@ -125,7 +125,9 @@ describe('ModuleUnitService.findByModule', () => {
         status: ModuleUnitStatus.draft,
         sortOrder: 1,
         createdAt: new Date(),
-        questionGroups: [{ id: 11, moduleUnitId: 1, name: 'Group 1', sortOrder: 1 }],
+        questionGroups: [
+          { id: 11, moduleUnitId: 1, name: 'Group 1', sortOrder: 1 },
+        ],
         questionUnits: [{ id: 101 }, { id: 102 }],
       },
       {

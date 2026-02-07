@@ -10,15 +10,38 @@ import {
 import type { Request, Response } from 'express';
 import { generateToken, invalidCsrfTokenError } from '../security/csrf';
 
+type RequestWithId = Request & {
+  requestId?: string;
+};
+
+type SafeErrorDetail = {
+  field?: string;
+  message: string;
+};
+
+type SafeErrorResponse = {
+  statusCode: number;
+  code: string;
+  message: string;
+  requestId: string;
+  details?: SafeErrorDetail[];
+};
+
 @Catch()
 export class SafeExceptionFilter implements ExceptionFilter {
+  // ANSI colors make critical server failures stand out quickly in plain-text logs.
+  private static readonly RED = '\x1b[31m';
+  private static readonly RESET = '\x1b[0m';
+
   // Keep a dedicated logger scope so filter logs stay grouped in output.
   private readonly logger = new Logger(SafeExceptionFilter.name);
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
-    const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<Request>();
+    // Nest's HTTP adapter returns loosely typed values, so we narrow safely through unknown first.
+    const response = ctx.getResponse<unknown>() as Response;
+    const request = ctx.getRequest<unknown>() as RequestWithId;
+    const requestId = request.requestId ?? 'unknown';
 
     const isHttp = exception instanceof HttpException;
     const isCsrfError = exception === invalidCsrfTokenError;
@@ -38,10 +61,13 @@ export class SafeExceptionFilter implements ExceptionFilter {
       exception instanceof Error && exception.stack
         ? exception.stack
         : undefined;
-    const logLine = `${request?.method ?? 'UNKNOWN'} ${request?.url ?? 'UNKNOWN'} -> ${status}: ${message}`;
-    // Validation and other 4xx flows are expected; keep them at warn to reduce noise.
+    const logLine = `${request?.method ?? 'UNKNOWN'} ${request?.url ?? 'UNKNOWN'} -> ${status}: ${message} requestId=${requestId}`;
+    // Filter is the single owner of error logs: 4xx as warn, 5xx as error with stack details.
     if (status >= 500) {
-      this.logger.error(logLine, stack);
+      this.logger.error(
+        `${SafeExceptionFilter.RED}${logLine}${SafeExceptionFilter.RESET}`,
+        stack,
+      );
     } else {
       this.logger.warn(logLine);
     }
@@ -57,18 +83,146 @@ export class SafeExceptionFilter implements ExceptionFilter {
     }
 
     if (isHttp) {
-      // For expected/handled errors, forward the original payload so clients can show specific messages.
-      const httpResponse = exception.getResponse();
-      response.status(status).json(httpResponse);
+      // Normalize HttpException payloads so clients can parse consistently without leaking internals.
+      const safeResponse = this.buildSafeHttpResponse(
+        exception,
+        status,
+        requestId,
+      );
+      response.status(status).json(safeResponse);
       return;
     }
 
-    // For unexpected errors, return a safe, minimal payload to clients.
-    response.status(status).json({
-      // Keep user-facing copy friendly; CSRF rejections are typically caused by stale sessions.
-      message: isCsrfError
-        ? 'Your session expired. Please refresh and try again.'
-        : 'Something went wrong. Please try again.',
-    });
+    const safeResponse: SafeErrorResponse = isCsrfError
+      ? {
+          statusCode: 403,
+          code: 'CSRF_TOKEN_INVALID',
+          message: 'Your session expired. Please refresh and try again.',
+          requestId,
+        }
+      : {
+          statusCode: 500,
+          code: 'INTERNAL_ERROR',
+          message: 'Something went wrong. Please try again.',
+          requestId,
+        };
+
+    // For unexpected errors, return a safe and stable payload contract to clients.
+    response.status(status).json(safeResponse);
+  }
+
+  private buildSafeHttpResponse(
+    exception: HttpException,
+    status: number,
+    requestId: string,
+  ): SafeErrorResponse {
+    const raw = exception.getResponse();
+    let code = this.getCodeFromStatus(status);
+    let message = this.getDefaultMessageForStatus(status);
+    let details: SafeErrorDetail[] | undefined;
+
+    if (typeof raw === 'string') {
+      message = raw;
+    } else if (this.isRecord(raw)) {
+      // Respect explicit safe code/message when route code intentionally set one.
+      if (typeof raw.code === 'string' && raw.code.trim()) {
+        code = raw.code;
+      }
+
+      if (typeof raw.message === 'string' && raw.message.trim()) {
+        message = raw.message;
+      } else if (Array.isArray(raw.message)) {
+        // Class-validator returns an array in BadRequestException; expose only normalized text.
+        const validationMessages = raw.message.filter(
+          (entry): entry is string =>
+            typeof entry === 'string' && entry.trim().length > 0,
+        );
+        if (validationMessages.length > 0) {
+          message = 'Validation failed. Please review your input.';
+          details = validationMessages.map((entry) => ({ message: entry }));
+          if (status === 400) {
+            code = 'VALIDATION_ERROR';
+          }
+        }
+      } else if (typeof raw.error === 'string' && raw.error.trim()) {
+        message = raw.error;
+      }
+
+      const structuredDetails = this.normalizeDetails(raw.details);
+      if (structuredDetails && structuredDetails.length > 0) {
+        details = structuredDetails;
+      }
+    }
+
+    return {
+      statusCode: status,
+      code,
+      message,
+      requestId,
+      ...(details && details.length > 0 ? { details } : {}),
+    };
+  }
+
+  private normalizeDetails(value: unknown): SafeErrorDetail[] | undefined {
+    if (!Array.isArray(value)) {
+      return undefined;
+    }
+
+    const details = value
+      .map((entry): SafeErrorDetail | null => {
+        if (typeof entry === 'string') {
+          return entry.trim().length > 0 ? { message: entry } : null;
+        }
+        if (!this.isRecord(entry)) {
+          return null;
+        }
+        if (
+          typeof entry.message !== 'string' ||
+          entry.message.trim().length === 0
+        ) {
+          return null;
+        }
+        return {
+          message: entry.message,
+          ...(typeof entry.field === 'string' && entry.field.trim().length > 0
+            ? { field: entry.field }
+            : {}),
+        };
+      })
+      .filter((entry): entry is SafeErrorDetail => entry !== null);
+
+    return details.length > 0 ? details : undefined;
+  }
+
+  private getDefaultMessageForStatus(status: number): string {
+    if (status >= 500) {
+      return 'Something went wrong. Please try again.';
+    }
+    return 'The request could not be completed.';
+  }
+
+  private getCodeFromStatus(status: number): string {
+    switch (status) {
+      case 400:
+        return 'BAD_REQUEST';
+      case 401:
+        return 'UNAUTHORIZED';
+      case 403:
+        return 'FORBIDDEN';
+      case 404:
+        return 'NOT_FOUND';
+      case 409:
+        return 'CONFLICT';
+      case 422:
+        return 'UNPROCESSABLE_ENTITY';
+      case 429:
+        return 'TOO_MANY_REQUESTS';
+      default:
+        return status >= 500 ? 'INTERNAL_ERROR' : `HTTP_${status}_ERROR`;
+    }
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null;
   }
 }

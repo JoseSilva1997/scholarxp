@@ -10,6 +10,8 @@ import type { Request, Response, NextFunction } from 'express';
 import { AppModule } from './app.module';
 import { FRONTEND_URL } from '@scholarxp/constants';
 import { SafeExceptionFilter } from './common/filters/safe-exception.filter';
+import { RequestLoggingInterceptor } from './common/interceptors/request-logging.interceptor';
+import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 import {
   csrfSynchronisedProtection,
   generateToken,
@@ -19,6 +21,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const csrfLogger = new Logger('CsrfMiddleware');
   const config = app.get(ConfigService);
+  const requestIdMiddleware = new RequestIdMiddleware();
   const isProd =
     (config.get<string>('NODE_ENV') ?? 'development') === 'production';
   const corsOrigin = config.get<string>('CORS_ORIGIN') ?? FRONTEND_URL;
@@ -34,6 +37,12 @@ async function bootstrap() {
       transformOptions: { enableImplicitConversion: true },
     }),
   );
+  // Assign a request id before controllers run so logs and error payloads can be correlated.
+  app.use((req: Request, res: Response, next: NextFunction) =>
+    requestIdMiddleware.use(req, res, next),
+  );
+  // Central request lifecycle logs provide baseline observability without repeating code in handlers.
+  app.useGlobalInterceptors(new RequestLoggingInterceptor());
   // Standardize outward-facing errors and keep internal details in server logs.
   app.useGlobalFilters(new SafeExceptionFilter());
   // Required when running behind a proxy (Heroku/Render/NGINX) so secure cookies work.
