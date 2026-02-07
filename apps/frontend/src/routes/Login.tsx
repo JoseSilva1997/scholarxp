@@ -2,8 +2,9 @@ import type { ChangeEvent, FormEvent } from 'react';
 import { useEffect, useState } from 'react';
 import type { Location } from 'react-router-dom';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ApiError, login } from '../api/auth';
+import { login } from '../api/auth';
 import { ensureCsrfToken, clearCsrfToken } from '../api/client';
+import { getDisplayErrorMessage } from '../api/get-display-error';
 import { useAuth } from '../context/AuthContext';
 import { SocialAuthButtons } from '../components/SocialAuthButtons';
 import { logError } from '../utils/logger';
@@ -74,21 +75,19 @@ export default function Login() {
       sessionStorage.removeItem('postAuthRedirect');
       navigate(destination, { replace: true });
     } catch (err) {
-      if (err instanceof ApiError) {
-        const message = err.message || 'Unable to log you in right now.';
-        const normalizedEmail = form.email.trim().toLowerCase();
-        setError(message);
-        const wantsVerify =
-          message.toLowerCase().includes('verify') ||
-          message.toLowerCase().includes('not verified');
-        if (wantsVerify) {
-          navigate('/verify-email', {
-            replace: false,
-            state: { email: normalizedEmail, message },
-          });
-        }
-      } else {
-        setError('Something went wrong. Please try again.');
+      const message = getDisplayErrorMessage(err, {
+        fallbackMessage: 'Something went wrong. Please try again.',
+      });
+      const normalizedEmail = form.email.trim().toLowerCase();
+      setError(message);
+      const wantsVerify =
+        message.toLowerCase().includes('verify') ||
+        message.toLowerCase().includes('not verified');
+      if (wantsVerify) {
+        navigate('/verify-email', {
+          replace: false,
+          state: { email: normalizedEmail, message },
+        });
       }
     } finally {
       setIsSubmitting(false);

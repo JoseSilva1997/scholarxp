@@ -9,7 +9,10 @@ import {
   getModuleUnits,
 } from '../../api/modules';
 import type { ModuleSummary } from '../../types/module';
-import { ApiError } from '../../api/client';
+import {
+  getDisplayErrorMessage,
+  shouldLogApiError,
+} from '../../api/get-display-error';
 import { logError } from '../../utils/logger';
 import { useAuth } from '../../context/AuthContext';
 import { canUserAccess } from '../../permissions/permission';
@@ -116,20 +119,15 @@ export default function SingleModulePage() {
         }
       } catch (err) {
         if (cancelled) return;
-        if (err instanceof ApiError) {
-          if (err.status === 404) {
-            setError('This module was not found or is no longer available.');
-          } else if (err.status === 403) {
-            setError("You don't have permission to view this module.");
-          } else if (err.status === 401) {
-            setError('Your session expired. Please sign in again.');
-          } else {
-            setError('We could not load this module right now. Please try again.');
-          }
-        } else {
-          setError('We could not load this module right now. Please try again.');
+        setError(
+          getDisplayErrorMessage(err, {
+            fallbackMessage:
+              'We could not load this module right now. Please try again.',
+          }),
+        );
+        if (shouldLogApiError(err)) {
+          logError(err, { feature: 'modules', action: 'detail', moduleId: parsedId });
         }
-        logError(err, { feature: 'modules', action: 'detail', moduleId: parsedId });
       } finally {
         if (!cancelled) setIsLoading(false);
       }

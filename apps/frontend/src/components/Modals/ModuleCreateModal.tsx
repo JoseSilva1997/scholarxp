@@ -1,7 +1,10 @@
 // Modal to create a module; honors backend scoping via session cookie and surfaces friendly errors.
 import { useState } from 'react';
 import styles from './ModuleCreateModal.module.css';
-import { ApiError } from '../../api/client';
+import {
+  getDisplayErrorMessage,
+  shouldLogApiError,
+} from '../../api/get-display-error';
 import type { ModuleSummary } from '../../types/module';
 import { useAuth } from '../../context/AuthContext';
 import { logError } from '../../utils/logger';
@@ -45,18 +48,13 @@ export default function ModuleCreateModal({ onClose, onCreated }: ModuleCreateMo
       onCreated(created);
       onClose();
     } catch (err) {
-      let message = 'Could not create module. Please try again.';
-      if (err instanceof ApiError) {
-        if (err.status === 401) {
-          message = 'Your session expired. Please sign in again.';
-        } else if (err.status === 403) {
-          message = "You don't have permission to create modules.";
-        } else if (err.status === 400) {
-          message = err.message;
-        }
-      }
+      const message = getDisplayErrorMessage(err, {
+        fallbackMessage: 'Could not create module. Please try again.',
+      });
       setError(message);
-      logError(err, { feature: 'modules', action: 'create' });
+      if (shouldLogApiError(err)) {
+        logError(err, { feature: 'modules', action: 'create' });
+      }
     } finally {
       setIsSaving(false);
     }

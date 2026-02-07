@@ -4,7 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import { listModules } from '../../api/modules';
 import type { ModuleSummary } from '../../types/module';
 import { useAuth } from '../../context/AuthContext';
-import { ApiError } from '../../api/client';
+import {
+  getDisplayErrorMessage,
+  shouldLogApiError,
+} from '../../api/get-display-error';
 import { logError } from '../../utils/logger';
 import ModuleCreateModal from '../../components/Modals/ModuleCreateModal';
 import MainSection from '../../components/MainSection';
@@ -33,18 +36,15 @@ export default function ModulesPage() {
         }
       } catch (err) {
         if (cancelled) return;
-        if (err instanceof ApiError) {
-          if (err.status === 401) {
-            setError('Your session expired. Please sign in again.');
-          } else if (err.status === 403) {
-            setError("You don't have permission to view modules yet.");
-          } else {
-            setError('We could not load your modules right now. Please try again.');
-          }
-        } else {
-          setError('We could not load your modules right now. Please try again.');
+        setError(
+          getDisplayErrorMessage(err, {
+            fallbackMessage:
+              'We could not load your modules right now. Please try again.',
+          }),
+        );
+        if (shouldLogApiError(err)) {
+          logError(err, { feature: 'modules', action: 'list' });
         }
-        logError(err, { feature: 'modules', action: 'list' });
       } finally {
         if (!cancelled) setIsLoading(false);
       }

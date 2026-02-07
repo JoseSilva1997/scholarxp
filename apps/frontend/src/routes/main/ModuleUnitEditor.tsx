@@ -1015,8 +1015,14 @@ const normalizeSource = (value?: string | null): QuestionSource =>
         clearOtherTypesCache(`${persistedQuestionId}-core`, payload.type as QuestionType);
       }
     } catch (err) {
-      setSaveError('Could not save the question. Please try again.');
-      logError(err, { feature: 'question', action: 'save', unitId: parsedUnitId });
+      // Validation/permission failures are expected user-fixable flows, so avoid noisy error telemetry.
+      if (err instanceof ApiError && err.status >= 400 && err.status < 500) {
+        const detailMessage = err.details?.[0]?.message;
+        setSaveError(detailMessage ?? err.message ?? 'Could not save the question. Please review your input.');
+      } else {
+        setSaveError('Could not save the question. Please try again.');
+        logError(err, { feature: 'question', action: 'save', unitId: parsedUnitId });
+      }
     } finally {
       setIsSavingQuestion(false);
       setIsSavingVariant(false);

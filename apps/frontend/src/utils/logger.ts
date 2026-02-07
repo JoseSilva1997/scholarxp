@@ -10,6 +10,32 @@ type LoggerInitOptions = {
 
 let isInitialized = false;
 
+function logToDevConsole(
+  kind: 'error' | 'message',
+  payload: { error?: unknown; message?: string; context?: Record<string, unknown> },
+  level: Sentry.SeverityLevel = 'info',
+) {
+  // Keep runtime noise out of production while preserving visibility during active development.
+  if (!import.meta.env.DEV) return;
+
+  if (kind === 'error') {
+    console.error('[frontend-log:error]', payload.error, payload.context);
+    return;
+  }
+
+  const text = payload.message ?? 'Unknown log message';
+  const args = ['[frontend-log:message]', text, payload.context] as const;
+  if (level === 'error' || level === 'fatal') {
+    console.error(...args);
+  } else if (level === 'warning') {
+    console.warn(...args);
+  } else if (level === 'debug') {
+    console.debug(...args);
+  } else {
+    console.info(...args);
+  }
+}
+
 /**
  * Initializes Sentry if a DSN is provided; otherwise leaves logging as a no-op to avoid breaking prod.
  */
@@ -32,6 +58,7 @@ export function logError(
   error: unknown,
   context?: Record<string, unknown>,
 ): void {
+  logToDevConsole('error', { error, context }, 'error');
   if (!isInitialized) return;
   Sentry.captureException(error instanceof Error ? error : new Error(String(error)), {
     extra: context,
@@ -46,6 +73,7 @@ export function logMessage(
   context?: Record<string, unknown>,
   level: Sentry.SeverityLevel = 'info',
 ): void {
+  logToDevConsole('message', { message, context }, level);
   if (!isInitialized) return;
   Sentry.captureMessage(message, {
     level,

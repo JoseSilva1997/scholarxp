@@ -1,6 +1,7 @@
 // Centralized fetch wrapper for the frontend: standardizes base URL, credentials, CSRF handling,
 // and error shaping so feature-specific API modules can stay focused on their endpoints.
 import { logError, logMessage } from '../utils/logger';
+import { parseApiError, type ApiErrorDetail } from './parse-api-error';
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -10,7 +11,9 @@ if (!API_BASE) {
 
 export class ApiError extends Error {
   status: number;
+  code: string;
   data: unknown;
+  details?: ApiErrorDetail[];
   rawMessage?: string;
   path?: string;
   requestId?: string | null;
@@ -18,21 +21,27 @@ export class ApiError extends Error {
   constructor({
     message,
     status,
+    code,
     data,
+    details,
     rawMessage,
     path,
     requestId,
   }: {
     message: string;
     status: number;
+    code: string;
     data: unknown;
+    details?: ApiErrorDetail[];
     rawMessage?: string;
     path?: string;
     requestId?: string | null;
   }) {
     super(message);
     this.status = status;
+    this.code = code;
     this.data = data;
+    this.details = details;
     this.rawMessage = rawMessage;
     this.path = path;
     this.requestId = requestId;
@@ -129,43 +138,31 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
   }
 
   if (!response.ok) {
-    const extracted =
-      isJson && typeof data === 'object' && data && 'message' in data
-        ? (data as { message: unknown }).message
-        : undefined;
-    const rawMessage = Array.isArray(extracted)
-      ? extracted.join(', ')
-      : (extracted as string | undefined);
-    // Show specific messages when the backend intentionally sends them; otherwise fall back to a generic copy.
-    const safeMessage =
-      (typeof rawMessage === 'string' && rawMessage.trim().length > 0
-        ? rawMessage
-        : null) ?? 'Something went wrong. Please try again.';
+    // Parse once at the API boundary so all callers receive consistent error metadata.
+    const parsedError = parseApiError({
+      status: response.status,
+      data,
+      requestId,
+    });
     const isServerError = response.status >= 500;
-    const isClientValidation =
-      response.status >= 400 && response.status < 500;
 
-    // Only escalate unexpected/server issues; keep validation/expected client errors at warning level.
+    // Only escalate unexpected/server issues; expected 4xx flows are handled by calling screens.
     if (isServerError) {
       logError(new Error('API request failed'), {
         path,
         status: response.status,
-        rawMessage,
+        code: parsedError.code,
+        rawMessage: parsedError.rawMessage,
         requestId,
       });
-    } else if (isClientValidation) {
-      logMessage('API client validation error', {
-        path,
-        status: response.status,
-        rawMessage,
-        requestId,
-      }, 'warning');
     }
     throw new ApiError({
-      message: safeMessage,
+      message: parsedError.message,
       status: response.status,
+      code: parsedError.code,
       data,
-      rawMessage,
+      details: parsedError.details,
+      rawMessage: parsedError.rawMessage,
       path,
       requestId,
     });

@@ -2,6 +2,7 @@ import type { ChangeEvent, FormEvent } from 'react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ApiError, registerByEmail } from '../api/auth';
+import { getDisplayErrorMessage } from '../api/get-display-error';
 import { SocialAuthButtons } from '../components/SocialAuthButtons';
 import styles from './Register.module.css';
 import { NAME_MAX_LENGTH, NAME_REGEX} from '@scholarxp/constants';
@@ -127,17 +128,25 @@ export default function Register() {
       });
     } catch (err) {
       if (err instanceof ApiError) {
-        const data = err.data as { message?: unknown };
+        // Prefer normalized detail messages from the API parser so validation UX is consistent.
         const serverMessages =
-          data && Array.isArray(data.message)
-            ? data.message.map(String)
-            : data && typeof data.message === 'string'
-              ? [data.message]
-              : [];
+          err.details?.map((detail) => detail.message) ??
+          (() => {
+            const data = err.data as { message?: unknown };
+            return data && Array.isArray(data.message)
+              ? data.message.map(String)
+              : data && typeof data.message === 'string'
+                ? [data.message]
+                : [];
+          })();
         if (serverMessages.length) {
           setErrors(serverMessages);
         } else {
-          setError(err.message || 'Unable to create your account right now.');
+          setError(
+            getDisplayErrorMessage(err, {
+              fallbackMessage: 'Unable to create your account right now.',
+            }),
+          );
         }
       } else {
         setError('Something went wrong. Please try again.');

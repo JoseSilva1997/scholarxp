@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ApiError, resendVerification, verifyEmail } from '../api/auth';
+import { resendVerification, verifyEmail } from '../api/auth';
+import { getDisplayErrorMessage } from '../api/get-display-error';
 import { useAuth } from '../context/AuthContext';
 import styles from './Login.module.css';
 
@@ -40,8 +41,11 @@ export default function VerifyEmail() {
       }
       setError('Invalid or expired code.');
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : 'Unable to verify right now.';
-      setError(message);
+      setError(
+        getDisplayErrorMessage(err, {
+          fallbackMessage: 'Unable to verify right now.',
+        }),
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -63,8 +67,11 @@ export default function VerifyEmail() {
       }
       setInfo('New code sent. Check your inbox.');
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : 'Unable to resend right now.';
-      setError(message);
+      setError(
+        getDisplayErrorMessage(err, {
+          fallbackMessage: 'Unable to resend right now.',
+        }),
+      );
       setCooldown(0);
     }
   }

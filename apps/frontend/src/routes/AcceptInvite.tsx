@@ -2,7 +2,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { redeemInvite } from '../api/moduleInvites';
-import { ApiError } from '../api/client';
+import {
+  getDisplayErrorMessage,
+  shouldLogApiError,
+} from '../api/get-display-error';
 import { logError } from '../utils/logger';
 import MainSection from '../components/MainSection';
 import styles from './AcceptInvite.module.css';
@@ -31,7 +34,6 @@ export default function AcceptInvite() {
     // Prevent duplicate redemptions using ref to guard against React StrictMode double-invocation.
     // State updates are async, so both effect invocations could see state === 'idle' and both fire.
     if (redemptionAttempted.current) {
-      console.log('[AcceptInvite] Redemption already attempted, skipping');
       return;
     }
     redemptionAttempted.current = true;
@@ -40,25 +42,23 @@ export default function AcceptInvite() {
       setStatus({ state: 'loading' });
       try {
         const result = await redeemInvite(token);
-        console.log('[AcceptInvite] Redemption successful:');
         // Process success even if component unmounted - the ref prevents duplicate attempts.
         setStatus({ state: 'success', moduleId: result.moduleId });
         // After a short delay, take the learner into the module.
         setTimeout(() => navigate(`/main/modules/${result.moduleId}`, { replace: true }), 900);
       } catch (err) {
-        console.log('[AcceptInvite] Redemption failed:');
-        
-        const message =
-          err instanceof ApiError
-            ? err.message
-            : 'We could not redeem this invite. Please ask your instructor for a new link.';
+        const message = getDisplayErrorMessage(err, {
+          fallbackMessage:
+            'We could not redeem this invite. Please ask your instructor for a new link.',
+        });
         setStatus({ state: 'error', message });
-        logError(err, { feature: 'module-invites', action: 'redeem' });
+        if (shouldLogApiError(err)) {
+          logError(err, { feature: 'module-invites', action: 'redeem' });
+        }
       }
     };
     void redeem();
     return () => {
-      console.log('[AcceptInvite] Effect cleanup, cancelling redemption');
       // Do NOT reset ref - we want it to persist across StrictMode unmount/remount to prevent duplicate requests.
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
