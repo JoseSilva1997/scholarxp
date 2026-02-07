@@ -26,7 +26,7 @@ ScholarXP is an LMS-launched study companion that helps students practice course
 - You MUST add comments. Comments must explain why it is coded that way and offer a very brief description of what is being done.
 - Break tasks down into smaller chunks and formulate a plan to complete a task. 
 - Write production ready code.
-- Error-handling: never surface raw backend messages to users; expected/validation errors should show tailored messages, unexpected errors should be generic. Log full details to server logs or monitoring, keep UI messages sanitized.
+- Error-handling: use backend-owned, user-safe messages for expected errors. Throw NestJS `HttpException`s with clear safe messages, let the global exception filter normalize/log them, and display those sanitized messages in the UI. Unexpected/unhandled errors must still resolve to a generic message. Log full details server-side/monitoring; never expose stack traces or raw internal errors.
 - DO NOT USE DEPRECATED PACKAGES!
 
 ## Project Structure & Module Organization

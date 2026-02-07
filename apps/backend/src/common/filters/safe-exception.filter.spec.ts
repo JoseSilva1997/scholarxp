@@ -1,10 +1,20 @@
 // Verifies the global exception filter returns a consistent, sanitized error shape for clients.
-import { BadRequestException, HttpStatus } from '@nestjs/common';
+import { BadRequestException, HttpStatus, Logger } from '@nestjs/common';
 import type { ArgumentsHost } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { SafeExceptionFilter } from './safe-exception.filter';
 
 describe('SafeExceptionFilter', () => {
+  beforeEach(() => {
+    // Silence expected filter logs so unit-test output stays readable.
+    jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   const createHost = (request: Partial<Request>, response: Partial<Response>) =>
     ({
       switchToHttp: () => ({

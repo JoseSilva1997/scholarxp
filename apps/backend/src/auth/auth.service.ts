@@ -3,6 +3,7 @@
 import {
   ConflictException,
   Injectable,
+  InternalServerErrorException,
   Logger,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -50,7 +51,7 @@ export class AuthService {
     // Rotate session ID to prevent fixation; ignore existing auth state.
     await new Promise<void>((resolve, reject) => {
       req.session.regenerate((err) =>
-        err ? reject(new Error(String(err))) : resolve(),
+        err ? reject(new InternalServerErrorException(String(err))) : resolve(),
       );
     });
   }
@@ -70,7 +71,7 @@ export class AuthService {
     // Passport will call SessionSerializer.serializeUser via req.login.
     await new Promise<void>((resolve, reject) =>
       req.login(user, (err) =>
-        err ? reject(new Error(String(err))) : resolve(),
+        err ? reject(new InternalServerErrorException(String(err))) : resolve(),
       ),
     );
   }
@@ -83,7 +84,7 @@ export class AuthService {
     // Regenerate instead of destroy so we immediately provide a fresh anonymous session + CSRF secret.
     await new Promise<void>((resolve, reject) =>
       req.session.regenerate((err) =>
-        err ? reject(new Error(String(err))) : resolve(),
+        err ? reject(new InternalServerErrorException(String(err))) : resolve(),
       ),
     );
     // Reuse prior secret when available to avoid breaking the token the client already has; otherwise mint a new one via csrf-sync helper.
@@ -364,24 +365,11 @@ export class AuthService {
   }
 
   private async loadInstitutionMembership(userId: number) {
-    const firstIdentity = await this.prisma.ltiIdentity.findFirst({
-      where: { userId },
-      select: { institutionId: true, ltiUserId: true },
-    });
-
-    if (!firstIdentity) {
-      return {
-        institutionIds: [],
-        hasInstitutionMembership: false,
-        ltiIdentities: [],
-        hasLtiIdentity: false,
-      };
-    }
-
     const ltiIdentities = await this.prisma.ltiIdentity.findMany({
       where: { userId },
       select: { institutionId: true, ltiUserId: true },
     });
+
     const institutionIds = Array.from(
       new Set(ltiIdentities.map((identity) => identity.institutionId)),
     );

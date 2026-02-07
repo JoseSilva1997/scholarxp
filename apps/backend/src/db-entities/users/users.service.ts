@@ -1,5 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { GlobalRole } from '@prisma/client';
+import {
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
+import { GlobalRole, Prisma } from '@prisma/client';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -9,13 +14,23 @@ export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
   // Creation uses DTO-level transformations (trim, normalize) and keeps validation rules centralized.
-  create(createUserDto: CreateUserDto) {
-    return this.prisma.user.create({
-      data: {
-        ...createUserDto,
-        email: createUserDto.email ?? null,
-      },
-    });
+  async create(createUserDto: CreateUserDto) {
+    try {
+      return await this.prisma.user.create({
+        data: {
+          ...createUserDto,
+          email: createUserDto.email ?? null,
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException('Email already exists');
+      }
+      throw new InternalServerErrorException();
+    }
   }
 
   findAll() {
@@ -28,10 +43,20 @@ export class UsersService {
   // Generic update method for any user fields
   async update(id: number, updateUserDto: UpdateUserDto) {
     await this.getUserOrThrow(id);
-    return this.prisma.user.update({
-      where: { id },
-      data: updateUserDto,
-    });
+    try {
+      return await this.prisma.user.update({
+        where: { id },
+        data: updateUserDto,
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException('Email already exists');
+      }
+      throw new InternalServerErrorException();
+    }
   }
 
   async updateRole(id: number, role: GlobalRole) {

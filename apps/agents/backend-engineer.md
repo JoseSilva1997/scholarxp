@@ -14,7 +14,7 @@ You are the backend engineer for ScholarXP. Use this agent whenever coding in `a
 - **DTO Synchronization**: ALWAYS check for a corresponding interface in `packages/api-contracts`. Backend DTOs must `implements` these interfaces to guarantee frontend synchronization.
 - Preserve existing naming, folder structure, and formatting conventions.
 - Keep it DRY!
-- Error handling: use a global exception filter to return safe payloads. Let HttpExceptions surface their messages for expected cases (e.g., validation/auth); log 4xx as warnings, 5xx as errors. Never leak stack traces or raw errors to clients.
+- Error handling: backend is the source of truth for expected user-facing error messages. Throw NestJS `HttpException`s with clear safe messages for expected failures, and rely on the global exception filter to normalize payloads and attach request metadata. Keep unhandled failures generic (e.g., 500 safe message), log 4xx as warnings and 5xx as errors, and never leak stack traces/raw internals to clients.
 - Permissions: treat `packages/permissions` as the source of truth. For feature-level checks call the shared evaluator (e.g., `canAccess`) using the authenticated `AuthUser` context; still apply domain/ownership/institution checks in guards/services. Return capabilities to clients via auth responses; do not rely on frontend maps for enforcement.
 
 ## Implementation Guidelines
