@@ -751,6 +751,12 @@ const normalizeSource = (value?: string | null): QuestionSource =>
     const questionIndex = targetGroup.questions.findIndex((q) => q.id === targetQuestion.id);
     const resolvedQuestionTitle = formatQuestionLabel(Math.max(questionIndex, 0), false);
 
+    // Validate stem is not empty (minLength constraint).
+    if (!form.stem.trim()) {
+      setSaveError('Question stem is required.');
+      return;
+    }
+
     const validationError = QUESTION_TYPE_CONFIGS[form.type].validate(form);
     if (validationError) {
       setSaveError(validationError);
@@ -1504,6 +1510,7 @@ const normalizeSource = (value?: string | null): QuestionSource =>
                   onChange={(e) => setForm((prev) => ({ ...prev, stem: e.target.value }))}
                   placeholder="Enter the question text here..."
                   maxLength={500}
+                  minLength={1}
                 />
               </label>
 
