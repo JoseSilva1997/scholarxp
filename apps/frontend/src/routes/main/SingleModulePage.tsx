@@ -16,7 +16,8 @@ import {
 import { logError } from '../../utils/logger';
 import { useAuth } from '../../context/AuthContext';
 import { canUserAccess } from '../../permissions/permission';
-import settingsIcon from '../../assets/settings-icon.svg';
+import { IconContext } from 'react-icons';
+import { IoSettingsSharp } from "react-icons/io5";
 import toggleStudentViewIcon from '../../assets/toggle-student-view.svg';
 import untoggleStudentViewIcon from '../../assets/untoggle-student-view.svg';
 import expIcon from '../../assets/exp_icon.svg';
@@ -248,7 +249,9 @@ export default function SingleModulePage() {
                           aria-expanded={isSettingsOpen}
                           onClick={() => setIsSettingsOpen((open) => !open)}
                         >
-                          <img src={settingsIcon} alt="" aria-hidden="true" />
+                          <IconContext.Provider value={{className: styles.settingsIcon}}>
+                            <IoSettingsSharp aria-hidden="true" />
+                          </IconContext.Provider>
                         </button>
                       ) : null}
                     </div>

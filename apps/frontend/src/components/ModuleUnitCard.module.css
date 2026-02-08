@@ -50,7 +50,6 @@
   width: var(--module-unit-round-button-size);
   height: var(--module-unit-round-button-size);
   border-radius: 50%;
-  border: 2px solid #e5e7eb;
   background: var(--color-brand-surface-dark);
   display: inline-flex;
   align-items: center;
@@ -61,6 +60,7 @@
     0 2px 4px rgba(0, 0, 0, 0.1),
     0 4px 12px rgba(99, 102, 241, 0.15);
   transition: box-shadow 150ms ease, transform 150ms ease;
+  padding: 0;
 }
 
 .statusButton:hover {

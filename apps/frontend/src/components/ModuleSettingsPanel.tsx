@@ -3,7 +3,8 @@ import { useEffect, useMemo, useState } from 'react';
 import styles from './ModuleSettingsPanel.module.css';
 import type { ModuleInvite, ModuleSummary } from '../types/module';
 import { updateModule } from '../api/modules';
-import CopyIcon from './svg-icons/CopyIcon';
+import { FaRegCopy } from "react-icons/fa6";
+import { IconContext } from 'react-icons';
 import {
   createModuleInvite,
   deleteModuleInvite,
@@ -267,7 +268,9 @@ export default function ModuleSettingsPanel({
             aria-label="Copy invite link"
             title={isCopied ? 'Copied!' : 'Copy invite link'}
           >
-            <CopyIcon/>
+            <IconContext.Provider value={{ className: styles.copyIcon }}>
+              <FaRegCopy />
+            </IconContext.Provider>
             <span className={styles.copyButtonLabel}>{isCopied ? 'Copied!' : 'Copy'}</span>
           </button>
         ) : (

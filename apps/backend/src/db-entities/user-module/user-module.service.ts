@@ -12,20 +12,12 @@ export class UserModuleService {
 
   create(createUserModuleDto: CreateUserModuleDto, user: AuthUser) {
     // Validate permissisons before hitting the database so we fail fast on forbidden requests.
-    assertHasAccess(
-      'modules.settings',
-      user,
-      'You do not have permission to manage module rosters.',
-    );
+    assertHasAccess('modules.settings', user, 'You do not have permission to manage module rosters.',);
     return this.prisma.userModule.create({ data: createUserModuleDto });
   }
 
   findAll(moduleId: number | undefined, user: AuthUser) {
-    assertHasAccess(
-      'modules.settings',
-      user,
-      'You do not have permission to manage module rosters.',
-    );
+    assertHasAccess('modules.settings', user, 'You do not have permission to manage module rosters.', );
     // Constrain roster queries to a specific module when provided.
     if (moduleId) {
       return this.prisma.userModule.findMany({ where: { moduleId } });
@@ -42,11 +34,7 @@ export class UserModuleService {
     updateUserModuleDto: UpdateUserModuleDto,
     user: AuthUser,
   ) {
-    assertHasAccess(
-      'modules.settings',
-      user,
-      'You do not have permission to manage module rosters.',
-    );
+    assertHasAccess('modules.settings', user, 'You do not have permission to manage module rosters.');
     await this.getOrThrow(id);
     return this.prisma.userModule.update({
       where: { id },
@@ -55,11 +43,7 @@ export class UserModuleService {
   }
 
   async remove(id: number, user: AuthUser) {
-    assertHasAccess(
-      'modules.settings',
-      user,
-      'You do not have permission to delete modulerosters.',
-    );
+    assertHasAccess('modules.settings', user, 'You do not have permission to delete module rosters.');
     await this.getOrThrow(id);
     return this.prisma.userModule.delete({ where: { id } });
   }

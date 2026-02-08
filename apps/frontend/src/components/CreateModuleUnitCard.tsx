@@ -1,5 +1,7 @@
 // Card for launching creation of a new module unit; keeps the affordance consistent with other create entry points.
 import type { MouseEventHandler } from 'react';
+import { FaCirclePlus } from 'react-icons/fa6';
+import { IconContext } from 'react-icons';
 import styles from './CreateModuleUnitCard.module.css';
 
 type CreateModuleUnitCardProps = {
@@ -19,7 +21,9 @@ export default function CreateModuleUnitCard({ onClick, isSaving }: CreateModule
         aria-label="Start creating a module unit"
         title="Create module unit"
       >
-        +
+        <IconContext.Provider value={{ className: styles.createIcon }}>
+          <FaCirclePlus aria-hidden="true" />
+        </IconContext.Provider>
       </button>
       <div className={styles.copy}>
         <p className={styles.title}>Create a lesson</p>

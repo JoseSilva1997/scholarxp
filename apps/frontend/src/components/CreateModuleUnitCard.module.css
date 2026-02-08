@@ -19,23 +19,26 @@
 
 .createButton {
   /* Borrow the create-module affordance to keep the UI cohesive. */
-  background: var(--color-brand-surface-dark);
-  color: #ffffff;
-  border: 1px solid var(--color-brand-surface-dark);
   border-radius: 999px;
   width: var(--module-unit-round-button-size);
   height: var(--module-unit-round-button-size);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 48px;
-  font-weight: 700;
   cursor: pointer;
   transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
   line-height: 1;
-  padding: 0;
   flex-shrink: 0;
   margin-left: 12px;
+  border: none;
+  background: transparent;
+  padding: 0;
+}
+
+.createIcon {
+  color: var(--color-brand-surface-dark);
+  width: var(--module-unit-round-button-size);
+  height: var(--module-unit-round-button-size);
 }
 
 .createButton:hover {
@@ -44,7 +47,6 @@
 }
 
 .createButton:focus-visible {
-  outline: 2px solid var(--color-accent-secondary);
   outline-offset: 3px;
 }
 

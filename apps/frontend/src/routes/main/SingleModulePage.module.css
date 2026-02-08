@@ -86,7 +86,6 @@
 
 .actions {
   display: flex;
-  gap: 8px;
   align-items: center;
 }
 
@@ -95,7 +94,6 @@
   border: 1px solid var(--border-subtle);
   width: 44px;
   height: 44px;
-  padding: 6px;
   display: flex;
   align-items: center;
   justify-content: end;
@@ -103,8 +101,8 @@
   transition: background-color 120ms ease, border-color 120ms ease;
   border-radius: 8px;
 }
-
-.settingsButton img {
+.settingsIcon {
+  color: var(--color-brand-surface-dark);
   width: 32px;
   height: 32px;
 }
@@ -124,7 +122,6 @@
   border: 1px solid var(--border-subtle);
   width: 44px;
   height: 44px;
-  padding: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -451,9 +448,6 @@
     font-size: 22px;
   }
 
-  .actions {
-    gap: 6px;
-  }
 
   .settingsButton,
   .toggleButton {
