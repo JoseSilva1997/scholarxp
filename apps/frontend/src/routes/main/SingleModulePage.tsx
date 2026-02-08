@@ -4,7 +4,6 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   createModuleUnit,
   getModuleById,
-  getModuleUnitEditor,
   updateModuleUnitStatus,
   getModuleUnits,
 } from '../../api/modules';
@@ -79,30 +78,6 @@ export default function SingleModulePage() {
           getModuleUnits(parsedId),
         ]);
         if (!cancelled) {
-          // Fetch per-unit editor payloads so group panels can show question titles, not just empty placeholders.
-          const editorResults = await Promise.allSettled(
-            unitResults.map((unit) => getModuleUnitEditor(parsedId, unit.id)),
-          );
-          const questionsByUnitAndGroup = new Map<number, Map<number, string[]>>();
-          editorResults.forEach((result, index) => {
-            if (result.status !== 'fulfilled') {
-              return;
-            }
-            const sourceUnitId = unitResults[index]?.id;
-            if (!sourceUnitId) {
-              return;
-            }
-            const perGroup = new Map<number, string[]>();
-            result.value.questionGroups.forEach((group) => {
-              // Keep only plain titles so list cards remain lightweight and avoid editor-only payload coupling.
-              perGroup.set(
-                group.id,
-                (group.questions ?? []).map((question) => question.title),
-              );
-            });
-            questionsByUnitAndGroup.set(sourceUnitId, perGroup);
-          });
-
           setModule(moduleResult);
           setModuleUnits(
             unitResults.map((u) => ({
@@ -114,7 +89,7 @@ export default function SingleModulePage() {
               questionGroups: (u.questionGroups ?? []).map((g) => ({
                 id: String(g.id),
                 title: g.name,
-                questions: questionsByUnitAndGroup.get(u.id)?.get(g.id) ?? [],
+                questions: [],
               })),
             })),
           );
