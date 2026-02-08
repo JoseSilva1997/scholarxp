@@ -94,12 +94,8 @@ export class MailerService {
       await transporter.sendMail(message);
     } catch (error) {
       // Map transport-specific errors (like SES sandbox rejections) into a typed error
-      // so upstream layers can return safe, actionable responses without leaking SMTP details.
+      // so the global exception filter can log and return a safe response without leaking SMTP details.
       const normalized = this.normalizeMailError(error);
-      this.logger.error(
-        `Mail send failed: ${normalized.reason}`,
-        normalized.details,
-      );
       throw new MailDeliveryError(normalized.reason, normalized.details);
     }
   }

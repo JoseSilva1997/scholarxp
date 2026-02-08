@@ -16,7 +16,7 @@ import SingleModulePage from './routes/main/SingleModulePage';
 import ModuleUnitEditor from './routes/main/ModuleUnitEditor';
 import QuestsPage from './routes/main/QuestsPage';
 import ProfilePage from './routes/main/ProfilePage';
-import AcceptInvite from './routes/AcceptInvite';
+import AcceptInvite from './routes/main/AcceptInvite';
 
 function AppLayout() {
   const location = useLocation();

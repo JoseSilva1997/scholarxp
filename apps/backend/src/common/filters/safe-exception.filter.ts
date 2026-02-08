@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { generateToken, invalidCsrfTokenError } from '../security/csrf';
+import { MailDeliveryError } from '../../mailer/mailer.service';
 
 type RequestWithId = Request & {
   requestId?: string;
@@ -45,25 +46,38 @@ export class SafeExceptionFilter implements ExceptionFilter {
 
     const isHttp = exception instanceof HttpException;
     const isCsrfError = exception === invalidCsrfTokenError;
+    const isMailDeliveryError = exception instanceof MailDeliveryError;
+    // Mail delivery errors are expected failures; return 500 to let client know but defer retry to them.
     const status = isHttp
       ? exception.getStatus()
       : isCsrfError
         ? HttpStatus.FORBIDDEN
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+        : isMailDeliveryError
+          ? HttpStatus.INTERNAL_SERVER_ERROR
+          : HttpStatus.INTERNAL_SERVER_ERROR;
 
     // Always log the detailed error server-side to aid debugging.
     const message = isHttp
       ? exception.message
       : isCsrfError
         ? 'Invalid CSRF token'
-        : 'Unhandled exception';
+        : isMailDeliveryError
+          ? `Mail delivery failed: ${exception.reason}`
+          : 'Unhandled exception';
     const stack =
       exception instanceof Error && exception.stack
         ? exception.stack
         : undefined;
     const logLine = `${request?.method ?? 'UNKNOWN'} ${request?.url ?? 'UNKNOWN'} -> ${status}: ${message} requestId=${requestId}`;
-    // Filter is the single owner of error logs: 4xx as warn, 5xx as error with stack details.
-    if (status >= 500) {
+    
+    // Mail delivery errors are logged as warnings since they're expected failures; other 5xx as error with stack.
+    if (isMailDeliveryError) {
+      this.logger.warn('Email service failure', {
+        reason: exception.reason,
+        details: exception.details,
+        requestId,
+      });
+    } else if (status >= 500) {
       this.logger.error(
         `${SafeExceptionFilter.RED}${logLine}${SafeExceptionFilter.RESET}`,
         stack,
@@ -100,12 +114,19 @@ export class SafeExceptionFilter implements ExceptionFilter {
           message: 'Your session expired. Please refresh and try again.',
           requestId,
         }
-      : {
-          statusCode: 500,
-          code: 'INTERNAL_ERROR',
-          message: 'Something went wrong. Please try again.',
-          requestId,
-        };
+      : isMailDeliveryError
+        ? {
+            statusCode: 500,
+            code: 'EMAIL_DELIVERY_FAILED',
+            message: 'Failed to send email. Please try again later.',
+            requestId,
+          }
+        : {
+            statusCode: 500,
+            code: 'INTERNAL_ERROR',
+            message: 'Something went wrong. Please try again.',
+            requestId,
+          };
 
     // For unexpected errors, return a safe and stable payload contract to clients.
     response.status(status).json(safeResponse);

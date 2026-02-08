@@ -3,6 +3,7 @@ import { BadRequestException, HttpStatus, Logger } from '@nestjs/common';
 import type { ArgumentsHost } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { SafeExceptionFilter } from './safe-exception.filter';
+import { MailDeliveryError } from '../../mailer/mailer.service';
 
 describe('SafeExceptionFilter', () => {
   beforeEach(() => {
@@ -82,4 +83,37 @@ describe('SafeExceptionFilter', () => {
       requestId: 'req-500-1',
     });
   });
+
+  it('returns a safe mail delivery error response with distinct code', () => {
+    // Verifies that MailDeliveryError is caught and logged by the filter without leaking SMTP details.
+    const filter = new SafeExceptionFilter();
+    const request = {
+      method: 'POST',
+      url: '/auth/register',
+      requestId: 'req-mail-1',
+    } as Partial<Request>;
+    const response = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+      setHeader: jest.fn(),
+    } as Partial<Response>;
+    const host = createHost(request, response);
+    const exception = new MailDeliveryError(
+      'recipient_unverified',
+      'Email address is not verified in SES sandbox',
+    );
+
+    filter.catch(exception, host);
+
+    expect(response.status).toHaveBeenCalledWith(
+      HttpStatus.INTERNAL_SERVER_ERROR,
+    );
+    expect(response.json).toHaveBeenCalledWith({
+      statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+      code: 'EMAIL_DELIVERY_FAILED',
+      message: 'Failed to send email. Please try again later.',
+      requestId: 'req-mail-1',
+    });
+  });
 });
+
