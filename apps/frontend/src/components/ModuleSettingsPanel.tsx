@@ -260,7 +260,7 @@ export default function ModuleSettingsPanel({
 
     return (
       <div className={styles.inviteActions}>
-        {canCopy ? (
+        {canCopy && !isExpired ? (
           <button
             type="button"
             className={`${styles.copyButton} ${isCopied ? styles.copyButtonSuccess : ''}`}
@@ -274,7 +274,7 @@ export default function ModuleSettingsPanel({
             <span className={styles.copyButtonLabel}>{isCopied ? 'Copied!' : 'Copy'}</span>
           </button>
         ) : (
-          <span className={styles.inviteHint}>Link expires after creation</span>
+          <span className={styles.inviteHint}>Link expired</span>
         )}
         {isExpired ? (
           <button
