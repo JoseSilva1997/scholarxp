@@ -1,22 +1,8 @@
-// Screen that shows details and content entry points for a single module; reached from the modules grid.
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import {
-  createModuleUnit,
-  getModuleById,
-  updateModuleUnitStatus,
-  getModuleUnits,
-} from '../../api/modules';
-import type { ModuleSummary } from '../../types/module';
-import {
-  getDisplayErrorMessage,
-  shouldLogApiError,
-} from '../../api/get-display-error';
-import { logError } from '../../utils/logger';
+// Screen that shows details and content entry points for a single module using query-backed server state.
+import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { canUserAccess } from '../../permissions/permission';
 import { IconContext } from 'react-icons';
-import { IoSettingsSharp } from "react-icons/io5";
+import { IoSettingsSharp } from 'react-icons/io5';
 import toggleStudentViewIcon from '../../assets/toggle-student-view.svg';
 import untoggleStudentViewIcon from '../../assets/untoggle-student-view.svg';
 import expIcon from '../../assets/exp_icon.svg';
@@ -24,162 +10,35 @@ import MainSection from '../../components/MainSection';
 import ModuleSettingsPanel from '../../components/ModuleSettingsPanel';
 import CreateModuleUnitCard from '../../components/CreateModuleUnitCard';
 import CreateModuleUnitModal from '../../components/Modals/CreateModuleUnitModal';
-import ModuleUnitCard, { type ModuleUnit, type ModuleUnitStatus } from '../../components/ModuleUnitCard';
+import ModuleUnitCard from '../../components/ModuleUnitCard';
 import StudentModuleUnitCard from '../../components/StudentModuleUnitCard';
-import { MODULE_EXP_MAX } from '@scholarxp/constants';
+import { useSingleModulePageState } from '../../hooks/useSingleModulePageState';
 import styles from './SingleModulePage.module.css';
 
 export default function SingleModulePage() {
   const { moduleId } = useParams<{ moduleId: string }>();
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const [module, setModule] = useState<ModuleSummary | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isStudentViewEnabled, setIsStudentViewEnabled] = useState(false);
-  const [showCreateUnit, setShowCreateUnit] = useState(false);
-  const [moduleUnits, setModuleUnits] = useState<ModuleUnit[]>([]);
-  const [isSavingUnit, setIsSavingUnit] = useState(false);
-  // Local slide-over flag keeps the settings UI contained on this screen without routing away.
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
-  const parsedId = useMemo(() => {
-    if (!moduleId) return null;
-    const value = Number(moduleId);
-    return Number.isFinite(value) && value > 0 ? value : null;
-  }, [moduleId]);
-
-  const canEditSettings = useMemo(() => canUserAccess('modules.settings', user), [user]);
-  const canToggleStudentView = useMemo(
-    () => canUserAccess('modules.toggleStudentView', user),
-    [user],
-  );
-  const canManageModuleContent = useMemo(
-    () => canUserAccess('modules.manageContent', user),
-    [user],
-  );
-  const canManageInvites = useMemo(() => canUserAccess('modules.invitations', user), [user]);
-
-  // Load the module once the id is known; guards against invalid ids to avoid noisy network calls.
-  useEffect(() => {
-    if (!parsedId) {
-      setError('Module not found. Please check the link and try again.');
-      setIsLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    const load = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const [moduleResult, unitResults] = await Promise.all([
-          getModuleById(parsedId),
-          getModuleUnits(parsedId),
-        ]);
-        if (!cancelled) {
-          setModule(moduleResult);
-          setModuleUnits(
-            unitResults.map((u) => ({
-              id: String(u.id),
-              title: u.title,
-              status: u.status,
-              // Persist API count so cards show an accurate question total even when group previews are collapsed.
-              questionCount: u.questionCount ?? 0,
-              questionGroups: (u.questionGroups ?? []).map((g) => ({
-                id: String(g.id),
-                title: g.name,
-                questions: [],
-              })),
-            })),
-          );
-        }
-      } catch (err) {
-        if (cancelled) return;
-        setError(
-          getDisplayErrorMessage(err, {
-            fallbackMessage:
-              'We could not load this module right now. Please try again.',
-          }),
-        );
-        if (shouldLogApiError(err)) {
-          logError(err, { feature: 'modules', action: 'detail', moduleId: parsedId });
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    };
-
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [parsedId]);
-
-  const expMax = useMemo(() => {
-    if (!module) return MODULE_EXP_MAX;
-    // Prefer module-specific cap when backend provides it so future tuning is seamless.
-    return module.expMax && module.expMax > 0 ? module.expMax : MODULE_EXP_MAX;
-  }, [module]);
-
-  const expPercent = useMemo(() => {
-    if (!module || module.currentExp === undefined || module.currentExp === null) return 0;
-    if (expMax <= 0) return 0;
-    return Math.min(100, Math.round((module.currentExp / expMax) * 100));
-  }, [module, expMax]);
-
-  const handleCreateUnit = (title: string) => {
-    if (!module) return;
-    setIsSavingUnit(true);
-    createModuleUnit(module.id, { title })
-      .then((created) => {
-        setModuleUnits((prev) => [
-          {
-            id: String(created.id),
-            title: created.title,
-            status: created.status,
-            // New units start with backend-provided count (typically 0) to keep subtitle stable.
-            questionCount: created.questionCount ?? 0,
-            questionGroups: created.questionGroups.map((g) => ({
-              id: String(g.id),
-              title: g.name,
-              questions: [],
-            })),
-          },
-          ...prev,
-        ]);
-        // Close modal and navigate to the newly created unit's editor.
-        setShowCreateUnit(false);
-        navigate(`/main/modules/${module.id}/${created.id}/editor`);
-      })
-      .catch((err) => {
-        // Keep user-facing message generic; log details for diagnostics.
-        setError('Could not create the module unit. Please try again.');
-        logError(err, { feature: 'module-unit', action: 'create', moduleId: module.id });
-      })
-      .finally(() => setIsSavingUnit(false));
-  };
-
-  const handleChangeUnitStatus = async (unitId: string, status: ModuleUnitStatus) => {
-    if (!module) return;
-    try {
-      const numericId = Number(unitId);
-      const updated = await updateModuleUnitStatus(numericId, { status });
-      setModuleUnits((prev) =>
-        prev.map((u) =>
-          u.id === unitId
-            ? {
-                ...u,
-                status: updated.status,
-              }
-            : u,
-        ),
-      );
-    } catch (err) {
-      setError('Could not update the lesson status. Please try again.');
-      logError(err, { feature: 'module-unit', action: 'status-change', moduleUnitId: unitId, status });
-    }
-  };
+  const {
+    module,
+    moduleUnits,
+    isLoading,
+    pageError,
+    canEditSettings,
+    canToggleStudentView,
+    canManageModuleContent,
+    canManageInvites,
+    isStudentViewEnabled,
+    setIsStudentViewEnabled,
+    showCreateUnit,
+    setShowCreateUnit,
+    isSettingsOpen,
+    setIsSettingsOpen,
+    expPercent,
+    isCreatingUnit,
+    handleCreateUnit,
+    handleChangeUnitStatus,
+    handleModuleSaved,
+  } = useSingleModulePageState({ moduleIdParam: moduleId, user });
 
   return (
     <>
@@ -192,9 +51,9 @@ export default function SingleModulePage() {
 
         {isLoading ? (
           <div className={styles.panel}>Loading module…</div>
-        ) : error ? (
+        ) : pageError ? (
           <div className={styles.panel} role="alert">
-            {error}
+            {pageError}
           </div>
         ) : module ? (
           <>
@@ -228,7 +87,7 @@ export default function SingleModulePage() {
                           aria-expanded={isSettingsOpen}
                           onClick={() => setIsSettingsOpen((open) => !open)}
                         >
-                          <IconContext.Provider value={{className: styles.settingsIcon}}>
+                          <IconContext.Provider value={{ className: styles.settingsIcon }}>
                             <IoSettingsSharp aria-hidden="true" />
                           </IconContext.Provider>
                         </button>
@@ -237,17 +96,19 @@ export default function SingleModulePage() {
                   )}
                 </div>
               </div>
-              <div className={styles.metaRow}>
-              </div>
+              <div className={styles.metaRow}></div>
             </header>
-            {/* ...existing code... */}
-              {canManageModuleContent && moduleUnits.map((unit) => (
+            {canManageModuleContent &&
+              moduleUnits.map((unit) => (
                 <ModuleUnitCard key={unit.id} unit={unit} onChangeStatus={handleChangeUnitStatus} />
               ))}
             {canManageModuleContent ? (
               // Only show the creation entry point to roles granted modules.createContent so students stay read-only here.
               <div className={styles.createUnitCardRow}>
-                <CreateModuleUnitCard onClick={() => setShowCreateUnit(true)} isSaving={isSavingUnit} />
+                <CreateModuleUnitCard
+                  onClick={() => setShowCreateUnit(true)}
+                  isSaving={isCreatingUnit}
+                />
               </div>
             ) : null}
             {user?.globalRole === 'student' && module.userModuleLevel !== undefined ? (
@@ -259,7 +120,13 @@ export default function SingleModulePage() {
                       <img src={expIcon} alt="" aria-hidden="true" className={styles.levelIcon} />
                       Level {module.userModuleLevel}
                     </span>
-                    <div className={styles.barTrack} role="progressbar" aria-valuenow={expPercent} aria-valuemin={0} aria-valuemax={100}>
+                    <div
+                      className={styles.barTrack}
+                      role="progressbar"
+                      aria-valuenow={expPercent}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                    >
                       <div className={styles.barFill} style={{ width: `${expPercent}%` }} />
                     </div>
                     <span className={styles.expLabel}>{module.currentExp ?? 0} xp</span>
@@ -290,7 +157,7 @@ export default function SingleModulePage() {
           module={module}
           isOpen={isSettingsOpen}
           onToggle={() => setIsSettingsOpen((open) => !open)}
-          onSaved={(updated) => setModule(updated)}
+          onSaved={handleModuleSaved}
           canManageInvites={canManageInvites}
         />
       ) : null}

@@ -1,8 +1,7 @@
-// Screen that lists modules for the logged-in user; split out so the app shell can host other sections.
-import { useEffect, useMemo, useState } from 'react';
+// Screen that lists modules for the logged-in user and manages module creation from one query-backed flow.
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import type { CreateModulePayload } from '@scholarxp/api-contracts';
 import { useNavigate } from 'react-router-dom';
-import { listModules } from '../../api/modules';
-import type { ModuleSummary } from '../../types/module';
 import { useAuth } from '../../context/AuthContext';
 import {
   getDisplayErrorMessage,
@@ -12,50 +11,54 @@ import { logError } from '../../utils/logger';
 import ModuleCreateModal from '../../components/Modals/ModuleCreateModal';
 import MainSection from '../../components/MainSection';
 import { canUserAccess } from '../../permissions/permission';
+import { useCreateModuleMutation, useModulesListQuery } from '../../hooks/useModulesQueries';
 import styles from './ModulesPage.module.css';
 
 export default function ModulesPage() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const navigate = useNavigate();
-  const [modules, setModules] = useState<ModuleSummary[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
-  // Fetch modules once auth is ready; cancel flag avoids setting state after unmount.
-  useEffect(() => {
-    if (isAuthLoading || !user) return;
-    let cancelled = false;
-    const load = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const result = await listModules();
-        if (!cancelled) {
-          setModules(result);
-        }
-      } catch (err) {
-        if (cancelled) return;
-        setError(
-          getDisplayErrorMessage(err, {
-            fallbackMessage:
-              'We could not load your modules right now. Please try again.',
-          }),
-        );
-        if (shouldLogApiError(err)) {
-          logError(err, { feature: 'modules', action: 'list' });
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    };
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [isAuthLoading, user]);
-
+  const isModulesQueryEnabled = !isAuthLoading && Boolean(user);
+  const modulesQuery = useModulesListQuery(isModulesQueryEnabled);
+  const createModuleMutation = useCreateModuleMutation();
   const canCreateModules = useMemo(() => canUserAccess('modules.create', user), [user]);
+
+  // Keep telemetry for module-list failures centralized without cluttering render branches.
+  useEffect(() => {
+    if (!modulesQuery.error) return;
+    if (shouldLogApiError(modulesQuery.error)) {
+      logError(modulesQuery.error, { feature: 'modules', action: 'list' });
+    }
+  }, [modulesQuery.error]);
+
+  const modules = modulesQuery.data ?? [];
+  const isLoading = isModulesQueryEnabled && modulesQuery.isPending;
+  const listErrorMessage = modulesQuery.error
+    ? getDisplayErrorMessage(modulesQuery.error, {
+        fallbackMessage:
+          'We could not load your modules right now. Please try again.',
+      })
+    : null;
+
+  const handleCreateModule = async (payload: CreateModulePayload) => {
+    setCreateError(null);
+    try {
+      const created = await createModuleMutation.mutateAsync(payload);
+      setShowCreate(false);
+      navigate(`/main/modules/${created.id}`);
+    } catch (error) {
+      setCreateError(
+        getDisplayErrorMessage(error, {
+          fallbackMessage: 'Could not create module. Please try again.',
+        }),
+      );
+      if (shouldLogApiError(error)) {
+        logError(error, { feature: 'modules', action: 'create' });
+      }
+    }
+  };
 
   return (
     <MainSection>
@@ -74,7 +77,10 @@ export default function ModulesPage() {
             <button
               className={styles.createButton}
               type="button"
-              onClick={() => setShowCreate(true)}
+              onClick={() => {
+                setCreateError(null);
+                setShowCreate(true);
+              }}
               aria-label="Open create module form"
             >
               +
@@ -85,9 +91,9 @@ export default function ModulesPage() {
 
       {isLoading ? (
         <div className={styles.panel}>Loading your modules…</div>
-      ) : error ? (
+      ) : listErrorMessage ? (
         <div className={styles.panel} role="alert">
-          {error}
+          {listErrorMessage}
         </div>
       ) : modules.length === 0 ? (
         <div className={styles.panel}>
@@ -97,7 +103,7 @@ export default function ModulesPage() {
         </div>
       ) : (
         <div className={styles.grid}>
-          {modules.map((m) => {
+          {modules.map((moduleSummary) => {
             // Expanded array of module card colors from theme for more visual variety.
             const moduleCardColors = [
               'var(--module-card-green-dark)',
@@ -128,17 +134,17 @@ export default function ModulesPage() {
               'var(--module-card-dark-medium)',
               'var(--module-card-dark-light)',
             ];
-            const cardColor = moduleCardColors[m.id % moduleCardColors.length];
+            const cardColor = moduleCardColors[moduleSummary.id % moduleCardColors.length];
             const handleOpen = () => {
               // Route to module detail page so users can drill into content quickly.
-              navigate(`/main/modules/${m.id}`);
+              navigate(`/main/modules/${moduleSummary.id}`);
             };
 
             return (
               <article
-                key={m.id}
+                key={moduleSummary.id}
                 className={styles.card}
-                style={{ '--card-color': cardColor } as React.CSSProperties}
+                style={{ '--card-color': cardColor } as CSSProperties}
                 role="button"
                 tabIndex={0}
                 onClick={handleOpen}
@@ -148,16 +154,18 @@ export default function ModulesPage() {
                     handleOpen();
                   }
                 }}
-                >
+              >
                 <div className={styles.cardHeader}>
-                  <h3 className={styles.cardTitle}>{m.title}</h3>
+                  <h3 className={styles.cardTitle}>{moduleSummary.title}</h3>
                 </div>
                 <p className={styles.cardDescription}>
-                  {m.description ?? 'No description provided.'}
+                  {moduleSummary.description ?? 'No description provided.'}
                 </p>
                 <div className={styles.meta}>
-                  {m.institutionId ? (
-                    <span className={styles.metaItem}>Institution #{m.institutionId}</span>
+                  {moduleSummary.institutionId ? (
+                    <span className={styles.metaItem}>
+                      Institution #{moduleSummary.institutionId}
+                    </span>
                   ) : (
                     <span className={styles.metaItem}>No institution</span>
                   )}
@@ -170,14 +178,16 @@ export default function ModulesPage() {
 
       {showCreate ? (
         <ModuleCreateModal
-          onClose={() => setShowCreate(false)}
-          onCreated={(created) => {
-            setModules((prev) => [created, ...prev]);
+          onClose={() => {
             setShowCreate(false);
-            navigate(`/main/modules/${created.id}`);
+            setCreateError(null);
           }}
+          onCreate={handleCreateModule}
+          isSaving={createModuleMutation.isPending}
+          error={createError}
         />
       ) : null}
     </MainSection>
   );
 }
+

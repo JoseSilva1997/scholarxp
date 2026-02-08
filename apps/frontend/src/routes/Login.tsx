@@ -2,21 +2,21 @@ import type { ChangeEvent, FormEvent } from 'react';
 import { useEffect, useState } from 'react';
 import type { Location } from 'react-router-dom';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { login } from '../api/auth';
 import { ensureCsrfToken, clearCsrfToken } from '../api/client';
 import { getDisplayErrorMessage } from '../api/get-display-error';
 import { useAuth } from '../context/AuthContext';
 import { SocialAuthButtons } from '../components/SocialAuthButtons';
 import { logError } from '../utils/logger';
+import { useLoginMutation } from '../hooks/useAuthMutations';
 import styles from './Login.module.css';
 
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const { setUser } = useAuth();
+  const loginMutation = useLoginMutation();
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   // Capture where the user was headed (e.g., an invite link) so we can return them there after login.
   const redirectFrom = (location.state as { from?: Location } | null)?.from;
 
@@ -43,14 +43,13 @@ export default function Login() {
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
-    setIsSubmitting(true);
 
     try {
       // Refresh CSRF token immediately before submitting to avoid stale tokens after logout.
       clearCsrfToken(); // Drop any stale token explicitly, then fetch a new one.
       await ensureCsrfToken();
 
-      const { user } = await login({
+      const { user } = await loginMutation.mutateAsync({
         email: form.email.trim(),
         password: form.password,
       });
@@ -89,8 +88,6 @@ export default function Login() {
           state: { email: normalizedEmail, message },
         });
       }
-    } finally {
-      setIsSubmitting(false);
     }
   }
 
@@ -142,8 +139,8 @@ export default function Login() {
               {error ? <div className={styles.error}>{error}</div> : null}
 
               <div className={styles.actions}>
-                <button className={styles.primaryBtn} type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? 'Logging in…' : 'Log in'}
+                <button className={styles.primaryBtn} type="submit" disabled={loginMutation.isPending}>
+                  {loginMutation.isPending ? 'Logging in…' : 'Log in'}
                 </button>
                 <span className={styles.inlineHelper}>
                   <span>New here? </span>

@@ -29,6 +29,14 @@ ScholarXP is an LMS-launched study companion that helps students practice course
 - Error-handling: use backend-owned, user-safe messages for expected errors. Throw NestJS `HttpException`s with clear safe messages, let the global exception filter normalize/log them, and display those sanitized messages in the UI. Unexpected/unhandled errors must still resolve to a generic message. Log full details server-side/monitoring; never expose stack traces or raw internal errors.
 - DO NOT USE DEPRECATED PACKAGES!
 
+## Frontend state-management pattern
+- Use TanStack Query as the default for **server state** in frontend routes/components that fetch backend data.
+- Use query keys from a centralized registry (`src/hooks/query-keys.ts`) and keep query/mutation wiring in dedicated feature hooks (for example `use*Queries.ts`).
+- Keep presentational components focused on rendering; move data-fetching, mutation side effects, and cache invalidation logic into hooks.
+- Keep **local UI state** (open/closed toggles, selected tab, input focus, transient draft UI) in component state unless extraction clearly improves readability.
+- Do not force this pattern on components that do not fetch/mutate server data.
+- For mutations, prefer cache updates plus targeted `invalidateQueries` so related screens stay synchronized.
+
 ## Project Structure & Module Organization
 - Backend source: `apps/backend/src` (feature modules like `users`, `module-unit`, `question-*`).
 - Backend tests: unit tests co-located in `apps/backend/src` as `*.spec.ts`; e2e tests in `apps/backend/test`.

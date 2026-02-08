@@ -507,6 +507,13 @@
   color: var(--color-accent-primary);
 }
 
+.addGroup:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  border-color: var(--local-border);
+  color: var(--color-muted);
+}
+
 .variantInstructions textarea,
 .label textarea,
 .label input,

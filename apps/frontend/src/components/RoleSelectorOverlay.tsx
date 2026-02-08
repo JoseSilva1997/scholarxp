@@ -2,9 +2,9 @@
 // we collect their context before loading the main experience or rendering header identity.
 import { useState } from 'react';
 import type { AuthUser, GlobalRole } from '../types/auth';
-import { updateUserRole } from '../api/users';
 import styles from './RoleSelectorOverlay.module.css';
 import { logError } from '../utils/logger';
+import { useUpdateUserRoleMutation } from '../hooks/useUserMutations';
 
 type RoleSelectorOverlayProps = {
   user: AuthUser;
@@ -12,22 +12,22 @@ type RoleSelectorOverlayProps = {
 };
 
 export default function RoleSelectorOverlay({ user, onRoleSelected }: RoleSelectorOverlayProps) {
-  const [isSaving, setIsSaving] = useState(false);
+  const updateUserRoleMutation = useUpdateUserRoleMutation();
   const [error, setError] = useState<string | null>(null);
 
   async function handleSelect(role: Exclude<GlobalRole, 'pending'>) {
     // Keep selection idempotent while an update is in flight to avoid double PATCH.
-    if (isSaving) return;
-    setIsSaving(true);
+    if (updateUserRoleMutation.isPending) return;
     setError(null);
     try {
-      const updatedUser = await updateUserRole(user.id, role);
+      const updatedUser = await updateUserRoleMutation.mutateAsync({
+        userId: user.id,
+        globalRole: role,
+      });
       onRoleSelected(updatedUser);
     } catch (err) {
       logError(err, { feature: 'role-selector', action: 'update-role' });
       setError('We could not save your role right now. Please try again.');
-    } finally {
-      setIsSaving(false);
     }
   }
 
@@ -46,19 +46,19 @@ export default function RoleSelectorOverlay({ user, onRoleSelected }: RoleSelect
           <button
             type="button"
             className={styles.buttonPrimary}
-            disabled={isSaving}
+            disabled={updateUserRoleMutation.isPending}
             onClick={() => handleSelect('student')}
           >
-            {isSaving ? 'Saving…' : 'I’m a student'}
+            {updateUserRoleMutation.isPending ? 'Saving…' : 'I’m a student'}
           </button>
           <button
             type="button"
             className={styles.buttonPrimary}
-            disabled={isSaving}
+            disabled={updateUserRoleMutation.isPending}
             // Use the backend enum value; UI copy can stay human-friendly.
             onClick={() => handleSelect('teacher')}
           >
-            {isSaving ? 'Saving…' : 'I’m a teacher'}
+            {updateUserRoleMutation.isPending ? 'Saving…' : 'I’m a teacher'}
           </button>
         </div>
         {error ? (

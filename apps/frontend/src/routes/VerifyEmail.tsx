@@ -1,8 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { resendVerification, verifyEmail } from '../api/auth';
 import { getDisplayErrorMessage } from '../api/get-display-error';
 import { useAuth } from '../context/AuthContext';
+import { useResendVerificationMutation, useVerifyEmailMutation } from '../hooks/useAuthMutations';
 import styles from './Login.module.css';
 
 // Simple verification card that matches the login/register layout; shown after signup or blocked login.
@@ -10,6 +10,8 @@ export default function VerifyEmail() {
   const navigate = useNavigate();
   const location = useLocation();
   const { setUser } = useAuth();
+  const verifyEmailMutation = useVerifyEmailMutation();
+  const resendVerificationMutation = useResendVerificationMutation();
 
   const initialEmail = (location.state as { email?: string } | null)?.email ?? '';
   const initialMessage = (location.state as { message?: string } | null)?.message ?? null;
@@ -18,7 +20,6 @@ export default function VerifyEmail() {
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(initialMessage);
   const [info, setInfo] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [cooldown, setCooldown] = useState(0);
 
   useEffect(() => {
@@ -31,9 +32,8 @@ export default function VerifyEmail() {
     event.preventDefault();
     setError(null);
     setInfo(null);
-    setIsSubmitting(true);
     try {
-      const { user } = await verifyEmail(code.trim());
+      const { user } = await verifyEmailMutation.mutateAsync(code.trim());
       if (user) {
         setUser(user);
         navigate('/main', { replace: true });
@@ -46,12 +46,13 @@ export default function VerifyEmail() {
           fallbackMessage: 'Unable to verify right now.',
         }),
       );
-    } finally {
-      setIsSubmitting(false);
     }
   }
 
   async function handleResend() {
+    if (resendVerificationMutation.isPending) {
+      return;
+    }
     if (!email) {
       setError('Enter your email to resend a code.');
       return;
@@ -60,7 +61,7 @@ export default function VerifyEmail() {
     setInfo(null);
     setCooldown(30);
     try {
-      const result = await resendVerification(email.trim().toLowerCase());
+      const result = await resendVerificationMutation.mutateAsync(email.trim().toLowerCase());
       if ('alreadyVerified' in result && result.alreadyVerified) {
         setInfo('Already verified—try logging in.');
         return;
@@ -124,16 +125,24 @@ export default function VerifyEmail() {
               {info ? <div className={styles.helperCard}>{info}</div> : null}
 
               <div className={styles.actions}>
-                <button className={styles.primaryBtn} type="submit" disabled={isSubmitting || code.trim().length < 4}>
-                  {isSubmitting ? 'Verifying…' : 'Verify and continue'}
+                <button
+                  className={styles.primaryBtn}
+                  type="submit"
+                  disabled={verifyEmailMutation.isPending || code.trim().length < 4}
+                >
+                  {verifyEmailMutation.isPending ? 'Verifying…' : 'Verify and continue'}
                 </button>
                 <button
                   className={styles.secondaryBtn}
                   type="button"
                   onClick={handleResend}
-                  disabled={cooldown > 0}
+                  disabled={cooldown > 0 || resendVerificationMutation.isPending}
                 >
-                  {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend code'}
+                  {resendVerificationMutation.isPending
+                    ? 'Resending…'
+                    : cooldown > 0
+                      ? `Resend in ${cooldown}s`
+                      : 'Resend code'}
                 </button>
               </div>
             </form>

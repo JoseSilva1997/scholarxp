@@ -13,21 +13,7 @@ import type {
 } from '@scholarxp/api-contracts';
 import { getModuleUnitGroupName } from '@scholarxp/api-contracts';
 import MainSection from '../../components/MainSection';
-import {
-  getModuleUnitEditor,
-  getModuleUnits,
-  createModuleUnitQuestionGroup,
-  deleteModuleUnitQuestionGroup,
-  updateModuleUnitQuestionGroupName,
-} from '../../api/modules';
 import { ApiError } from '../../api/client';
-import {
-  createQuestionForUnit,
-  createVariantForQuestion,
-  updateQuestionContentScoped,
-  deleteQuestionFromUnit,
-  deleteVariantFromQuestion,
-} from '../../api/questions';
 import { logError } from '../../utils/logger';
 import { emptyMcqTemplate, DEFAULT_QUESTION_TYPE } from '@scholarxp/question-type-dtos';
 import type { 
@@ -45,6 +31,17 @@ import type {
   QuestionForm, 
   QuestionTypeConfig, 
 } from '../../components/question-types/QuestionTypeRegistry';
+import {
+  useCreateQuestionGroupMutation,
+  useCreateQuestionMutation,
+  useCreateVariantMutation,
+  useDeleteQuestionGroupMutation,
+  useDeleteQuestionMutation,
+  useDeleteVariantMutation,
+  useModuleUnitEditorDataQuery,
+  useUpdateQuestionContentMutation,
+  useUpdateQuestionGroupNameMutation,
+} from '../../hooks/useModuleUnitEditorQueries';
 import ConfirmDeleteModal from '../../components/Modals/ConfirmDeleteModal';
 import styles from './ModuleUnitEditor.module.css';
 
@@ -90,8 +87,6 @@ export default function ModuleUnitEditor() {
   const [variantInstructions, setVariantInstructions] = useState('');
   const [groups, setGroups] = useState<QuestionGroup[]>([]);
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSavingQuestion, setIsSavingQuestion] = useState(false);
   const [isSavingVariant, setIsSavingVariant] = useState(false);
@@ -401,8 +396,9 @@ const normalizeSource = (value?: string | null): QuestionSource =>
 
     setRenamingGroupId(groupId);
     try {
-      await updateModuleUnitQuestionGroupName(parsedModuleId, parsedUnitId, numericGroupId, {
-        name: nextTitle,
+      await renameQuestionGroupMutation.mutateAsync({
+        questionGroupId: numericGroupId,
+        payload: { name: nextTitle },
       });
       handleUpdateGroupTitle(groupId, nextTitle);
       setEditingGroupId(null);
@@ -550,7 +546,7 @@ const normalizeSource = (value?: string | null): QuestionSource =>
       const numericId = Number(groupId);
       if (Number.isFinite(numericId)) {
         try {
-          await deleteModuleUnitQuestionGroup(parsedModuleId, parsedUnitId, numericId);
+          await deleteQuestionGroupMutation.mutateAsync(numericId);
         } catch (err) {
           setDeleteError('Could not delete this group. Please try again.');
           logError(err, { feature: 'question-group', action: 'delete', unitId: parsedUnitId });
@@ -573,7 +569,7 @@ const normalizeSource = (value?: string | null): QuestionSource =>
       const numericId = Number(questionId);
       if (Number.isFinite(numericId)) {
         try {
-          await deleteQuestionFromUnit(parsedModuleId, parsedUnitId, numericId);
+          await deleteQuestionMutation.mutateAsync(numericId);
         } catch (err) {
           setDeleteError('Could not delete this question. Please try again.');
           logError(err, { feature: 'question', action: 'delete', unitId: parsedUnitId });
@@ -604,12 +600,10 @@ const normalizeSource = (value?: string | null): QuestionSource =>
       const numericVariantId = Number(variantId);
       if (Number.isFinite(numericQuestionId) && Number.isFinite(numericVariantId)) {
         try {
-          await deleteVariantFromQuestion(
-            parsedModuleId,
-            parsedUnitId,
-            numericQuestionId,
-            numericVariantId,
-          );
+          await deleteVariantMutation.mutateAsync({
+            questionId: numericQuestionId,
+            variantId: numericVariantId,
+          });
         } catch (err) {
           setDeleteError('Could not delete this variant. Please try again.');
           logError(err, { feature: 'variant', action: 'delete', unitId: parsedUnitId });
@@ -713,7 +707,7 @@ const normalizeSource = (value?: string | null): QuestionSource =>
     if (!Number.isFinite(numericGroupId)) {
       try {
         // First save for a draft group: create it on the server so subsequent questions have a stable id.
-        const createdGroup = await createModuleUnitQuestionGroup(parsedModuleId, parsedUnitId, {
+        const createdGroup = await createQuestionGroupMutation.mutateAsync({
           moduleUnitId: parsedUnitId,
           name: targetGroup.title,
           sortOrder: targetGroup.sortOrder,
@@ -789,7 +783,7 @@ const normalizeSource = (value?: string | null): QuestionSource =>
 
       if (targetQuestion.isDraft) {
         // Persist the draft question before handling variants to guarantee a server id.
-        const created = await createQuestionForUnit(parsedModuleId, parsedUnitId, payload);
+        const created = await createQuestionMutation.mutateAsync(payload);
         persistedQuestionId = String(created.questionUnit.id);
         persistedCoreContentId = String(created.coreContent.id);
         persistedTitle = resolvedQuestionTitle;
@@ -852,12 +846,10 @@ const normalizeSource = (value?: string | null): QuestionSource =>
             isArchived: false,
           } satisfies CreateVariantPayload;
 
-          const createdVariant = await createVariantForQuestion(
-            parsedModuleId,
-            parsedUnitId,
-            Number(persistedQuestionId),
-            variantPayload,
-          );
+          const createdVariant = await createVariantMutation.mutateAsync({
+            questionId: Number(persistedQuestionId),
+            payload: variantPayload,
+          });
 
           setGroups((prev) =>
             prev.map((group) =>
@@ -908,13 +900,11 @@ const normalizeSource = (value?: string | null): QuestionSource =>
             isArchived: payload.isArchived,
           } satisfies UpdateQuestionContentPayload;
 
-          await updateQuestionContentScoped(
-            parsedModuleId,
-            parsedUnitId,
-            Number(persistedQuestionId),
-            Number(variant.content.id),
-            variantUpdatePayload,
-          );
+          await updateQuestionContentMutation.mutateAsync({
+            questionId: Number(persistedQuestionId),
+            contentId: Number(variant.content.id),
+            payload: variantUpdatePayload,
+          });
           setGroups((prev) =>
             prev.map((group) =>
               group.id === resolvedGroupId
@@ -977,13 +967,11 @@ const normalizeSource = (value?: string | null): QuestionSource =>
           isArchived: payload.isArchived,
         } satisfies UpdateQuestionContentPayload;
 
-        await updateQuestionContentScoped(
-          parsedModuleId,
-          parsedUnitId,
-          Number(persistedQuestionId),
-          Number(persistedCoreContentId),
-          coreUpdatePayload,
-        );
+        await updateQuestionContentMutation.mutateAsync({
+          questionId: Number(persistedQuestionId),
+          contentId: Number(persistedCoreContentId),
+          payload: coreUpdatePayload,
+        });
         setGroups((prev) =>
           prev.map((group) =>
             group.id === resolvedGroupId
@@ -1047,98 +1035,102 @@ const normalizeSource = (value?: string | null): QuestionSource =>
     return Number.isFinite(value) ? value : null;
   }, [unitId]);
 
+  const editorScope = useMemo(
+    () =>
+      parsedModuleId !== null && parsedUnitId !== null
+        ? { moduleId: parsedModuleId, unitId: parsedUnitId }
+        : null,
+    [parsedModuleId, parsedUnitId],
+  );
+  const editorDataQuery = useModuleUnitEditorDataQuery(parsedModuleId, parsedUnitId);
+  const renameQuestionGroupMutation = useUpdateQuestionGroupNameMutation(editorScope);
+  const createQuestionGroupMutation = useCreateQuestionGroupMutation(editorScope);
+  const deleteQuestionGroupMutation = useDeleteQuestionGroupMutation(editorScope);
+  const createQuestionMutation = useCreateQuestionMutation(editorScope);
+  const createVariantMutation = useCreateVariantMutation(editorScope);
+  const updateQuestionContentMutation = useUpdateQuestionContentMutation(editorScope);
+  const deleteQuestionMutation = useDeleteQuestionMutation(editorScope);
+  const deleteVariantMutation = useDeleteVariantMutation(editorScope);
+  const isLoading =
+    parsedModuleId !== null && parsedUnitId !== null && editorDataQuery.isPending;
+  const error = editorDataQuery.isError
+    ? 'Could not load this module unit. Please try again.'
+    : null;
+
   useEffect(() => {
-    if (!parsedUnitId || !parsedModuleId) return;
-    let cancelled = false;
-    const load = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const [unit, moduleUnits] = await Promise.all([
-          getModuleUnitEditor(parsedModuleId, parsedUnitId),
-          getModuleUnits(parsedModuleId),
-        ]);
-        if (cancelled) return;
-        // Use module-unit list as source of truth for status so iconography tracks publish state.
-        const currentUnit = moduleUnits.find((candidate) => candidate.id === parsedUnitId);
-        setIsUnitLive(currentUnit?.status === 'live');
-        setUnitTitle(unit.title);
-        setVariantInstructions(unit.variantContext ?? '');
-        const mappedGroups = (unit.questionGroups ?? []).map((g) => {
-          const questions = (g.questions ?? []).map((q) => ({
-            id: String(q.id),
-            title: q.title,
-            type: normalizeQuestionType(q.type),
-            variants: (q.variants ?? []).map((v) => ({
-              id: String(v.id),
-              label: v.variantLabel,
-              content: v.content
-                ? {
-                    id: String(v.content.id),
-                    questionUnitId: String(v.content.questionUnitId ?? q.id),
-                    questionStem: v.content.questionStem,
-                    questionData: v.content.questionData,
-                    type: normalizeQuestionType(v.content.type),
-                    hint: v.content.hint ?? null,
-                    difficultyScore: v.content.difficultyScore,
-                    source: normalizeSource(v.content.source),
-                    isArchived: Boolean(v.content.isArchived),
-                  }
-                : undefined,
-            })),
-            coreContent: q.coreContent
-              ? {
-                  id: String(q.coreContent.id),
-                  questionUnitId: String(q.coreContent.questionUnitId),
-                  questionStem: q.coreContent.questionStem,
-                  questionData: q.coreContent.questionData,
-                  type: normalizeQuestionType(q.coreContent.type),
-                  hint: q.coreContent.hint ?? null,
-                  difficultyScore: q.coreContent.difficultyScore,
-                  source: normalizeSource(q.coreContent.source),
-                  isArchived: Boolean(q.coreContent.isArchived),
-                }
-              : undefined,
-          }));
-          return {
-            id: String(g.id),
-            title: g.name,
-            sortOrder: g.sortOrder,
-            questions,
-          };
-        });
-        setGroups(mappedGroups);
-        setExpandedGroups(new Set(mappedGroups.map((g) => g.id)));
-        const firstQuestion = mappedGroups[0]?.questions[0];
-        setSelected(
-          mappedGroups[0]
+    if (!editorDataQuery.error || parsedUnitId === null) return;
+    logError(editorDataQuery.error, { feature: 'module-unit-editor', action: 'load', unitId: parsedUnitId });
+  }, [editorDataQuery.error, parsedUnitId]);
+
+  useEffect(() => {
+    if (!editorDataQuery.data || parsedUnitId === null) return;
+    const { unit, moduleUnits } = editorDataQuery.data;
+    // Use module-unit list as source of truth for status so iconography tracks publish state.
+    const currentUnit = moduleUnits.find((candidate) => candidate.id === parsedUnitId);
+    setIsUnitLive(currentUnit?.status === 'live');
+    setUnitTitle(unit.title);
+    setVariantInstructions(unit.variantContext ?? '');
+    const mappedGroups = (unit.questionGroups ?? []).map((g) => {
+      const questions = (g.questions ?? []).map((q) => ({
+        id: String(q.id),
+        title: q.title,
+        type: normalizeQuestionType(q.type),
+        variants: (q.variants ?? []).map((v) => ({
+          id: String(v.id),
+          label: v.variantLabel,
+          content: v.content
             ? {
-                groupId: mappedGroups[0].id,
-                questionId: firstQuestion?.id ?? null,
-                variantId: null,
+                id: String(v.content.id),
+                questionUnitId: String(v.content.questionUnitId ?? q.id),
+                questionStem: v.content.questionStem,
+                questionData: v.content.questionData,
+                type: normalizeQuestionType(v.content.type),
+                hint: v.content.hint ?? null,
+                difficultyScore: v.content.difficultyScore,
+                source: normalizeSource(v.content.source),
+                isArchived: Boolean(v.content.isArchived),
               }
-            : null,
-        );
-        if (firstQuestion?.coreContent) {
-          loadContentIntoForm(firstQuestion.coreContent, `${firstQuestion.id}-core`);
-        } else {
-          setForm(buildInitialForm());
-        }
-      } catch {
-        if (!cancelled) {
-          setError('Could not load this module unit. Please try again.');
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      }
-    };
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [parsedModuleId, parsedUnitId, loadContentIntoForm, buildInitialForm]);
+            : undefined,
+        })),
+        coreContent: q.coreContent
+          ? {
+              id: String(q.coreContent.id),
+              questionUnitId: String(q.coreContent.questionUnitId),
+              questionStem: q.coreContent.questionStem,
+              questionData: q.coreContent.questionData,
+              type: normalizeQuestionType(q.coreContent.type),
+              hint: q.coreContent.hint ?? null,
+              difficultyScore: q.coreContent.difficultyScore,
+              source: normalizeSource(q.coreContent.source),
+              isArchived: Boolean(q.coreContent.isArchived),
+            }
+          : undefined,
+      }));
+      return {
+        id: String(g.id),
+        title: g.name,
+        sortOrder: g.sortOrder,
+        questions,
+      };
+    });
+    setGroups(mappedGroups);
+    setExpandedGroups(new Set(mappedGroups.map((g) => g.id)));
+    const firstQuestion = mappedGroups[0]?.questions[0];
+    setSelected(
+      mappedGroups[0]
+        ? {
+            groupId: mappedGroups[0].id,
+            questionId: firstQuestion?.id ?? null,
+            variantId: null,
+          }
+        : null,
+    );
+    if (firstQuestion?.coreContent) {
+      loadContentIntoForm(firstQuestion.coreContent, `${firstQuestion.id}-core`);
+    } else {
+      setForm(buildInitialForm());
+    }
+  }, [editorDataQuery.data, parsedUnitId, loadContentIntoForm, buildInitialForm]);
 
   useEffect(() => {
     if (!selected) return;

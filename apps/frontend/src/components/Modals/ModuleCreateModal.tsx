@@ -1,28 +1,27 @@
-// Modal to create a module; honors backend scoping via session cookie and surfaces friendly errors.
+// Modal form for module creation; delegates network side effects to the parent route mutation flow.
 import { useState } from 'react';
+import type { CreateModulePayload } from '@scholarxp/api-contracts';
 import styles from './ModuleCreateModal.module.css';
-import {
-  getDisplayErrorMessage,
-  shouldLogApiError,
-} from '../../api/get-display-error';
-import type { ModuleSummary } from '../../types/module';
 import { useAuth } from '../../context/AuthContext';
-import { logError } from '../../utils/logger';
-import { createModule } from '../../api/modules';
 import { canUserAccess } from '../../permissions/permission';
 
 type ModuleCreateModalProps = {
   onClose: () => void;
-  onCreated: (module: ModuleSummary) => void;
+  onCreate: (payload: CreateModulePayload) => Promise<void>;
+  isSaving: boolean;
+  error: string | null;
 };
 
-export default function ModuleCreateModal({ onClose, onCreated }: ModuleCreateModalProps) {
+export default function ModuleCreateModal({
+  onClose,
+  onCreate,
+  isSaving,
+  error,
+}: ModuleCreateModalProps) {
   const { user } = useAuth();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [institutionId, setInstitutionId] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   // Teachers can create modules but only admins/institution admins can bind to an institution.
   const canSetInstitution = canUserAccess('modules.setInstitution', user);
@@ -30,34 +29,16 @@ export default function ModuleCreateModal({ onClose, onCreated }: ModuleCreateMo
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (isSaving) return;
-    setIsSaving(true);
-    setError(null);
-    try {
-      const payload: {
-        title: string;
-        description?: string;
-        institutionId?: number;
-      } = {
-        title: title.trim(),
-        description: description.trim() || undefined,
-      };
-      if (canSetInstitution && institutionId.trim()) {
-        payload.institutionId = Number(institutionId.trim());
-      }
-      const created = await createModule(payload);
-      onCreated(created);
-      onClose();
-    } catch (err) {
-      const message = getDisplayErrorMessage(err, {
-        fallbackMessage: 'Could not create module. Please try again.',
-      });
-      setError(message);
-      if (shouldLogApiError(err)) {
-        logError(err, { feature: 'modules', action: 'create' });
-      }
-    } finally {
-      setIsSaving(false);
+
+    const payload: CreateModulePayload = {
+      title: title.trim(),
+      description: description.trim() || undefined,
+    };
+    if (canSetInstitution && institutionId.trim()) {
+      payload.institutionId = Number(institutionId.trim());
     }
+
+    await onCreate(payload);
   }
 
   return (
@@ -125,3 +106,4 @@ export default function ModuleCreateModal({ onClose, onCreated }: ModuleCreateMo
     </div>
   );
 }
+

@@ -18,6 +18,12 @@ You are the frontend engineer for ScholarXP. Use this agent whenever coding in `
 ## Core Rules
 - Follow current official guidance from React, Vite, and TypeScript. If a decision depends on version-specific behavior, verify against the latest official docs before coding.
 - Prefer functional components, hooks, and clear separation of concerns.
+- State-management pattern:
+  - Treat TanStack Query as the default for server state (fetching, caching, invalidation, mutation status).
+  - Keep query keys centralized in `src/hooks/query-keys.ts`.
+  - Keep query/mutation wiring in reusable feature hooks; keep components mostly presentational.
+  - Do not migrate blindly: if a component has only local UI state and no server-state concerns, keep it local.
+  - Use cache updates + targeted invalidation after mutations so related views remain coherent.
 - **Type synchronization**: DO NOT redefine types for API payloads or responses in components. Use interfaces from `@scholarxp/api-contracts` or `@scholarxp/question-type-dtos`.
 - Keep components small and reusable; avoid monolithic files.
 - ALLWAYS run "cd /home/shade/scholar_xp && pnpm --filter frontend lint" at the end to confirm changes.

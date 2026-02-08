@@ -1,14 +1,16 @@
 import type { ChangeEvent, FormEvent } from 'react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ApiError, registerByEmail } from '../api/auth';
+import { ApiError } from '../api/auth';
 import { getDisplayErrorMessage } from '../api/get-display-error';
 import { SocialAuthButtons } from '../components/SocialAuthButtons';
 import styles from './Register.module.css';
 import { NAME_MAX_LENGTH, NAME_REGEX} from '@scholarxp/constants';
+import { useRegisterByEmailMutation } from '../hooks/useAuthMutations';
 
 export default function Register() {
   const navigate = useNavigate();
+  const registerByEmailMutation = useRegisterByEmailMutation();
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -18,7 +20,6 @@ export default function Register() {
   });
   const [error, setError] = useState<string | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showMeter, setShowMeter] = useState(false);
   // Derive password strength feedback so users can fix issues before submission.
   const passwordChecks = [
@@ -113,9 +114,8 @@ export default function Register() {
       return;
     }
 
-    setIsSubmitting(true);
     try {
-      await registerByEmail({
+      await registerByEmailMutation.mutateAsync({
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
         email: form.email.trim().toLowerCase(),
@@ -151,8 +151,6 @@ export default function Register() {
       } else {
         setError('Something went wrong. Please try again.');
       }
-    } finally {
-      setIsSubmitting(false);
     }
   }
 
@@ -279,8 +277,8 @@ export default function Register() {
               ) : null}
 
               <div className={styles.actions}>
-                <button className={styles.primaryBtn} type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? 'Creating account…' : 'Create account'}
+                <button className={styles.primaryBtn} type="submit" disabled={registerByEmailMutation.isPending}>
+                  {registerByEmailMutation.isPending ? 'Creating account…' : 'Create account'}
                 </button>
                 <span className={styles.inlineHelper}>
                   <span>Already have an account? </span>
