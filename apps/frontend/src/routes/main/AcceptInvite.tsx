@@ -1,13 +1,13 @@
 // Invite acceptance screen: redeems an invite token and routes the student into the module.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { redeemInvite } from '../api/moduleInvites';
+import { redeemInvite } from '../../api/moduleInvites';
 import {
   getDisplayErrorMessage,
   shouldLogApiError,
-} from '../api/get-display-error';
-import { logError } from '../utils/logger';
-import MainSection from '../components/MainSection';
+} from '../../api/get-display-error';
+import { logError } from '../../utils/logger';
+import MainSection from '../../components/MainSection';
 import styles from './AcceptInvite.module.css';
 
 type StatusState =

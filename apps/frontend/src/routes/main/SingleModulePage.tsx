@@ -1,6 +1,6 @@
 // Screen that shows details and content entry points for a single module; reached from the modules grid.
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   createModuleUnit,
   getModuleById,
@@ -33,6 +33,7 @@ import styles from './SingleModulePage.module.css';
 export default function SingleModulePage() {
   const { moduleId } = useParams<{ moduleId: string }>();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [module, setModule] = useState<ModuleSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -172,6 +173,9 @@ export default function SingleModulePage() {
           },
           ...prev,
         ]);
+        // Close modal and navigate to the newly created unit's editor.
+        setShowCreateUnit(false);
+        navigate(`/main/modules/${module.id}/${created.id}/editor`);
       })
       .catch((err) => {
         // Keep user-facing message generic; log details for diagnostics.

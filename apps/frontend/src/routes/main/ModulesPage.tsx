@@ -171,7 +171,11 @@ export default function ModulesPage() {
       {showCreate ? (
         <ModuleCreateModal
           onClose={() => setShowCreate(false)}
-          onCreated={(created) => setModules((prev) => [created, ...prev])}
+          onCreated={(created) => {
+            setModules((prev) => [created, ...prev]);
+            setShowCreate(false);
+            navigate(`/main/modules/${created.id}`);
+          }}
         />
       ) : null}
     </MainSection>
