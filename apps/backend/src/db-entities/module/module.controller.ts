@@ -21,6 +21,7 @@ import { GlobalRole } from '@prisma/client';
 import { ModuleAccess } from '../../auth/decorators/module-access.decorator';
 import { ModuleAccessGuard } from '../../auth/guards/module-access.guard';
 import type { AuthUser } from '../../types/auth-user.type';
+import { assertHasAccess } from 'src/helpers/permissions.helper';
 
 @Controller('module')
 @UseGuards(SessionAuthGuard, RolesGuard)
@@ -31,6 +32,11 @@ export class ModuleController {
   @Roles(GlobalRole.teacher, GlobalRole.institution_admin, GlobalRole.admin)
   create(@Body() createModuleDto: CreateModuleDto, @Req() req: Request) {
     // Record creator and enforce institution scoping where applicable.
+    assertHasAccess(
+      'modules.create',
+      req.user as AuthUser,
+      'You do not have permission to create modules.',
+    );
     return this.moduleService.create(createModuleDto, req.user as AuthUser);
   }
 

@@ -1,5 +1,5 @@
 // Helper to enforce shared capability rules on the backend and raise consistent HTTP errors.
-import { ForbiddenException, Logger } from '@nestjs/common';
+import { ForbiddenException, Logger, UnauthorizedException } from '@nestjs/common';
 import { canAccess, type FeatureKey, type Role } from '@scholarxp/permissions';
 import type { AuthUser } from '../types/auth-user.type';
 
@@ -34,6 +34,6 @@ export function assertHasAccess(
         'PermissionDenied',
       );
     }
-    throw new Exception('Access denied: ' + (options.message ?? feature));
+    throw new UnauthorizedException('You do not have access to this resource.');
   }
 }

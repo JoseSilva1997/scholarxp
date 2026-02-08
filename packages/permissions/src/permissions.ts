@@ -13,64 +13,68 @@ export type FeatureKey =
 
 export type Role = 'pending' | 'admin' | 'institution_admin' | 'teacher' | 'student';
 
-// A condition grants access when all provided checks pass; a feature is allowed if any condition matches.
-export type PermissionCondition = {
-  roles?: Role[];
-  requiresInstitution?: boolean;
-  forbidsInstitution?: boolean;
-};
-
-export type PermissionRule = PermissionCondition[];
-
-export type PermissionMatrix = Record<FeatureKey, PermissionRule>;
-
-// Single source of truth for feature permissions across the stack.
-export const permissionMatrix: PermissionMatrix = {
-  'modules.create': [
-    { roles: ['admin', 'institution_admin'] },
-    { roles: ['teacher'], forbidsInstitution: true },
-  ],
-  'modules.setInstitution': [{ roles: ['admin', 'institution_admin'], requiresInstitution: true }],
-  'modules.toggleStudentView': [{ roles: ['admin', 'institution_admin', 'teacher'] }],
-  'modules.settings': [{ roles: ['admin', 'institution_admin', 'teacher'] }],
-  'modules.manageContent': [{ roles: ['admin', 'institution_admin', 'teacher'] }],
-  'modules.invitations': [
-    { roles: ['admin'] },
-    { roles: ['teacher', 'institution_admin'], forbidsInstitution: true },
-  ],
-  'modules.invitations.redemption': [
-    { roles: ['admin'] },
-    { roles: ['student'], forbidsInstitution: true },
-  ],
-  'navigation.modules': [{ roles: ['admin', 'institution_admin', 'teacher', 'student'] }],
-  'navigation.quests': [{ roles: ['admin', 'institution_admin', 'student'] }],
-  'navigation.profile': [{ roles: ['admin', 'institution_admin', 'teacher', 'student'] }],
-};
+export type RoleKey = 
+  | 'pending'
+  | 'admin'
+  | 'institution_admin'
+  | 'teacher.independent'
+  | 'teacher.institutional'
+  | 'student.independent'
+  | 'student.institutional';
 
 export type UserContext = {
   role: Role;
   hasInstitutionMembership?: boolean;
 };
 
+export function toRoleKey(user : UserContext): RoleKey {
+  const hasInstitution = Boolean(user.hasInstitutionMembership);
+  if (user.role === 'teacher') return hasInstitution ? 'teacher.institutional' : 'teacher.independent';
+  if (user.role === 'student') return hasInstitution ? 'student.institutional' : 'student.independent';
+  return user.role as RoleKey;
+}
+
+
+export type PermissionMatrix = Record<FeatureKey, RoleKey[]>;
+
+// Single source of truth for feature permissions across the application.
+export const permissionMatrix: PermissionMatrix = {
+  'modules.create': 
+  ['admin', 'institution_admin', 'teacher.independent'],
+  'modules.setInstitution': 
+  ['admin', 'institution_admin'],
+  'modules.toggleStudentView': 
+  ['admin', 'institution_admin', 'teacher.independent', 'teacher.institutional'],
+  'modules.settings': 
+  ['admin', 'institution_admin', 'teacher.independent', 'teacher.institutional'],
+  'modules.manageContent': 
+  ['admin', 'institution_admin', 'teacher.independent', 'teacher.institutional'],
+  'modules.invitations': 
+  ['admin', 'teacher.independent'],
+  'modules.invitations.redemption': 
+  ['admin', 'student.independent'],
+  'navigation.modules': 
+  ['admin', 'institution_admin', 'teacher.independent', 'teacher.institutional', 'student.independent', 'student.institutional'],
+  'navigation.quests': 
+  ['admin', 'student.independent', 'student.institutional'],
+  'navigation.profile': 
+  ['admin', 'institution_admin', 'teacher.independent', 'teacher.institutional', 'student.independent', 'student.institutional'],
+}
+
 // Evaluates a feature against the provided user context; designed for both server and client use.
 export function canAccess(feature: FeatureKey, user: UserContext | null | undefined): boolean {
   if (!user) return false;
   const rules = permissionMatrix[feature];
   if (!rules) return false;
-
-  const hasInstitution = Boolean(user.hasInstitutionMembership);
-
-  return rules.some((condition) => {
-    if (condition.roles && !condition.roles.includes(user.role)) return false;
-    if (condition.requiresInstitution && !hasInstitution) return false;
-    if (condition.forbidsInstitution && hasInstitution) return false;
-    return true;
-  });
+  return rules.includes(toRoleKey(user));
 }
 
 export function listCapabilities(user: UserContext | null | undefined): FeatureKey[] {
   if (!user) return [];
-  return (Object.keys(permissionMatrix) as FeatureKey[]).filter((feature) =>
-    canAccess(feature, user),
-  );
+
+  const roleKey = toRoleKey(user);
+
+  return (Object.entries(permissionMatrix) as [FeatureKey, RoleKey[]][])
+    .filter(([, allowed]) => allowed.includes(roleKey))
+    .map(([feature]) => feature);
 }

@@ -10,17 +10,21 @@ import {
 import { AvatarService } from './avatar.service';
 import { CreateAvatarDto } from './dto/create-avatar.dto';
 import { UpdateAvatarDto } from './dto/update-avatar.dto';
+import { Roles } from 'src/auth/decorators/roles.decorator';
+import { GlobalRole } from '@prisma/client';
 
 @Controller('avatar')
 export class AvatarController {
   constructor(private readonly avatarService: AvatarService) {}
 
   @Post()
+  @Roles(GlobalRole.student)
   create(@Body() createAvatarDto: CreateAvatarDto) {
     return this.avatarService.create(createAvatarDto);
   }
 
   @Get()
+  @Roles(GlobalRole.admin, GlobalRole.institution_admin)
   findAll() {
     return this.avatarService.findAll();
   }
