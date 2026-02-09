@@ -12,8 +12,8 @@ import {
   listModuleInvites,
   redeemInvite,
   updateModuleInvite,
-} from '../api/moduleInvites';
-import { queryKeys } from './query-keys';
+} from '../../api/moduleInvites';
+import { queryKeys } from '../query-keys';
 
 export function useModuleInvitesQuery(moduleId: number | null, enabled: boolean) {
   return useQuery({

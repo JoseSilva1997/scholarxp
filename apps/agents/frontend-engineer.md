@@ -21,9 +21,14 @@ You are the frontend engineer for ScholarXP. Use this agent whenever coding in `
 - State-management pattern:
   - Treat TanStack Query as the default for server state (fetching, caching, invalidation, mutation status).
   - Keep query keys centralized in `src/hooks/query-keys.ts`.
-  - Keep query/mutation wiring in reusable feature hooks; keep components mostly presentational.
-  - Do not migrate blindly: if a component has only local UI state and no server-state concerns, keep it local.
+  - Keep query/mutation wiring in `src/hooks/queries`; do not scatter by ad-hoc feature naming.
+  - Keep route/page orchestration in `src/hooks/page-state` using page-matched names (`use<ExactRouteName>PageState`).
+  - For non-trivial routes, route files should primarily render/composition and delegate orchestration to a page-state hook.
+  - If a component has only local UI state and no server-state concerns, keep it local and do not add TanStack Query.
   - Use cache updates + targeted invalidation after mutations so related views remain coherent.
+  - Use a consistent hook layout:
+    - `src/hooks/queries/*` for server state hooks
+    - `src/hooks/page-state/*` for route state hooks
 - **Type synchronization**: DO NOT redefine types for API payloads or responses in components. Use interfaces from `@scholarxp/api-contracts` or `@scholarxp/question-type-dtos`.
 - Keep components small and reusable; avoid monolithic files.
 - ALLWAYS run "cd /home/shade/scholar_xp && pnpm --filter frontend lint" at the end to confirm changes.

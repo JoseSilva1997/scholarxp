@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type { AuthUser, GlobalRole } from '../types/auth';
 import styles from './RoleSelectorOverlay.module.css';
 import { logError } from '../utils/logger';
-import { useUpdateUserRoleMutation } from '../hooks/useUserMutations';
+import { useUpdateUserRoleMutation } from '../hooks/queries/useUserMutations';
 
 type RoleSelectorOverlayProps = {
   user: AuthUser;

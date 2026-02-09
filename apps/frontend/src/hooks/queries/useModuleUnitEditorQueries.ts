@@ -15,15 +15,15 @@ import {
   getModuleUnitEditor,
   getModuleUnits,
   updateModuleUnitQuestionGroupName,
-} from '../api/modules';
+} from '../../api/modules';
 import {
   createQuestionForUnit,
   createVariantForQuestion,
   deleteQuestionFromUnit,
   deleteVariantFromQuestion,
   updateQuestionContentScoped,
-} from '../api/questions';
-import { queryKeys } from './query-keys';
+} from '../../api/questions';
+import { queryKeys } from '../query-keys';
 
 type ModuleUnitEditorQueryResult = {
   unit: ModuleUnitEditorResponse;
@@ -187,4 +187,3 @@ export function useDeleteVariantMutation(scope: ScopedEditorIds | null) {
     },
   });
 }
-

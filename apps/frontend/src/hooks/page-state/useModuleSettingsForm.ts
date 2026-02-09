@@ -1,9 +1,9 @@
 // Encapsulates module-settings form state so panel rendering stays focused on layout and invite controls.
 import { useCallback, useEffect, useState } from 'react';
-import { ApiError } from '../api/client';
-import { useUpdateModuleMutation } from './useModulesQueries';
-import type { ModuleSummary } from '../types/module';
-import { logError } from '../utils/logger';
+import { ApiError } from '../../api/client';
+import { useUpdateModuleMutation } from '../queries/useModulesQueries';
+import type { ModuleSummary } from '../../types/module';
+import { logError } from '../../utils/logger';
 
 type UseModuleSettingsFormParams = {
   module: ModuleSummary | null;
@@ -119,4 +119,3 @@ export function useModuleSettingsForm({
     handleReset,
   };
 }
-

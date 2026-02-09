@@ -1,64 +1,25 @@
 // Screen that lists modules for the logged-in user and manages module creation from one query-backed flow.
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
-import type { CreateModulePayload } from '@scholarxp/api-contracts';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import {
-  getDisplayErrorMessage,
-  shouldLogApiError,
-} from '../../api/get-display-error';
-import { logError } from '../../utils/logger';
+import { type CSSProperties } from 'react';
 import ModuleCreateModal from '../../components/Modals/ModuleCreateModal';
 import MainSection from '../../components/MainSection';
-import { canUserAccess } from '../../permissions/permission';
-import { useCreateModuleMutation, useModulesListQuery } from '../../hooks/useModulesQueries';
+import { useModulesPageState } from '../../hooks/page-state/useModulesPageState';
 import styles from './ModulesPage.module.css';
 
 export default function ModulesPage() {
-  const { user, isLoading: isAuthLoading } = useAuth();
-  const navigate = useNavigate();
-  const [showCreate, setShowCreate] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
-
-  const isModulesQueryEnabled = !isAuthLoading && Boolean(user);
-  const modulesQuery = useModulesListQuery(isModulesQueryEnabled);
-  const createModuleMutation = useCreateModuleMutation();
-  const canCreateModules = useMemo(() => canUserAccess('modules.create', user), [user]);
-
-  // Keep telemetry for module-list failures centralized without cluttering render branches.
-  useEffect(() => {
-    if (!modulesQuery.error) return;
-    if (shouldLogApiError(modulesQuery.error)) {
-      logError(modulesQuery.error, { feature: 'modules', action: 'list' });
-    }
-  }, [modulesQuery.error]);
-
-  const modules = modulesQuery.data ?? [];
-  const isLoading = isModulesQueryEnabled && modulesQuery.isPending;
-  const listErrorMessage = modulesQuery.error
-    ? getDisplayErrorMessage(modulesQuery.error, {
-        fallbackMessage:
-          'We could not load your modules right now. Please try again.',
-      })
-    : null;
-
-  const handleCreateModule = async (payload: CreateModulePayload) => {
-    setCreateError(null);
-    try {
-      const created = await createModuleMutation.mutateAsync(payload);
-      setShowCreate(false);
-      navigate(`/main/modules/${created.id}`);
-    } catch (error) {
-      setCreateError(
-        getDisplayErrorMessage(error, {
-          fallbackMessage: 'Could not create module. Please try again.',
-        }),
-      );
-      if (shouldLogApiError(error)) {
-        logError(error, { feature: 'modules', action: 'create' });
-      }
-    }
-  };
+  const {
+    user,
+    modules,
+    isLoading,
+    listErrorMessage,
+    canCreateModules,
+    showCreate,
+    createError,
+    isCreating,
+    openCreateModal,
+    closeCreateModal,
+    openModule,
+    handleCreateModule,
+  } = useModulesPageState();
 
   return (
     <MainSection>
@@ -77,10 +38,7 @@ export default function ModulesPage() {
             <button
               className={styles.createButton}
               type="button"
-              onClick={() => {
-                setCreateError(null);
-                setShowCreate(true);
-              }}
+              onClick={openCreateModal}
               aria-label="Open create module form"
             >
               +
@@ -135,10 +93,7 @@ export default function ModulesPage() {
               'var(--module-card-dark-light)',
             ];
             const cardColor = moduleCardColors[moduleSummary.id % moduleCardColors.length];
-            const handleOpen = () => {
-              // Route to module detail page so users can drill into content quickly.
-              navigate(`/main/modules/${moduleSummary.id}`);
-            };
+            const handleOpen = () => openModule(moduleSummary.id);
 
             return (
               <article
@@ -178,16 +133,12 @@ export default function ModulesPage() {
 
       {showCreate ? (
         <ModuleCreateModal
-          onClose={() => {
-            setShowCreate(false);
-            setCreateError(null);
-          }}
+          onClose={closeCreateModal}
           onCreate={handleCreateModule}
-          isSaving={createModuleMutation.isPending}
+          isSaving={isCreating}
           error={createError}
         />
       ) : null}
     </MainSection>
   );
 }
-

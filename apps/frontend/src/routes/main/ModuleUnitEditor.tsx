@@ -31,17 +31,7 @@ import type {
   QuestionForm, 
   QuestionTypeConfig, 
 } from '../../components/question-types/QuestionTypeRegistry';
-import {
-  useCreateQuestionGroupMutation,
-  useCreateQuestionMutation,
-  useCreateVariantMutation,
-  useDeleteQuestionGroupMutation,
-  useDeleteQuestionMutation,
-  useDeleteVariantMutation,
-  useModuleUnitEditorDataQuery,
-  useUpdateQuestionContentMutation,
-  useUpdateQuestionGroupNameMutation,
-} from '../../hooks/useModuleUnitEditorQueries';
+import { useModuleUnitEditorPageState } from '../../hooks/page-state/useModuleUnitEditorPageState';
 import ConfirmDeleteModal from '../../components/Modals/ConfirmDeleteModal';
 import styles from './ModuleUnitEditor.module.css';
 
@@ -1023,48 +1013,25 @@ const normalizeSource = (value?: string | null): QuestionSource =>
     }
   };
 
-  const parsedModuleId = useMemo(() => {
-    if (!moduleId) return null;
-    const value = Number(moduleId);
-    return Number.isFinite(value) ? value : null;
-  }, [moduleId]);
-
-  const parsedUnitId = useMemo(() => {
-    if (!unitId) return null;
-    const value = Number(unitId);
-    return Number.isFinite(value) ? value : null;
-  }, [unitId]);
-
-  const editorScope = useMemo(
-    () =>
-      parsedModuleId !== null && parsedUnitId !== null
-        ? { moduleId: parsedModuleId, unitId: parsedUnitId }
-        : null,
-    [parsedModuleId, parsedUnitId],
-  );
-  const editorDataQuery = useModuleUnitEditorDataQuery(parsedModuleId, parsedUnitId);
-  const renameQuestionGroupMutation = useUpdateQuestionGroupNameMutation(editorScope);
-  const createQuestionGroupMutation = useCreateQuestionGroupMutation(editorScope);
-  const deleteQuestionGroupMutation = useDeleteQuestionGroupMutation(editorScope);
-  const createQuestionMutation = useCreateQuestionMutation(editorScope);
-  const createVariantMutation = useCreateVariantMutation(editorScope);
-  const updateQuestionContentMutation = useUpdateQuestionContentMutation(editorScope);
-  const deleteQuestionMutation = useDeleteQuestionMutation(editorScope);
-  const deleteVariantMutation = useDeleteVariantMutation(editorScope);
-  const isLoading =
-    parsedModuleId !== null && parsedUnitId !== null && editorDataQuery.isPending;
-  const error = editorDataQuery.isError
-    ? 'Could not load this module unit. Please try again.'
-    : null;
+  const {
+    parsedModuleId,
+    parsedUnitId,
+    editorData,
+    isLoading,
+    error,
+    renameQuestionGroupMutation,
+    createQuestionGroupMutation,
+    deleteQuestionGroupMutation,
+    createQuestionMutation,
+    createVariantMutation,
+    updateQuestionContentMutation,
+    deleteQuestionMutation,
+    deleteVariantMutation,
+  } = useModuleUnitEditorPageState({ moduleIdParam: moduleId, unitIdParam: unitId });
 
   useEffect(() => {
-    if (!editorDataQuery.error || parsedUnitId === null) return;
-    logError(editorDataQuery.error, { feature: 'module-unit-editor', action: 'load', unitId: parsedUnitId });
-  }, [editorDataQuery.error, parsedUnitId]);
-
-  useEffect(() => {
-    if (!editorDataQuery.data || parsedUnitId === null) return;
-    const { unit, moduleUnits } = editorDataQuery.data;
+    if (!editorData || parsedUnitId === null) return;
+    const { unit, moduleUnits } = editorData;
     // Use module-unit list as source of truth for status so iconography tracks publish state.
     const currentUnit = moduleUnits.find((candidate) => candidate.id === parsedUnitId);
     setIsUnitLive(currentUnit?.status === 'live');
@@ -1130,7 +1097,7 @@ const normalizeSource = (value?: string | null): QuestionSource =>
     } else {
       setForm(buildInitialForm());
     }
-  }, [editorDataQuery.data, parsedUnitId, loadContentIntoForm, buildInitialForm]);
+  }, [editorData, parsedUnitId, loadContentIntoForm, buildInitialForm]);
 
   useEffect(() => {
     if (!selected) return;

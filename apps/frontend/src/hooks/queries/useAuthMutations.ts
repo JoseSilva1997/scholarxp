@@ -1,6 +1,6 @@
 // Auth mutation hooks centralize request wiring so auth screens can stay focused on UX flow.
 import { useMutation } from '@tanstack/react-query';
-import { login, registerByEmail, resendVerification, verifyEmail } from '../api/auth';
+import { login, registerByEmail, resendVerification, verifyEmail } from '../../api/auth';
 
 export function useLoginMutation() {
   return useMutation({

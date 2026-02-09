@@ -1,81 +1,22 @@
-import { useEffect, useState, type FormEvent } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { getDisplayErrorMessage } from '../api/get-display-error';
-import { useAuth } from '../context/AuthContext';
-import { useResendVerificationMutation, useVerifyEmailMutation } from '../hooks/useAuthMutations';
+import { Link } from 'react-router-dom';
+import { useVerifyEmailPageState } from '../hooks/page-state/useVerifyEmailPageState';
 import styles from './Login.module.css';
 
 // Simple verification card that matches the login/register layout; shown after signup or blocked login.
 export default function VerifyEmail() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { setUser } = useAuth();
-  const verifyEmailMutation = useVerifyEmailMutation();
-  const resendVerificationMutation = useResendVerificationMutation();
-
-  const initialEmail = (location.state as { email?: string } | null)?.email ?? '';
-  const initialMessage = (location.state as { message?: string } | null)?.message ?? null;
-
-  const [email, setEmail] = useState(initialEmail);
-  const [code, setCode] = useState('');
-  const [error, setError] = useState<string | null>(initialMessage);
-  const [info, setInfo] = useState<string | null>(null);
-  const [cooldown, setCooldown] = useState(0);
-
-  useEffect(() => {
-    if (cooldown <= 0) return;
-    const timer = setInterval(() => setCooldown((t) => Math.max(0, t - 1)), 1000);
-    return () => clearInterval(timer);
-  }, [cooldown]);
-
-  async function handleVerify(event: FormEvent) {
-    event.preventDefault();
-    setError(null);
-    setInfo(null);
-    try {
-      const { user } = await verifyEmailMutation.mutateAsync(code.trim());
-      if (user) {
-        setUser(user);
-        navigate('/main', { replace: true });
-        return;
-      }
-      setError('Invalid or expired code.');
-    } catch (err) {
-      setError(
-        getDisplayErrorMessage(err, {
-          fallbackMessage: 'Unable to verify right now.',
-        }),
-      );
-    }
-  }
-
-  async function handleResend() {
-    if (resendVerificationMutation.isPending) {
-      return;
-    }
-    if (!email) {
-      setError('Enter your email to resend a code.');
-      return;
-    }
-    setError(null);
-    setInfo(null);
-    setCooldown(30);
-    try {
-      const result = await resendVerificationMutation.mutateAsync(email.trim().toLowerCase());
-      if ('alreadyVerified' in result && result.alreadyVerified) {
-        setInfo('Already verified—try logging in.');
-        return;
-      }
-      setInfo('New code sent. Check your inbox.');
-    } catch (err) {
-      setError(
-        getDisplayErrorMessage(err, {
-          fallbackMessage: 'Unable to resend right now.',
-        }),
-      );
-      setCooldown(0);
-    }
-  }
+  const {
+    email,
+    setEmail,
+    code,
+    setCode,
+    error,
+    info,
+    cooldown,
+    isVerifying,
+    isResending,
+    handleVerify,
+    handleResend,
+  } = useVerifyEmailPageState();
 
   return (
     <div className={styles.authShell}>
@@ -128,17 +69,17 @@ export default function VerifyEmail() {
                 <button
                   className={styles.primaryBtn}
                   type="submit"
-                  disabled={verifyEmailMutation.isPending || code.trim().length < 4}
+                  disabled={isVerifying || code.trim().length < 4}
                 >
-                  {verifyEmailMutation.isPending ? 'Verifying…' : 'Verify and continue'}
+                  {isVerifying ? 'Verifying…' : 'Verify and continue'}
                 </button>
                 <button
                   className={styles.secondaryBtn}
                   type="button"
                   onClick={handleResend}
-                  disabled={cooldown > 0 || resendVerificationMutation.isPending}
+                  disabled={cooldown > 0 || isResending}
                 >
-                  {resendVerificationMutation.isPending
+                  {isResending
                     ? 'Resending…'
                     : cooldown > 0
                       ? `Resend in ${cooldown}s`

@@ -1,14 +1,14 @@
 // Encapsulates invite list/actions state so the settings panel can focus on rendering structure.
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ApiError } from '../api/client';
-import { logError } from '../utils/logger';
+import { ApiError } from '../../api/client';
+import { logError } from '../../utils/logger';
 import {
   useCreateModuleInviteMutation,
   useDeleteModuleInviteMutation,
   useModuleInvitesQuery,
   useUpdateModuleInviteMutation,
-} from './useModuleInvitesQueries';
-import type { ModuleInvite, ModuleSummary } from '../types/module';
+} from '../queries/useModuleInvitesQueries';
+import type { ModuleInvite, ModuleSummary } from '../../types/module';
 
 type UseModuleInvitesPanelStateParams = {
   module: ModuleSummary | null;

@@ -4,8 +4,8 @@ import styles from './ModuleSettingsPanel.module.css';
 import type { ModuleInvite, ModuleSummary } from '../types/module';
 import { FaRegCopy } from "react-icons/fa6";
 import { IconContext } from 'react-icons';
-import { useModuleInvitesPanelState } from '../hooks/useModuleInvitesPanelState';
-import { useModuleSettingsForm } from '../hooks/useModuleSettingsForm';
+import { useModuleInvitesPanelState } from '../hooks/page-state/useModuleInvitesPanelState';
+import { useModuleSettingsForm } from '../hooks/page-state/useModuleSettingsForm';
 
 type ModuleSettingsPanelProps = {
   module: ModuleSummary | null;

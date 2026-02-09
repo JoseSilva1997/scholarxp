@@ -31,11 +31,20 @@ ScholarXP is an LMS-launched study companion that helps students practice course
 
 ## Frontend state-management pattern
 - Use TanStack Query as the default for **server state** in frontend routes/components that fetch backend data.
-- Use query keys from a centralized registry (`src/hooks/query-keys.ts`) and keep query/mutation wiring in dedicated feature hooks (for example `use*Queries.ts`).
+- Use query keys from a centralized registry (`src/hooks/query-keys.ts`) and keep query/mutation wiring in `src/hooks/queries`.
 - Keep presentational components focused on rendering; move data-fetching, mutation side effects, and cache invalidation logic into hooks.
-- Keep **local UI state** (open/closed toggles, selected tab, input focus, transient draft UI) in component state unless extraction clearly improves readability.
-- Do not force this pattern on components that do not fetch/mutate server data.
+- Use route/page state hooks in `src/hooks/page-state` so route files stay render-focused.
+- For non-trivial routes, require a page-state hook (`use<ExactRouteName>PageState`) and avoid mixing heavy orchestration directly in route TSX files.
+- Keep **local UI state** (open/closed toggles, selected tab, input focus, transient draft UI) local, but managed from the page-state hook for route-level concerns.
+- Do not force TanStack Query on components that do not fetch/mutate server data.
 - For mutations, prefer cache updates plus targeted `invalidateQueries` so related screens stay synchronized.
+
+## Frontend hook structure
+- Do not organize hooks ad-hoc by feature naming.
+- Use exactly two hook folders under `apps/frontend/src/hooks`:
+  - `queries/` for TanStack query/mutation hooks
+  - `page-state/` for route/page orchestration hooks
+- Use component/page-matched naming so each hook clearly maps to one route when applicable (for example `useModulesPageState`, `useSingleModulePageState`, `useModuleUnitEditorPageState`).
 
 ## Project Structure & Module Organization
 - Backend source: `apps/backend/src` (feature modules like `users`, `module-unit`, `question-*`).

@@ -1,23 +1,24 @@
 // Encapsulates SingleModulePage orchestration so the route component can stay mostly presentational.
 import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import type { AuthUser, ModuleSummary, ModuleUnitStatus } from '@scholarxp/api-contracts';
+import type { AuthUser, ModuleUnitStatus } from '@scholarxp/api-contracts';
+import type { ModuleSummary } from '../../types/module';
 import { useNavigate } from 'react-router-dom';
 import { MODULE_EXP_MAX } from '@scholarxp/constants';
-import type { ModuleUnit } from '../components/ModuleUnitCard';
+import type { ModuleUnit } from '../../components/ModuleUnitCard';
 import {
   getDisplayErrorMessage,
   shouldLogApiError,
-} from '../api/get-display-error';
-import { logError } from '../utils/logger';
-import { canUserAccess } from '../permissions/permission';
+} from '../../api/get-display-error';
+import { logError } from '../../utils/logger';
+import { canUserAccess } from '../../permissions/permission';
 import {
   useCreateModuleUnitMutation,
   useModuleDetailQuery,
   useModuleUnitsQuery,
   useUpdateModuleUnitStatusMutation,
-} from './useModulesQueries';
-import { queryKeys } from './query-keys';
+} from '../queries/useModulesQueries';
+import { queryKeys } from '../query-keys';
 
 type UseSingleModulePageStateParams = {
   moduleIdParam: string | undefined;

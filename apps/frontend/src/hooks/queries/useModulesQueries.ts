@@ -16,8 +16,8 @@ import {
   listModules,
   updateModule,
   updateModuleUnitStatus,
-} from '../api/modules';
-import { queryKeys } from './query-keys';
+} from '../../api/modules';
+import { queryKeys } from '../query-keys';
 
 export function useModulesListQuery(enabled: boolean) {
   return useQuery({
