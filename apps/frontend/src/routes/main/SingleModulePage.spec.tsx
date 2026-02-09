@@ -213,4 +213,149 @@ describe('SingleModulePage route', () => {
     expect(screen.getByText('student-unit-1')).toBeInTheDocument();
     expect(screen.queryByText('student-unit-2')).not.toBeInTheDocument();
   });
+
+  it('hides toggle-student-view and settings buttons when user is null', () => {
+    // Test user === null branch: (user && (...)) prevents button rendering when user is falsy
+    authState = { user: null };
+
+    render(
+      <MemoryRouter>
+        <SingleModulePage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByLabelText('Enable student view')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Module settings')).not.toBeInTheDocument();
+  });
+
+  it('hides create-unit card when canManageModuleContent is false', () => {
+    // Test canManageModuleContent false branch: ternary prevents card rendering
+    pageState.canManageModuleContent = false;
+
+    render(
+      <MemoryRouter>
+        <SingleModulePage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByText('open-create-unit')).not.toBeInTheDocument();
+  });
+
+  it('hides settings panel when canEditSettings is false', () => {
+    // Test canEditSettings false branch: ternary prevents settings panel rendering
+    pageState.canEditSettings = false;
+
+    render(
+      <MemoryRouter>
+        <SingleModulePage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByText(/settings-open/)).not.toBeInTheDocument();
+  });
+
+  it('shows settings panel when canEditSettings is true', () => {
+    // Test canEditSettings true branch
+    pageState.canEditSettings = true;
+
+    render(
+      <MemoryRouter>
+        <SingleModulePage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('settings-open:false')).toBeInTheDocument();
+  });
+
+  it('toggles settings panel open state when settings button is clicked', () => {
+    pageState.canEditSettings = true;
+
+    render(
+      <MemoryRouter>
+        <SingleModulePage />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByLabelText('Module settings'));
+    expect(mocks.setIsSettingsOpen).toHaveBeenCalled();
+  });
+
+  it('does not show student progress section when student globalRole but userModuleLevel is undefined', () => {
+    // Test user?.globalRole === 'student' && module.userModuleLevel !== undefined false branch
+    authState = { user: { globalRole: 'student' } };
+    pageState.canManageModuleContent = false;
+    if (pageState.module) {
+      pageState.module.userModuleLevel = undefined;
+    }
+
+    render(
+      <MemoryRouter>
+        <SingleModulePage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByText(/Level/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/xp/)).not.toBeInTheDocument();
+    expect(screen.queryByText('student-unit-1')).not.toBeInTheDocument();
+  });
+
+  it('hides draft and archived student units but shows live and locked units', () => {
+    // Test canStudentSee branch: only live and locked units are shown to students
+    authState = { user: { globalRole: 'student' } };
+    pageState.canManageModuleContent = false;
+    pageState.moduleUnits = [
+      { id: 1, status: 'live' },
+      { id: 2, status: 'draft' },
+      { id: 3, status: 'locked' },
+      { id: 4, status: 'archived' },
+    ];
+
+    render(
+      <MemoryRouter>
+        <SingleModulePage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('student-unit-1')).toBeInTheDocument();
+    expect(screen.queryByText('student-unit-2')).not.toBeInTheDocument();
+    expect(screen.getByText('student-unit-3')).toBeInTheDocument();
+    expect(screen.queryByText('student-unit-4')).not.toBeInTheDocument();
+  });
+
+  it('hides toggle-student-view when canToggleStudentView is false', () => {
+    // Test canToggleStudentView false branch. User exists but lacks permission
+    pageState.canToggleStudentView = false;
+
+    render(
+      <MemoryRouter>
+        <SingleModulePage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByLabelText('Enable student view')).not.toBeInTheDocument();
+  });
+
+  it('toggles between student view icons based on isStudentViewEnabled state', () => {
+    // Test isStudentViewEnabled ternary: selects between untoggle and toggle icons
+    pageState.isStudentViewEnabled = false;
+
+    const { rerender } = render(
+      <MemoryRouter>
+        <SingleModulePage />
+      </MemoryRouter>,
+    );
+
+    let button = screen.getByLabelText('Enable student view');
+    expect(button).toBeInTheDocument();
+
+    pageState.isStudentViewEnabled = true;
+    rerender(
+      <MemoryRouter>
+        <SingleModulePage />
+      </MemoryRouter>,
+    );
+
+    button = screen.getByLabelText('Disable student view');
+    expect(button).toBeInTheDocument();
+  });
 });
