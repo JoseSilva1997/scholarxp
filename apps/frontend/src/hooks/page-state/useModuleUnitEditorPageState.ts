@@ -1330,6 +1330,8 @@ export function useModuleUnitEditorPageState({
         [persistedQuestionId, targetQuestion.id],
         (question) => ({
           ...question,
+          // Update the question's type when core content type changes so badge reflects the change immediately.
+          type: payload.type as QuestionType,
           coreContent: {
             ...(question.coreContent ?? {
               id: persistedCoreContentId,

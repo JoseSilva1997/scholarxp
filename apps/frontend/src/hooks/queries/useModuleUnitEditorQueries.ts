@@ -138,6 +138,7 @@ export function useCreateVariantMutation(scope: ScopedEditorIds | null) {
 }
 
 export function useUpdateQuestionContentMutation(scope: ScopedEditorIds | null) {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
       questionId,
@@ -150,6 +151,11 @@ export function useUpdateQuestionContentMutation(scope: ScopedEditorIds | null) 
     }) => {
       if (!scope) throw new Error('Missing module/unit scope for question-content update.');
       return updateQuestionContentScoped(scope.moduleId, scope.unitId, questionId, contentId, payload);
+    },
+    // Invalidate the editor data cache so question badges (type) update immediately across the UI.
+    onSettled: async () => {
+      if (!scope) return;
+      await invalidateModuleUnitsCache(queryClient, scope.moduleId);
     },
   });
 }
