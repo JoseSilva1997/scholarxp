@@ -1,6 +1,29 @@
-// Encapsulates ModuleUnitEditor route-level server-state orchestration while keeping draft-editing UI local.
-import { useEffect, useMemo } from 'react';
+// Encapsulates ModuleUnitEditor route orchestration so the route can stay focused on rendering.
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type {
+  CreateQuestionPayload,
+  CreateVariantPayload,
+  QuestionSource,
+  UpdateQuestionContentPayload,
+} from '@scholarxp/api-contracts';
+import { getModuleUnitGroupName } from '@scholarxp/api-contracts';
+import { ApiError } from '../../api/client';
+import { emptyMcqTemplate, DEFAULT_QUESTION_TYPE } from '@scholarxp/question-type-dtos';
 import { logError } from '../../utils/logger';
+import type {
+  ModuleUnitEditorContent,
+  ModuleUnitEditorQuestion,
+  ModuleUnitEditorGroup,
+} from '../../types/module';
+import {
+  QUESTION_TYPE_CONFIGS,
+  makeId,
+  normalizeQuestionType,
+} from '../../components/question-types/QuestionTypeRegistry';
+import type {
+  QuestionType,
+  QuestionForm,
+} from '../../components/question-types/QuestionTypeRegistry';
 import {
   useCreateQuestionGroupMutation,
   useCreateQuestionMutation,
@@ -13,15 +36,256 @@ import {
   useUpdateQuestionGroupNameMutation,
 } from '../queries/useModuleUnitEditorQueries';
 
+// ===== Types =====
+// Local editor types derived from API contracts but allowing draft state for unsaved items.
+type QuestionContent = Omit<
+  ModuleUnitEditorContent,
+  'id' | 'questionUnitId' | 'difficultyScore'
+> & {
+  id: string;
+  questionUnitId: string;
+  // Backend defaults difficulty values, so local drafts can omit it until persisted.
+  difficultyScore?: number;
+};
+
+type Variant = {
+  id: string;
+  label: string;
+  content?: QuestionContent;
+  isDraft?: boolean;
+};
+
+type Question = Omit<
+  ModuleUnitEditorQuestion,
+  'id' | 'coreContent' | 'variants' | 'type' | 'moduleUnitId' | 'questionGroupId'
+> & {
+  id: string;
+  title: string;
+  type: QuestionType;
+  coreContent?: QuestionContent;
+  variants: Variant[];
+  isDraft?: boolean;
+};
+
+type QuestionGroup = Omit<
+  ModuleUnitEditorGroup,
+  'id' | 'questions' | 'name' | 'moduleUnitId' | 'sortOrder'
+> & {
+  id: string;
+  title: string;
+  sortOrder: number;
+  questions: Question[];
+};
+
+type DeleteTarget =
+  | { type: 'group'; groupId: string; title: string }
+  | { type: 'question'; groupId: string; questionId: string; title: string }
+  | {
+      type: 'variant';
+      groupId: string;
+      questionId: string;
+      variantId: string;
+      label: string;
+    };
+
+type SelectionState = {
+  groupId: string;
+  questionId: string | null;
+  variantId: string | null;
+};
+
 type UseModuleUnitEditorPageStateParams = {
   moduleIdParam: string | undefined;
   unitIdParam: string | undefined;
 };
 
+type DeleteCopy = {
+  title: string;
+  body: string;
+  confirmLabel: string;
+};
+
+// ===== Constants and Labels =====
+const SOURCE_HUMAN: QuestionSource = 'human';
+const SOURCE_AI: QuestionSource = 'ai-generated';
+
+const formatQuestionLabel = (index: number, isDraft?: boolean) =>
+  `Question ${index + 1}${isDraft ? ' (draft)' : ''}`;
+
+const formatVariantLabel = (index: number, isDraft?: boolean) =>
+  `Variant ${index + 1}${isDraft ? ' (draft)' : ''}`;
+
+const deriveNextGroupSortOrder = (existingGroups: QuestionGroup[]) =>
+  // Keep order independent from labels so renames do not affect persisted sequencing.
+  existingGroups.reduce((maxValue, group) => Math.max(maxValue, group.sortOrder), 0) + 1;
+
+const normalizeSource = (value?: string | null): QuestionSource =>
+  value === SOURCE_AI ? SOURCE_AI : SOURCE_HUMAN;
+
+// ===== Pure State Helpers =====
+// Pure state transformers keep complex updates testable and reduce nested setState logic.
+type QuestionUpdater = (question: Question) => Question;
+
+const updateGroupById = (
+  groups: QuestionGroup[],
+  groupId: string,
+  updater: (group: QuestionGroup) => QuestionGroup,
+) => groups.map((group) => (group.id === groupId ? updater(group) : group));
+
+const updateQuestionByPredicate = (
+  groups: QuestionGroup[],
+  groupId: string,
+  predicate: (question: Question) => boolean,
+  updater: QuestionUpdater,
+) =>
+  updateGroupById(groups, groupId, (group) => ({
+    ...group,
+    questions: group.questions.map((question) =>
+      predicate(question) ? updater(question) : question,
+    ),
+  }));
+
+const updateQuestionByIds = (
+  groups: QuestionGroup[],
+  groupId: string,
+  questionIds: string[],
+  updater: QuestionUpdater,
+) => {
+  const idSet = new Set(questionIds);
+  return updateQuestionByPredicate(groups, groupId, (question) => idSet.has(question.id), updater);
+};
+
+const updateVariantById = (
+  question: Question,
+  variantId: string,
+  updater: (variant: Variant) => Variant,
+): Question => ({
+  ...question,
+  variants: question.variants.map((variant) =>
+    variant.id === variantId ? updater(variant) : variant,
+  ),
+});
+
+const replaceDraftGroupId = (
+  groups: QuestionGroup[],
+  targetGroupId: string,
+  persistedGroupId: string,
+) =>
+  updateGroupById(groups, targetGroupId, (group) => ({ ...group, id: persistedGroupId }));
+
+const appendDraftQuestionToGroup = (
+  groups: QuestionGroup[],
+  groupId: string,
+  question: Question,
+) =>
+  updateGroupById(groups, groupId, (group) => ({
+    ...group,
+    questions: [...group.questions, question],
+  }));
+
+const appendDraftVariantToQuestion = (
+  groups: QuestionGroup[],
+  groupId: string,
+  questionId: string,
+  variant: Variant,
+) =>
+  updateQuestionByPredicate(
+    groups,
+    groupId,
+    (question) => question.id === questionId,
+    (question) => ({ ...question, variants: [...question.variants, variant] }),
+  );
+
+const removeQuestionGroup = (groups: QuestionGroup[], groupId: string) =>
+  groups.filter((group) => group.id !== groupId);
+
+const removeQuestionFromGroup = (
+  groups: QuestionGroup[],
+  groupId: string,
+  questionId: string,
+) =>
+  updateGroupById(groups, groupId, (group) => ({
+    ...group,
+    questions: group.questions.filter((question) => question.id !== questionId),
+  }));
+
+const removeVariantFromQuestion = (
+  groups: QuestionGroup[],
+  groupId: string,
+  questionId: string,
+  variantId: string,
+) =>
+  updateQuestionByPredicate(
+    groups,
+    groupId,
+    (question) => question.id === questionId,
+    (question) => ({
+      ...question,
+      variants: question.variants.filter((variant) => variant.id !== variantId),
+    }),
+  );
+
+const computeFallbackSelection = (nextGroups: QuestionGroup[]): SelectionState | null => {
+  // Fall back to the first remaining question to keep the editor focused on a valid target.
+  for (const group of nextGroups) {
+    const firstQuestion = group.questions[0];
+    if (firstQuestion) {
+      return { groupId: group.id, questionId: firstQuestion.id, variantId: null };
+    }
+  }
+  return null;
+};
+
+const mapEditorGroupsToState = (
+  groups: ModuleUnitEditorGroup[] | undefined,
+): QuestionGroup[] =>
+  (groups ?? []).map((group) => ({
+    id: String(group.id),
+    title: group.name,
+    sortOrder: group.sortOrder,
+    questions: (group.questions ?? []).map((question) => ({
+      id: String(question.id),
+      title: question.title,
+      type: normalizeQuestionType(question.type),
+      variants: (question.variants ?? []).map((variant) => ({
+        id: String(variant.id),
+        label: variant.variantLabel,
+        content: variant.content
+          ? {
+              id: String(variant.content.id),
+              questionUnitId: String(variant.content.questionUnitId ?? question.id),
+              questionStem: variant.content.questionStem,
+              questionData: variant.content.questionData,
+              type: normalizeQuestionType(variant.content.type),
+              hint: variant.content.hint ?? null,
+              difficultyScore: variant.content.difficultyScore,
+              source: normalizeSource(variant.content.source),
+              isArchived: Boolean(variant.content.isArchived),
+            }
+          : undefined,
+      })),
+      coreContent: question.coreContent
+        ? {
+            id: String(question.coreContent.id),
+            questionUnitId: String(question.coreContent.questionUnitId),
+            questionStem: question.coreContent.questionStem,
+            questionData: question.coreContent.questionData,
+            type: normalizeQuestionType(question.coreContent.type),
+            hint: question.coreContent.hint ?? null,
+            difficultyScore: question.coreContent.difficultyScore,
+            source: normalizeSource(question.coreContent.source),
+            isArchived: Boolean(question.coreContent.isArchived),
+          }
+        : undefined,
+    })),
+  }));
+
 export function useModuleUnitEditorPageState({
   moduleIdParam,
   unitIdParam,
 }: UseModuleUnitEditorPageStateParams) {
+  // ===== Route Scope and Server State =====
+  // Route scope parsing keeps downstream query/mutation hooks guarded by valid numeric ids.
   const parsedModuleId = useMemo(() => {
     if (!moduleIdParam) return null;
     const value = Number(moduleIdParam);
@@ -41,6 +305,7 @@ export function useModuleUnitEditorPageState({
         : null,
     [parsedModuleId, parsedUnitId],
   );
+
   const editorDataQuery = useModuleUnitEditorDataQuery(parsedModuleId, parsedUnitId);
   const renameQuestionGroupMutation = useUpdateQuestionGroupNameMutation(editorScope);
   const createQuestionGroupMutation = useCreateQuestionGroupMutation(editorScope);
@@ -50,6 +315,7 @@ export function useModuleUnitEditorPageState({
   const updateQuestionContentMutation = useUpdateQuestionContentMutation(editorScope);
   const deleteQuestionMutation = useDeleteQuestionMutation(editorScope);
   const deleteVariantMutation = useDeleteVariantMutation(editorScope);
+
   const isLoading =
     parsedModuleId !== null && parsedUnitId !== null && editorDataQuery.isPending;
   const error = editorDataQuery.isError
@@ -65,20 +331,1255 @@ export function useModuleUnitEditorPageState({
     });
   }, [editorDataQuery.error, parsedUnitId]);
 
+  // ===== Local Editor State =====
+  const [unitTitle, setUnitTitle] = useState('');
+  const [variantInstructions, setVariantInstructions] = useState('');
+  const [groups, setGroups] = useState<QuestionGroup[]>([]);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSavingQuestion, setIsSavingQuestion] = useState(false);
+  const [isSavingVariant, setIsSavingVariant] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  // Keep delete affordances aligned with live-unit archive behavior.
+  const [isUnitLive, setIsUnitLive] = useState(false);
+  const [selected, setSelected] = useState<SelectionState | null>(null);
+
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
+  const [editingGroupTitle, setEditingGroupTitle] = useState('');
+  const [renamingGroupId, setRenamingGroupId] = useState<string | null>(null);
+
+  const editingGroupInputRef = useRef<HTMLInputElement | null>(null);
+  // Cache per-question inputs by type so toggling type does not destroy in-progress edits.
+  const questionTypeCacheRef = useRef<
+    Map<
+      string,
+      Partial<
+        Record<QuestionType, { options: QuestionForm['options']; explanations: string[] }>
+      >
+    >
+  >(new Map());
+
+  const mcqOptionSlots = useMemo(() => emptyMcqTemplate().options.length, []);
+
+  const buildInitialForm = useCallback(
+    (): QuestionForm => ({
+      stem: '',
+      type: DEFAULT_QUESTION_TYPE,
+      options: Array.from({ length: mcqOptionSlots }, () => ({
+        id: makeId(),
+        value: '',
+        isCorrect: false,
+      })),
+      explanations: Array.from({ length: mcqOptionSlots }, () => ''),
+      hint: '',
+    }),
+    [mcqOptionSlots],
+  );
+
+  const [form, setForm] = useState<QuestionForm>(buildInitialForm);
+
+  useEffect(() => {
+    // Clear stale delete errors when target changes so modal feedback reflects the current action.
+    setDeleteError(null);
+  }, [deleteTarget]);
+
+  const resetOptionsForType = useCallback(
+    (type: QuestionType) => QUESTION_TYPE_CONFIGS[type].getInitialOptions(mcqOptionSlots),
+    [mcqOptionSlots],
+  );
+
+  const clearOtherTypesCache = useCallback(
+    (cacheKey: string, savedType: QuestionType) => {
+      const existing = questionTypeCacheRef.current.get(cacheKey) ?? {};
+      const nextCache: Partial<
+        Record<QuestionType, { options: QuestionForm['options']; explanations: string[] }>
+      > = {
+        [savedType]: existing[savedType],
+      };
+
+      (Object.keys(QUESTION_TYPE_CONFIGS) as QuestionType[]).forEach((type) => {
+        if (type !== savedType) {
+          nextCache[type] = resetOptionsForType(type);
+        }
+      });
+
+      questionTypeCacheRef.current.set(cacheKey, nextCache);
+    },
+    [resetOptionsForType],
+  );
+
+  const loadContentIntoForm = useCallback(
+    (content: QuestionContent | undefined, cacheKey: string) => {
+      if (!content) {
+        setForm(buildInitialForm());
+        return;
+      }
+
+      const type = normalizeQuestionType(content.type);
+      const data = content.questionData as {
+        options?: { optionText: string; explanation?: string }[];
+        correctOptionIndex?: number;
+      };
+      const correctIndex = Number.isInteger(data?.correctOptionIndex)
+        ? (data?.correctOptionIndex as number)
+        : 0;
+      const baseOptions = QUESTION_TYPE_CONFIGS[type].getInitialOptions(mcqOptionSlots);
+
+      const mergedOptions = baseOptions.options.map((base, idx) => ({
+        ...base,
+        value: data?.options?.[idx]?.optionText ?? base.value,
+        isCorrect: idx === correctIndex,
+      }));
+      const mergedExplanations = baseOptions.explanations.map(
+        (base, idx) => data?.options?.[idx]?.explanation ?? base,
+      );
+
+      setForm({
+        stem: content.questionStem,
+        type,
+        options: mergedOptions,
+        explanations: mergedExplanations,
+        hint: content.hint ?? '',
+      });
+
+      questionTypeCacheRef.current.set(cacheKey, {
+        ...(questionTypeCacheRef.current.get(cacheKey) ?? {}),
+        [type]: {
+          options: mergedOptions,
+          explanations: mergedExplanations,
+        },
+      });
+    },
+    [buildInitialForm, mcqOptionSlots],
+  );
+
+  const selectedQuestion = useMemo(() => {
+    if (!selected) return null;
+    const group = groups.find((g) => g.id === selected.groupId);
+    if (!group) return null;
+    return group.questions.find((q) => q.id === selected.questionId) ?? null;
+  }, [groups, selected]);
+
+  useEffect(() => {
+    if (!selected) {
+      // Reset the form when no item is selected to avoid editing stale values.
+      setForm(buildInitialForm());
+    }
+  }, [selected, buildInitialForm]);
+
+  const navigationItems = useMemo(() => {
+    if (!selected) return [];
+    const group = groups.find((g) => g.id === selected.groupId);
+    const question = group?.questions.find((q) => q.id === selected.questionId);
+    if (!question) return [];
+
+    const questionIndex =
+      group?.questions.findIndex((candidate) => candidate.id === question.id) ?? 0;
+
+    return [
+      {
+        questionId: question.id,
+        variantId: null,
+        label: formatQuestionLabel(questionIndex, question.isDraft),
+      },
+      ...question.variants.map((variant) => ({
+        questionId: question.id,
+        variantId: variant.id,
+        label: formatVariantLabel(
+          question.variants.findIndex((candidate) => candidate.id === variant.id),
+          variant.isDraft,
+        ),
+      })),
+    ];
+  }, [groups, selected]);
+
+  const selectedIndex = useMemo(
+    () =>
+      navigationItems.findIndex(
+        (item) =>
+          item.questionId === selected?.questionId &&
+          (item.variantId ?? null) === (selected?.variantId ?? null),
+      ),
+    [navigationItems, selected],
+  );
+
+  const canGoPrev = selectedIndex > 0;
+  const canGoNext = selectedIndex >= 0 && selectedIndex < navigationItems.length - 1;
+
+  // ===== UI-Level Actions =====
+  const handleNavigate = (direction: -1 | 1) => {
+    if (selectedIndex < 0 || !selected) return;
+    const nextItem = navigationItems[selectedIndex + direction];
+    if (!nextItem) return;
+
+    setSelected({
+      groupId: selected.groupId,
+      questionId: nextItem.questionId,
+      variantId: nextItem.variantId,
+    });
+  };
+
+  const activeLabel = useMemo(() => {
+    if (!selectedQuestion) return null;
+
+    const group = selected ? groups.find((g) => g.id === selected.groupId) : null;
+    const questionIndex =
+      group?.questions.findIndex((q) => q.id === selectedQuestion.id) ?? -1;
+
+    if (selected?.variantId) {
+      const variantIndex = selectedQuestion.variants.findIndex(
+        (variant) => variant.id === selected.variantId,
+      );
+      if (variantIndex >= 0) {
+        return formatVariantLabel(
+          variantIndex,
+          selectedQuestion.variants[variantIndex]?.isDraft,
+        );
+      }
+    }
+
+    return questionIndex >= 0
+      ? formatQuestionLabel(questionIndex, selectedQuestion.isDraft)
+      : selectedQuestion.title;
+  }, [groups, selectedQuestion, selected]);
+
+  const deleteCopy = useMemo<DeleteCopy>(() => {
+    if (!deleteTarget) {
+      return { title: '', body: '', confirmLabel: 'Delete' };
+    }
+
+    const actionLabel = isUnitLive ? 'Archive' : 'Delete';
+
+    if (deleteTarget.type === 'group') {
+      return {
+        title: `${actionLabel} group "${deleteTarget.title}"?`,
+        body: isUnitLive
+          ? 'Archiving this group removes it from future student practice in this live unit, including all questions and variants in the group.'
+          : 'Deleting this group will remove all core questions and variants inside it. This keeps the unit list tidy but cannot be undone here.',
+        confirmLabel: `${actionLabel} group`,
+      };
+    }
+
+    if (deleteTarget.type === 'question') {
+      return {
+        title: `${actionLabel} question "${deleteTarget.title}"?`,
+        body: isUnitLive
+          ? 'Archiving this question removes it and its variants from future student practice in this live unit.'
+          : 'Deleting this question will also remove every variant tied to it. Students will no longer see this question in practice sets.',
+        confirmLabel: `${actionLabel} question`,
+      };
+    }
+
+    return {
+      title: `${actionLabel} variant "${deleteTarget.label}"?`,
+      body: isUnitLive
+        ? 'Archiving this variant removes it from future student practice in this live unit. Other variants and the core question stay intact.'
+        : 'Deleting this variant removes it from the question set. Other variants and the core question stay intact.',
+      confirmLabel: `${actionLabel} variant`,
+    };
+  }, [deleteTarget, isUnitLive]);
+
+  const isQuestionSaved = useCallback(
+    (question: Question) => !question.isDraft && Boolean(question.coreContent),
+    [],
+  );
+
+  const canAddVariant = useCallback(
+    (question: Question) => {
+      if (!isQuestionSaved(question)) return false;
+      const lastVariant = question.variants[question.variants.length - 1];
+      return !lastVariant || (!lastVariant.isDraft && Boolean(lastVariant.content));
+    },
+    [isQuestionSaved],
+  );
+
+  const handleAddGroup = () => {
+    if (isUnitLive) {
+      setSaveError('This module unit is live. New groups cannot be added.');
+      return;
+    }
+
+    const nextGroupSortOrder = deriveNextGroupSortOrder(groups);
+    const newGroup: QuestionGroup = {
+      id: makeId(),
+      // Keep default label numbering monotonic even if groups are renamed later.
+      title: getModuleUnitGroupName(nextGroupSortOrder),
+      sortOrder: nextGroupSortOrder,
+      questions: [],
+    };
+
+    setGroups((prev) => [...prev, newGroup]);
+    setExpandedGroups((prev) => new Set([...prev, newGroup.id]));
+    setSelected({ groupId: newGroup.id, questionId: null, variantId: null });
+  };
+
+  const handleToggleGroup = (groupId: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) {
+        next.delete(groupId);
+      } else {
+        next.add(groupId);
+      }
+      return next;
+    });
+  };
+
+  const handleUpdateGroupTitle = (groupId: string, newTitle: string) => {
+    setGroups((prev) =>
+      updateGroupById(prev, groupId, (group) => ({ ...group, title: newTitle })),
+    );
+  };
+
+  const startEditingGroupTitle = (groupId: string, currentTitle: string) => {
+    // Keep title edits isolated so cancel can cleanly revert to persisted/current value.
+    setEditingGroupId(groupId);
+    setEditingGroupTitle(currentTitle);
+  };
+
+  const cancelEditingGroupTitle = () => {
+    setEditingGroupId(null);
+    setEditingGroupTitle('');
+    if (editingGroupInputRef.current) {
+      editingGroupInputRef.current.setCustomValidity('');
+    }
+  };
+
+  const saveEditingGroupTitle = async (groupId: string) => {
+    const inputEl = editingGroupInputRef.current;
+    if (inputEl) {
+      inputEl.setCustomValidity('');
+    }
+
+    const nextTitle = editingGroupTitle.trim();
+    if (!nextTitle) {
+      if (inputEl) {
+        inputEl.setCustomValidity('Group name cannot be empty.');
+        inputEl.reportValidity();
+      }
+      return;
+    }
+
+    const numericGroupId = Number(groupId);
+    if (!Number.isFinite(numericGroupId)) {
+      // Draft groups only exist locally until first question save creates the backend group.
+      handleUpdateGroupTitle(groupId, nextTitle);
+      setEditingGroupId(null);
+      setEditingGroupTitle('');
+      return;
+    }
+
+    if (!parsedModuleId || !parsedUnitId) return;
+
+    setRenamingGroupId(groupId);
+    try {
+      await renameQuestionGroupMutation.mutateAsync({
+        questionGroupId: numericGroupId,
+        payload: { name: nextTitle },
+      });
+      handleUpdateGroupTitle(groupId, nextTitle);
+      setEditingGroupId(null);
+      setEditingGroupTitle('');
+    } catch (err) {
+      if (inputEl) {
+        // Surface backend-safe expected errors; keep unknown failures generic.
+        const message =
+          err instanceof ApiError && err.status >= 400 && err.status < 500
+            ? err.message
+            : 'Could not rename this group. Please try again.';
+        inputEl.setCustomValidity(message);
+        inputEl.reportValidity();
+      }
+      logError(err, {
+        feature: 'question-group',
+        action: 'rename',
+        unitId: parsedUnitId,
+      });
+    } finally {
+      setRenamingGroupId(null);
+    }
+  };
+
+  const handleAddQuestion = (groupId: string) => {
+    if (isUnitLive) {
+      setSaveError('This module unit is live. New questions cannot be added.');
+      return;
+    }
+
+    const group = groups.find((candidate) => candidate.id === groupId);
+    const lastQuestion = group?.questions[group.questions.length - 1];
+
+    if (lastQuestion && !isQuestionSaved(lastQuestion)) {
+      const lastIndex = (group?.questions.length ?? 1) - 1;
+      setSaveError(
+        `Save ${formatQuestionLabel(
+          lastIndex,
+          lastQuestion.isDraft,
+        )} before adding another question in this group.`,
+      );
+      return;
+    }
+
+    const draftQuestionId = `temp-${makeId()}`;
+    const newQuestion: Question = {
+      id: draftQuestionId,
+      title: formatQuestionLabel(group?.questions.length ?? 0, true),
+      type: DEFAULT_QUESTION_TYPE,
+      variants: [],
+      coreContent: undefined,
+      isDraft: true,
+    };
+
+    setGroups((prev) => appendDraftQuestionToGroup(prev, groupId, newQuestion));
+
+    const initialCache: Partial<
+      Record<QuestionType, { options: QuestionForm['options']; explanations: string[] }>
+    > = {};
+    (Object.keys(QUESTION_TYPE_CONFIGS) as QuestionType[]).forEach((type) => {
+      initialCache[type] = resetOptionsForType(type);
+    });
+    questionTypeCacheRef.current.set(draftQuestionId, initialCache);
+
+    setExpandedGroups((prev) => new Set([...prev, groupId]));
+    setSelected({ groupId, questionId: draftQuestionId, variantId: null });
+    setForm(buildInitialForm());
+    setSaveError(null);
+  };
+
+  const handleAddVariant = (groupId: string, questionId: string) => {
+    if (isUnitLive) {
+      setSaveError('This module unit is live. New variants cannot be added.');
+      return;
+    }
+
+    const group = groups.find((candidate) => candidate.id === groupId);
+    const question = group?.questions.find((candidate) => candidate.id === questionId);
+    if (!question) return;
+
+    if (!isQuestionSaved(question)) {
+      setSaveError('Save the core question before adding variants.');
+      return;
+    }
+
+    if (!canAddVariant(question)) {
+      const lastVariant = question.variants[question.variants.length - 1];
+      setSaveError(
+        lastVariant
+          ? `Save ${formatVariantLabel(
+              question.variants.length - 1,
+              lastVariant.isDraft,
+            )} before creating another variant.`
+          : 'Save the core question before creating variants.',
+      );
+      return;
+    }
+
+    const draftVariantId = `temp-variant-${makeId()}`;
+    setGroups((prev) =>
+      appendDraftVariantToQuestion(prev, groupId, questionId, {
+        id: draftVariantId,
+        label: formatVariantLabel(question.variants.length, true),
+        isDraft: true,
+      }),
+    );
+
+    setSelected({ groupId, questionId, variantId: draftVariantId });
+    setForm(buildInitialForm());
+    setSaveError(null);
+  };
+
+  const clearQuestionCaches = (question: Question) => {
+    // Remove all cached form variants for deleted questions so no stale data leaks into new drafts.
+    questionTypeCacheRef.current.delete(`${question.id}-core`);
+    question.variants.forEach((variant) => {
+      questionTypeCacheRef.current.delete(`${question.id}-variant-${variant.id}`);
+    });
+  };
+
+  const handleDeleteMutationError = (
+    err: unknown,
+    message: string,
+    feature: 'question-group' | 'question' | 'variant',
+  ) => {
+    setDeleteError(message);
+    logError(err, { feature, action: 'delete', unitId: parsedUnitId });
+  };
+
+  const deleteGroupTarget = async (
+    target: Extract<DeleteTarget, { type: 'group' }>,
+    currentSelection: SelectionState | null,
+    currentExpanded: Set<string>,
+  ): Promise<{
+    nextGroups: QuestionGroup[];
+    nextSelected: SelectionState | null;
+    nextExpanded: Set<string>;
+  } | null> => {
+    const numericId = Number(target.groupId);
+    if (Number.isFinite(numericId)) {
+      try {
+        await deleteQuestionGroupMutation.mutateAsync(numericId);
+      } catch (err) {
+        handleDeleteMutationError(
+          err,
+          'Could not delete this group. Please try again.',
+          'question-group',
+        );
+        return null;
+      }
+    }
+
+    const removedGroup = groups.find((group) => group.id === target.groupId);
+    removedGroup?.questions.forEach(clearQuestionCaches);
+    const nextExpanded = new Set(currentExpanded);
+    nextExpanded.delete(target.groupId);
+
+    if (editingGroupId === target.groupId) {
+      setEditingGroupId(null);
+    }
+
+    return {
+      nextGroups: removeQuestionGroup(groups, target.groupId),
+      nextSelected:
+        currentSelection?.groupId === target.groupId ? null : currentSelection,
+      nextExpanded,
+    };
+  };
+
+  const deleteQuestionTarget = async (
+    target: Extract<DeleteTarget, { type: 'question' }>,
+    currentSelection: SelectionState | null,
+    currentExpanded: Set<string>,
+  ): Promise<{
+    nextGroups: QuestionGroup[];
+    nextSelected: SelectionState | null;
+    nextExpanded: Set<string>;
+  } | null> => {
+    const numericId = Number(target.questionId);
+    if (Number.isFinite(numericId)) {
+      try {
+        await deleteQuestionMutation.mutateAsync(numericId);
+      } catch (err) {
+        handleDeleteMutationError(
+          err,
+          'Could not delete this question. Please try again.',
+          'question',
+        );
+        return null;
+      }
+    }
+
+    const targetGroup = groups.find((group) => group.id === target.groupId);
+    const targetQuestion = targetGroup?.questions.find(
+      (question) => question.id === target.questionId,
+    );
+    if (targetQuestion) {
+      clearQuestionCaches(targetQuestion);
+    }
+
+    const nextGroups = removeQuestionFromGroup(
+      groups,
+      target.groupId,
+      target.questionId,
+    );
+    let nextSelected = currentSelection;
+    if (
+      currentSelection?.groupId === target.groupId &&
+      currentSelection.questionId === target.questionId
+    ) {
+      const updatedGroup = nextGroups.find((group) => group.id === target.groupId);
+      const fallbackQuestion = updatedGroup?.questions[0];
+      nextSelected = fallbackQuestion
+        ? { groupId: target.groupId, questionId: fallbackQuestion.id, variantId: null }
+        : null;
+    }
+
+    return {
+      nextGroups,
+      nextSelected,
+      nextExpanded: new Set(currentExpanded),
+    };
+  };
+
+  const deleteVariantTarget = async (
+    target: Extract<DeleteTarget, { type: 'variant' }>,
+    currentSelection: SelectionState | null,
+    currentExpanded: Set<string>,
+  ): Promise<{
+    nextGroups: QuestionGroup[];
+    nextSelected: SelectionState | null;
+    nextExpanded: Set<string>;
+  } | null> => {
+    const numericQuestionId = Number(target.questionId);
+    const numericVariantId = Number(target.variantId);
+    if (Number.isFinite(numericQuestionId) && Number.isFinite(numericVariantId)) {
+      try {
+        await deleteVariantMutation.mutateAsync({
+          questionId: numericQuestionId,
+          variantId: numericVariantId,
+        });
+      } catch (err) {
+        handleDeleteMutationError(
+          err,
+          'Could not delete this variant. Please try again.',
+          'variant',
+        );
+        return null;
+      }
+    }
+
+    questionTypeCacheRef.current.delete(
+      `${target.questionId}-variant-${target.variantId}`,
+    );
+    const nextSelected =
+      currentSelection?.groupId === target.groupId &&
+      currentSelection.questionId === target.questionId &&
+      currentSelection.variantId === target.variantId
+        ? {
+            groupId: target.groupId,
+            questionId: target.questionId,
+            variantId: null,
+          }
+        : currentSelection;
+
+    return {
+      nextGroups: removeVariantFromQuestion(
+        groups,
+        target.groupId,
+        target.questionId,
+        target.variantId,
+      ),
+      nextSelected,
+      nextExpanded: new Set(currentExpanded),
+    };
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget || !parsedModuleId || !parsedUnitId) return;
+
+    setIsDeleting(true);
+    setDeleteError(null);
+
+    const currentExpanded = new Set(expandedGroups);
+    const deleteResult =
+      deleteTarget.type === 'group'
+        ? await deleteGroupTarget(deleteTarget, selected, currentExpanded)
+        : deleteTarget.type === 'question'
+          ? await deleteQuestionTarget(deleteTarget, selected, currentExpanded)
+          : await deleteVariantTarget(deleteTarget, selected, currentExpanded);
+    if (!deleteResult) {
+      setIsDeleting(false);
+      return;
+    }
+
+    const resolvedSelection =
+      deleteResult.nextSelected ?? computeFallbackSelection(deleteResult.nextGroups);
+    setGroups(deleteResult.nextGroups);
+    setExpandedGroups(deleteResult.nextExpanded);
+    setSelected(resolvedSelection);
+
+    if (!resolvedSelection) {
+      setForm(buildInitialForm());
+    }
+
+    setDeleteTarget(null);
+    setSaveError(null);
+    setIsDeleting(false);
+  };
+
+  const setCorrectOption = (id: string) => {
+    setForm((prev) => ({
+      ...prev,
+      options: prev.options.map((option) => ({
+        ...option,
+        isCorrect: option.id === id,
+      })),
+    }));
+  };
+
+  const handleOptionChange = (id: string, value: string) => {
+    setForm((prev) => ({
+      ...prev,
+      options: prev.options.map((option) =>
+        option.id === id ? { ...option, value } : option,
+      ),
+    }));
+  };
+
+  const handleExplanationChange = (index: number, value: string) => {
+    setForm((prev) => {
+      const nextExplanations = [...prev.explanations];
+      nextExplanations[index] = value;
+      return { ...prev, explanations: nextExplanations };
+    });
+  };
+
+  const handleTypeChange = (type: QuestionType) => {
+    if (!selectedQuestion || !selected) return;
+
+    const cacheKey = selected.variantId
+      ? `${selectedQuestion.id}-variant-${selected.variantId}`
+      : `${selectedQuestion.id}-core`;
+
+    questionTypeCacheRef.current.set(cacheKey, {
+      ...(questionTypeCacheRef.current.get(cacheKey) ?? {}),
+      [form.type]: {
+        options: form.options,
+        explanations: form.explanations,
+      },
+    });
+
+    const cachedForTarget = questionTypeCacheRef.current.get(cacheKey)?.[type];
+    const reset = resetOptionsForType(type);
+
+    setForm((prev) => ({
+      ...prev,
+      type,
+      options: cachedForTarget?.options ?? reset.options,
+      explanations: cachedForTarget?.explanations ?? reset.explanations,
+    }));
+  };
+
+  // ===== Save Flow Helpers =====
+  const ensurePersistedGroupId = async (
+    targetGroupId: string,
+    targetGroup: QuestionGroup,
+  ): Promise<number | null> => {
+    const numericGroupId = Number(targetGroupId);
+    if (Number.isFinite(numericGroupId)) {
+      return numericGroupId;
+    }
+
+    if (!parsedUnitId) return null;
+    try {
+      // Draft groups are persisted on first save to keep authoring flow lightweight.
+      const createdGroup = await createQuestionGroupMutation.mutateAsync({
+        moduleUnitId: parsedUnitId,
+        name: targetGroup.title,
+        sortOrder: targetGroup.sortOrder,
+      });
+      const persistedGroupId = Number(createdGroup.id ?? NaN);
+      if (!Number.isFinite(persistedGroupId)) {
+        throw new Error('Invalid group id');
+      }
+
+      setGroups((prev) =>
+        replaceDraftGroupId(prev, targetGroupId, String(persistedGroupId)),
+      );
+      setExpandedGroups(
+        (prev) =>
+          new Set([
+            ...Array.from(prev).filter((id) => id !== targetGroupId),
+            String(persistedGroupId),
+          ]),
+      );
+      setSelected((prev) =>
+        prev ? { ...prev, groupId: String(persistedGroupId) } : null,
+      );
+
+      return persistedGroupId;
+    } catch (err) {
+      setSaveError('Could not create question group. Please try again.');
+      logError(err, {
+        feature: 'question-group',
+        action: 'create',
+        unitId: parsedUnitId,
+      });
+      return null;
+    }
+  };
+
+  const persistDraftQuestionIfNeeded = async ({
+    payload,
+    resolvedGroupId,
+    targetQuestion,
+    resolvedQuestionTitle,
+    selectedVariantId,
+  }: {
+    payload: CreateQuestionPayload;
+    resolvedGroupId: string;
+    targetQuestion: Question;
+    resolvedQuestionTitle: string;
+    selectedVariantId: string | null;
+  }): Promise<{ persistedQuestionId: string; persistedCoreContentId: string | null }> => {
+    if (!targetQuestion.isDraft) {
+      return {
+        persistedQuestionId: targetQuestion.id,
+        persistedCoreContentId: targetQuestion.coreContent?.id ?? null,
+      };
+    }
+
+    const created = await createQuestionMutation.mutateAsync(payload);
+    const persistedQuestionId = String(created.questionUnit.id);
+    const persistedCoreContentId = String(created.coreContent.id);
+
+    setGroups((prev) =>
+      updateQuestionByPredicate(
+        prev,
+        resolvedGroupId,
+        (question) => question.id === targetQuestion.id,
+        (question) => ({
+          ...question,
+          id: persistedQuestionId,
+          title: resolvedQuestionTitle,
+          type: form.type,
+          coreContent: {
+            id: String(created.coreContent.id),
+            questionUnitId: String(created.questionUnit.id),
+            questionStem: payload.questionStem,
+            questionData: payload.questionData,
+            type: payload.type,
+            hint: payload.hint ?? null,
+            source: payload.source,
+            isArchived: payload.isArchived,
+          },
+          isDraft: false,
+        }),
+      ),
+    );
+
+    setSelected((prev) =>
+      prev
+        ? { ...prev, questionId: persistedQuestionId, groupId: resolvedGroupId }
+        : {
+            groupId: resolvedGroupId,
+            questionId: persistedQuestionId,
+            variantId: selectedVariantId,
+          },
+    );
+
+    return { persistedQuestionId, persistedCoreContentId };
+  };
+
+  const saveVariantContent = async ({
+    payload,
+    resolvedGroupId,
+    targetQuestion,
+    selectedVariantId,
+    persistedQuestionId,
+  }: {
+    payload: CreateQuestionPayload;
+    resolvedGroupId: string;
+    targetQuestion: Question;
+    selectedVariantId: string;
+    persistedQuestionId: string;
+  }): Promise<boolean> => {
+    const variant = targetQuestion.variants.find(
+      (candidate) => candidate.id === selectedVariantId,
+    );
+    if (!variant) {
+      setSaveError('Variant not found.');
+      return false;
+    }
+
+    const variantIndex = targetQuestion.variants.findIndex(
+      (candidate) => candidate.id === selectedVariantId,
+    );
+    const resolvedVariantLabel =
+      variantIndex >= 0 ? formatVariantLabel(variantIndex, false) : variant.label;
+
+    if (variant.isDraft || !variant.content) {
+      const variantPayload = {
+        variantLabel: resolvedVariantLabel,
+        questionStem: form.stem,
+        type: form.type,
+        questionData: QUESTION_TYPE_CONFIGS[form.type].buildQuestionData(form),
+        hint: form.hint,
+        source: SOURCE_HUMAN,
+        isArchived: false,
+      } satisfies CreateVariantPayload;
+
+      const createdVariant = await createVariantMutation.mutateAsync({
+        questionId: Number(persistedQuestionId),
+        payload: variantPayload,
+      });
+
+      setGroups((prev) =>
+        updateQuestionByIds(
+          prev,
+          resolvedGroupId,
+          [persistedQuestionId, targetQuestion.id],
+          (question) =>
+            updateVariantById(question, variant.id, (candidateVariant) => ({
+              ...candidateVariant,
+              id: String(createdVariant.variant.id),
+              label: resolvedVariantLabel,
+              isDraft: false,
+              content: {
+                id: String(createdVariant.variant.content.id),
+                questionUnitId: String(
+                  createdVariant.variant.content.questionUnitId ?? persistedQuestionId,
+                ),
+                questionStem: createdVariant.variant.content.questionStem,
+                questionData: createdVariant.variant.content.questionData,
+                type: createdVariant.variant.content.type,
+                hint: createdVariant.variant.content.hint ?? null,
+                source: normalizeSource(createdVariant.variant.content.source),
+                isArchived: Boolean(createdVariant.variant.content.isArchived),
+              },
+            })),
+        ),
+      );
+
+      setSelected({
+        groupId: resolvedGroupId,
+        questionId: persistedQuestionId,
+        variantId: String(createdVariant.variant.id),
+      });
+      clearOtherTypesCache(
+        `${persistedQuestionId}-variant-${createdVariant.variant.id}`,
+        payload.type as QuestionType,
+      );
+      return true;
+    }
+
+    const variantUpdatePayload = {
+      questionStem: payload.questionStem,
+      questionData: payload.questionData,
+      type: payload.type,
+      hint: payload.hint,
+      source: payload.source,
+      isArchived: payload.isArchived,
+    } satisfies UpdateQuestionContentPayload;
+
+    await updateQuestionContentMutation.mutateAsync({
+      questionId: Number(persistedQuestionId),
+      contentId: Number(variant.content.id),
+      payload: variantUpdatePayload,
+    });
+
+    setGroups((prev) =>
+      updateQuestionByIds(
+        prev,
+        resolvedGroupId,
+        [persistedQuestionId, targetQuestion.id],
+        (question) =>
+          updateVariantById(question, selectedVariantId, (candidateVariant) => ({
+            ...candidateVariant,
+            content: {
+              ...(candidateVariant.content ?? {
+                id: variant.content?.id ?? '',
+                questionUnitId: persistedQuestionId,
+                questionStem: '',
+                questionData: payload.questionData,
+                type: payload.type,
+                hint: null,
+                source: payload.source,
+                isArchived: payload.isArchived,
+              }),
+              questionStem: payload.questionStem,
+              questionData: payload.questionData,
+              type: payload.type,
+              hint: payload.hint ?? null,
+              source: payload.source,
+              isArchived: payload.isArchived,
+            },
+          })),
+      ),
+    );
+
+    clearOtherTypesCache(
+      `${persistedQuestionId}-variant-${selectedVariantId}`,
+      payload.type as QuestionType,
+    );
+    return true;
+  };
+
+  const saveCoreContent = async ({
+    payload,
+    resolvedGroupId,
+    targetQuestion,
+    persistedQuestionId,
+    persistedCoreContentId,
+  }: {
+    payload: CreateQuestionPayload;
+    resolvedGroupId: string;
+    targetQuestion: Question;
+    persistedQuestionId: string;
+    persistedCoreContentId: string | null;
+  }): Promise<boolean> => {
+    if (targetQuestion.isDraft) {
+      return true;
+    }
+
+    if (!targetQuestion.coreContent || !persistedCoreContentId) {
+      setSaveError('Question content missing.');
+      return false;
+    }
+
+    const coreUpdatePayload = {
+      questionStem: payload.questionStem,
+      questionData: payload.questionData,
+      type: payload.type,
+      hint: payload.hint,
+      source: payload.source,
+      isArchived: payload.isArchived,
+    } satisfies UpdateQuestionContentPayload;
+
+    await updateQuestionContentMutation.mutateAsync({
+      questionId: Number(persistedQuestionId),
+      contentId: Number(persistedCoreContentId),
+      payload: coreUpdatePayload,
+    });
+
+    setGroups((prev) =>
+      updateQuestionByIds(
+        prev,
+        resolvedGroupId,
+        [persistedQuestionId, targetQuestion.id],
+        (question) => ({
+          ...question,
+          coreContent: {
+            ...(question.coreContent ?? {
+              id: persistedCoreContentId,
+              questionUnitId: persistedQuestionId,
+              questionStem: payload.questionStem,
+              questionData: payload.questionData,
+              type: payload.type,
+              hint: payload.hint ?? null,
+              source: payload.source,
+              isArchived: payload.isArchived,
+            }),
+            questionStem: payload.questionStem,
+            questionData: payload.questionData,
+            type: payload.type,
+            hint: payload.hint ?? null,
+            source: payload.source,
+            isArchived: payload.isArchived,
+          },
+        }),
+      ),
+    );
+
+    clearOtherTypesCache(`${persistedQuestionId}-core`, payload.type as QuestionType);
+    return true;
+  };
+
+  // ===== Save Orchestration =====
+  const handleSaveQuestion = async () => {
+    if (!parsedModuleId || !parsedUnitId) return;
+
+    if (!selected) {
+      setSaveError('Select a question before saving.');
+      return;
+    }
+
+    const targetGroupId = selected.groupId;
+    const targetGroup = groups.find((group) => group.id === targetGroupId);
+    if (!targetGroup) {
+      setSaveError('Pick a question group first.');
+      return;
+    }
+
+    const numericGroupId = await ensurePersistedGroupId(targetGroupId, targetGroup);
+    if (numericGroupId === null) return;
+
+    const resolvedGroupId = String(numericGroupId);
+    const targetQuestion = targetGroup.questions.find(
+      (question) => question.id === selected.questionId,
+    );
+    if (!targetQuestion) {
+      setSaveError('Pick a question to save.');
+      return;
+    }
+
+    const questionIndex = targetGroup.questions.findIndex(
+      (question) => question.id === targetQuestion.id,
+    );
+    const resolvedQuestionTitle = formatQuestionLabel(Math.max(questionIndex, 0), false);
+
+    if (!form.stem.trim()) {
+      setSaveError('Question stem is required.');
+      return;
+    }
+
+    const validationError = QUESTION_TYPE_CONFIGS[form.type].validate(form);
+    if (validationError) {
+      setSaveError(validationError);
+      return;
+    }
+
+    const payload = {
+      questionGroupId: numericGroupId,
+      // Keep server title aligned with deterministic question numbering, without draft suffixes.
+      title: resolvedQuestionTitle,
+      questionStem: form.stem,
+      type: form.type,
+      questionData: QUESTION_TYPE_CONFIGS[form.type].buildQuestionData(form),
+      hint: form.hint,
+      source: SOURCE_HUMAN,
+      isArchived: false,
+    } satisfies CreateQuestionPayload;
+
+    setIsSavingQuestion(true);
+    if (selected.variantId) {
+      setIsSavingVariant(true);
+    }
+    setSaveError(null);
+
+    try {
+      const selectedVariantId = selected.variantId;
+      const { persistedQuestionId, persistedCoreContentId } =
+        await persistDraftQuestionIfNeeded({
+          payload,
+          resolvedGroupId,
+          targetQuestion,
+          resolvedQuestionTitle,
+          selectedVariantId,
+        });
+
+      if (selectedVariantId) {
+        const didSaveVariant = await saveVariantContent({
+          payload,
+          resolvedGroupId,
+          targetQuestion,
+          selectedVariantId,
+          persistedQuestionId,
+        });
+        if (!didSaveVariant) return;
+      } else {
+        const didSaveCore = await saveCoreContent({
+          payload,
+          resolvedGroupId,
+          targetQuestion,
+          persistedQuestionId,
+          persistedCoreContentId,
+        });
+        if (!didSaveCore) return;
+      }
+    } catch (err) {
+      // Expected validation/permission issues should remain user-actionable and quiet in telemetry.
+      if (err instanceof ApiError && err.status >= 400 && err.status < 500) {
+        const detailMessage = err.details?.[0]?.message;
+        setSaveError(
+          detailMessage ??
+            err.message ??
+            'Could not save the question. Please review your input.',
+        );
+      } else {
+        setSaveError('Could not save the question. Please try again.');
+        logError(err, { feature: 'question', action: 'save', unitId: parsedUnitId });
+      }
+    } finally {
+      setIsSavingQuestion(false);
+      setIsSavingVariant(false);
+    }
+  };
+
+  // ===== Effects =====
+  useEffect(() => {
+    // Initial load maps API responses into editor-local state with string ids for draft compatibility.
+    if (!editorDataQuery.data || parsedUnitId === null) return;
+
+    const { unit, moduleUnits } = editorDataQuery.data;
+    const currentUnit = moduleUnits.find((candidate) => candidate.id === parsedUnitId);
+    setIsUnitLive(currentUnit?.status === 'live');
+
+    setUnitTitle(unit.title);
+    setVariantInstructions(unit.variantContext ?? '');
+
+    const mappedGroups = mapEditorGroupsToState(unit.questionGroups);
+
+    setGroups(mappedGroups);
+    setExpandedGroups(new Set(mappedGroups.map((group) => group.id)));
+
+    const firstQuestion = mappedGroups[0]?.questions[0];
+    setSelected(
+      mappedGroups[0]
+        ? {
+            groupId: mappedGroups[0].id,
+            questionId: firstQuestion?.id ?? null,
+            variantId: null,
+          }
+        : null,
+    );
+
+    if (firstQuestion?.coreContent) {
+      loadContentIntoForm(firstQuestion.coreContent, `${firstQuestion.id}-core`);
+    } else {
+      setForm(buildInitialForm());
+    }
+  }, [editorDataQuery.data, parsedUnitId, loadContentIntoForm, buildInitialForm]);
+
+  useEffect(() => {
+    // Selection changes rehydrate form state from either core content or selected variant content.
+    if (!selected) return;
+
+    const group = groups.find((candidate) => candidate.id === selected.groupId);
+    if (!group) return;
+
+    const question = group.questions.find(
+      (candidate) => candidate.id === selected.questionId,
+    );
+    if (!question) return;
+
+    const cacheKey = selected.variantId
+      ? `${question.id}-variant-${selected.variantId}`
+      : `${question.id}-core`;
+
+    if (selected.variantId) {
+      const variant = question.variants.find(
+        (candidate) => candidate.id === selected.variantId,
+      );
+      loadContentIntoForm(variant?.content, cacheKey);
+    } else {
+      loadContentIntoForm(question.coreContent, cacheKey);
+    }
+  }, [groups, selected, loadContentIntoForm]);
+
+  // ===== Public API =====
+  // Public route API: UI-only route component consumes this contract and renders from it.
   return {
     parsedModuleId,
     parsedUnitId,
-    editorData: editorDataQuery.data,
     isLoading,
     error,
-    renameQuestionGroupMutation,
-    createQuestionGroupMutation,
-    deleteQuestionGroupMutation,
-    createQuestionMutation,
-    createVariantMutation,
-    updateQuestionContentMutation,
-    deleteQuestionMutation,
-    deleteVariantMutation,
+    unitTitle,
+    variantInstructions,
+    setVariantInstructions,
+    groups,
+    expandedGroups,
+    selected,
+    setSelected,
+    form,
+    setForm,
+    selectedQuestion,
+    canGoPrev,
+    canGoNext,
+    activeLabel,
+    deleteTarget,
+    setDeleteTarget,
+    deleteCopy,
+    isDeleting,
+    deleteError,
+    setDeleteError,
+    isUnitLive,
+    saveError,
+    isSavingQuestion,
+    isSavingVariant,
+    editingGroupId,
+    editingGroupTitle,
+    setEditingGroupTitle,
+    renamingGroupId,
+    editingGroupInputRef,
+    formatQuestionLabel,
+    formatVariantLabel,
+    isQuestionSaved,
+    canAddVariant,
+    handleNavigate,
+    handleToggleGroup,
+    handleAddGroup,
+    handleAddQuestion,
+    handleAddVariant,
+    startEditingGroupTitle,
+    cancelEditingGroupTitle,
+    saveEditingGroupTitle,
+    handleOptionChange,
+    handleExplanationChange,
+    setCorrectOption,
+    handleTypeChange,
+    handleSaveQuestion,
+    handleConfirmDelete,
   };
 }
-
