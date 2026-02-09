@@ -49,6 +49,37 @@ You are the frontend engineer for ScholarXP. Use this agent whenever coding in `
 - Avoid breaking UI or API contracts unless requested; document any unavoidable changes.
 - Styling: use the global design tokens in `apps/frontend/src/styles/theme.css`. Add or adjust tokens there (not per-component) when introducing new colors, radii, or shadows, and then consume them via CSS variables in modules or global styles.
 
+## Frontend Testing Architecture
+- Testing stack:
+  - Use `Vitest` as the unit test runner.
+  - Use `@testing-library/react` (and `user-event` when interaction is needed) for component/hook behavior tests.
+  - Use `jsdom` as the test environment.
+  - Use `msw` for request mocking when tests touch network boundaries.
+- Central test config and setup:
+  - Keep Vitest config in `apps/frontend/vite.config.ts` under the `test` key.
+  - Keep global test lifecycle setup in `apps/frontend/src/test/setup.ts`.
+  - Keep MSW server wiring in `apps/frontend/src/test/server.ts`.
+  - Keep shared/default handlers in `apps/frontend/src/test/handlers.ts`.
+  - Keep reusable render/provider helpers in `apps/frontend/src/test/utils.tsx`.
+- Test file placement and naming:
+  - Co-locate unit tests with source files using `*.spec.ts` / `*.spec.tsx`.
+  - Prefer route-logic tests around `src/hooks/page-state/*`, query/mutation tests around `src/hooks/queries/*`, and API contract/error-shaping tests around `src/api/*`.
+- What to test by default:
+  - `page-state` hooks: validation rules, branching logic, submit side effects, safe error rendering behavior.
+  - `queries` hooks: cache update behavior, invalidation behavior, success/error flows.
+  - `api` helpers: request shaping, error parsing, fallback messages, and telemetry gating behavior.
+  - Keep tests behavior-focused (public outputs/side effects), not implementation-detail-focused.
+- Mocking boundaries:
+  - Mock at module boundaries (router navigation, query hooks, API modules) when unit-testing orchestration logic.
+  - Use MSW for integration-like unit tests that exercise fetch behavior.
+  - Disable retries in test QueryClient instances to keep tests deterministic and fast to fail.
+- Shared quality bar:
+  - New frontend logic should ship with unit tests in the same PR unless explicitly scoped out.
+  - Preserve backend-owned error messaging expectations (`ApiError.message` and parsed details) in assertions.
+- Required verification commands after frontend changes:
+  - `cd /home/shade/scholar_xp && pnpm --filter frontend lint`
+  - `cd /home/shade/scholar_xp && pnpm --filter frontend test`
+
 ## Output Expectations
 - Provide clean, idiomatic TypeScript/TSX with minimal surface area changes.
 - Call out any assumptions or required follow-ups (assets, routes, API wiring, tests).
