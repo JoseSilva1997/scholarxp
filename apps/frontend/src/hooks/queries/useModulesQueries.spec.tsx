@@ -1,17 +1,25 @@
 // Tests modules query hooks at the cache boundary so mutation side effects stay consistent across screens.
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import type { ModuleSummaryResponse, ModuleUnitResponse } from '@scholarxp/api-contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  useCreateModuleUnitMutation,
   useCreateModuleMutation,
+  useModuleDetailQuery,
+  useModuleUnitsQuery,
+  useModulesListQuery,
   useUpdateModuleMutation,
   useUpdateModuleUnitStatusMutation,
 } from './useModulesQueries';
 import { queryKeys } from '../query-keys';
 
 const apiMocks = vi.hoisted(() => ({
+  listModules: vi.fn(),
+  getModuleById: vi.fn(),
+  getModuleUnits: vi.fn(),
+  createModuleUnit: vi.fn(),
   createModule: vi.fn(),
   updateModule: vi.fn(),
   updateModuleUnitStatus: vi.fn(),
@@ -21,6 +29,10 @@ vi.mock('../../api/modules', async () => {
   const actual = await vi.importActual<typeof import('../../api/modules')>('../../api/modules');
   return {
     ...actual,
+    listModules: apiMocks.listModules,
+    getModuleById: apiMocks.getModuleById,
+    getModuleUnits: apiMocks.getModuleUnits,
+    createModuleUnit: apiMocks.createModuleUnit,
     createModule: apiMocks.createModule,
     updateModule: apiMocks.updateModule,
     updateModuleUnitStatus: apiMocks.updateModuleUnitStatus,
@@ -59,6 +71,10 @@ function createWrapper(queryClient: QueryClient) {
 
 describe('useModulesQueries mutations', () => {
   beforeEach(() => {
+    apiMocks.listModules.mockReset();
+    apiMocks.getModuleById.mockReset();
+    apiMocks.getModuleUnits.mockReset();
+    apiMocks.createModuleUnit.mockReset();
     apiMocks.createModule.mockReset();
     apiMocks.updateModule.mockReset();
     apiMocks.updateModuleUnitStatus.mockReset();
@@ -90,6 +106,61 @@ describe('useModulesQueries mutations', () => {
       makeModule({ id: 3, title: 'Old' }),
     ]);
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.modules.all });
+  });
+
+  it('loads modules list when enabled and skips fetch when disabled', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    apiMocks.listModules.mockResolvedValue([makeModule({ id: 31, title: 'Fetched' })]);
+
+    const enabledResult = renderHook(() => useModulesListQuery(true), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await waitFor(() => {
+      expect(enabledResult.result.current.isSuccess).toBe(true);
+    });
+    expect(apiMocks.listModules).toHaveBeenCalledTimes(1);
+
+    apiMocks.listModules.mockClear();
+    renderHook(() => useModulesListQuery(false), {
+      wrapper: createWrapper(queryClient),
+    });
+    expect(apiMocks.listModules).not.toHaveBeenCalled();
+  });
+
+  it('loads module detail and module units only when moduleId is present', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    apiMocks.getModuleById.mockResolvedValue(makeModule({ id: 12, title: 'Detail' }));
+    apiMocks.getModuleUnits.mockResolvedValue([makeUnit({ id: 77 })]);
+
+    const detailResult = renderHook(() => useModuleDetailQuery(12), {
+      wrapper: createWrapper(queryClient),
+    });
+    const unitsResult = renderHook(() => useModuleUnitsQuery(12), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await waitFor(() => {
+      expect(detailResult.result.current.isSuccess).toBe(true);
+      expect(unitsResult.result.current.isSuccess).toBe(true);
+    });
+    expect(apiMocks.getModuleById).toHaveBeenCalledWith(12);
+    expect(apiMocks.getModuleUnits).toHaveBeenCalledWith(12);
+
+    apiMocks.getModuleById.mockClear();
+    apiMocks.getModuleUnits.mockClear();
+    renderHook(() => useModuleDetailQuery(null), {
+      wrapper: createWrapper(queryClient),
+    });
+    renderHook(() => useModuleUnitsQuery(null), {
+      wrapper: createWrapper(queryClient),
+    });
+    expect(apiMocks.getModuleById).not.toHaveBeenCalled();
+    expect(apiMocks.getModuleUnits).not.toHaveBeenCalled();
   });
 
   it('updates detail + list cache entries and invalidates both after update', async () => {
@@ -163,6 +234,33 @@ describe('useModulesQueries mutations', () => {
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.modules.units(moduleId) });
   });
 
+  it('prepends created module unit in cache and invalidates units query', async () => {
+    const moduleId = 9;
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    const invalidateSpy = vi
+      .spyOn(queryClient, 'invalidateQueries')
+      .mockResolvedValue(undefined);
+    queryClient.setQueryData(queryKeys.modules.units(moduleId), [makeUnit({ id: 2, title: 'Old Unit' })]);
+    apiMocks.createModuleUnit.mockResolvedValue(makeUnit({ id: 41, moduleId, title: 'New Unit' }));
+
+    const { result } = renderHook(() => useCreateModuleUnitMutation(moduleId), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({ title: 'New Unit' });
+    });
+
+    expect(apiMocks.createModuleUnit).toHaveBeenCalledWith(moduleId, { title: 'New Unit' });
+    expect(queryClient.getQueryData(queryKeys.modules.units(moduleId))).toEqual([
+      makeUnit({ id: 41, moduleId, title: 'New Unit' }),
+      makeUnit({ id: 2, title: 'Old Unit' }),
+    ]);
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.modules.units(moduleId) });
+  });
+
   it('throws a clear error when updating a module without module id', async () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -176,5 +274,20 @@ describe('useModulesQueries mutations', () => {
       'Missing module id for module update.',
     );
     expect(apiMocks.updateModule).not.toHaveBeenCalled();
+  });
+
+  it('throws a clear error when creating a unit without module id', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+
+    const { result } = renderHook(() => useCreateModuleUnitMutation(null), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await expect(result.current.mutateAsync({ title: 'No module id' })).rejects.toThrow(
+      'Missing module id for unit creation.',
+    );
+    expect(apiMocks.createModuleUnit).not.toHaveBeenCalled();
   });
 });
