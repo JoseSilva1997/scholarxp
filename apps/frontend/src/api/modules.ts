@@ -9,6 +9,7 @@ import type {
   ModuleUnitResponse,
   ModuleUnitEditorResponse,
   ModuleUnitGroupResponse,
+  PracticeRoomResponse,
 } from '@scholarxp/api-contracts';
 import { apiFetch } from './client';
 
@@ -70,6 +71,18 @@ export async function getModuleUnitEditor(moduleId: number, moduleUnitId: number
   return apiFetch<ModuleUnitEditorResponse>(`/module/${moduleId}/unit/${moduleUnitId}/editor`, {
     method: 'GET',
   });
+}
+
+export async function getPracticeRoom(
+  moduleId: number,
+  moduleUnitId: number,
+): Promise<PracticeRoomResponse> {
+  return apiFetch<PracticeRoomResponse>(
+    `/module/${moduleId}/unit/${moduleUnitId}/practice-room`,
+    {
+      method: 'GET',
+    },
+  );
 }
 
 export async function createModuleUnitQuestionGroup(

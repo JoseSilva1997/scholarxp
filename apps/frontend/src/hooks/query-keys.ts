@@ -8,6 +8,7 @@ export const queryKeys = {
     detail: (moduleId: number) => ['modules', 'detail', moduleId] as const,
     units: (moduleId: number) => ['modules', 'units', moduleId] as const,
     invites: (moduleId: number) => ['modules', 'invites', moduleId] as const,
+    practiceRoom: (moduleId: number, unitId: number) =>
+      ['modules', 'practice-room', moduleId, unitId] as const,
   },
 };
-

@@ -1,0 +1,275 @@
+/* Styles for the student practice-room route, emphasizing quick navigation and readable question content. */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: 72rem;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+}
+
+.backLink {
+  color: var(--color-muted);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.backLink:hover {
+  color: var(--color-text);
+}
+
+.statusCard {
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-subtle);
+  padding: 1rem;
+}
+
+.progressContainer {
+  display: flex;
+  width: 100%;
+  padding: 1vw 20%;
+}
+
+.progressRow {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  grid-template-areas:
+    ". exp"
+    "level bar";
+  gap: 4px 10px;
+  align-items: center;
+  width: 100%;
+}
+
+.level {
+  grid-area: level;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  color: var(--color-brand-surface-dark);
+  white-space: nowrap;
+}
+
+.levelIcon {
+  width: 20px;
+  height: 20px;
+}
+
+.barTrack {
+  grid-area: bar;
+  position: relative;
+  height: 14px;
+  width: 100%;
+  background: var(--color-surface-subtle);
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+}
+
+.barFill {
+  position: absolute;
+  inset: 0;
+  background: var(--btn-primary-gradient);
+}
+
+.expLabel {
+  grid-area: exp;
+  font-size: 14px;
+  color: var(--color-muted);
+  font-weight: 600;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 1.2;
+}
+
+.sessionLabel {
+  margin: 0.375rem 0 0;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.progressMeta {
+  color: var(--color-muted);
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.beadRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.navBar {
+  flex: 1;
+  min-width: 2.5rem;
+  height: 0.5rem;
+  border: 0;
+  border-radius: 999px;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.navBarInner {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+}
+
+.navBarCorrect .navBarInner {
+  background: var(--color-accent-primary);
+}
+
+.navBarIncorrect .navBarInner {
+  background: #ef4444;
+}
+
+.navBarCurrent .navBarInner {
+  background: var(--color-accent-secondary);
+}
+
+.navBarMuted .navBarInner {
+  background: color-mix(in srgb, var(--color-border) 80%, var(--color-surface) 20%);
+}
+
+.navBar:focus-visible {
+  outline: 2px solid var(--color-brand-surface-dark);
+  outline-offset: 2px;
+}
+
+.questionPanel {
+  border-radius: 0.875rem;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.questionTrackNav {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.variantLabel {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  min-width: 6.25rem;
+  text-align: center;
+}
+
+/* Icon-only navigation buttons mirrored from module editor so controls feel consistent across learning flows. */
+.navButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  color: var(--color-muted);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.navButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.navButton:focus-visible {
+  outline: 2px solid var(--color-accent-secondary);
+  outline-offset: 2px;
+}
+
+.navButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.3;
+}
+
+.navIcon {
+  color: var(--color-brand-surface-dark);
+  width: 28px;
+  height: 28px;
+  font-size: 18px;
+}
+
+/* Legacy text-button class retained only for compatibility with snapshots while nav is icon-based. */
+.trackNavButton {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-subtle);
+  color: var(--color-text);
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.35rem 0.7rem;
+  cursor: pointer;
+}
+
+.trackNavButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.questionStem {
+  margin: 0;
+  margin-left: 2px;
+  font-size: 1.1rem;
+  line-height: 1.35;
+}
+
+.optionsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.optionButton {
+  text-align: left;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-subtle);
+  color: var(--color-text);
+  border-radius: 0.625rem;
+  padding: 0.75rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.optionButtonSelected {
+  border-color: var(--color-accent-primary);
+  background: color-mix(in srgb, var(--color-accent-primary) 12%, var(--color-surface-subtle) 88%);
+}
+
+@media (max-width: 768px) {
+  .header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

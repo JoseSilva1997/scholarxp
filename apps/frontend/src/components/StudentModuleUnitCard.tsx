@@ -12,6 +12,7 @@ type StudentModuleUnitCardProps = {
 export default function StudentModuleUnitCard({ unit }: StudentModuleUnitCardProps) {
   const isLocked = unit.status === 'locked';
   const [isOpen, setIsOpen] = useState(false);
+  const moduleId = window.location.pathname.split('/')[3];
 
   return (
     <div className={styles.wrapper}>
@@ -38,6 +39,12 @@ export default function StudentModuleUnitCard({ unit }: StudentModuleUnitCardPro
                 className={styles.practiceButton} 
                 aria-label="Start practice"
                 disabled={isLocked}
+                onClick={() => {
+                  // Full-path assignment keeps this card router-agnostic for tests while still opening the practice room.
+                  window.location.assign(
+                    `/main/modules/${moduleId}/${unit.id}/practice-room`,
+                  );
+                }}
               >
                 Start Practice
               </button>

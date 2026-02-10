@@ -14,6 +14,7 @@ import AuthedLayout from './layouts/AuthedLayout';
 import ModulesPage from './routes/main/ModulesPage';
 import SingleModulePage from './routes/main/SingleModulePage';
 import ModuleUnitEditor from './routes/main/ModuleUnitEditor';
+import PracticeRoomPage from './routes/main/PracticeRoomPage';
 import QuestsPage from './routes/main/QuestsPage';
 import ProfilePage from './routes/main/ProfilePage';
 import AcceptInvite from './routes/main/AcceptInvite';
@@ -88,6 +89,7 @@ function AppLayout() {
                 <Route path="/main/modules" element={<ModulesPage />} />
                 <Route path="/main/modules/:moduleId" element={<SingleModulePage />} />
                 <Route path="/main/modules/:moduleId/:unitId/editor" element={<ModuleUnitEditor />} />
+                <Route path="/main/modules/:moduleId/:unitId/practice-room" element={<PracticeRoomPage />} />
                 <Route path="/main/quests" element={<QuestsPage />} />
                 <Route path="/main/profile" element={<ProfilePage />} />
               </Route>
