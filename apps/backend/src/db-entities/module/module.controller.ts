@@ -21,7 +21,7 @@ import { GlobalRole } from '@prisma/client';
 import { ModuleAccess } from '../../auth/decorators/module-access.decorator';
 import { ModuleAccessGuard } from '../../auth/guards/module-access.guard';
 import type { AuthUser } from '../../types/auth-user.type';
-import { assertHasAccess } from 'src/helpers/permissions.helper';
+import { assertHasAccess } from '../../helpers/permissions.helper';
 
 @Controller('module')
 @UseGuards(SessionAuthGuard, RolesGuard)

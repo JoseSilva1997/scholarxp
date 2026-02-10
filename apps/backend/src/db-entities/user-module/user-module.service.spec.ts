@@ -1,5 +1,5 @@
 // Tests for UserModuleService ensuring module-scoped listing.
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { UserModuleService } from './user-module.service';
 import { createPrismaMock, type PrismaMock } from '../../test/test-helpers';
 import { GlobalRole } from '@prisma/client';
@@ -48,6 +48,6 @@ describe('UserModuleService', () => {
     const noAccess = { ...teacher, globalRole: GlobalRole.student };
     expect(() =>
       service.create({ moduleId: 1, userId: 2 } as any, noAccess),
-    ).toThrow(ForbiddenException);
+    ).toThrow(UnauthorizedException);
   });
 });

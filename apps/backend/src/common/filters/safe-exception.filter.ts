@@ -69,7 +69,7 @@ export class SafeExceptionFilter implements ExceptionFilter {
         ? exception.stack
         : undefined;
     const logLine = `${request?.method ?? 'UNKNOWN'} ${request?.url ?? 'UNKNOWN'} -> ${status}: ${message} requestId=${requestId}`;
-    
+
     // Mail delivery errors are logged as warnings since they're expected failures; other 5xx as error with stack.
     if (isMailDeliveryError) {
       this.logger.warn('Email service failure', {

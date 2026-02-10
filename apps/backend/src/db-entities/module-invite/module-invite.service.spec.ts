@@ -1,5 +1,5 @@
 // Targeted tests for ModuleInviteService enforcing capability checks and CRUD behavior.
-import { ForbiddenException, BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { GlobalRole, InviteType, Prisma } from '@prisma/client';
 import { createHash } from 'crypto';
 import { ModuleInviteService } from './module-invite.service';
@@ -80,7 +80,7 @@ describe('ModuleInviteService', () => {
   it('blocks create when capability missing', async () => {
     const student = { ...teacher, globalRole: GlobalRole.student };
     await expect(service.create(module.id, {} as any, student)).rejects.toThrow(
-      ForbiddenException,
+      UnauthorizedException,
     );
   });
 
@@ -263,7 +263,7 @@ describe('ModuleInviteService', () => {
     } as any);
 
     await expect(service.redeem({ token }, teacher)).rejects.toThrow(
-      ForbiddenException,
+      UnauthorizedException,
     );
     expect(prisma.userModule.create).not.toHaveBeenCalled();
   });
@@ -294,7 +294,7 @@ describe('ModuleInviteService', () => {
           hasInstitutionMembership: true,
         },
       ),
-    ).rejects.toThrow(ForbiddenException);
+    ).rejects.toThrow(UnauthorizedException);
     expect(prisma.userModule.create).not.toHaveBeenCalled();
   });
 });

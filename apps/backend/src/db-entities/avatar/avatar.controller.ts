@@ -10,7 +10,7 @@ import {
 import { AvatarService } from './avatar.service';
 import { CreateAvatarDto } from './dto/create-avatar.dto';
 import { UpdateAvatarDto } from './dto/update-avatar.dto';
-import { Roles } from 'src/auth/decorators/roles.decorator';
+import { Roles } from '../../auth/decorators/roles.decorator';
 import { GlobalRole } from '@prisma/client';
 
 @Controller('avatar')

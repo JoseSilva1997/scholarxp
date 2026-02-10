@@ -23,6 +23,7 @@ import { QuestionAttemptModule } from './db-entities/question-attempt/question-a
 import { AuthModule } from './auth/auth.module';
 import { EmailVerificationTokenModule } from './db-entities/email-verification-token/email-verification-token.module';
 import { MailerModule } from './mailer/mailer.module';
+import { PracticeRoomModule } from './practice-room/practice-room.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { MailerModule } from './mailer/mailer.module';
     AuthModule,
     EmailVerificationTokenModule,
     MailerModule,
+    PracticeRoomModule,
   ],
   controllers: [TestController],
 })
