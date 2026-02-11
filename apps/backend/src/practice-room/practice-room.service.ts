@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
+import type { StudentAnswer } from '@scholarxp/api-contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { ModuleUnitPracticeRoomResponseDto } from './dto/practice-room-response.dto';
 import { SubmitAttemptDto } from './dto/submit-attempt.dto';
@@ -14,6 +15,11 @@ import type {
   LoadedModuleUnit,
   RoomQuestionUnitDraft,
 } from './practice-room.types';
+
+type AttemptQuestionContent = {
+  type: string;
+  questionData: Prisma.JsonValue;
+};
 
 // PracticeRoomService builds the page-load payload so the frontend can render core questions, variants, and latest attempts.
 @Injectable()
@@ -59,10 +65,14 @@ export class PracticeRoomService {
   ): Promise<SubmitAttemptResponseDto> {
     this.validateModuleUnitPayload(moduleUnitId, payload.moduleUnitId);
     await this.validateSession(moduleId, studentId, payload.sessionId);
-    await this.validateQuestionContent(
+    const attemptQuestionContent = await this.loadQuestionContentForAttempt(
       moduleUnitId,
       payload.questionUnitId,
       payload.questionContentId,
+    );
+    const isCorrect = this.computeIsCorrectFromContent(
+      attemptQuestionContent,
+      payload.studentAnswer,
     );
 
     const alreadyHasCorrectAttempt = await this.hasAnyCorrectAttempt(
@@ -71,13 +81,13 @@ export class PracticeRoomService {
       payload.questionUnitId,
     );
 
-    await this.createAttemptRecord(moduleUnitId, studentId, payload);
+    await this.createAttemptRecord(moduleUnitId, studentId, payload, isCorrect);
 
     // XP engine integration is intentionally deferred; this flag lets the future engine gate first-correct rewards.
     return {
       moduleExpAwarded: 0,
       studentExpAwarded: 0,
-      hasCorrectAttempt: alreadyHasCorrectAttempt || payload.isCorrect,
+      hasCorrectAttempt: alreadyHasCorrectAttempt || isCorrect,
     };
   }
 
@@ -210,12 +220,12 @@ export class PracticeRoomService {
     throw new NotFoundException('Practice session not found for this module.');
   }
 
-  // We verify the submitted content belongs to the submitted question unit in this module unit before creating an attempt.
-  private async validateQuestionContent(
+  // We verify content ownership and return question content needed for backend-owned correctness grading.
+  private async loadQuestionContentForAttempt(
     moduleUnitId: number,
     questionUnitId: number,
     questionContentId: number,
-  ) {
+  ): Promise<AttemptQuestionContent> {
     const questionUnit = await this.prisma.questionUnit.findFirst({
       where: {
         id: questionUnitId,
@@ -229,7 +239,11 @@ export class PracticeRoomService {
             id: questionContentId,
             isArchived: false,
           },
-          select: { id: true },
+          select: {
+            id: true,
+            type: true,
+            questionData: true,
+          },
         },
         variants: {
           where: {
@@ -238,7 +252,15 @@ export class PracticeRoomService {
               isArchived: false,
             },
           },
-          select: { id: true },
+          select: {
+            content: {
+              select: {
+                id: true,
+                type: true,
+                questionData: true,
+              },
+            },
+          },
         },
       },
     });
@@ -247,13 +269,108 @@ export class PracticeRoomService {
       throw new NotFoundException('Question unit not found.');
     }
 
-    if (questionUnit.contents.length > 0 || questionUnit.variants.length > 0) {
-      return;
+    const directContent = questionUnit.contents[0];
+    if (directContent) {
+      return {
+        type: directContent.type,
+        questionData: directContent.questionData,
+      };
+    }
+
+    const variantContent = questionUnit.variants[0]?.content;
+    if (variantContent) {
+      return {
+        type: variantContent.type,
+        questionData: variantContent.questionData,
+      };
     }
 
     throw new NotFoundException(
       'Question content not found for this question unit.',
     );
+  }
+
+  // Correctness is computed from persisted question config so clients cannot spoof correctness flags.
+  private computeIsCorrectFromContent(
+    questionContent: AttemptQuestionContent,
+    studentAnswer: StudentAnswer,
+  ): boolean {
+    const selectedOptionIndex = this.readSelectedOptionIndex(studentAnswer);
+    if (questionContent.type === 'mcq') {
+      return this.gradeMcq(questionContent.questionData, selectedOptionIndex);
+    }
+    if (questionContent.type === 'true-false') {
+      return this.gradeTrueFalse(
+        questionContent.questionData,
+        selectedOptionIndex,
+      );
+    }
+    throw new BadRequestException(
+      'This question type is not supported for practice submissions yet.',
+    );
+  }
+
+  // Shared answer-index extraction keeps MCQ and true/false grading rules aligned.
+  private readSelectedOptionIndex(studentAnswer: StudentAnswer): number {
+    if (!studentAnswer || typeof studentAnswer !== 'object') {
+      throw new BadRequestException(
+        'Submitted answer format is invalid for this question type.',
+      );
+    }
+    const candidate = studentAnswer as { selectedOptionIndex?: unknown };
+    if (typeof candidate.selectedOptionIndex !== 'number') {
+      throw new BadRequestException(
+        'Submitted answer format is invalid for this question type.',
+      );
+    }
+    return candidate.selectedOptionIndex;
+  }
+
+  // MCQ grading uses persisted correct-option metadata; malformed question data is treated as a safe user-facing error.
+  private gradeMcq(
+    questionData: Prisma.JsonValue,
+    selectedOptionIndex: number,
+  ) {
+    if (!questionData || typeof questionData !== 'object') {
+      throw new BadRequestException('Question configuration is invalid.');
+    }
+    const candidate = questionData as { correctOptionIndex?: unknown };
+    if (typeof candidate.correctOptionIndex !== 'number') {
+      throw new BadRequestException('Question configuration is invalid.');
+    }
+    return selectedOptionIndex === candidate.correctOptionIndex;
+  }
+
+  // True/false grading enforces binary answer indexes and uses stored true/false correctness flags.
+  private gradeTrueFalse(
+    questionData: Prisma.JsonValue,
+    selectedOptionIndex: number,
+  ) {
+    if (selectedOptionIndex !== 0 && selectedOptionIndex !== 1) {
+      throw new BadRequestException(
+        'Submitted answer format is invalid for this question type.',
+      );
+    }
+    if (!questionData || typeof questionData !== 'object') {
+      throw new BadRequestException('Question configuration is invalid.');
+    }
+    const candidate = questionData as {
+      trueOption?: { isCorrect?: unknown };
+      falseOption?: { isCorrect?: unknown };
+    };
+    if (
+      !candidate.trueOption ||
+      typeof candidate.trueOption !== 'object' ||
+      !candidate.falseOption ||
+      typeof candidate.falseOption !== 'object' ||
+      typeof candidate.trueOption.isCorrect !== 'boolean' ||
+      typeof candidate.falseOption.isCorrect !== 'boolean'
+    ) {
+      throw new BadRequestException('Question configuration is invalid.');
+    }
+    return selectedOptionIndex === 0
+      ? candidate.trueOption.isCorrect
+      : candidate.falseOption.isCorrect;
   }
 
   // This is used for first-correct rules: once true, future correct submissions for the unit should not re-award XP.
@@ -280,6 +397,7 @@ export class PracticeRoomService {
     moduleUnitId: number,
     studentId: number,
     payload: SubmitAttemptDto,
+    isCorrect: boolean,
   ) {
     return this.prisma.questionAttempt.create({
       data: {
@@ -289,7 +407,7 @@ export class PracticeRoomService {
         contentId: payload.questionContentId,
         sessionId: payload.sessionId,
         practiceMode: payload.practiceMode,
-        isCorrect: payload.isCorrect,
+        isCorrect,
         timeTakenMs: payload.timeTakenMs,
         hintsUsed: payload.hintUnlocked ? 1 : 0,
         studentAnswer:

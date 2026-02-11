@@ -12,6 +12,7 @@ import MainSection from '../../components/MainSection';
 import { usePracticeRoomPageState } from '../../hooks/page-state/usePracticeRoomPageState';
 import styles from './PracticeRoomPage.module.css';
 import { getQuestionUnitStatusClass } from './practice-room-status';
+import { buildPracticeRoomAnswerFeedback } from './practice-room-answer-feedback';
 
 export default function PracticeRoomPage() {
   const { moduleId, unitId } = useParams<{ moduleId: string; unitId: string }>();
@@ -32,6 +33,7 @@ export default function PracticeRoomPage() {
     trackNav,
     questionUnitNav,
     selectedOptionIndex,
+    hasSubmittedActiveQuestion,
     selectQuestionUnit,
     selectOption,
     isActiveHintUnlocked,
@@ -45,6 +47,16 @@ export default function PracticeRoomPage() {
     moduleIdParam: moduleId,
     unitIdParam: unitId,
   });
+
+  // Feedback remains presentation-only and uses local question data so it can be swapped to server-driven feedback later.
+  const optionFeedback = activeQuestion
+    ? buildPracticeRoomAnswerFeedback({
+        question: activeQuestion.question,
+        selectedOptionIndex,
+        hasSubmitted: hasSubmittedActiveQuestion,
+        optionCount: activeQuestionOptions.length,
+      })
+    : [];
 
   if (!parsedModuleId || !parsedUnitId) {
     return (
@@ -158,120 +170,143 @@ export default function PracticeRoomPage() {
               </div>
 
               <h2 className={styles.questionStem}>{activeQuestion.question.questionStem}</h2>
-            <div className={styles.questionContent}>
-              <div
-                className={`${styles.optionsList} ${
-                  activeQuestion.question.type === 'true-false'
-                    ? styles.optionsListTrueFalse
-                    : ''
-                }`}
-              >
-                {activeQuestionOptions.map((option, optionIndex) => {
-                  const isSelected = selectedOptionIndex === optionIndex;
-                  return (
-                    <button
-                      key={optionIndex}
-                      type="button"
-                      className={`${styles.optionButton} ${
-                        isSelected ? styles.optionButtonSelected : ''
-                      }`}
-                      onClick={() => selectOption(activeQuestion.question.id, optionIndex)}
-                      aria-pressed={isSelected}
-                    >
-                      {option.optionText}
-                    </button>
-                  );
-                })}
-              </div>
+              <div className={styles.questionContent}>
+                <div
+                  className={`${styles.optionsList} ${
+                    activeQuestion.question.type === 'true-false'
+                      ? styles.optionsListTrueFalse
+                      : ''
+                  }`}
+                >
+                  {activeQuestionOptions.map((option, optionIndex) => {
+                    const isSelected = selectedOptionIndex === optionIndex;
+                    const feedback = optionFeedback[optionIndex];
 
-              {activeQuestion.question.hint ? (
-                <div className={styles.hintSection}>
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    className={styles.hintToggle}
-                    onClick={() => {
-                      if (!isActiveHintUnlocked) {
-                        unlockHintForContent(activeQuestion.question.id);
-                      }
-                    }}
-                    aria-expanded={isActiveHintUnlocked}
-                    aria-disabled={isActiveHintUnlocked}
-                    onKeyDown={(event) => {
-                      if (
-                        (event.key === 'Enter' || event.key === ' ') &&
-                        !isActiveHintUnlocked
-                      ) {
-                        event.preventDefault();
-                        unlockHintForContent(activeQuestion.question.id);
-                      }
-                    }}
-                  >
-                    <IconContext.Provider value={{ className: styles.hintIcon }}>
-                      <FaLightbulb />
-                    </IconContext.Provider>
-                    <span>{isActiveHintUnlocked ? 'Hint unlocked' : 'Unlock hint'}</span>
-                    <span
-                      className={`${styles.hintChevron} ${
-                        isActiveHintUnlocked ? styles.hintChevronExpanded : ''
-                      }`}
-                      aria-hidden="true"
+                    return (
+                      <button
+                        key={optionIndex}
+                        type="button"
+                        className={`${styles.optionButton} ${
+                          isSelected ? styles.optionButtonSelected : ''
+                        } ${
+                          feedback?.isCorrectOption ? styles.optionButtonCorrect : ''
+                        } ${
+                          feedback?.isSelectedIncorrect ? styles.optionButtonIncorrect : ''
+                        }`}
+                        onClick={() => selectOption(activeQuestion.question.id, optionIndex)}
+                        aria-pressed={isSelected}
+                        disabled={hasSubmittedActiveQuestion}
+                      >
+                        <div className={styles.optionTextRow}>
+                          <span>{option.optionText}</span>
+                          {feedback?.statusLabel ? (
+                            <span
+                              className={`${
+                                feedback.statusLabel === 'Correct'
+                                  ? styles.optionStatusCorrect
+                                  : styles.optionStatusIncorrect
+                              }`}
+                            >
+                              {feedback.statusLabel}
+                            </span>
+                          ) : null}
+                        </div>
+                        {feedback?.explanation ? (
+                          <p className={styles.optionExplanation}>{feedback.explanation}</p>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {activeQuestion.question.hint ? (
+                  <div className={styles.hintSection}>
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      className={styles.hintToggle}
+                      onClick={() => {
+                        if (!isActiveHintUnlocked) {
+                          unlockHintForContent(activeQuestion.question.id);
+                        }
+                      }}
+                      aria-expanded={isActiveHintUnlocked}
+                      aria-disabled={isActiveHintUnlocked}
+                      onKeyDown={(event) => {
+                        if (
+                          (event.key === 'Enter' || event.key === ' ') &&
+                          !isActiveHintUnlocked
+                        ) {
+                          event.preventDefault();
+                          unlockHintForContent(activeQuestion.question.id);
+                        }
+                      }}
                     >
-                      <FaChevronRight />
-                    </span>
+                      <IconContext.Provider value={{ className: styles.hintIcon }}>
+                        <FaLightbulb />
+                      </IconContext.Provider>
+                      <span>{isActiveHintUnlocked ? 'Hint unlocked' : 'Unlock hint'}</span>
+                      <span
+                        className={`${styles.hintChevron} ${
+                          isActiveHintUnlocked ? styles.hintChevronExpanded : ''
+                        }`}
+                        aria-hidden="true"
+                      >
+                        <FaChevronRight />
+                      </span>
+                    </div>
+                    {isActiveHintUnlocked ? (
+                      <p className={styles.hintText}>{activeQuestion.question.hint}</p>
+                    ) : null}
                   </div>
-                  {isActiveHintUnlocked ? (
-                    <p className={styles.hintText}>{activeQuestion.question.hint}</p>
-                  ) : null}
+                ) : null}
+
+                {submitErrorMessage ? (
+                  <div className={styles.submitError} role="alert">
+                    {submitErrorMessage}
+                  </div>
+                ) : null}
+
+                <div className={styles.submitRow}>
+                  <button
+                    type="button"
+                    className={styles.submitButton}
+                    onClick={() => {
+                      void submitActiveQuestionAttempt();
+                    }}
+                    disabled={!canSubmitAttempt}
+                  >
+                    {isSubmittingAttempt ? 'Submitting…' : 'Submit answer'}
+                  </button>
                 </div>
-              ) : null}
 
-              {submitErrorMessage ? (
-                <div className={styles.submitError} role="alert">
-                  {submitErrorMessage}
+                <div className={styles.questionUnitTrackNav}>
+                  <button
+                    type="button"
+                    className={styles.questionUnitNavButton}
+                    onClick={goToPreviousQuestionUnit}
+                    disabled={!questionUnitNav.canGoPrevious}
+                    aria-label="Previous question"
+                  >
+                    <IconContext.Provider value={{ className: styles.navIcon }}>
+                      <FaCircleChevronLeft />
+                    </IconContext.Provider>
+                    <span className={styles.questionUnitNavLabel}>Previous</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.questionUnitNavButton}
+                    onClick={goToNextQuestionUnit}
+                    disabled={!questionUnitNav.canGoNext}
+                    aria-label="Next question"
+                  >
+                    <span className={styles.questionUnitNavLabel}>Next</span>
+                    <IconContext.Provider value={{ className: styles.navIcon }}>
+                      <FaCircleChevronRight />
+                    </IconContext.Provider>
+                  </button>
                 </div>
-              ) : null}
-
-              <div className={styles.submitRow}>
-                <button
-                  type="button"
-                  className={styles.submitButton}
-                  onClick={() => {
-                    void submitActiveQuestionAttempt();
-                  }}
-                  disabled={!canSubmitAttempt}
-                >
-                  {isSubmittingAttempt ? 'Submitting…' : 'Submit answer'}
-                </button>
               </div>
-
-              <div className={styles.questionUnitTrackNav}>
-                <button
-                  type="button"
-                  className={styles.questionUnitNavButton}
-                  onClick={goToPreviousQuestionUnit}
-                  disabled={!questionUnitNav.canGoPrevious}
-                  aria-label="Previous question"
-                >
-                  <IconContext.Provider value={{ className: styles.navIcon }}>
-                    <FaCircleChevronLeft />
-                  </IconContext.Provider>
-                  <span className={styles.questionUnitNavLabel}>Previous</span>
-                </button>
-                <button
-                  type="button"
-                  className={styles.questionUnitNavButton}
-                  onClick={goToNextQuestionUnit}
-                  disabled={!questionUnitNav.canGoNext}
-                  aria-label="Next question"
-                >
-                  <span className={styles.questionUnitNavLabel}>Next</span>
-                  <IconContext.Provider value={{ className: styles.navIcon }}>
-                    <FaCircleChevronRight />
-                  </IconContext.Provider>
-                </button>
-              </div>
-            </div>
             </section>
           ) : (
             <div className={styles.statusCard}>

@@ -650,7 +650,13 @@ describe('PracticeRoomService', () => {
       prisma.practiceSession.findFirst.mockResolvedValue({ id: 77 } as any);
       prisma.questionUnit.findFirst.mockResolvedValue({
         id: 201,
-        contents: [{ id: 301 }],
+        contents: [
+          {
+            id: 301,
+            type: 'mcq',
+            questionData: { correctOptionIndex: 2 },
+          },
+        ],
         variants: [],
       } as any);
       prisma.questionAttempt.findFirst.mockResolvedValue(null);
@@ -662,7 +668,6 @@ describe('PracticeRoomService', () => {
         questionContentId: 301,
         sessionId: 77,
         practiceMode: 'PRACTICE_ROOM' as any,
-        isCorrect: true,
         timeTakenMs: 1200,
         hintUnlocked: false,
         studentAnswer: { selectedOptionIndex: 2 } as any,
@@ -699,7 +704,6 @@ describe('PracticeRoomService', () => {
           questionContentId: 301,
           sessionId: 77,
           practiceMode: 'PRACTICE_ROOM' as any,
-          isCorrect: false,
           timeTakenMs: 1200,
           hintUnlocked: true,
           studentAnswer: { selectedOptionIndex: 2 } as any,
@@ -719,7 +723,6 @@ describe('PracticeRoomService', () => {
           questionContentId: 301,
           sessionId: 77,
           practiceMode: 'PRACTICE_ROOM' as any,
-          isCorrect: false,
           timeTakenMs: 1200,
           hintUnlocked: true,
           studentAnswer: { selectedOptionIndex: 2 } as any,

@@ -157,7 +157,6 @@ describe('modules api', () => {
       questionContentId: 300,
       sessionId: 55,
       practiceMode: 'PRACTICE_ROOM',
-      isCorrect: false,
       timeTakenMs: 4200,
       hintUnlocked: true,
       studentAnswer: { selectedOptionIndex: 1 },

@@ -1,5 +1,5 @@
 // Encapsulates practice-room route orchestration so the page component can stay presentational.
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type {
   ModuleUnitPracticeRoomResponse,
   PracticeAttemptSnapshot,
@@ -94,9 +94,14 @@ export function usePracticeRoomPageState({
   const [submittedAttemptByContentId, setSubmittedAttemptByContentId] = useState<
     Record<number, PracticeAttemptSnapshot>
   >({});
+  const [submittedByContentId, setSubmittedByContentId] = useState<
+    Record<number, boolean>
+  >({});
   const [hasCorrectAttemptByQuestionUnitId, setHasCorrectAttemptByQuestionUnitId] =
     useState<Record<number, boolean>>({});
   const [submitErrorMessage, setSubmitErrorMessage] = useState<string | null>(null);
+  const activeContentIdRef = useRef<number | null>(null);
+  const activeContentViewStartMsRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!practiceRoomQuery.error) return;
@@ -309,6 +314,19 @@ export function usePracticeRoomPageState({
     ? selectedOptionByContentId[activeQuestion.question.id] ?? null
     : null;
 
+  useEffect(() => {
+    if (!activeQuestion) {
+      return;
+    }
+    const activeContentId = activeQuestion.question.id;
+    if (activeContentIdRef.current === activeContentId) {
+      return;
+    }
+    // View-duration timing starts when a concrete content item becomes active, not when the room first opens.
+    activeContentIdRef.current = activeContentId;
+    activeContentViewStartMsRef.current = Date.now();
+  }, [activeQuestion]);
+
   const selectQuestionUnit = (index: number) => {
     if (!roomWithLocalAttempts || roomWithLocalAttempts.questions.length === 0) {
       return;
@@ -363,6 +381,9 @@ export function usePracticeRoomPageState({
 
   const isActiveHintUnlocked = activeQuestion
     ? Boolean(unlockedHintByContentId[activeQuestion.question.id])
+    : false;
+  const hasSubmittedActiveQuestion = activeQuestion
+    ? Boolean(submittedByContentId[activeQuestion.question.id])
     : false;
 
   const goToPreviousQuestionVersion = () => {
@@ -423,15 +444,25 @@ export function usePracticeRoomPageState({
     const studentAnswer: StudentAnswer = {
       selectedOptionIndex,
     };
+    // Local evaluation is used only for immediate optimistic UI; backend remains the source of truth for persisted correctness.
+    const optimisticIsCorrect = isSelectedOptionCorrect(
+      activeQuestion.question,
+      selectedOptionIndex,
+    );
+    const nowMs = Date.now();
+    const viewStartedAtMs =
+      activeContentIdRef.current === activeQuestion.question.id &&
+      activeContentViewStartMsRef.current !== null
+        ? activeContentViewStartMsRef.current
+        : nowMs;
     const payload: SubmitAttemptPayload = {
       moduleUnitId: roomWithLocalAttempts.moduleUnitId,
       questionUnitId: activeQuestionUnit.questionUnitId,
       questionContentId: activeQuestion.question.id,
       sessionId: roomWithLocalAttempts.sessionId,
       practiceMode: PRACTICE_MODES.PRACTICE_ROOM,
-      isCorrect: isSelectedOptionCorrect(activeQuestion.question, selectedOptionIndex),
-      // Timing capture will be introduced with the dedicated attempt-timer flow; submit path is wired first.
-      timeTakenMs: 0,
+      // MVP uses view duration (content shown -> submit). Later we can add interaction-duration as a second metric.
+      timeTakenMs: Math.max(0, nowMs - viewStartedAtMs),
       hintUnlocked: isActiveHintUnlocked,
       studentAnswer,
     };
@@ -443,8 +474,12 @@ export function usePracticeRoomPageState({
         ...previousValue,
         [activeQuestion.question.id]: {
           studentAnswer,
-          isCorrect: payload.isCorrect,
+          isCorrect: optimisticIsCorrect,
         },
+      }));
+      setSubmittedByContentId((previousValue) => ({
+        ...previousValue,
+        [activeQuestion.question.id]: true,
       }));
       if (submitResult.hasCorrectAttempt) {
         setHasCorrectAttemptByQuestionUnitId((previousValue) => ({
@@ -490,6 +525,7 @@ export function usePracticeRoomPageState({
     trackNav,
     questionUnitNav,
     selectedOptionIndex,
+    hasSubmittedActiveQuestion,
     selectQuestionUnit,
     selectOption,
     isActiveHintUnlocked,

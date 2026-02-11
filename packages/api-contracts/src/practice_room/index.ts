@@ -85,7 +85,6 @@ export interface SubmitAttemptPayload {
   questionContentId: number;
   sessionId: number;
   practiceMode: PracticeMode;
-  isCorrect: boolean;
   timeTakenMs: number;
   hintUnlocked: boolean;
   studentAnswer: StudentAnswer;

@@ -147,8 +147,20 @@
   background: #ef4444;
 }
 
-.navBarCurrent .navBarInner {
-  background: var(--color-accent-secondary);
+.navBar.navBarCurrent {
+  transform: scaleY(1.5);
+}
+
+.navBar.navBarCurrent.navBarCorrect {
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.5);
+}
+
+.navBar.navBarCurrent.navBarIncorrect {
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+}
+
+.navBar.navBarCurrent.navBarMuted {
+  box-shadow: 0 0 8px rgba(128, 128, 128, 0.3);
 }
 
 .navBarMuted .navBarInner {
@@ -329,6 +341,48 @@
 .optionButtonSelected {
   border-color: var(--color-accent-primary);
   background: color-mix(in srgb, var(--color-accent-primary) 12%, var(--color-surface-subtle) 88%);
+}
+
+.optionButtonCorrect {
+  border-color: #16a34a;
+  background: color-mix(in srgb, #16a34a 12%, var(--color-surface-subtle) 88%);
+}
+
+.optionButtonIncorrect {
+  border-color: #ef4444;
+  background: color-mix(in srgb, #ef4444 12%, var(--color-surface-subtle) 88%);
+}
+
+.optionButton:disabled {
+  cursor: default;
+}
+
+.optionTextRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.optionStatusCorrect {
+  color: #15803d;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.optionStatusIncorrect {
+  color: #dc2626;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.optionExplanation {
+  margin: 0.45rem 0 0;
+  color: var(--color-text);
+  font-size: 0.85rem;
+  line-height: 1.35;
 }
 
 .hintSection {

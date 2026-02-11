@@ -38,9 +38,6 @@ export class SubmitAttemptDto implements SubmitAttemptPayload {
   @IsIn(Object.values(PRACTICE_MODES))
   practiceMode: PracticeMode;
 
-  @IsBoolean()
-  isCorrect: boolean;
-
   @Type(() => Number)
   @IsInt()
   @Min(0)
