@@ -1,18 +1,5 @@
 import type { QuestionData, questionType } from '@scholarxp/question-type-dtos';
-
-
-//Payload used to create or load a student's active practice room session.
-export interface CreatePracticeRoomPayload {
-  moduleUnitId: number;
-  studentId: number;
-}
-
-
-//Top-level response used by the practice room page on initial load.
-export interface PracticeRoomResponse {
-  practiceRoom: PracticeRoom;
-}
-
+import { PRACTICE_MODES } from '@scholarxp/constants';
 
 // Render-focused session payload with question units in display order.
 export interface PracticeRoom {
@@ -76,4 +63,38 @@ export interface GenericAnswer  {
   data: Record<string, unknown>;
 }
 
+/* ================================================================================================================================================
+    Payloads and response shapes for the practice room module.
+   ================================================================================================================================================
+*/
 
+//Payload used to create or load a student's active practice room session.
+export interface CreatePracticeRoomPayload {
+  moduleUnitId: number;
+  studentId: number;
+}
+
+
+//Top-level response used by the practice room page on initial load.
+export interface PracticeRoomResponse {
+  practiceRoom: PracticeRoom;
+}
+
+// Payload user for submitting an attempt
+export interface SubmitAttemptPayload {
+  moduleUnitId: number;
+  studentId: number;
+  questionUnitId: number;
+  questionContentId: number;
+  practiceMode: (typeof PRACTICE_MODES)[keyof typeof PRACTICE_MODES];
+  isCorrect: boolean;
+  timeTakenMs: number;
+  usedHint: boolean;
+  studentAnswer: StudentAnswer;
+  attemptedAt: Date;
+}
+
+export interface SubmitAttemptResponse {
+  moduleExpGained: number;
+  studentExpGained: number;
+}

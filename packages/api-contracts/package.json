@@ -16,6 +16,7 @@
     "tsup": "^8.3.5",
     "typescript": "^5.7.3",
     "@scholarxp/permissions": "workspace:*",
-    "@scholarxp/question-type-dtos": "workspace:*"
+    "@scholarxp/question-type-dtos": "workspace:*",
+    "@scholarxp/constants": "workspace:*"
   }
 }
