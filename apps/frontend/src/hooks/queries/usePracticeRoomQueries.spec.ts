@@ -3,20 +3,44 @@ import { queryKeys } from '../query-keys';
 
 // Mock react-query's useQuery so we can inspect the options passed in.
 const useQueryMock = vi.fn();
-vi.mock('@tanstack/react-query', () => ({ useQuery: (opts: any) => useQueryMock(opts) }));
+const useMutationMock = vi.fn();
+const invalidateQueriesMock = vi.fn();
+const useQueryClientMock = vi.fn(() => ({
+  invalidateQueries: invalidateQueriesMock,
+}));
+vi.mock('@tanstack/react-query', () => ({
+  useQuery: (opts: any) => useQueryMock(opts),
+  useMutation: (opts: any) => useMutationMock(opts),
+  useQueryClient: () => useQueryClientMock(),
+}));
 
 // Mock the API call so queryFn can be invoked and asserts made.
 const getPracticeRoomMock = vi.fn();
-vi.mock('../../api/modules', () => ({ getPracticeRoom: (...args: any[]) => getPracticeRoomMock(...args) }));
+const submitPracticeRoomAttemptMock = vi.fn();
+vi.mock('../../api/modules', () => ({
+  getPracticeRoom: (...args: any[]) => getPracticeRoomMock(...args),
+  submitPracticeRoomAttempt: (...args: any[]) =>
+    submitPracticeRoomAttemptMock(...args),
+}));
 
-import { usePracticeRoomQuery } from './usePracticeRoomQueries';
+import {
+  usePracticeRoomQuery,
+  useSubmitPracticeRoomAttemptMutation,
+} from './usePracticeRoomQueries';
 
 describe('usePracticeRoomQuery', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     // default return value for useQuery
     useQueryMock.mockReturnValue({ data: 'ok' });
+    useMutationMock.mockReturnValue({ mutateAsync: vi.fn() });
     getPracticeRoomMock.mockResolvedValue('result');
+    submitPracticeRoomAttemptMock.mockResolvedValue({
+      moduleExpAwarded: 0,
+      studentExpAwarded: 0,
+      hasCorrectAttempt: false,
+    });
+    invalidateQueriesMock.mockResolvedValue(undefined);
   });
 
   it('uses numeric ids when both module and unit provided', () => {
@@ -63,5 +87,71 @@ describe('usePracticeRoomQuery', () => {
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     opts.queryFn();
     expect(getPracticeRoomMock).toHaveBeenCalledWith(null, null);
+  });
+});
+
+describe('useSubmitPracticeRoomAttemptMutation', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    useQueryMock.mockReturnValue({ data: 'ok' });
+    useMutationMock.mockReturnValue({ mutateAsync: vi.fn() });
+    getPracticeRoomMock.mockResolvedValue('result');
+    submitPracticeRoomAttemptMock.mockResolvedValue({
+      moduleExpAwarded: 0,
+      studentExpAwarded: 0,
+      hasCorrectAttempt: false,
+    });
+    invalidateQueriesMock.mockResolvedValue(undefined);
+  });
+
+  it('wires mutationFn to submitPracticeRoomAttempt when ids are valid', async () => {
+    useSubmitPracticeRoomAttemptMutation(5, 2);
+
+    const opts = useMutationMock.mock.calls[0][0];
+    const payload = {
+      moduleUnitId: 2,
+      questionUnitId: 20,
+      questionContentId: 50,
+      sessionId: 9,
+      practiceMode: 'PRACTICE_ROOM',
+      isCorrect: true,
+      timeTakenMs: 1234,
+      hintUnlocked: false,
+      studentAnswer: { selectedOptionIndex: 0 },
+    };
+
+    await opts.mutationFn(payload);
+
+    expect(submitPracticeRoomAttemptMock).toHaveBeenCalledWith(5, 2, payload);
+  });
+
+  it('throws when ids are not valid', async () => {
+    useSubmitPracticeRoomAttemptMutation(null, 2);
+
+    const opts = useMutationMock.mock.calls[0][0];
+    expect(() =>
+      opts.mutationFn({
+        moduleUnitId: 2,
+        questionUnitId: 20,
+        questionContentId: 50,
+        sessionId: 9,
+        practiceMode: 'PRACTICE_ROOM',
+        isCorrect: true,
+        timeTakenMs: 1234,
+        hintUnlocked: false,
+        studentAnswer: { selectedOptionIndex: 0 },
+      }),
+    ).toThrow('Cannot submit a practice-room attempt');
+  });
+
+  it('invalidates the active practice room query on success', async () => {
+    useSubmitPracticeRoomAttemptMutation(5, 2);
+
+    const opts = useMutationMock.mock.calls[0][0];
+    await opts.onSuccess();
+
+    expect(invalidateQueriesMock).toHaveBeenCalledWith({
+      queryKey: queryKeys.modules.practiceRoom(5, 2),
+    });
   });
 });

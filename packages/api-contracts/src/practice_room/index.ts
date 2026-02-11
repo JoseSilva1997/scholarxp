@@ -1,9 +1,9 @@
 import type { QuestionData, questionType } from '@scholarxp/question-type-dtos';
-import { PRACTICE_MODES } from '@scholarxp/constants';
+import type { PracticeMode } from '@scholarxp/constants';
 
 // Render-focused session payload with question units in display order.
 export interface PracticeRoom {
-  sessionId: string;
+  sessionId: number;
   moduleUnitId: number;
   moduleUnitTitle: string;
   questions: PracticeRoomQuestionUnit[];
@@ -70,7 +70,6 @@ export interface GenericAnswer  {
 //Payload used to create or load a student's active practice room session.
 export interface CreatePracticeRoomPayload {
   moduleUnitId: number;
-  studentId: number;
 }
 
 
@@ -84,7 +83,8 @@ export interface SubmitAttemptPayload {
   moduleUnitId: number;
   questionUnitId: number;
   questionContentId: number;
-  practiceMode: (typeof PRACTICE_MODES)[keyof typeof PRACTICE_MODES];
+  sessionId: number;
+  practiceMode: PracticeMode;
   isCorrect: boolean;
   timeTakenMs: number;
   hintUnlocked: boolean;

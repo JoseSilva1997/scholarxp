@@ -6,6 +6,7 @@ import { logError } from '../../utils/logger';
 // Mocks for query hooks and utilities used by the hook under test.
 vi.mock('../queries/usePracticeRoomQueries', () => ({
   usePracticeRoomQuery: vi.fn(),
+  useSubmitPracticeRoomAttemptMutation: vi.fn(),
 }));
 vi.mock('../queries/useModulesQueries', () => ({
   useModuleDetailQuery: vi.fn(),
@@ -17,7 +18,10 @@ vi.mock('../../api/get-display-error', () => ({
 vi.mock('../../utils/logger', () => ({ logError: vi.fn() }));
 
 import { usePracticeRoomPageState } from './usePracticeRoomPageState';
-import { usePracticeRoomQuery } from '../queries/usePracticeRoomQueries';
+import {
+  usePracticeRoomQuery,
+  useSubmitPracticeRoomAttemptMutation,
+} from '../queries/usePracticeRoomQueries';
 import { useModuleDetailQuery } from '../queries/useModulesQueries';
 
 // Helper to render a tiny wrapper component that exposes the hook's return value
@@ -42,10 +46,28 @@ function renderHookWithParams(moduleIdParam?: string, unitIdParam?: string) {
 describe('usePracticeRoomPageState', () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    (useSubmitPracticeRoomAttemptMutation as any).mockReturnValue({
+      isPending: false,
+      error: null,
+      mutateAsync: vi.fn().mockResolvedValue({
+        moduleExpAwarded: 0,
+        studentExpAwarded: 0,
+        hasCorrectAttempt: false,
+      }),
+    });
   });
 
   it('parses numeric module/unit ids and exposes parsed values', () => {
     (usePracticeRoomQuery as any).mockReturnValue({ isPending: false, data: null, error: null });
+    (useSubmitPracticeRoomAttemptMutation as any).mockReturnValue({
+      isPending: false,
+      error: null,
+      mutateAsync: vi.fn().mockResolvedValue({
+        moduleExpAwarded: 0,
+        studentExpAwarded: 0,
+        hasCorrectAttempt: false,
+      }),
+    });
     (useModuleDetailQuery as any).mockReturnValue({ isPending: false, data: null, error: null });
 
     const r = renderHookWithParams('5', '2');
@@ -57,6 +79,15 @@ describe('usePracticeRoomPageState', () => {
 
   it('returns page error when ids are missing', () => {
     (usePracticeRoomQuery as any).mockReturnValue({ isPending: false, data: null, error: null });
+    (useSubmitPracticeRoomAttemptMutation as any).mockReturnValue({
+      isPending: false,
+      error: null,
+      mutateAsync: vi.fn().mockResolvedValue({
+        moduleExpAwarded: 0,
+        studentExpAwarded: 0,
+        hasCorrectAttempt: false,
+      }),
+    });
     (useModuleDetailQuery as any).mockReturnValue({ isPending: false, data: null, error: null });
 
     const r = renderHookWithParams(undefined, undefined);

@@ -10,6 +10,8 @@ export declare const BACKEND_URL: string;
 export declare const PRACTICE_MODES: {
   PRACTICE_ROOM: 'PRACTICE_ROOM';
 };
+export type PracticeMode =
+  (typeof PRACTICE_MODES)[keyof typeof PRACTICE_MODES];
 
 // Validation rule constants
 export declare const NAME_MIN_LENGTH: number;

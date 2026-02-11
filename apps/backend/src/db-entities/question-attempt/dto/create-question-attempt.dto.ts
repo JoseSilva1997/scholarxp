@@ -6,6 +6,7 @@ import {
   IsObject,
   IsString,
 } from 'class-validator';
+import type { PracticeMode } from '@scholarxp/constants';
 
 export class CreateQuestionAttemptDto {
   @IsInt()
@@ -24,9 +25,12 @@ export class CreateQuestionAttemptDto {
   @IsNotEmpty()
   contentId: number;
 
+  @IsInt()
+  sessionId: number;
+
   @IsString()
   @IsNotEmpty()
-  practiceMode: string;
+  practiceMode: PracticeMode;
 
   @IsBoolean()
   @IsNotEmpty()

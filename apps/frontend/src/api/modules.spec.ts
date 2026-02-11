@@ -11,6 +11,7 @@ import {
   updateModuleUnitStatus,
   createModuleUnitQuestionGroup,
   deleteModuleUnitQuestionGroup,
+  submitPracticeRoomAttempt,
   updateModuleUnitQuestionGroupName,
 } from './modules';
 
@@ -147,5 +148,29 @@ describe('modules api', () => {
       method: 'PATCH',
       body: JSON.stringify(payload),
     });
+  });
+
+  it('submits practice-room attempt with POST /module/:moduleId/unit/:unitId/practice-room/attempts', async () => {
+    const payload = {
+      moduleUnitId: 99,
+      questionUnitId: 200,
+      questionContentId: 300,
+      sessionId: 55,
+      practiceMode: 'PRACTICE_ROOM',
+      isCorrect: false,
+      timeTakenMs: 4200,
+      hintUnlocked: true,
+      studentAnswer: { selectedOptionIndex: 1 },
+    } as const;
+
+    await submitPracticeRoomAttempt(4, 99, payload);
+
+    expect(clientMocks.apiFetch).toHaveBeenCalledWith(
+      '/module/4/unit/99/practice-room/attempts',
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      },
+    );
   });
 });

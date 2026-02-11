@@ -6,6 +6,10 @@ export const PRACTICE_MODES = {
   PRACTICE_ROOM: 'PRACTICE_ROOM',
 } as const;
 
+// Shared literal union for practice mode values across API contracts and backend DTOs.
+export type PracticeMode =
+  (typeof PRACTICE_MODES)[keyof typeof PRACTICE_MODES];
+
 
 /*
     VALIDATION RULES

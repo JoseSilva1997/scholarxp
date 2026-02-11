@@ -18,7 +18,9 @@ describe('PracticeRoomService', () => {
   let prisma: PrismaMock;
 
   // Mock data builders for consistent test setup
-  const buildMockModuleUnit = (overrides: Partial<LoadedModuleUnit> = {}): LoadedModuleUnit => ({
+  const buildMockModuleUnit = (
+    overrides: Partial<LoadedModuleUnit> = {},
+  ): LoadedModuleUnit => ({
     id: 1,
     title: 'Test Module Unit',
     questionUnits: [],
@@ -34,7 +36,13 @@ describe('PracticeRoomService', () => {
             type: 'mcq',
             isCore: true,
             questionStem: 'Core Question Stem',
-            questionData: { options: [{ optionText: 'A' }, { optionText: 'B' }, { optionText: 'C' }] } as any,
+            questionData: {
+              options: [
+                { optionText: 'A' },
+                { optionText: 'B' },
+                { optionText: 'C' },
+              ],
+            } as any,
             hint: 'Test hint',
             difficultyScore: 5,
           },
@@ -47,7 +55,13 @@ describe('PracticeRoomService', () => {
           id: 20 + id,
           type: 'mcq',
           questionStem: 'Variant Question Stem',
-          questionData: { options: [{ optionText: 'X' }, { optionText: 'Y' }, { optionText: 'Z' }] } as any,
+          questionData: {
+            options: [
+              { optionText: 'X' },
+              { optionText: 'Y' },
+              { optionText: 'Z' },
+            ],
+          } as any,
           hint: null,
           difficultyScore: 6,
         },
@@ -67,7 +81,9 @@ describe('PracticeRoomService', () => {
         id: 11,
         type: 'mcq',
         questionStem: 'Core Question',
-        questionData: { options: [{ optionText: 'A' }, { optionText: 'B' }] } as any,
+        questionData: {
+          options: [{ optionText: 'A' }, { optionText: 'B' }],
+        } as any,
         hint: null,
         difficultyScore: 5,
       },
@@ -79,7 +95,9 @@ describe('PracticeRoomService', () => {
           id: 21,
           type: 'mcq',
           questionStem: 'Variant',
-          questionData: { options: [{ optionText: 'X' }, { optionText: 'Y' }] } as any,
+          questionData: {
+            options: [{ optionText: 'X' }, { optionText: 'Y' }],
+          } as any,
           hint: null,
           difficultyScore: 6,
         },
@@ -141,7 +159,11 @@ describe('PracticeRoomService', () => {
       });
       prisma.questionAttempt.findMany.mockResolvedValue([mockAttempt as any]);
 
-      const result = await service.getPracticeRoom(moduleId, moduleUnitId, studentId);
+      const result = await service.getPracticeRoom(
+        moduleId,
+        moduleUnitId,
+        studentId,
+      );
 
       // Verify session was created
       expect(prisma.practiceSession.create).toHaveBeenCalledWith({
@@ -161,7 +183,7 @@ describe('PracticeRoomService', () => {
 
       // Verify result structure
       expect(result.practiceRoom).toBeDefined();
-      expect(result.practiceRoom.sessionId).toBe('999');
+      expect(result.practiceRoom.sessionId).toBe(999);
       expect(result.practiceRoom.moduleUnitId).toBe(1);
       expect(result.practiceRoom.moduleUnitTitle).toBe('Test Module Unit');
       expect(result.practiceRoom.questions).toHaveLength(2);
@@ -171,12 +193,12 @@ describe('PracticeRoomService', () => {
     it('should throw NotFoundException when module unit does not exist', async () => {
       prisma.moduleUnit.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.getPracticeRoom(1, 10, 100),
-      ).rejects.toThrow(NotFoundException);
-      await expect(
-        service.getPracticeRoom(1, 10, 100),
-      ).rejects.toThrow('Module unit not found');
+      await expect(service.getPracticeRoom(1, 10, 100)).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.getPracticeRoom(1, 10, 100)).rejects.toThrow(
+        'Module unit not found',
+      );
     });
 
     // ===== BASIS PATH: Empty module unit =====
@@ -263,7 +285,9 @@ describe('PracticeRoomService', () => {
       expect(call?.select?.questionUnits).toBeDefined();
       expect(call?.select?.questionUnits?.include?.contents).toBeDefined();
       expect(call?.select?.questionUnits?.include?.variants).toBeDefined();
-      expect(call?.select?.questionUnits?.include?.variants?.include?.content).toBeDefined();
+      expect(
+        call?.select?.questionUnits?.include?.variants?.include?.content,
+      ).toBeDefined();
     });
   });
 
@@ -313,24 +337,26 @@ describe('PracticeRoomService', () => {
 
       const call = prisma.practiceSession.create.mock.calls[0]?.[0] as any;
       const afterCall = new Date();
-      const startTime = call?.data?.startTime instanceof Date ? call.data.startTime : new Date(call?.data?.startTime);
-      expect(startTime.getTime()).toBeGreaterThanOrEqual(
-        beforeCall.getTime(),
-      );
-      expect(startTime.getTime()).toBeLessThanOrEqual(
-        afterCall.getTime(),
-      );
+      const startTime =
+        call?.data?.startTime instanceof Date
+          ? call.data.startTime
+          : new Date(call?.data?.startTime);
+      expect(startTime.getTime()).toBeGreaterThanOrEqual(beforeCall.getTime());
+      expect(startTime.getTime()).toBeLessThanOrEqual(afterCall.getTime());
     });
   });
 
   describe('getLatestAttempts (private)', () => {
     // ===== HAPPY PATH: Attempts found for multiple questions =====
     it('should fetch and transform attempts when question and content ids exist', async () => {
-      const questionUnitDrafts = [buildQuestionUnitDraft(), buildQuestionUnitDraft({
-        questionUnitId: 2,
-        coreContentId: 12,
-        variantContentIds: [22],
-      })];
+      const questionUnitDrafts = [
+        buildQuestionUnitDraft(),
+        buildQuestionUnitDraft({
+          questionUnitId: 2,
+          coreContentId: 12,
+          variantContentIds: [22],
+        }),
+      ];
 
       const mockAttempts = [
         buildAttempt({ questionId: 1, contentId: 11 }),
@@ -383,11 +409,7 @@ describe('PracticeRoomService', () => {
       // This is tricky because we'd need to mock the drafts such that
       // both contentIds ends up empty. In practice, this means no cores and no variants.
       // But our builder always creates at least a core. Let's directly test with mocked empty array.
-      const result = await (service as any).getLatestAttempts(
-        10,
-        100,
-        [],
-      );
+      const result = await (service as any).getLatestAttempts(10, 100, []);
 
       expect(result).toEqual([]);
       expect(prisma.questionAttempt.findMany).not.toHaveBeenCalled();
@@ -421,8 +443,16 @@ describe('PracticeRoomService', () => {
     it('should return all attempts as-is (de-duplication happens in mapper)', async () => {
       const questionUnitDrafts = [buildQuestionUnitDraft()];
       const mockAttempts = [
-        buildAttempt({ questionId: 1, contentId: 11, attemptedAt: new Date('2026-02-01T12:00:00Z') }),
-        buildAttempt({ questionId: 1, contentId: 11, attemptedAt: new Date('2026-02-01T10:00:00Z') }),
+        buildAttempt({
+          questionId: 1,
+          contentId: 11,
+          attemptedAt: new Date('2026-02-01T12:00:00Z'),
+        }),
+        buildAttempt({
+          questionId: 1,
+          contentId: 11,
+          attemptedAt: new Date('2026-02-01T10:00:00Z'),
+        }),
       ];
       prisma.questionAttempt.findMany.mockResolvedValue(mockAttempts as any);
 
@@ -481,10 +511,7 @@ describe('PracticeRoomService', () => {
       await (service as any).getLatestAttempts(10, 100, questionUnitDrafts);
 
       const call = prisma.questionAttempt.findMany.mock.calls[0]?.[0] as any;
-      expect(call?.orderBy).toEqual([
-        { attemptedAt: 'desc' },
-        { id: 'desc' },
-      ]);
+      expect(call?.orderBy).toEqual([{ attemptedAt: 'desc' }, { id: 'desc' }]);
     });
 
     // ===== DATA TRANSFORMATION: Attempt shape =====
@@ -531,10 +558,7 @@ describe('PracticeRoomService', () => {
       const mockModuleUnit = buildMockModuleUnit({
         id: moduleUnitId,
         title: 'Advanced Calculus Unit 2',
-        questionUnits: [
-          buildQuestionUnit(1, true),
-          buildQuestionUnit(2, true),
-        ],
+        questionUnits: [buildQuestionUnit(1, true), buildQuestionUnit(2, true)],
       });
 
       prisma.moduleUnit.findFirst.mockResolvedValue(mockModuleUnit as any);
@@ -546,12 +570,18 @@ describe('PracticeRoomService', () => {
       ];
       prisma.questionAttempt.findMany.mockResolvedValue(attempts as any);
 
-      const result = await service.getPracticeRoom(moduleId, moduleUnitId, studentId);
+      const result = await service.getPracticeRoom(
+        moduleId,
+        moduleUnitId,
+        studentId,
+      );
 
       // Verify complete result
-      expect(result.practiceRoom.sessionId).toBe('12345');
+      expect(result.practiceRoom.sessionId).toBe(12345);
       expect(result.practiceRoom.moduleUnitId).toBe(moduleUnitId);
-      expect(result.practiceRoom.moduleUnitTitle).toBe('Advanced Calculus Unit 2');
+      expect(result.practiceRoom.moduleUnitTitle).toBe(
+        'Advanced Calculus Unit 2',
+      );
       expect(result.practiceRoom.questions).toHaveLength(2);
 
       // Verify all methods were called
@@ -593,9 +623,9 @@ describe('PracticeRoomService', () => {
         new Error('Database connection failed'),
       );
 
-      await expect(
-        service.getPracticeRoom(1, 10, 100),
-      ).rejects.toThrow('Database connection failed');
+      await expect(service.getPracticeRoom(1, 10, 100)).rejects.toThrow(
+        'Database connection failed',
+      );
     });
 
     // ===== ERROR PROPAGATION: Database error in attempts query =====
@@ -609,16 +639,101 @@ describe('PracticeRoomService', () => {
         new Error('Query timeout'),
       );
 
+      await expect(service.getPracticeRoom(1, 10, 100)).rejects.toThrow(
+        'Query timeout',
+      );
+    });
+  });
+
+  describe('submitAttempt', () => {
+    it('creates an attempt and marks hasCorrectAttempt true when submission is correct', async () => {
+      prisma.practiceSession.findFirst.mockResolvedValue({ id: 77 } as any);
+      prisma.questionUnit.findFirst.mockResolvedValue({
+        id: 201,
+        contents: [{ id: 301 }],
+        variants: [],
+      } as any);
+      prisma.questionAttempt.findFirst.mockResolvedValue(null);
+      prisma.questionAttempt.create.mockResolvedValue({ id: 999 } as any);
+
+      const result = await service.submitAttempt(1, 10, 100, {
+        moduleUnitId: 10,
+        questionUnitId: 201,
+        questionContentId: 301,
+        sessionId: 77,
+        practiceMode: 'PRACTICE_ROOM' as any,
+        isCorrect: true,
+        timeTakenMs: 1200,
+        hintUnlocked: false,
+        studentAnswer: { selectedOptionIndex: 2 } as any,
+      });
+
+      expect(prisma.questionAttempt.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          moduleUnitId: 10,
+          studentId: 100,
+          questionId: 201,
+          contentId: 301,
+          sessionId: 77,
+          practiceMode: 'PRACTICE_ROOM',
+          isCorrect: true,
+          timeTakenMs: 1200,
+          hintsUsed: 0,
+          studentAnswer: { selectedOptionIndex: 2 },
+          attemptedAt: expect.any(Date),
+        }),
+        select: { id: true },
+      });
+      expect(result).toEqual({
+        moduleExpAwarded: 0,
+        studentExpAwarded: 0,
+        hasCorrectAttempt: true,
+      });
+    });
+
+    it('throws when payload module unit does not match route module unit', async () => {
       await expect(
-        service.getPracticeRoom(1, 10, 100),
-      ).rejects.toThrow('Query timeout');
+        service.submitAttempt(1, 10, 100, {
+          moduleUnitId: 999,
+          questionUnitId: 201,
+          questionContentId: 301,
+          sessionId: 77,
+          practiceMode: 'PRACTICE_ROOM' as any,
+          isCorrect: false,
+          timeTakenMs: 1200,
+          hintUnlocked: true,
+          studentAnswer: { selectedOptionIndex: 2 } as any,
+        }),
+      ).rejects.toThrow(
+        'Submitted module unit does not match the current route.',
+      );
+    });
+
+    it('throws when session does not belong to student/module', async () => {
+      prisma.practiceSession.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.submitAttempt(1, 10, 100, {
+          moduleUnitId: 10,
+          questionUnitId: 201,
+          questionContentId: 301,
+          sessionId: 77,
+          practiceMode: 'PRACTICE_ROOM' as any,
+          isCorrect: false,
+          timeTakenMs: 1200,
+          hintUnlocked: true,
+          studentAnswer: { selectedOptionIndex: 2 } as any,
+        }),
+      ).rejects.toThrow('Practice session not found for this module.');
     });
   });
 
   describe('Boundary conditions', () => {
     // ===== LARGE DATASET =====
     it('should handle module unit with many questions', async () => {
-      const questions = Array.from({ length: 100 }, (_, i) => buildQuestionUnit(i + 1, true));
+      const questions = Array.from({ length: 100 }, (_, i) =>
+        buildQuestionUnit(i + 1, true),
+      );
       const mockModuleUnit = buildMockModuleUnit({ questionUnits: questions });
       prisma.moduleUnit.findFirst.mockResolvedValue(mockModuleUnit as any);
       prisma.practiceSession.create.mockResolvedValue({ id: 1000 } as any);
@@ -677,7 +792,7 @@ describe('PracticeRoomService', () => {
 
       const result = await service.getPracticeRoom(777777, 999999, 666666);
 
-      expect(result.practiceRoom.sessionId).toBe('9999999');
+      expect(result.practiceRoom.sessionId).toBe(9999999);
       expect(result.practiceRoom.moduleUnitId).toBe(999999);
     });
   });

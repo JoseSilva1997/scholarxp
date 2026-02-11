@@ -1,13 +1,20 @@
 // Encapsulates practice-room route orchestration so the page component can stay presentational.
 import { useEffect, useMemo, useState } from 'react';
 import type {
+  PracticeRoomAttempt,
+  PracticeRoomResponse,
   PracticeRoomQuestion,
   PracticeRoomQuestionUnit,
+  StudentAnswer,
+  SubmitAttemptPayload,
 } from '@scholarxp/api-contracts';
-import { MODULE_EXP_MAX } from '@scholarxp/constants';
+import { MODULE_EXP_MAX, PRACTICE_MODES } from '@scholarxp/constants';
 import { getDisplayErrorMessage, shouldLogApiError } from '../../api/get-display-error';
 import { logError } from '../../utils/logger';
-import { usePracticeRoomQuery } from '../queries/usePracticeRoomQueries';
+import {
+  usePracticeRoomQuery,
+  useSubmitPracticeRoomAttemptMutation,
+} from '../queries/usePracticeRoomQueries';
 import { useModuleDetailQuery } from '../queries/useModulesQueries';
 
 type UsePracticeRoomPageStateParams = {
@@ -62,6 +69,10 @@ export function usePracticeRoomPageState({
   }, [unitIdParam]);
 
   const practiceRoomQuery = usePracticeRoomQuery(parsedModuleId, parsedUnitId);
+  const submitAttemptMutation = useSubmitPracticeRoomAttemptMutation(
+    parsedModuleId,
+    parsedUnitId,
+  );
   const moduleDetailQuery = useModuleDetailQuery(parsedModuleId);
   const room = practiceRoomQuery.data?.practiceRoom ?? null;
   const moduleDetail = moduleDetailQuery.data ?? null;
@@ -76,6 +87,12 @@ export function usePracticeRoomPageState({
   const [unlockedHintByContentId, setUnlockedHintByContentId] = useState<
     Record<number, boolean>
   >({});
+  const [submittedAttemptByContentId, setSubmittedAttemptByContentId] = useState<
+    Record<number, PracticeRoomAttempt>
+  >({});
+  const [hasCorrectAttemptByQuestionUnitId, setHasCorrectAttemptByQuestionUnitId] =
+    useState<Record<number, boolean>>({});
+  const [submitErrorMessage, setSubmitErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!practiceRoomQuery.error) return;
@@ -100,12 +117,29 @@ export function usePracticeRoomPageState({
     }
   }, [moduleDetailQuery.error, parsedModuleId]);
 
+  const roomWithLocalAttempts = useMemo(() => {
+    if (!room) {
+      return null;
+    }
+
+    return {
+      ...room,
+      questions: room.questions.map((questionUnit) =>
+        applySubmittedAttemptOverrides(
+          questionUnit,
+          submittedAttemptByContentId,
+          hasCorrectAttemptByQuestionUnitId[questionUnit.questionUnitId] ?? false,
+        ),
+      ),
+    } satisfies PracticeRoomResponse['practiceRoom'];
+  }, [hasCorrectAttemptByQuestionUnitId, room, submittedAttemptByContentId]);
+
   const seededOptionByContentId = useMemo(() => {
-    if (!room) return {};
+    if (!roomWithLocalAttempts) return {};
 
     // Seed option selections from latest attempts to preserve continuity when students re-enter a session.
     const seededSelection: Record<number, number> = {};
-    for (const questionUnit of room.questions) {
+    for (const questionUnit of roomWithLocalAttempts.questions) {
       const coreAttemptSelection = readSelectedOptionIndex(
         questionUnit.coreQuestion.lastAttempt?.studentAnswer,
       );
@@ -124,7 +158,7 @@ export function usePracticeRoomPageState({
       }
     }
     return seededSelection;
-  }, [room]);
+  }, [roomWithLocalAttempts]);
 
   const selectedOptionByContentId = useMemo(
     () => ({
@@ -135,13 +169,21 @@ export function usePracticeRoomPageState({
   );
 
   const activeQuestionUnit = useMemo<PracticeRoomQuestionUnit | null>(() => {
-    if (!room || room.questions.length === 0) return null;
+    if (!roomWithLocalAttempts || roomWithLocalAttempts.questions.length === 0) {
+      return null;
+    }
     const clampedSelectedIndex = Math.max(
       0,
-      Math.min(selectedQuestionUnitIndex, room.questions.length - 1),
+      Math.min(
+        selectedQuestionUnitIndex,
+        roomWithLocalAttempts.questions.length - 1,
+      ),
     );
-    return room.questions[clampedSelectedIndex] ?? room.questions[0];
-  }, [room, selectedQuestionUnitIndex]);
+    return (
+      roomWithLocalAttempts.questions[clampedSelectedIndex] ??
+      roomWithLocalAttempts.questions[0]
+    );
+  }, [roomWithLocalAttempts, selectedQuestionUnitIndex]);
 
   const activeQuestion = useMemo<ActiveQuestionVariant | null>(() => {
     if (!activeQuestionUnit) return null;
@@ -208,14 +250,15 @@ export function usePracticeRoomPageState({
   }, [activeQuestion]);
 
   const questionUnitNav = useMemo<QuestionUnitNav>(() => {
-    if (!room || room.questions.length === 0) {
+    if (!roomWithLocalAttempts || roomWithLocalAttempts.questions.length === 0) {
       return { canGoPrevious: false, canGoNext: false };
     }
     return {
       canGoPrevious: selectedQuestionUnitIndex > 0,
-      canGoNext: selectedQuestionUnitIndex < room.questions.length - 1,
+      canGoNext:
+        selectedQuestionUnitIndex < roomWithLocalAttempts.questions.length - 1,
     };
-  }, [room, selectedQuestionUnitIndex]);
+  }, [roomWithLocalAttempts, selectedQuestionUnitIndex]);
 
   const pageError = useMemo(() => {
     if (!parsedModuleId || !parsedUnitId) {
@@ -259,8 +302,13 @@ export function usePracticeRoomPageState({
     : null;
 
   const selectQuestionUnit = (index: number) => {
-    if (!room || room.questions.length === 0) return;
-    const clampedIndex = Math.max(0, Math.min(index, room.questions.length - 1));
+    if (!roomWithLocalAttempts || roomWithLocalAttempts.questions.length === 0) {
+      return;
+    }
+    const clampedIndex = Math.max(
+      0,
+      Math.min(index, roomWithLocalAttempts.questions.length - 1),
+    );
     setSelectedQuestionUnitIndex(clampedIndex);
   };
 
@@ -272,7 +320,7 @@ export function usePracticeRoomPageState({
   };
 
   const selectVariantQuestion = (questionUnitId: number, variantIndex: number) => {
-    const questionUnit = room?.questions.find(
+    const questionUnit = roomWithLocalAttempts?.questions.find(
       (candidate) => candidate.questionUnitId === questionUnitId,
     );
     if (!questionUnit) {
@@ -342,20 +390,90 @@ export function usePracticeRoomPageState({
   };
 
   const goToNextQuestionUnit = () => {
-    if (!room || !questionUnitNav.canGoNext) return;
+    if (!roomWithLocalAttempts || !questionUnitNav.canGoNext) return;
     // Cap next index to array bounds to keep navigation resilient after refetches.
     setSelectedQuestionUnitIndex((previousValue) =>
-      Math.min(room.questions.length - 1, previousValue + 1),
+      Math.min(roomWithLocalAttempts.questions.length - 1, previousValue + 1),
     );
+  };
+
+  const canSubmitAttempt =
+    Boolean(roomWithLocalAttempts && activeQuestionUnit && activeQuestion) &&
+    selectedOptionIndex !== null &&
+    !submitAttemptMutation.isPending;
+
+  const submitActiveQuestionAttempt = async () => {
+    if (
+      !roomWithLocalAttempts ||
+      !activeQuestionUnit ||
+      !activeQuestion ||
+      selectedOptionIndex === null
+    ) {
+      return;
+    }
+
+    const studentAnswer: StudentAnswer = {
+      selectedOptionIndex,
+    };
+    const payload: SubmitAttemptPayload = {
+      moduleUnitId: roomWithLocalAttempts.moduleUnitId,
+      questionUnitId: activeQuestionUnit.questionUnitId,
+      questionContentId: activeQuestion.question.id,
+      sessionId: roomWithLocalAttempts.sessionId,
+      practiceMode: PRACTICE_MODES.PRACTICE_ROOM,
+      isCorrect: isSelectedOptionCorrect(activeQuestion.question, selectedOptionIndex),
+      // Timing capture will be introduced with the dedicated attempt-timer flow; submit path is wired first.
+      timeTakenMs: 0,
+      hintUnlocked: isActiveHintUnlocked,
+      studentAnswer,
+    };
+
+    setSubmitErrorMessage(null);
+    try {
+      const submitResult = await submitAttemptMutation.mutateAsync(payload);
+      setSubmittedAttemptByContentId((previousValue) => ({
+        ...previousValue,
+        [activeQuestion.question.id]: {
+          studentAnswer,
+          isCorrect: payload.isCorrect,
+        },
+      }));
+      if (submitResult.hasCorrectAttempt) {
+        setHasCorrectAttemptByQuestionUnitId((previousValue) => ({
+          ...previousValue,
+          [activeQuestionUnit.questionUnitId]: true,
+        }));
+      }
+    } catch (error) {
+      const message = getDisplayErrorMessage(error, {
+        fallbackMessage:
+          'We could not submit your answer right now. Please try again.',
+      });
+      setSubmitErrorMessage(message);
+      if (shouldLogApiError(error)) {
+        logError(error, {
+          feature: 'practice-room',
+          action: 'submit-attempt',
+          moduleId: parsedModuleId,
+          unitId: parsedUnitId,
+        });
+      }
+    }
   };
 
   return {
     parsedModuleId,
     parsedUnitId,
-    room,
+    room: roomWithLocalAttempts,
     moduleProgress,
-    isLoading: practiceRoomQuery.isPending || moduleDetailQuery.isPending,
+    isLoading:
+      practiceRoomQuery.isPending ||
+      moduleDetailQuery.isPending ||
+      submitAttemptMutation.isPending,
     pageError,
+    submitErrorMessage,
+    isSubmittingAttempt: submitAttemptMutation.isPending,
+    canSubmitAttempt,
     selectedQuestionUnitIndex,
     activeQuestionUnit,
     activeQuestion,
@@ -367,10 +485,47 @@ export function usePracticeRoomPageState({
     selectOption,
     isActiveHintUnlocked,
     unlockHintForContent,
+    submitActiveQuestionAttempt,
     goToPreviousQuestionVersion,
     goToNextQuestionVersion,
     goToPreviousQuestionUnit,
     goToNextQuestionUnit,
+  };
+}
+
+// Apply local submissions over server snapshots so unlocking/status bars update instantly while query refetch catches up.
+function applySubmittedAttemptOverrides(
+  questionUnit: PracticeRoomQuestionUnit,
+  submittedAttemptByContentId: Record<number, PracticeRoomAttempt>,
+  forceHasCorrectAttempt: boolean,
+): PracticeRoomQuestionUnit {
+  const coreAttemptOverride =
+    submittedAttemptByContentId[questionUnit.coreQuestion.questionContent.id];
+  const coreQuestion = {
+    ...questionUnit.coreQuestion,
+    lastAttempt: coreAttemptOverride ?? questionUnit.coreQuestion.lastAttempt,
+  };
+  const variants = questionUnit.variants.map((variant) => {
+    const variantAttemptOverride =
+      submittedAttemptByContentId[variant.questionContent.id];
+    return {
+      ...variant,
+      lastAttempt: variantAttemptOverride ?? variant.lastAttempt,
+    };
+  });
+
+  const hasCorrectAttempt =
+    forceHasCorrectAttempt ||
+    coreQuestion.lastAttempt?.isCorrect === true ||
+    variants.some((variant) => variant.lastAttempt?.isCorrect === true)
+      ? true
+      : null;
+
+  return {
+    ...questionUnit,
+    hasCorrectAttempt,
+    coreQuestion,
+    variants,
   };
 }
 
@@ -438,4 +593,38 @@ function readQuestionOptions(
       typeof option === 'object' &&
       typeof option.optionText === 'string',
   );
+}
+
+// Frontend uses question authoring metadata to compute correctness until backend grading/explanation flow is introduced.
+function isSelectedOptionCorrect(
+  question: PracticeRoomQuestion,
+  selectedOptionIndex: number,
+): boolean {
+  if (!question.questionData || typeof question.questionData !== 'object') {
+    return false;
+  }
+
+  if (
+    question.type === 'mcq' &&
+    'correctOptionIndex' in question.questionData &&
+    typeof question.questionData.correctOptionIndex === 'number'
+  ) {
+    return question.questionData.correctOptionIndex === selectedOptionIndex;
+  }
+
+  if (
+    question.type === 'true-false' &&
+    'trueOption' in question.questionData &&
+    'falseOption' in question.questionData &&
+    question.questionData.trueOption &&
+    question.questionData.falseOption &&
+    typeof question.questionData.trueOption === 'object' &&
+    typeof question.questionData.falseOption === 'object'
+  ) {
+    return selectedOptionIndex === 0
+      ? Boolean(question.questionData.trueOption.isCorrect)
+      : Boolean(question.questionData.falseOption.isCorrect);
+  }
+
+  return false;
 }

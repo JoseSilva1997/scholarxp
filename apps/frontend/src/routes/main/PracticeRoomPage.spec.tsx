@@ -3,7 +3,8 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PracticeRoomQuestionUnit } from '@scholarxp/api-contracts';
-import PracticeRoomPage, { getQuestionUnitStatusClass } from './PracticeRoomPage';
+import PracticeRoomPage from './PracticeRoomPage';
+import { getQuestionUnitStatusClass } from './practice-room-status';
 
 // Helper to create minimal mock PracticeRoomQuestionUnit for testing
 function createMockQuestionUnit(
@@ -60,6 +61,7 @@ const mocks = vi.hoisted(() => ({
   goToNextQuestionVersion: vi.fn(),
   goToPreviousQuestionUnit: vi.fn(),
   goToNextQuestionUnit: vi.fn(),
+  submitActiveQuestionAttempt: vi.fn(),
 }));
 
 let pageState: {
@@ -72,6 +74,9 @@ let pageState: {
   moduleProgress: { level: number; currentExp: number; expPercent: number } | null;
   isLoading: boolean;
   pageError: string | null;
+  submitErrorMessage: string | null;
+  isSubmittingAttempt: boolean;
+  canSubmitAttempt: boolean;
   selectedQuestionUnitIndex: number;
   activeQuestionUnit: PracticeRoomQuestionUnit | null;
   activeQuestion: { kind: 'core' | 'variant'; question: any } | null;
@@ -87,6 +92,9 @@ let pageState: {
   moduleProgress: null,
   isLoading: true,
   pageError: null,
+  submitErrorMessage: null,
+  isSubmittingAttempt: false,
+  canSubmitAttempt: false,
   selectedQuestionUnitIndex: 0,
   activeQuestionUnit: null,
   activeQuestion: null,
@@ -116,6 +124,7 @@ vi.mock('../../hooks/page-state/usePracticeRoomPageState', () => ({
     goToNextQuestionVersion: mocks.goToNextQuestionVersion,
     goToPreviousQuestionUnit: mocks.goToPreviousQuestionUnit,
     goToNextQuestionUnit: mocks.goToNextQuestionUnit,
+    submitActiveQuestionAttempt: mocks.submitActiveQuestionAttempt,
   }),
 }));
 
@@ -135,6 +144,9 @@ describe('PracticeRoomPage route', () => {
       moduleProgress: null,
       isLoading: true,
       pageError: null,
+      submitErrorMessage: null,
+      isSubmittingAttempt: false,
+      canSubmitAttempt: false,
       selectedQuestionUnitIndex: 0,
       activeQuestionUnit: null,
       activeQuestion: null,

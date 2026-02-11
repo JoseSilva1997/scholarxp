@@ -10,6 +10,8 @@ import type {
   ModuleUnitEditorResponse,
   ModuleUnitGroupResponse,
   PracticeRoomResponse,
+  SubmitAttemptPayload,
+  SubmitAttemptResponse,
 } from '@scholarxp/api-contracts';
 import { apiFetch } from './client';
 
@@ -81,6 +83,20 @@ export async function getPracticeRoom(
     `/module/${moduleId}/unit/${moduleUnitId}/practice-room`,
     {
       method: 'GET',
+    },
+  );
+}
+
+export async function submitPracticeRoomAttempt(
+  moduleId: number,
+  moduleUnitId: number,
+  payload: SubmitAttemptPayload,
+): Promise<SubmitAttemptResponse> {
+  return apiFetch<SubmitAttemptResponse>(
+    `/module/${moduleId}/unit/${moduleUnitId}/practice-room/attempts`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
     },
   );
 }

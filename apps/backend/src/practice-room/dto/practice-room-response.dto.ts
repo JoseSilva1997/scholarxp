@@ -18,7 +18,7 @@ export class PracticeRoomResponseDto implements PracticeRoomResponse {
 }
 
 export class PracticeRoomDto implements PracticeRoom {
-  sessionId!: string;
+  sessionId!: number;
   moduleUnitId!: number;
   moduleUnitTitle!: string;
   questions!: PracticeRoomQuestionUnitDto[];
@@ -41,7 +41,6 @@ export class QuestionWithLatestAttemptDto implements QuestionWithLatestAttempt {
 export class PracticeRoomAttemptDto implements PracticeRoomAttempt {
   studentAnswer!: StudentAnswer | null;
   isCorrect!: boolean | null;
-  attemptedAt!: string;
 }
 
 export class PracticeRoomQuestionDto implements PracticeRoomQuestion {

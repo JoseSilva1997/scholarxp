@@ -10,7 +10,7 @@ import type {
 } from './practice-room.types';
 
 type BuildResponseInput = {
-  sessionId: string;
+  sessionId: number;
   moduleUnitId: number;
   moduleUnitTitle: string;
   questionUnitDrafts: RoomQuestionUnitDraft[];
@@ -154,7 +154,6 @@ export class PracticeRoomMapper {
     return {
       studentAnswer: attempt.studentAnswer as unknown as StudentAnswer,
       isCorrect: attempt.isCorrect,
-      attemptedAt: attempt.attemptedAt.toISOString(),
     };
   }
 }

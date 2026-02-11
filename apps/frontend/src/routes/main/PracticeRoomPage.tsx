@@ -11,7 +11,7 @@ import expIcon from '../../assets/exp_icon.svg';
 import MainSection from '../../components/MainSection';
 import { usePracticeRoomPageState } from '../../hooks/page-state/usePracticeRoomPageState';
 import styles from './PracticeRoomPage.module.css';
-import type { PracticeRoomQuestionUnit } from '@scholarxp/api-contracts';
+import { getQuestionUnitStatusClass } from './practice-room-status';
 
 export default function PracticeRoomPage() {
   const { moduleId, unitId } = useParams<{ moduleId: string; unitId: string }>();
@@ -22,6 +22,9 @@ export default function PracticeRoomPage() {
     moduleProgress,
     isLoading,
     pageError,
+    submitErrorMessage,
+    isSubmittingAttempt,
+    canSubmitAttempt,
     selectedQuestionUnitIndex,
     activeQuestionUnit,
     activeQuestion,
@@ -33,6 +36,7 @@ export default function PracticeRoomPage() {
     selectOption,
     isActiveHintUnlocked,
     unlockHintForContent,
+    submitActiveQuestionAttempt,
     goToPreviousQuestionVersion,
     goToNextQuestionVersion,
     goToPreviousQuestionUnit,
@@ -222,6 +226,25 @@ export default function PracticeRoomPage() {
                 </div>
               ) : null}
 
+              {submitErrorMessage ? (
+                <div className={styles.submitError} role="alert">
+                  {submitErrorMessage}
+                </div>
+              ) : null}
+
+              <div className={styles.submitRow}>
+                <button
+                  type="button"
+                  className={styles.submitButton}
+                  onClick={() => {
+                    void submitActiveQuestionAttempt();
+                  }}
+                  disabled={!canSubmitAttempt}
+                >
+                  {isSubmittingAttempt ? 'Submitting…' : 'Submit answer'}
+                </button>
+              </div>
+
               <div className={styles.questionUnitTrackNav}>
                 <button
                   type="button"
@@ -259,31 +282,4 @@ export default function PracticeRoomPage() {
       ) : null}
     </MainSection>
   );
-}
-
-// Derives visual state from current focus and attempts so nav bars communicate progress at a glance.
-export function getQuestionUnitStatusClass(
-  params: {
-    questionUnit: PracticeRoomQuestionUnit;
-    isCurrent: boolean;
-  },
-  css: Record<string, string>,
-) {
-  const { questionUnit, isCurrent } = params;
-  if (isCurrent) {
-    return css.navBarCurrent;
-  }
-  if (questionUnit.hasCorrectAttempt) {
-    return css.navBarCorrect;
-  }
-
-  // Any recorded attempt with no correctness indicates an incorrect progression so far.
-  const hasAnyAttempt =
-    questionUnit.coreQuestion.lastAttempt !== null ||
-    questionUnit.variants.some((variant) => variant.lastAttempt !== null);
-  if (hasAnyAttempt) {
-    return css.navBarIncorrect;
-  }
-
-  return css.navBarMuted;
 }
