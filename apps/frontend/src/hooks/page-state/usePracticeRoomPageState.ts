@@ -429,6 +429,7 @@ export function usePracticeRoomPageState({
   const canSubmitAttempt =
     Boolean(roomWithLocalAttempts && activeQuestionUnit && activeQuestion) &&
     selectedOptionIndex !== null &&
+    !hasSubmittedActiveQuestion &&
     !submitAttemptMutation.isPending;
 
   const submitActiveQuestionAttempt = async () => {
@@ -436,7 +437,8 @@ export function usePracticeRoomPageState({
       !roomWithLocalAttempts ||
       !activeQuestionUnit ||
       !activeQuestion ||
-      selectedOptionIndex === null
+      selectedOptionIndex === null ||
+      hasSubmittedActiveQuestion
     ) {
       return;
     }

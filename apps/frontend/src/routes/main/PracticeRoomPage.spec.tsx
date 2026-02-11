@@ -1064,11 +1064,11 @@ describe('getQuestionUnitStatusClass', () => {
   };
 
   // Branch: isCurrent is true
-  it('returns navBarCurrent when question unit is current', () => {
+  it('returns navBarCurrent plus status when question unit is current', () => {
     const questionUnit = createMockQuestionUnit({ questionUnitId: 1, position: 0 });
 
     const result = getQuestionUnitStatusClass({ questionUnit, isCurrent: true }, mockCss);
-    expect(result).toBe('current');
+    expect(result).toBe('current muted');
   });
 
   // Branch: hasCorrectAttempt is true
@@ -1148,7 +1148,7 @@ describe('getQuestionUnitStatusClass', () => {
   });
 
   // Branch: isCurrent takes precedence over other states
-  it('prioritizes isCurrent even when hasCorrectAttempt is true', () => {
+  it('includes current class when question unit is current and already correct', () => {
     const questionUnit = createMockQuestionUnit({
       questionUnitId: 1,
       position: 0,
@@ -1156,7 +1156,7 @@ describe('getQuestionUnitStatusClass', () => {
     });
 
     const result = getQuestionUnitStatusClass({ questionUnit, isCurrent: true }, mockCss);
-    expect(result).toBe('current');
+    expect(result).toBe('current correct');
   });
 
   // Branch: multiple variants with no attempts returns muted

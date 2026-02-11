@@ -276,7 +276,11 @@ export default function PracticeRoomPage() {
                     }}
                     disabled={!canSubmitAttempt}
                   >
-                    {isSubmittingAttempt ? 'Submitting…' : 'Submit answer'}
+                    {isSubmittingAttempt
+                      ? 'Submitting…'
+                      : hasSubmittedActiveQuestion
+                        ? 'Submitted'
+                        : 'Submit answer'}
                   </button>
                 </div>
 
