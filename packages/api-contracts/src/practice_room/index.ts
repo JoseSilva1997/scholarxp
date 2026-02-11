@@ -68,7 +68,7 @@ export interface McqAnswer {
 }
 
 export interface TrueFalseAnswer {
-  selectedOptionIndex: number; // 0 for false, 1 for true
+  selectedOptionIndex: number;
 }
 
 // For future question types, we can extend this union with new interfaces as needed.

@@ -24,6 +24,8 @@ type ActiveQuestionVariant = {
 // Minimal question-data shape used to render selectable options in the current practice-room panel.
 type QuestionDataWithOptions = {
   options: Array<{ optionText: string }>;
+  trueOption?: { isCorrect: boolean; explanation?: string };
+  falseOption?: { isCorrect: boolean; explanation?: string };
 };
 
 type ModuleProgress = {
@@ -34,6 +36,11 @@ type ModuleProgress = {
 
 type QuestionTrackNav = {
   activeLabel: string;
+  canGoPrevious: boolean;
+  canGoNext: boolean;
+};
+
+type QuestionUnitNav = {
   canGoPrevious: boolean;
   canGoNext: boolean;
 };
@@ -65,6 +72,9 @@ export function usePracticeRoomPageState({
   >({});
   const [selectedOptionOverrideByContentId, setSelectedOptionOverrideByContentId] = useState<
     Record<number, number>
+  >({});
+  const [unlockedHintByContentId, setUnlockedHintByContentId] = useState<
+    Record<number, boolean>
   >({});
 
   useEffect(() => {
@@ -197,6 +207,16 @@ export function usePracticeRoomPageState({
     return readQuestionOptions(activeQuestion.question.questionData);
   }, [activeQuestion]);
 
+  const questionUnitNav = useMemo<QuestionUnitNav>(() => {
+    if (!room || room.questions.length === 0) {
+      return { canGoPrevious: false, canGoNext: false };
+    }
+    return {
+      canGoPrevious: selectedQuestionUnitIndex > 0,
+      canGoNext: selectedQuestionUnitIndex < room.questions.length - 1,
+    };
+  }, [room, selectedQuestionUnitIndex]);
+
   const pageError = useMemo(() => {
     if (!parsedModuleId || !parsedUnitId) {
       return 'Practice room not found. Please check the link and try again.';
@@ -277,6 +297,18 @@ export function usePracticeRoomPageState({
     }));
   };
 
+  const unlockHintForContent = (contentId: number) => {
+    // Hints unlock once per content id and remain available so XP rules can treat unlock as a single event.
+    setUnlockedHintByContentId((previousValue) => ({
+      ...previousValue,
+      [contentId]: true,
+    }));
+  };
+
+  const isActiveHintUnlocked = activeQuestion
+    ? Boolean(unlockedHintByContentId[activeQuestion.question.id])
+    : false;
+
   const goToPreviousQuestionVersion = () => {
     if (!activeQuestionUnit || !activeQuestion || activeQuestion.kind === 'core') {
       return;
@@ -304,6 +336,19 @@ export function usePracticeRoomPageState({
     selectVariantQuestion(activeQuestionUnit.questionUnitId, nextVariantIndex);
   };
 
+  const goToPreviousQuestionUnit = () => {
+    if (!questionUnitNav.canGoPrevious) return;
+    setSelectedQuestionUnitIndex((previousValue) => Math.max(0, previousValue - 1));
+  };
+
+  const goToNextQuestionUnit = () => {
+    if (!room || !questionUnitNav.canGoNext) return;
+    // Cap next index to array bounds to keep navigation resilient after refetches.
+    setSelectedQuestionUnitIndex((previousValue) =>
+      Math.min(room.questions.length - 1, previousValue + 1),
+    );
+  };
+
   return {
     parsedModuleId,
     parsedUnitId,
@@ -316,11 +361,16 @@ export function usePracticeRoomPageState({
     activeQuestion,
     activeQuestionOptions,
     trackNav,
+    questionUnitNav,
     selectedOptionIndex,
     selectQuestionUnit,
     selectOption,
+    isActiveHintUnlocked,
+    unlockHintForContent,
     goToPreviousQuestionVersion,
     goToNextQuestionVersion,
+    goToPreviousQuestionUnit,
+    goToNextQuestionUnit,
   };
 }
 
@@ -370,6 +420,15 @@ function readQuestionOptions(
 
   const candidate = questionData as Partial<QuestionDataWithOptions>;
   if (!Array.isArray(candidate.options)) {
+    // New true/false payloads do not store free-form option text; labels are fixed for rendering.
+    if (
+      candidate.trueOption &&
+      typeof candidate.trueOption === 'object' &&
+      candidate.falseOption &&
+      typeof candidate.falseOption === 'object'
+    ) {
+      return [{ optionText: 'True' }, { optionText: 'False' }];
+    }
     return [];
   }
 

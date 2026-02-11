@@ -69,12 +69,12 @@ describe('QuestionTypeRegistry', () => {
     expect(error).toBe('Please select a correct option');
   });
 
-  it('keeps true/false payload constrained to two options', () => {
+  it('builds true/false payload as explicit true and false branches', () => {
     const form = buildBaseForm({
       type: 'true-false',
       options: [
         { id: 'a', value: 'True', isCorrect: false },
-        { id: 'b', value: 'False', isCorrect: false },
+        { id: 'b', value: 'False', isCorrect: true },
         { id: 'c', value: 'Extra', isCorrect: true },
       ],
       explanations: ['ET', 'EF', 'EX'],
@@ -82,10 +82,7 @@ describe('QuestionTypeRegistry', () => {
 
     const payload = QUESTION_TYPE_CONFIGS['true-false'].buildQuestionData(form);
 
-    expect(payload.options).toEqual([
-      { optionText: 'True', explanation: 'ET' },
-      { optionText: 'False', explanation: 'EF' },
-    ]);
-    expect(payload.correctOptionIndex).toBe(1);
+    expect(payload.trueOption).toEqual({ isCorrect: false, explanation: 'ET' });
+    expect(payload.falseOption).toEqual({ isCorrect: true, explanation: 'EF' });
   });
 });

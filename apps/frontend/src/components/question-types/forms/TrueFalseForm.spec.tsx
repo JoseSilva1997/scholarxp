@@ -20,28 +20,24 @@ describe('TrueFalseForm', () => {
       />,
     );
 
-    expect(screen.getByPlaceholderText('Enter Option 1 text...')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Enter Option 2 text...')).toBeInTheDocument();
+    expect(screen.getByText('True')).toBeInTheDocument();
+    expect(screen.getByText('False')).toBeInTheDocument();
     expect(screen.queryByDisplayValue('Extra')).not.toBeInTheDocument();
   });
 
-  it('delegates option, explanation, and correct-selection changes', () => {
-    const onChangeOption = vi.fn();
+  it('delegates explanation and correct-selection changes', () => {
     const onChangeExplanation = vi.fn();
     const onSelectCorrect = vi.fn();
 
     render(
       <TrueFalseForm
         options={options}
-        onChangeOption={onChangeOption}
+        onChangeOption={vi.fn()}
         onChangeExplanation={onChangeExplanation}
         onSelectCorrect={onSelectCorrect}
       />,
     );
 
-    fireEvent.change(screen.getByPlaceholderText('Enter Option 1 text...'), {
-      target: { value: 'Updated true' },
-    });
     fireEvent.change(
       screen.getAllByPlaceholderText(
         'Explain why this option is correct or incorrect...',
@@ -52,7 +48,6 @@ describe('TrueFalseForm', () => {
     );
     fireEvent.click(screen.getAllByRole('radio')[1]);
 
-    expect(onChangeOption).toHaveBeenCalledWith('t', 'Updated true');
     expect(onChangeExplanation).toHaveBeenCalledWith('f', 'Updated explanation');
     expect(onSelectCorrect).toHaveBeenCalledWith('f');
   });

@@ -1,7 +1,12 @@
 // Student practice-room route that renders unit progress, bead navigation, and a selectable question panel.
 import { Link, useParams } from 'react-router-dom';
 import { IconContext } from 'react-icons';
-import { FaCircleChevronLeft, FaCircleChevronRight } from 'react-icons/fa6';
+import {
+  FaChevronRight,
+  FaCircleChevronLeft,
+  FaCircleChevronRight,
+  FaLightbulb,
+} from 'react-icons/fa6';
 import expIcon from '../../assets/exp_icon.svg';
 import MainSection from '../../components/MainSection';
 import { usePracticeRoomPageState } from '../../hooks/page-state/usePracticeRoomPageState';
@@ -22,11 +27,16 @@ export default function PracticeRoomPage() {
     activeQuestion,
     activeQuestionOptions,
     trackNav,
+    questionUnitNav,
     selectedOptionIndex,
     selectQuestionUnit,
     selectOption,
+    isActiveHintUnlocked,
+    unlockHintForContent,
     goToPreviousQuestionVersion,
     goToNextQuestionVersion,
+    goToPreviousQuestionUnit,
+    goToNextQuestionUnit,
   } = usePracticeRoomPageState({
     moduleIdParam: moduleId,
     unitIdParam: unitId,
@@ -144,8 +154,14 @@ export default function PracticeRoomPage() {
               </div>
 
               <h2 className={styles.questionStem}>{activeQuestion.question.questionStem}</h2>
-
-              <div className={styles.optionsList}>
+            <div className={styles.questionContent}>
+              <div
+                className={`${styles.optionsList} ${
+                  activeQuestion.question.type === 'true-false'
+                    ? styles.optionsListTrueFalse
+                    : ''
+                }`}
+              >
                 {activeQuestionOptions.map((option, optionIndex) => {
                   const isSelected = selectedOptionIndex === optionIndex;
                   return (
@@ -163,6 +179,76 @@ export default function PracticeRoomPage() {
                   );
                 })}
               </div>
+
+              {activeQuestion.question.hint ? (
+                <div className={styles.hintSection}>
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    className={styles.hintToggle}
+                    onClick={() => {
+                      if (!isActiveHintUnlocked) {
+                        unlockHintForContent(activeQuestion.question.id);
+                      }
+                    }}
+                    aria-expanded={isActiveHintUnlocked}
+                    aria-disabled={isActiveHintUnlocked}
+                    onKeyDown={(event) => {
+                      if (
+                        (event.key === 'Enter' || event.key === ' ') &&
+                        !isActiveHintUnlocked
+                      ) {
+                        event.preventDefault();
+                        unlockHintForContent(activeQuestion.question.id);
+                      }
+                    }}
+                  >
+                    <IconContext.Provider value={{ className: styles.hintIcon }}>
+                      <FaLightbulb />
+                    </IconContext.Provider>
+                    <span>{isActiveHintUnlocked ? 'Hint unlocked' : 'Unlock hint'}</span>
+                    <span
+                      className={`${styles.hintChevron} ${
+                        isActiveHintUnlocked ? styles.hintChevronExpanded : ''
+                      }`}
+                      aria-hidden="true"
+                    >
+                      <FaChevronRight />
+                    </span>
+                  </div>
+                  {isActiveHintUnlocked ? (
+                    <p className={styles.hintText}>{activeQuestion.question.hint}</p>
+                  ) : null}
+                </div>
+              ) : null}
+
+              <div className={styles.questionUnitTrackNav}>
+                <button
+                  type="button"
+                  className={styles.questionUnitNavButton}
+                  onClick={goToPreviousQuestionUnit}
+                  disabled={!questionUnitNav.canGoPrevious}
+                  aria-label="Previous question"
+                >
+                  <IconContext.Provider value={{ className: styles.navIcon }}>
+                    <FaCircleChevronLeft />
+                  </IconContext.Provider>
+                  <span className={styles.questionUnitNavLabel}>Previous</span>
+                </button>
+                <button
+                  type="button"
+                  className={styles.questionUnitNavButton}
+                  onClick={goToNextQuestionUnit}
+                  disabled={!questionUnitNav.canGoNext}
+                  aria-label="Next question"
+                >
+                  <span className={styles.questionUnitNavLabel}>Next</span>
+                  <IconContext.Provider value={{ className: styles.navIcon }}>
+                    <FaCircleChevronRight />
+                  </IconContext.Provider>
+                </button>
+              </div>
+            </div>
             </section>
           ) : (
             <div className={styles.statusCard}>

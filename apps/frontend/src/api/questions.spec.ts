@@ -47,7 +47,10 @@ describe('questions api', () => {
       variantLabel: 'B',
       questionStem: 'What is 3+3?',
       type: 'true-false' as const,
-      questionData: { options: [{ optionText: 'True', explanation: undefined }, { optionText: 'False', explanation: undefined }], correctOptionIndex: 0 },
+      questionData: {
+        trueOption: { isCorrect: true, explanation: undefined },
+        falseOption: { isCorrect: false, explanation: undefined },
+      },
       source: 'human' as const,
       isArchived: false,
     } as CreateVariantPayload;

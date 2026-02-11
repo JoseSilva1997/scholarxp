@@ -166,6 +166,14 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  /* Keep panel height stable so bottom question navigation does not jump between short/long questions. */
+  min-height: 32rem;
+}
+
+.questionContent {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 
 .questionTrackNav {
@@ -173,6 +181,50 @@
   gap: 0.5rem;
   align-items: center;
   justify-content: flex-end;
+}
+
+.questionUnitTrackNav {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: auto;
+  padding-top: 0.75rem;
+}
+
+.questionUnitNavButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-subtle);
+  color: var(--color-text);
+  border-radius: 999px;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 120ms ease, border-color 120ms ease, background-color 120ms ease;
+}
+
+.questionUnitNavButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: var(--color-accent-primary);
+  background: color-mix(in srgb, var(--color-accent-primary) 10%, var(--color-surface-subtle) 90%);
+}
+
+.questionUnitNavButton:focus-visible {
+  outline: 2px solid var(--color-accent-secondary);
+  outline-offset: 2px;
+}
+
+.questionUnitNavButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.questionUnitNavLabel {
+  line-height: 1;
 }
 
 .variantLabel {
@@ -243,12 +295,24 @@
   margin-left: 2px;
   font-size: 1.1rem;
   line-height: 1.35;
+  margin-bottom: 1rem;
 }
 
 .optionsList {
   display: flex;
   flex-direction: column;
   gap: 0.625rem;
+}
+
+.optionsListTrueFalse {
+  /* Force a single row for binary answers so True/False can be scanned and selected faster. */
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.hintIcon {
+  color: var(--color-accent-secondary)
 }
 
 .optionButton {
@@ -267,9 +331,64 @@
   background: color-mix(in srgb, var(--color-accent-primary) 12%, var(--color-surface-subtle) 88%);
 }
 
+.hintSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.hintToggle {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--color-text);
+  padding: 0.25rem 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+
+.hintToggle[aria-disabled='true'] {
+  cursor: default;
+}
+
+.hintChevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0.1rem;
+  transition: transform 140ms ease;
+}
+
+.hintChevronExpanded {
+  transform: rotate(90deg);
+}
+
+.hintText {
+  margin: 0;
+  border-radius: 0.625rem;
+  border: 1px solid color-mix(in srgb, var(--color-accent-secondary) 45%, var(--color-border) 55%);
+  background: color-mix(in srgb, var(--color-accent-secondary) 14%, var(--color-surface) 86%);
+  padding: 0.75rem;
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
 @media (max-width: 768px) {
   .header {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .questionPanel {
+    min-height: 0;
+  }
+
+  .optionsListTrueFalse {
+    /* Keep True/False in one row on mobile as requested; buttons shrink evenly. */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

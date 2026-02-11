@@ -29,13 +29,25 @@ export const emptyMcqTemplate = (): McqQuestionDto => ({
 /**
  * True/False Question Data Schema
  */
-export const TrueFalseQuestionSchema = z.object({
-    options: z.tuple([
-        z.object({ optionText: z.string().min(1, 'Option text is required'), explanation: z.string().optional() }),
-        z.object({ optionText: z.string().min(1, 'Option text is required'), explanation: z.string().optional() }),
-    ]),
-    correctOptionIndex: z.number().min(0, 'Please select a correct option').max(1, 'Invalid option index'),
+const TrueFalseOptionSchema = z.object({
+    isCorrect: z.boolean(),
+    explanation: z.string().optional(),
 });
+
+export const TrueFalseQuestionSchema = z
+    .object({
+        trueOption: TrueFalseOptionSchema,
+        falseOption: TrueFalseOptionSchema,
+    })
+    .superRefine((value, ctx) => {
+        // Exactly one option must be marked correct; allowing both/neither would create ambiguous grading.
+        if (value.trueOption.isCorrect === value.falseOption.isCorrect) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Select which option is correct before saving.',
+            });
+        }
+    });
 
 export type TrueFalseQuestionDto = z.infer<typeof TrueFalseQuestionSchema>;
 

@@ -8,7 +8,11 @@ import type {
 } from '@scholarxp/api-contracts';
 import { getModuleUnitGroupName } from '@scholarxp/api-contracts';
 import { ApiError } from '../../api/client';
-import { emptyMcqTemplate, DEFAULT_QUESTION_TYPE } from '@scholarxp/question-type-dtos';
+import {
+  emptyMcqTemplate,
+  DEFAULT_QUESTION_TYPE,
+  TrueFalseQuestionSchema,
+} from '@scholarxp/question-type-dtos';
 import { logError } from '../../utils/logger';
 import type {
   ModuleUnitEditorContent,
@@ -418,23 +422,51 @@ export function useModuleUnitEditorPageState({
       }
 
       const type = normalizeQuestionType(content.type);
-      const data = content.questionData as {
-        options?: { optionText: string; explanation?: string }[];
-        correctOptionIndex?: number;
-      };
-      const correctIndex = Number.isInteger(data?.correctOptionIndex)
-        ? (data?.correctOptionIndex as number)
-        : 0;
       const baseOptions = QUESTION_TYPE_CONFIGS[type].getInitialOptions(mcqOptionSlots);
+      let mergedOptions = baseOptions.options;
+      let mergedExplanations = baseOptions.explanations;
 
-      const mergedOptions = baseOptions.options.map((base, idx) => ({
-        ...base,
-        value: data?.options?.[idx]?.optionText ?? base.value,
-        isCorrect: idx === correctIndex,
-      }));
-      const mergedExplanations = baseOptions.explanations.map(
-        (base, idx) => data?.options?.[idx]?.explanation ?? base,
-      );
+      if (type === 'mcq') {
+        const data = content.questionData as {
+          options?: { optionText: string; explanation?: string }[];
+          correctOptionIndex?: number;
+        };
+        const correctIndex = Number.isInteger(data?.correctOptionIndex)
+          ? (data?.correctOptionIndex as number)
+          : 0;
+
+        mergedOptions = baseOptions.options.map((base, idx) => ({
+          ...base,
+          value: data?.options?.[idx]?.optionText ?? base.value,
+          isCorrect: idx === correctIndex,
+        }));
+        mergedExplanations = baseOptions.explanations.map(
+          (base, idx) => data?.options?.[idx]?.explanation ?? base,
+        );
+      } else {
+        // Parse against canonical true/false schema only because legacy payloads are intentionally removed.
+        const parsedTrueFalse = TrueFalseQuestionSchema.safeParse(content.questionData);
+        if (parsedTrueFalse.success) {
+          const trueFalseData = parsedTrueFalse.data;
+          mergedOptions = baseOptions.options.map((base, idx) => ({
+            ...base,
+            value: idx === 0 ? 'True' : 'False',
+            isCorrect:
+              idx === 0
+                ? trueFalseData.trueOption.isCorrect
+                : trueFalseData.falseOption.isCorrect,
+          }));
+          mergedExplanations = baseOptions.explanations.map((base, idx) => {
+            if (idx === 0) {
+              return trueFalseData.trueOption.explanation ?? base;
+            }
+            if (idx === 1) {
+              return trueFalseData.falseOption.explanation ?? base;
+            }
+            return base;
+          });
+        }
+      }
 
       setForm({
         stem: content.questionStem,

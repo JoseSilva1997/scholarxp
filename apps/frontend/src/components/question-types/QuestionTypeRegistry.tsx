@@ -3,7 +3,11 @@
  * This file provides a uniform interface for rendering forms, validating input, and building API payloads.
  */
 import React from 'react';
-import { DEFAULT_QUESTION_TYPE, McqQuestionSchema, TrueFalseQuestionSchema } from '@scholarxp/question-type-dtos';
+import {
+  DEFAULT_QUESTION_TYPE,
+  McqQuestionSchema,
+  TrueFalseQuestionSchema,
+} from '@scholarxp/question-type-dtos';
 import type { McqQuestionDto, TrueFalseQuestionDto, questionType, QuestionData } from '@scholarxp/question-type-dtos';
 import { McqForm } from './forms/McqForm';
 import { TrueFalseForm } from './forms/TrueFalseForm';
@@ -115,22 +119,25 @@ export const QUESTION_TYPE_CONFIGS: Record<QuestionType, QuestionTypeConfig> = {
     label: 'True/False',
     component: TrueFalseForm,
     getInitialOptions: () => ({
-      // T/F always has exactly two options.
+      // T/F uses fixed labels to keep the content model explicit and avoid free-form option text drift.
       options: [
-        { id: makeId(), value: '', isCorrect: false },
-        { id: makeId(), value: '', isCorrect: false },
+        { id: makeId(), value: 'True', isCorrect: false },
+        { id: makeId(), value: 'False', isCorrect: false },
       ],
       explanations: ['', ''],
     }),
     buildQuestionData: (form) => {
-      // T/F DTO expects binary choices; we slice the first two options just in case.
+      // We read only the first two slots because the form is binary and always modeled as True/False.
       const correctIndex = form.options.findIndex((opt) => opt.isCorrect);
       return {
-        options: form.options.slice(0, 2).map((opt, idx) => ({
-          optionText: opt.value,
-          explanation: form.explanations[idx] ?? '',
-        })),
-        correctOptionIndex: Math.min(correctIndex, 1),
+        trueOption: {
+          isCorrect: correctIndex === 0,
+          explanation: form.explanations[0] ?? '',
+        },
+        falseOption: {
+          isCorrect: correctIndex === 1,
+          explanation: form.explanations[1] ?? '',
+        },
       } as TrueFalseQuestionDto;
     },
     validate: (form) => {
@@ -139,18 +146,10 @@ export const QUESTION_TYPE_CONFIGS: Record<QuestionType, QuestionTypeConfig> = {
       const result = TrueFalseQuestionSchema.safeParse(payload);
       
       if (!result.success) {
-        const firstError = result.error.issues[0];
-        if (firstError.path.includes('options')) {
-          return 'Both true and false options must have text.';
-        }
-        return firstError.message;
+        return result.error.issues[0]?.message ?? 'Select which option is correct before saving.';
       }
 
-      const correctIndex = form.options.findIndex((opt) => opt.isCorrect);
-      if (correctIndex === -1) return 'Select which option is correct before saving.';
-      
       return null;
     },
   },
 };
-
