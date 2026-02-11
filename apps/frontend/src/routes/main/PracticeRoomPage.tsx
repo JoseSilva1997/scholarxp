@@ -262,7 +262,7 @@ export default function PracticeRoomPage() {
 }
 
 // Derives visual state from current focus and attempts so nav bars communicate progress at a glance.
-function getQuestionUnitStatusClass(
+export function getQuestionUnitStatusClass(
   params: {
     questionUnit: PracticeRoomQuestionUnit;
     isCurrent: boolean;
