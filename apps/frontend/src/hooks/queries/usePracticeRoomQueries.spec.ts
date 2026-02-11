@@ -24,11 +24,11 @@ vi.mock('../../api/modules', () => ({
 }));
 
 import {
-  usePracticeRoomQuery,
-  useSubmitPracticeRoomAttemptMutation,
+  useModuleUnitPracticeRoomQuery,
+  useSubmitModuleUnitPracticeAttemptMutation,
 } from './usePracticeRoomQueries';
 
-describe('usePracticeRoomQuery', () => {
+describe('useModuleUnitPracticeRoomQuery', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     // default return value for useQuery
@@ -44,10 +44,10 @@ describe('usePracticeRoomQuery', () => {
   });
 
   it('uses numeric ids when both module and unit provided', () => {
-    const res = usePracticeRoomQuery(5, 2);
+    const res = useModuleUnitPracticeRoomQuery(5, 2);
     expect(useQueryMock).toHaveBeenCalled();
     const opts = useQueryMock.mock.calls[0][0];
-    expect(opts.queryKey).toEqual(queryKeys.modules.practiceRoom(5, 2));
+    expect(opts.queryKey).toEqual(queryKeys.modules.moduleUnitPracticeRoom(5, 2));
     expect(opts.enabled).toBe(true);
     expect(opts.staleTime).toBe(30_000);
 
@@ -59,9 +59,9 @@ describe('usePracticeRoomQuery', () => {
   });
 
   it('disables query and uses fallback key when module id is null', () => {
-    usePracticeRoomQuery(null, 2);
+    useModuleUnitPracticeRoomQuery(null, 2);
     const opts = useQueryMock.mock.calls[0][0];
-    expect(opts.queryKey).toEqual(queryKeys.modules.practiceRoom(0, 0));
+    expect(opts.queryKey).toEqual(queryKeys.modules.moduleUnitPracticeRoom(0, 0));
     expect(opts.enabled).toBe(false);
     // calling queryFn still calls underlying API with null
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
@@ -70,9 +70,9 @@ describe('usePracticeRoomQuery', () => {
   });
 
   it('disables query when unit id is null', () => {
-    usePracticeRoomQuery(3, null);
+    useModuleUnitPracticeRoomQuery(3, null);
     const opts = useQueryMock.mock.calls[0][0];
-    expect(opts.queryKey).toEqual(queryKeys.modules.practiceRoom(0, 0));
+    expect(opts.queryKey).toEqual(queryKeys.modules.moduleUnitPracticeRoom(0, 0));
     expect(opts.enabled).toBe(false);
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     opts.queryFn();
@@ -80,9 +80,9 @@ describe('usePracticeRoomQuery', () => {
   });
 
   it('disables query when both ids are null', () => {
-    usePracticeRoomQuery(null, null);
+    useModuleUnitPracticeRoomQuery(null, null);
     const opts = useQueryMock.mock.calls[0][0];
-    expect(opts.queryKey).toEqual(queryKeys.modules.practiceRoom(0, 0));
+    expect(opts.queryKey).toEqual(queryKeys.modules.moduleUnitPracticeRoom(0, 0));
     expect(opts.enabled).toBe(false);
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     opts.queryFn();
@@ -90,7 +90,7 @@ describe('usePracticeRoomQuery', () => {
   });
 });
 
-describe('useSubmitPracticeRoomAttemptMutation', () => {
+describe('useSubmitModuleUnitPracticeAttemptMutation', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     useQueryMock.mockReturnValue({ data: 'ok' });
@@ -105,7 +105,7 @@ describe('useSubmitPracticeRoomAttemptMutation', () => {
   });
 
   it('wires mutationFn to submitPracticeRoomAttempt when ids are valid', async () => {
-    useSubmitPracticeRoomAttemptMutation(5, 2);
+    useSubmitModuleUnitPracticeAttemptMutation(5, 2);
 
     const opts = useMutationMock.mock.calls[0][0];
     const payload = {
@@ -126,7 +126,7 @@ describe('useSubmitPracticeRoomAttemptMutation', () => {
   });
 
   it('throws when ids are not valid', async () => {
-    useSubmitPracticeRoomAttemptMutation(null, 2);
+    useSubmitModuleUnitPracticeAttemptMutation(null, 2);
 
     const opts = useMutationMock.mock.calls[0][0];
     expect(() =>
@@ -145,13 +145,13 @@ describe('useSubmitPracticeRoomAttemptMutation', () => {
   });
 
   it('invalidates the active practice room query on success', async () => {
-    useSubmitPracticeRoomAttemptMutation(5, 2);
+    useSubmitModuleUnitPracticeAttemptMutation(5, 2);
 
     const opts = useMutationMock.mock.calls[0][0];
     await opts.onSuccess();
 
     expect(invalidateQueriesMock).toHaveBeenCalledWith({
-      queryKey: queryKeys.modules.practiceRoom(5, 2),
+      queryKey: queryKeys.modules.moduleUnitPracticeRoom(5, 2),
     });
   });
 });

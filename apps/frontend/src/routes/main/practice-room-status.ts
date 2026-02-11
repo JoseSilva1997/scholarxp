@@ -1,10 +1,10 @@
 // Provides pure status helpers for practice-room question-unit bars so route rendering stays component-only.
-import type { PracticeRoomQuestionUnit } from '@scholarxp/api-contracts';
+import type { PracticeQuestionUnit } from '@scholarxp/api-contracts';
 
 // Derives visual state from current focus and attempts so nav bars communicate progress at a glance.
 export function getQuestionUnitStatusClass(
   params: {
-    questionUnit: PracticeRoomQuestionUnit;
+    questionUnit: PracticeQuestionUnit;
     isCurrent: boolean;
   },
   css: Record<string, string>,

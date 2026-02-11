@@ -1,10 +1,10 @@
 // Encapsulates practice-room route orchestration so the page component can stay presentational.
 import { useEffect, useMemo, useState } from 'react';
 import type {
-  PracticeRoomAttempt,
-  PracticeRoomResponse,
-  PracticeRoomQuestion,
-  PracticeRoomQuestionUnit,
+  ModuleUnitPracticeRoomResponse,
+  PracticeAttemptSnapshot,
+  PracticeQuestion,
+  PracticeQuestionUnit,
   StudentAnswer,
   SubmitAttemptPayload,
 } from '@scholarxp/api-contracts';
@@ -12,8 +12,8 @@ import { MODULE_EXP_MAX, PRACTICE_MODES } from '@scholarxp/constants';
 import { getDisplayErrorMessage, shouldLogApiError } from '../../api/get-display-error';
 import { logError } from '../../utils/logger';
 import {
-  usePracticeRoomQuery,
-  useSubmitPracticeRoomAttemptMutation,
+  useModuleUnitPracticeRoomQuery,
+  useSubmitModuleUnitPracticeAttemptMutation,
 } from '../queries/usePracticeRoomQueries';
 import { useModuleDetailQuery } from '../queries/useModulesQueries';
 
@@ -25,7 +25,7 @@ type UsePracticeRoomPageStateParams = {
 type ActiveQuestionVariant = {
   kind: 'core' | 'variant';
   index: number | null;
-  question: PracticeRoomQuestion;
+  question: PracticeQuestion;
 };
 
 // Minimal question-data shape used to render selectable options in the current practice-room panel.
@@ -68,13 +68,17 @@ export function usePracticeRoomPageState({
     return Number.isFinite(value) && value > 0 ? value : null;
   }, [unitIdParam]);
 
-  const practiceRoomQuery = usePracticeRoomQuery(parsedModuleId, parsedUnitId);
-  const submitAttemptMutation = useSubmitPracticeRoomAttemptMutation(
+  const practiceRoomQuery = useModuleUnitPracticeRoomQuery(
+    parsedModuleId,
+    parsedUnitId,
+  );
+  const submitAttemptMutation = useSubmitModuleUnitPracticeAttemptMutation(
     parsedModuleId,
     parsedUnitId,
   );
   const moduleDetailQuery = useModuleDetailQuery(parsedModuleId);
-  const room = practiceRoomQuery.data?.practiceRoom ?? null;
+  // This hook currently orchestrates the module-unit scoped room flow (not cross-module sessions).
+  const moduleUnitRoom = practiceRoomQuery.data?.practiceRoom ?? null;
   const moduleDetail = moduleDetailQuery.data ?? null;
 
   const [selectedQuestionUnitIndex, setSelectedQuestionUnitIndex] = useState(0);
@@ -88,7 +92,7 @@ export function usePracticeRoomPageState({
     Record<number, boolean>
   >({});
   const [submittedAttemptByContentId, setSubmittedAttemptByContentId] = useState<
-    Record<number, PracticeRoomAttempt>
+    Record<number, PracticeAttemptSnapshot>
   >({});
   const [hasCorrectAttemptByQuestionUnitId, setHasCorrectAttemptByQuestionUnitId] =
     useState<Record<number, boolean>>({});
@@ -118,21 +122,25 @@ export function usePracticeRoomPageState({
   }, [moduleDetailQuery.error, parsedModuleId]);
 
   const roomWithLocalAttempts = useMemo(() => {
-    if (!room) {
+    if (!moduleUnitRoom) {
       return null;
     }
 
     return {
-      ...room,
-      questions: room.questions.map((questionUnit) =>
+      ...moduleUnitRoom,
+      questions: moduleUnitRoom.questions.map((questionUnit) =>
         applySubmittedAttemptOverrides(
           questionUnit,
           submittedAttemptByContentId,
           hasCorrectAttemptByQuestionUnitId[questionUnit.questionUnitId] ?? false,
         ),
       ),
-    } satisfies PracticeRoomResponse['practiceRoom'];
-  }, [hasCorrectAttemptByQuestionUnitId, room, submittedAttemptByContentId]);
+    } satisfies ModuleUnitPracticeRoomResponse['practiceRoom'];
+  }, [
+    hasCorrectAttemptByQuestionUnitId,
+    moduleUnitRoom,
+    submittedAttemptByContentId,
+  ]);
 
   const seededOptionByContentId = useMemo(() => {
     if (!roomWithLocalAttempts) return {};
@@ -168,7 +176,7 @@ export function usePracticeRoomPageState({
     [seededOptionByContentId, selectedOptionOverrideByContentId],
   );
 
-  const activeQuestionUnit = useMemo<PracticeRoomQuestionUnit | null>(() => {
+  const activeQuestionUnit = useMemo<PracticeQuestionUnit | null>(() => {
     if (!roomWithLocalAttempts || roomWithLocalAttempts.questions.length === 0) {
       return null;
     }
@@ -464,6 +472,7 @@ export function usePracticeRoomPageState({
   return {
     parsedModuleId,
     parsedUnitId,
+    // Preserve the public `room` key for route compatibility while internals use module-unit naming.
     room: roomWithLocalAttempts,
     moduleProgress,
     isLoading:
@@ -495,10 +504,10 @@ export function usePracticeRoomPageState({
 
 // Apply local submissions over server snapshots so unlocking/status bars update instantly while query refetch catches up.
 function applySubmittedAttemptOverrides(
-  questionUnit: PracticeRoomQuestionUnit,
-  submittedAttemptByContentId: Record<number, PracticeRoomAttempt>,
+  questionUnit: PracticeQuestionUnit,
+  submittedAttemptByContentId: Record<number, PracticeAttemptSnapshot>,
   forceHasCorrectAttempt: boolean,
-): PracticeRoomQuestionUnit {
+): PracticeQuestionUnit {
   const coreAttemptOverride =
     submittedAttemptByContentId[questionUnit.coreQuestion.questionContent.id];
   const coreQuestion = {
@@ -530,7 +539,7 @@ function applySubmittedAttemptOverrides(
 }
 
 // Unlock chain: core wrong unlocks variant 1; each wrong variant unlocks exactly the next variant.
-function getUnlockedVariantCount(questionUnit: PracticeRoomQuestionUnit): number {
+function getUnlockedVariantCount(questionUnit: PracticeQuestionUnit): number {
   if (questionUnit.variants.length === 0) {
     return 0;
   }
@@ -597,7 +606,7 @@ function readQuestionOptions(
 
 // Frontend uses question authoring metadata to compute correctness until backend grading/explanation flow is introduced.
 function isSelectedOptionCorrect(
-  question: PracticeRoomQuestion,
+  question: PracticeQuestion,
   selectedOptionIndex: number,
 ): boolean {
   if (!question.questionData || typeof question.questionData !== 'object') {

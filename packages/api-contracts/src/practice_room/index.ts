@@ -1,42 +1,42 @@
 import type { QuestionData, questionType } from '@scholarxp/question-type-dtos';
 import type { PracticeMode } from '@scholarxp/constants';
 
-// Render-focused session payload with question units in display order.
-export interface PracticeRoom {
+// Module-unit-scoped room payload used by the current practice-room flow.
+export interface ModuleUnitPracticeRoom {
   sessionId: number;
   moduleUnitId: number;
   moduleUnitTitle: string;
-  questions: PracticeRoomQuestionUnit[];
+  questions: PracticeQuestionUnit[];
 }
 
 
 //One question unit rendered as a single question in the room.
-export interface PracticeRoomQuestionUnit {
+export interface PracticeQuestionUnit {
   questionUnitId: number;
   position: number;
   hasCorrectAttempt: boolean | null;
-  coreQuestion: QuestionWithLatestAttempt;
-  variants: QuestionWithLatestAttempt[];
+  coreQuestion: PracticeQuestionWithLatestAttempt;
+  variants: PracticeQuestionWithLatestAttempt[];
 }
 
 
 //Question payload and optional last attempt
-export interface QuestionWithLatestAttempt {
+export interface PracticeQuestionWithLatestAttempt {
   questionId: number;
-  questionContent: PracticeRoomQuestion;
-  lastAttempt: PracticeRoomAttempt | null;
+  questionContent: PracticeQuestion;
+  lastAttempt: PracticeAttemptSnapshot | null;
 }
 
 
 //Minimal attempt contract kept intentionally generic until attempt workflows are implemented.
-export interface PracticeRoomAttempt {
+export interface PracticeAttemptSnapshot {
   studentAnswer: StudentAnswer | null;
   isCorrect: boolean | null;
 }
 
 
 //Shared render shape for a core question or one of its variants.
-export interface PracticeRoomQuestion {
+export interface PracticeQuestion {
   id: number;
   type: questionType;
   questionStem: string;
@@ -67,15 +67,15 @@ export interface GenericAnswer  {
    ================================================================================================================================================
 */
 
-//Payload used to create or load a student's active practice room session.
-export interface CreatePracticeRoomPayload {
+// Payload used to create or load a module-unit-scoped practice room session.
+export interface CreateModuleUnitPracticeRoomPayload {
   moduleUnitId: number;
 }
 
 
-//Top-level response used by the practice room page on initial load.
-export interface PracticeRoomResponse {
-  practiceRoom: PracticeRoom;
+// Top-level response used by the module-unit practice room page on initial load.
+export interface ModuleUnitPracticeRoomResponse {
+  practiceRoom: ModuleUnitPracticeRoom;
 }
 
 // Payload user for submitting an attempt

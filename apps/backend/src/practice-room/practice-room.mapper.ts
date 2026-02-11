@@ -2,7 +2,7 @@
 import { Injectable } from '@nestjs/common';
 import type { questionType, QuestionData } from '@scholarxp/question-type-dtos';
 import type { StudentAnswer } from '@scholarxp/api-contracts';
-import { PracticeRoomResponseDto } from './dto/practice-room-response.dto';
+import { ModuleUnitPracticeRoomResponseDto } from './dto/practice-room-response.dto';
 import type {
   LatestAttemptSnapshot,
   LoadedModuleUnit,
@@ -78,8 +78,8 @@ export class PracticeRoomMapper {
   }
 
   // Builds the API response in one place so contract changes stay isolated to this mapper.
-  buildResponse(input: BuildResponseInput): PracticeRoomResponseDto {
-    const response = new PracticeRoomResponseDto();
+  buildResponse(input: BuildResponseInput): ModuleUnitPracticeRoomResponseDto {
+    const response = new ModuleUnitPracticeRoomResponseDto();
     response.practiceRoom = {
       sessionId: input.sessionId,
       moduleUnitId: input.moduleUnitId,

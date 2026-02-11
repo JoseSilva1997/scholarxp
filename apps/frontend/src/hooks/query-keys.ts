@@ -8,7 +8,8 @@ export const queryKeys = {
     detail: (moduleId: number) => ['modules', 'detail', moduleId] as const,
     units: (moduleId: number) => ['modules', 'units', moduleId] as const,
     invites: (moduleId: number) => ['modules', 'invites', moduleId] as const,
-    practiceRoom: (moduleId: number, unitId: number) =>
+    // Module-unit-scoped practice room key is intentionally distinct from future session-scoped room keys.
+    moduleUnitPracticeRoom: (moduleId: number, unitId: number) =>
       ['modules', 'practice-room', moduleId, unitId] as const,
   },
 };

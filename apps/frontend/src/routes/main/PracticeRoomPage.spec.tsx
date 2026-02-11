@@ -2,15 +2,15 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { PracticeRoomQuestionUnit } from '@scholarxp/api-contracts';
+import type { PracticeQuestionUnit } from '@scholarxp/api-contracts';
 import PracticeRoomPage from './PracticeRoomPage';
 import { getQuestionUnitStatusClass } from './practice-room-status';
 
-// Helper to create minimal mock PracticeRoomQuestionUnit for testing
+// Helper to create minimal mock PracticeQuestionUnit for testing
 function createMockQuestionUnit(
-  overrides?: Partial<PracticeRoomQuestionUnit>,
-): PracticeRoomQuestionUnit {
-  const base: PracticeRoomQuestionUnit = {
+  overrides?: Partial<PracticeQuestionUnit>,
+): PracticeQuestionUnit {
+  const base: PracticeQuestionUnit = {
     questionUnitId: 1,
     position: 0,
     hasCorrectAttempt: false,
@@ -46,7 +46,7 @@ function createMockQuestionUnit(
     };
   }
 
-  return merged as PracticeRoomQuestionUnit;
+  return merged as PracticeQuestionUnit;
 }
 
 // Route params tracking
@@ -69,7 +69,7 @@ let pageState: {
   parsedUnitId: number | null;
   room: {
     moduleUnitTitle: string;
-    questions: PracticeRoomQuestionUnit[];
+    questions: PracticeQuestionUnit[];
   } | null;
   moduleProgress: { level: number; currentExp: number; expPercent: number } | null;
   isLoading: boolean;
@@ -78,7 +78,7 @@ let pageState: {
   isSubmittingAttempt: boolean;
   canSubmitAttempt: boolean;
   selectedQuestionUnitIndex: number;
-  activeQuestionUnit: PracticeRoomQuestionUnit | null;
+  activeQuestionUnit: PracticeQuestionUnit | null;
   activeQuestion: { kind: 'core' | 'variant'; question: any } | null;
   activeQuestionOptions: Array<{ optionText: string }>;
   trackNav: { activeLabel: string; canGoPrevious: boolean; canGoNext: boolean };

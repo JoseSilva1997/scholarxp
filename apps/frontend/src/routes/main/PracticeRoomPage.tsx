@@ -1,4 +1,4 @@
-// Student practice-room route that renders unit progress, bead navigation, and a selectable question panel.
+// Module-unit-scoped student practice-room route that renders unit progress, question-unit bars, and a selectable question panel.
 import { Link, useParams } from 'react-router-dom';
 import { IconContext } from 'react-icons';
 import {

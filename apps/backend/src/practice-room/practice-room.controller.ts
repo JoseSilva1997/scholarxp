@@ -16,12 +16,12 @@ import type { AuthUser } from '../types/auth-user.type';
 import { GetPracticeRoomParamsDto } from './dto/get-practice-room-params.dto';
 import { SubmitAttemptDto } from './dto/submit-attempt.dto';
 
-// PracticeRoomController exposes the room-load endpoint used when students start a practice session.
+// PracticeRoomController exposes module-unit-scoped room endpoints used when students start practice from a module unit.
 @Controller('module/:moduleId/unit/:moduleUnitId/practice-room')
 export class PracticeRoomController {
   constructor(private readonly practiceRoomService: PracticeRoomService) {}
 
-  // Guarding by module keeps practice-room reads consistent with module-scoped permission rules.
+  // Guarding by module keeps module-unit practice-room reads consistent with module-scoped permission rules.
   @Get()
   @UseGuards(SessionAuthGuard, ModuleAccessGuard)
   @ModuleAccess({ paramKey: 'moduleId', allowStudentRead: true })
@@ -37,7 +37,7 @@ export class PracticeRoomController {
     );
   }
 
-  // Attempt submission is module-scoped and reuses the same guard chain as page-load to keep permission checks consistent.
+  // Module-unit attempt submission reuses the same guard chain as room load to keep permission checks consistent.
   @Post('attempts')
   @UseGuards(SessionAuthGuard, ModuleAccessGuard)
   @ModuleAccess({ paramKey: 'moduleId', allowStudentRead: true })

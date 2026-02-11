@@ -2,48 +2,48 @@
 import type {
   GenericAnswer,
   McqAnswer,
-  PracticeRoom,
-  PracticeRoomAttempt,
-  PracticeRoomQuestion,
-  PracticeRoomQuestionUnit,
-  PracticeRoomResponse,
-  QuestionWithLatestAttempt,
+  ModuleUnitPracticeRoom,
+  ModuleUnitPracticeRoomResponse,
+  PracticeAttemptSnapshot,
+  PracticeQuestion,
+  PracticeQuestionUnit,
+  PracticeQuestionWithLatestAttempt,
   StudentAnswer,
   TrueFalseAnswer,
 } from '@scholarxp/api-contracts';
 import type { QuestionData, questionType } from '@scholarxp/question-type-dtos';
 
-export class PracticeRoomResponseDto implements PracticeRoomResponse {
-  practiceRoom!: PracticeRoomDto;
+export class ModuleUnitPracticeRoomResponseDto implements ModuleUnitPracticeRoomResponse {
+  practiceRoom!: ModuleUnitPracticeRoomDto;
 }
 
-export class PracticeRoomDto implements PracticeRoom {
+export class ModuleUnitPracticeRoomDto implements ModuleUnitPracticeRoom {
   sessionId!: number;
   moduleUnitId!: number;
   moduleUnitTitle!: string;
-  questions!: PracticeRoomQuestionUnitDto[];
+  questions!: PracticeQuestionUnitDto[];
 }
 
-export class PracticeRoomQuestionUnitDto implements PracticeRoomQuestionUnit {
+export class PracticeQuestionUnitDto implements PracticeQuestionUnit {
   questionUnitId!: number;
   position!: number;
   hasCorrectAttempt!: boolean | null;
-  coreQuestion!: QuestionWithLatestAttemptDto;
-  variants!: QuestionWithLatestAttemptDto[];
+  coreQuestion!: PracticeQuestionWithLatestAttemptDto;
+  variants!: PracticeQuestionWithLatestAttemptDto[];
 }
 
-export class QuestionWithLatestAttemptDto implements QuestionWithLatestAttempt {
+export class PracticeQuestionWithLatestAttemptDto implements PracticeQuestionWithLatestAttempt {
   questionId!: number;
-  questionContent!: PracticeRoomQuestionDto;
-  lastAttempt!: PracticeRoomAttemptDto | null;
+  questionContent!: PracticeQuestionDto;
+  lastAttempt!: PracticeAttemptSnapshotDto | null;
 }
 
-export class PracticeRoomAttemptDto implements PracticeRoomAttempt {
+export class PracticeAttemptSnapshotDto implements PracticeAttemptSnapshot {
   studentAnswer!: StudentAnswer | null;
   isCorrect!: boolean | null;
 }
 
-export class PracticeRoomQuestionDto implements PracticeRoomQuestion {
+export class PracticeQuestionDto implements PracticeQuestion {
   id!: number;
   type!: questionType;
   questionStem!: string;
@@ -64,3 +64,13 @@ export class TrueFalseAnswerDto implements TrueFalseAnswer {
 export class GenericAnswerDto implements GenericAnswer {
   data!: Record<string, unknown>;
 }
+
+// Backward-compatible aliases preserve old imports while consumers migrate to module-unit-scoped naming.
+export {
+  ModuleUnitPracticeRoomResponseDto as PracticeRoomResponseDto,
+  ModuleUnitPracticeRoomDto as PracticeRoomDto,
+  PracticeQuestionUnitDto as PracticeRoomQuestionUnitDto,
+  PracticeQuestionWithLatestAttemptDto as QuestionWithLatestAttemptDto,
+  PracticeAttemptSnapshotDto as PracticeRoomAttemptDto,
+  PracticeQuestionDto as PracticeRoomQuestionDto,
+};

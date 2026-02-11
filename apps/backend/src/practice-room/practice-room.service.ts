@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { PracticeRoomResponseDto } from './dto/practice-room-response.dto';
+import { ModuleUnitPracticeRoomResponseDto } from './dto/practice-room-response.dto';
 import { SubmitAttemptDto } from './dto/submit-attempt.dto';
 import { SubmitAttemptResponseDto } from './dto/submit-attempt-response.dto';
 import { PracticeRoomMapper } from './practice-room.mapper';
@@ -28,7 +28,7 @@ export class PracticeRoomService {
     moduleId: number,
     moduleUnitId: number,
     studentId: number,
-  ): Promise<PracticeRoomResponseDto> {
+  ): Promise<ModuleUnitPracticeRoomResponseDto> {
     const moduleUnit = await this.getModuleUnitOrThrow(moduleId, moduleUnitId);
     const session = await this.createPracticeSession(moduleId, studentId);
     const questionUnitDrafts =

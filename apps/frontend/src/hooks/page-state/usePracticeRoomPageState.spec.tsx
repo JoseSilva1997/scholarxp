@@ -5,8 +5,8 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { logError } from '../../utils/logger';
 // Mocks for query hooks and utilities used by the hook under test.
 vi.mock('../queries/usePracticeRoomQueries', () => ({
-  usePracticeRoomQuery: vi.fn(),
-  useSubmitPracticeRoomAttemptMutation: vi.fn(),
+  useModuleUnitPracticeRoomQuery: vi.fn(),
+  useSubmitModuleUnitPracticeAttemptMutation: vi.fn(),
 }));
 vi.mock('../queries/useModulesQueries', () => ({
   useModuleDetailQuery: vi.fn(),
@@ -19,8 +19,8 @@ vi.mock('../../utils/logger', () => ({ logError: vi.fn() }));
 
 import { usePracticeRoomPageState } from './usePracticeRoomPageState';
 import {
-  usePracticeRoomQuery,
-  useSubmitPracticeRoomAttemptMutation,
+  useModuleUnitPracticeRoomQuery,
+  useSubmitModuleUnitPracticeAttemptMutation,
 } from '../queries/usePracticeRoomQueries';
 import { useModuleDetailQuery } from '../queries/useModulesQueries';
 
@@ -46,7 +46,7 @@ function renderHookWithParams(moduleIdParam?: string, unitIdParam?: string) {
 describe('usePracticeRoomPageState', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    (useSubmitPracticeRoomAttemptMutation as any).mockReturnValue({
+    (useSubmitModuleUnitPracticeAttemptMutation as any).mockReturnValue({
       isPending: false,
       error: null,
       mutateAsync: vi.fn().mockResolvedValue({
@@ -58,8 +58,8 @@ describe('usePracticeRoomPageState', () => {
   });
 
   it('parses numeric module/unit ids and exposes parsed values', () => {
-    (usePracticeRoomQuery as any).mockReturnValue({ isPending: false, data: null, error: null });
-    (useSubmitPracticeRoomAttemptMutation as any).mockReturnValue({
+    (useModuleUnitPracticeRoomQuery as any).mockReturnValue({ isPending: false, data: null, error: null });
+    (useSubmitModuleUnitPracticeAttemptMutation as any).mockReturnValue({
       isPending: false,
       error: null,
       mutateAsync: vi.fn().mockResolvedValue({
@@ -78,8 +78,8 @@ describe('usePracticeRoomPageState', () => {
   });
 
   it('returns page error when ids are missing', () => {
-    (usePracticeRoomQuery as any).mockReturnValue({ isPending: false, data: null, error: null });
-    (useSubmitPracticeRoomAttemptMutation as any).mockReturnValue({
+    (useModuleUnitPracticeRoomQuery as any).mockReturnValue({ isPending: false, data: null, error: null });
+    (useSubmitModuleUnitPracticeAttemptMutation as any).mockReturnValue({
       isPending: false,
       error: null,
       mutateAsync: vi.fn().mockResolvedValue({
@@ -96,7 +96,7 @@ describe('usePracticeRoomPageState', () => {
   });
 
   it('computes moduleProgress and expPercent with provided expMax', () => {
-    (usePracticeRoomQuery as any).mockReturnValue({ isPending: false, data: null, error: null });
+    (useModuleUnitPracticeRoomQuery as any).mockReturnValue({ isPending: false, data: null, error: null });
     (useModuleDetailQuery as any).mockReturnValue({
       isPending: false,
       data: { userModuleLevel: 3, expMax: 50, currentExp: 25 },
@@ -134,7 +134,7 @@ describe('usePracticeRoomPageState', () => {
       },
     };
 
-    (usePracticeRoomQuery as any).mockReturnValue({ isPending: false, data: room, error: null });
+    (useModuleUnitPracticeRoomQuery as any).mockReturnValue({ isPending: false, data: room, error: null });
     (useModuleDetailQuery as any).mockReturnValue({ isPending: false, data: null, error: null });
 
     const r = renderHookWithParams('1', '1');
@@ -185,7 +185,7 @@ describe('usePracticeRoomPageState', () => {
       },
     };
 
-    (usePracticeRoomQuery as any).mockReturnValue({ isPending: false, data: room, error: null });
+    (useModuleUnitPracticeRoomQuery as any).mockReturnValue({ isPending: false, data: room, error: null });
     (useModuleDetailQuery as any).mockReturnValue({ isPending: false, data: null, error: null });
 
     const r = renderHookWithParams('1', '1');
@@ -194,7 +194,7 @@ describe('usePracticeRoomPageState', () => {
   });
 
   it('logs and shows pageError when practiceRoomQuery errors', () => {
-    (usePracticeRoomQuery as any).mockReturnValue({ isPending: false, data: null, error: 'pErr' });
+    (useModuleUnitPracticeRoomQuery as any).mockReturnValue({ isPending: false, data: null, error: 'pErr' });
     (useModuleDetailQuery as any).mockReturnValue({ isPending: false, data: null, error: null });
 
     const r = renderHookWithParams('1', '1');
@@ -204,7 +204,7 @@ describe('usePracticeRoomPageState', () => {
   });
 
   it('logs and shows pageError when moduleDetailQuery errors', () => {
-    (usePracticeRoomQuery as any).mockReturnValue({ isPending: false, data: null, error: null });
+    (useModuleUnitPracticeRoomQuery as any).mockReturnValue({ isPending: false, data: null, error: null });
     (useModuleDetailQuery as any).mockReturnValue({ isPending: false, data: null, error: 'mErr' });
 
     const r = renderHookWithParams('1', '1');
@@ -224,7 +224,7 @@ describe('usePracticeRoomPageState', () => {
       },
     };
 
-    (usePracticeRoomQuery as any).mockReturnValue({ isPending: false, data: room, error: null });
+    (useModuleUnitPracticeRoomQuery as any).mockReturnValue({ isPending: false, data: room, error: null });
     (useModuleDetailQuery as any).mockReturnValue({ isPending: false, data: null, error: null });
 
     const r = renderHookWithParams('1', '1');
@@ -272,7 +272,7 @@ describe('usePracticeRoomPageState', () => {
       },
     };
 
-    (usePracticeRoomQuery as any).mockReturnValue({ isPending: false, data: room, error: null });
+    (useModuleUnitPracticeRoomQuery as any).mockReturnValue({ isPending: false, data: room, error: null });
     (useModuleDetailQuery as any).mockReturnValue({ isPending: false, data: null, error: null });
 
     const r = renderHookWithParams('1', '1');
@@ -299,7 +299,7 @@ describe('usePracticeRoomPageState', () => {
       },
     };
 
-    (usePracticeRoomQuery as any).mockReturnValue({ isPending: false, data: room, error: null });
+    (useModuleUnitPracticeRoomQuery as any).mockReturnValue({ isPending: false, data: room, error: null });
     (useModuleDetailQuery as any).mockReturnValue({ isPending: false, data: null, error: null });
 
     const r = renderHookWithParams('1', '1');
@@ -321,7 +321,7 @@ describe('usePracticeRoomPageState', () => {
       },
     };
 
-    (usePracticeRoomQuery as any).mockReturnValue({ isPending: false, data: room, error: null });
+    (useModuleUnitPracticeRoomQuery as any).mockReturnValue({ isPending: false, data: room, error: null });
     (useModuleDetailQuery as any).mockReturnValue({ isPending: false, data: null, error: null });
 
     const r = renderHookWithParams('1', '1');
@@ -350,7 +350,7 @@ describe('usePracticeRoomPageState', () => {
       },
     };
 
-    (usePracticeRoomQuery as any).mockReturnValue({ isPending: false, data: room, error: null });
+    (useModuleUnitPracticeRoomQuery as any).mockReturnValue({ isPending: false, data: room, error: null });
     (useModuleDetailQuery as any).mockReturnValue({ isPending: false, data: null, error: null });
 
     const r = renderHookWithParams('1', '1');
