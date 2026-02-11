@@ -20,7 +20,7 @@ export interface PracticeRoomQuestionUnit {
 }
 
 
-//Question payload and optional last attempt, defined now to avoid later contract churn.
+//Question payload and optional last attempt
 export interface QuestionWithLatestAttempt {
   questionId: number;
   questionContent: PracticeRoomQuestion;
@@ -32,7 +32,6 @@ export interface QuestionWithLatestAttempt {
 export interface PracticeRoomAttempt {
   studentAnswer: StudentAnswer | null;
   isCorrect: boolean | null;
-  attemptedAt: string;
 }
 
 
@@ -83,18 +82,18 @@ export interface PracticeRoomResponse {
 // Payload user for submitting an attempt
 export interface SubmitAttemptPayload {
   moduleUnitId: number;
-  studentId: number;
   questionUnitId: number;
   questionContentId: number;
   practiceMode: (typeof PRACTICE_MODES)[keyof typeof PRACTICE_MODES];
   isCorrect: boolean;
   timeTakenMs: number;
-  usedHint: boolean;
+  hintUnlocked: boolean;
   studentAnswer: StudentAnswer;
-  attemptedAt: Date;
 }
 
+// Response sent back to the frontend after submitting an attempt.
 export interface SubmitAttemptResponse {
-  moduleExpGained: number;
-  studentExpGained: number;
+  moduleExpAwarded: number;
+  studentExpAwarded: number;
+  hasCorrectAttempt: boolean;
 }

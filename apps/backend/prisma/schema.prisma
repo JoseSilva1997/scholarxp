@@ -36,27 +36,27 @@ model LtiIdentity {
 }
 
 model User {
-  id               Int                      @id @default(autoincrement())
-  firstName        String                   @map("first_name")
-  lastName         String                   @map("last_name")
-  email            String?                  @unique
-  profilePictureUrl String                  @default("default-profile-pic.png") @map("profile_picture_url")
-  globalRole       GlobalRole               @default(pending) @map("global_role")
-  isVerified       Boolean                  @default(false)
-  createdAt        DateTime                 @default(now()) @map("created_at")
-  authIdentities   AuthIdentity[]
-  password         UserPassword?
+  id                      Int                      @id @default(autoincrement())
+  firstName               String                   @map("first_name")
+  lastName                String                   @map("last_name")
+  email                   String?                  @unique
+  profilePictureUrl       String                   @default("default-profile-pic.png") @map("profile_picture_url")
+  globalRole              GlobalRole               @default(pending) @map("global_role")
+  isVerified              Boolean                  @default(false)
+  createdAt               DateTime                 @default(now()) @map("created_at")
+  authIdentities          AuthIdentity[]
+  password                UserPassword?
   /// Keeps track of one-time email verification codes so signup flows can mark users verified without losing auditability.
   emailVerificationTokens EmailVerificationToken[]
-  createdModules   Module[]
-  createdInvites   ModuleInvite[]
-  avatars          Avatar[]
-  dailyQuests      DailyQuest[]
-  ltiIdentities    LtiIdentity[]
-  userProgress     ModuleUnitUserProgress[]
-  practiceSessions PracticeSession[]
-  questionAttempts QuestionAttempt[]
-  userModules      UserModule[]
+  createdModules          Module[]
+  createdInvites          ModuleInvite[]
+  avatars                 Avatar[]
+  dailyQuests             DailyQuest[]
+  ltiIdentities           LtiIdentity[]
+  userProgress            ModuleUnitUserProgress[]
+  practiceSessions        PracticeSession[]
+  questionAttempts        QuestionAttempt[]
+  userModules             UserModule[]
 
   @@map("users")
 }
@@ -76,9 +76,9 @@ model Avatar {
 model Module {
   id               Int               @id @default(autoincrement())
   institutionId    Int?              @map("institution_id")
-  ltiContextId     String?            @map("lti_context_id")
-  resourceLinkId   String?            @map("resource_link_id")
-  variantContext   String?            @map("variant_context")
+  ltiContextId     String?           @map("lti_context_id")
+  resourceLinkId   String?           @map("resource_link_id")
+  variantContext   String?           @map("variant_context")
   title            String
   description      String?
   createdByUserId  Int?              @map("created_by_user_id")
@@ -97,16 +97,16 @@ model Module {
 }
 
 model UserModule {
-  id              Int      @id @default(autoincrement())
-  moduleId        Int      @map("module_id")
-  userId          Int      @map("user_id")
-  roleInModule    String   @map("role_in_module")
-  userModuleLevel Int      @map("user_module_level")
-  currentExp      Int      @map("current_exp")
+  id              Int              @id @default(autoincrement())
+  moduleId        Int              @map("module_id")
+  userId          Int              @map("user_id")
+  roleInModule    String           @map("role_in_module")
+  userModuleLevel Int              @map("user_module_level")
+  currentExp      Int              @map("current_exp")
   enrolledVia     EnrollmentSource @default(invite) @map("enrolled_via")
-  createdAt       DateTime @default(now()) @map("created_at")
-  module          Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime         @default(now()) @map("created_at")
+  module          Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([moduleId, userId])
   @@map("user_modules")
@@ -127,13 +127,14 @@ model DailyQuest {
 }
 
 model PracticeSession {
-  id        Int       @id @default(autoincrement())
-  moduleId  Int?      @map("module_id")
-  userId    Int?      @map("user_id")
-  startTime DateTime  @map("start_time")
-  endTime   DateTime? @map("end_time")
-  module    Module?   @relation(fields: [moduleId], references: [id], onDelete: SetNull)
-  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  id               Int               @id @default(autoincrement())
+  moduleId         Int?              @map("module_id")
+  userId           Int?              @map("user_id")
+  startTime        DateTime          @map("start_time")
+  endTime          DateTime?         @map("end_time")
+  module           Module?           @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+  user             User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  questionAttempts QuestionAttempt[]
 
   @@map("practice_sessions")
 }
@@ -187,19 +188,19 @@ model ModuleUnitUserProgress {
 }
 
 model QuestionUnit {
-  id              Int                       @id @default(autoincrement())
-  moduleUnitId    Int?                      @map("module_unit_id")
-  questionGroupId Int?                      @map("question_group_id")
+  id              Int                      @id @default(autoincrement())
+  moduleUnitId    Int?                     @map("module_unit_id")
+  questionGroupId Int?                     @map("question_group_id")
   title           String
   // Question archive flag allows post-live removals from future sets while preserving historical attempts.
-  isArchived      Boolean                   @default(false) @map("is_archived")
-  createdAt       DateTime                  @default(now()) @map("created_at")
-  updatedAt       DateTime                  @updatedAt @map("updated_at")
-  moduleUnit      ModuleUnit?               @relation(fields: [moduleUnitId], references: [id], onDelete: Cascade)
-  questionGroup   ModuleUnitQuestionGroup?  @relation(fields: [questionGroupId], references: [id], onDelete: SetNull)
+  isArchived      Boolean                  @default(false) @map("is_archived")
+  createdAt       DateTime                 @default(now()) @map("created_at")
+  updatedAt       DateTime                 @updatedAt @map("updated_at")
+  moduleUnit      ModuleUnit?              @relation(fields: [moduleUnitId], references: [id], onDelete: Cascade)
+  questionGroup   ModuleUnitQuestionGroup? @relation(fields: [questionGroupId], references: [id], onDelete: SetNull)
   attempts        QuestionAttempt[]
   contents        QuestionContent[]
-  variants        QuestionVariant[]        
+  variants        QuestionVariant[]
 
   @@map("question_unit")
 }
@@ -236,22 +237,26 @@ model QuestionVariant {
 }
 
 model QuestionAttempt {
-  id            Int             @id @default(autoincrement())
-  moduleUnitId  Int?            @map("module_unit_id")
-  studentId     Int?            @map("student_id")
-  questionId    Int             @map("question_id")
-  contentId     Int             @map("content_id")
-  practiceMode  String          @map("practice_mode")
-  isCorrect     Boolean         @map("is_correct")
-  timeTakenMs   Int             @map("time_taken_ms")
-  hintsUsed     Int             @default(0) @map("hints_used")
-  studentAnswer Json            @map("student_answer")
-  attemptedAt   DateTime        @default(now()) @map("attempted_at")
-  content       QuestionContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
-  moduleUnit    ModuleUnit?     @relation(fields: [moduleUnitId], references: [id], onDelete: SetNull)
-  question      QuestionUnit    @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  student       User?           @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  id            Int              @id @default(autoincrement())
+  sessionId     Int?             @map("session_id")
+  moduleUnitId  Int?             @map("module_unit_id")
+  studentId     Int?             @map("student_id")
+  questionId    Int              @map("question_id")
+  contentId     Int              @map("content_id")
+  practiceMode  String           @map("practice_mode")
+  isCorrect     Boolean          @map("is_correct")
+  timeTakenMs   Int              @map("time_taken_ms")
+  hintsUsed     Int              @default(0) @map("hints_used")
+  studentAnswer Json             @map("student_answer")
+  attemptedAt   DateTime         @default(now()) @map("attempted_at")
+  // Session linkage keeps attempts grouped under one practice run without making the relation mandatory for legacy rows.
+  session       PracticeSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  content       QuestionContent  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  moduleUnit    ModuleUnit?      @relation(fields: [moduleUnitId], references: [id], onDelete: SetNull)
+  question      QuestionUnit     @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  student       User?            @relation(fields: [studentId], references: [id], onDelete: SetNull)
 
+  @@index([sessionId])
   @@map("question_attempts")
 }
 

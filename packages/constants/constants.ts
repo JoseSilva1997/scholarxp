@@ -4,7 +4,7 @@ export const BACKEND_URL = 'http://localhost:3000';
 
 export const PRACTICE_MODES = {
   PRACTICE_ROOM: 'PRACTICE_ROOM',
-}
+} as const;
 
 
 /*
