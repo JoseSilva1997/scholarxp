@@ -278,11 +278,64 @@
   opacity: 0.3;
 }
 
+.navButtonNudge .navIcon {
+  animation: navNextNudgePulse 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  color: var(--color-accent-secondary);
+}
+
 .navIcon {
   color: var(--color-brand-surface-dark);
   width: 28px;
   height: 28px;
   font-size: 18px;
+}
+
+@keyframes navNextNudgePulse {
+  0% {
+    transform: scale(1);
+    filter: brightness(1);
+    text-shadow: 0 0 0px var(--color-accent-secondary);
+  }
+  15% {
+    transform: scale(1.08);
+    filter: brightness(1.01);
+    text-shadow: 0 0 2px var(--color-accent-secondary);
+  }
+  30% {
+    transform: scale(1.18);
+    filter: brightness(1.02);
+    text-shadow: 0 0 5px var(--color-accent-secondary);
+  }
+  40% {
+    transform: scale(1.25);
+    filter: brightness(1.05);
+    text-shadow: 0 0 8px var(--color-accent-secondary);
+  }
+  55% {
+    transform: scale(1.18);
+    filter: brightness(1.02);
+    text-shadow: 0 0 5px var(--color-accent-secondary);
+  }
+  70% {
+    transform: scale(1.08);
+    filter: brightness(1.02);
+    text-shadow: 0 0 3px var(--color-accent-secondary);
+  }
+  80% {
+    transform: scale(1.03);
+    filter: brightness(1.01);
+    text-shadow: 0 0 2px var(--color-accent-secondary);
+  }
+  90% {
+    transform: scale(1.01);
+    filter: brightness(1);
+    text-shadow: 0 0 1px var(--color-accent-secondary);
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+    text-shadow: 0 0 0px var(--color-accent-secondary);
+  }
 }
 
 /* Legacy text-button class retained only for compatibility with snapshots while nav is icon-based. */

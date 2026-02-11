@@ -92,11 +92,13 @@ export function usePracticeRoomPageState({
     Record<number, boolean>
   >({});
   const [submittedAttemptByContentId, setSubmittedAttemptByContentId] = useState<
-    Record<number, PracticeAttemptSnapshot>
+    Record<number, PracticeAttemptSnapshot | null>
   >({});
   const [submittedByContentId, setSubmittedByContentId] = useState<
     Record<number, boolean>
   >({});
+  const [nudgeNextVariantByQuestionUnitId, setNudgeNextVariantByQuestionUnitId] =
+    useState<Record<number, boolean>>({});
   const [hasCorrectAttemptByQuestionUnitId, setHasCorrectAttemptByQuestionUnitId] =
     useState<Record<number, boolean>>({});
   const [submitErrorMessage, setSubmitErrorMessage] = useState<string | null>(null);
@@ -250,10 +252,20 @@ export function usePracticeRoomPageState({
       };
     }
 
+    const isLastVariant =
+      activeQuestion.index === activeQuestionUnit.variants.length - 1 &&
+      activeQuestionUnit.variants.length > 0;
+    const isQuestionUnitSolved = activeQuestionUnit.hasCorrectAttempt === true;
+    const isCurrentVariantIncorrect =
+      activeQuestionUnit.variants[activeQuestion.index!]?.lastAttempt?.isCorrect ===
+      false;
+
     return {
       activeLabel: `Variant ${activeQuestion.index! + 1}`,
       canGoPrevious: true,
-      canGoNext: activeQuestion.index! < unlockedVariantCount - 1,
+      canGoNext:
+        activeQuestion.index! < unlockedVariantCount - 1 ||
+        (isLastVariant && !isQuestionUnitSolved && isCurrentVariantIncorrect),
     };
   }, [activeQuestion, activeQuestionUnit]);
 
@@ -385,6 +397,9 @@ export function usePracticeRoomPageState({
   const hasSubmittedActiveQuestion = activeQuestion
     ? Boolean(submittedByContentId[activeQuestion.question.id])
     : false;
+  const shouldNudgeNextVariant = activeQuestionUnit
+    ? Boolean(nudgeNextVariantByQuestionUnitId[activeQuestionUnit.questionUnitId])
+    : false;
 
   const goToPreviousQuestionVersion = () => {
     if (!activeQuestionUnit || !activeQuestion || activeQuestion.kind === 'core') {
@@ -401,15 +416,44 @@ export function usePracticeRoomPageState({
   const goToNextQuestionVersion = () => {
     if (!activeQuestionUnit) return;
     const unlockedVariantCount = getUnlockedVariantCount(activeQuestionUnit);
-    if (unlockedVariantCount <= 0) return;
+    if (unlockedVariantCount <= 0) {
+      return;
+    }
 
     if (!activeQuestion || activeQuestion.kind === 'core') {
+      // Clear nudge once student consumes it and moves into the newly unlocked variant.
+      setNudgeNextVariantByQuestionUnitId((previousValue) => ({
+        ...previousValue,
+        [activeQuestionUnit.questionUnitId]: false,
+      }));
       selectVariantQuestion(activeQuestionUnit.questionUnitId, 0);
       return;
     }
 
     const nextVariantIndex = activeQuestion.index! + 1;
-    if (nextVariantIndex >= unlockedVariantCount) return;
+    if (nextVariantIndex >= unlockedVariantCount) {
+      const isLastVariant =
+        activeQuestion.index === activeQuestionUnit.variants.length - 1 &&
+        activeQuestionUnit.variants.length > 0;
+      const isQuestionUnitSolved = activeQuestionUnit.hasCorrectAttempt === true;
+      const isCurrentVariantIncorrect =
+        activeQuestionUnit.variants[activeQuestion.index!]?.lastAttempt?.isCorrect ===
+        false;
+
+      if (
+        isLastVariant &&
+        !isQuestionUnitSolved &&
+        isCurrentVariantIncorrect
+      ) {
+        resetQuestionUnitForCoreRetry(activeQuestionUnit);
+      }
+      return;
+    }
+    // Clear nudge after navigating to the next unlocked variant.
+    setNudgeNextVariantByQuestionUnitId((previousValue) => ({
+      ...previousValue,
+      [activeQuestionUnit.questionUnitId]: false,
+    }));
     selectVariantQuestion(activeQuestionUnit.questionUnitId, nextVariantIndex);
   };
 
@@ -483,6 +527,19 @@ export function usePracticeRoomPageState({
         ...previousValue,
         [activeQuestion.question.id]: true,
       }));
+      if (!optimisticIsCorrect) {
+        const hasNextVariantToUnlock =
+          activeQuestion.kind === 'core'
+            ? activeQuestionUnit.variants.length > 0
+            : (activeQuestion.index ?? -1) + 1 < activeQuestionUnit.variants.length;
+        if (hasNextVariantToUnlock) {
+          // Keep focus on current question and nudge manual progression for better review flow.
+          setNudgeNextVariantByQuestionUnitId((previousValue) => ({
+            ...previousValue,
+            [activeQuestionUnit.questionUnitId]: true,
+          }));
+        }
+      }
       if (submitResult.hasCorrectAttempt) {
         setHasCorrectAttemptByQuestionUnitId((previousValue) => ({
           ...previousValue,
@@ -528,6 +585,7 @@ export function usePracticeRoomPageState({
     questionUnitNav,
     selectedOptionIndex,
     hasSubmittedActiveQuestion,
+    shouldNudgeNextVariant,
     selectQuestionUnit,
     selectOption,
     isActiveHintUnlocked,
@@ -538,26 +596,77 @@ export function usePracticeRoomPageState({
     goToPreviousQuestionUnit,
     goToNextQuestionUnit,
   };
+
+  function resetQuestionUnitForCoreRetry(questionUnit: PracticeQuestionUnit) {
+    // Final-variant failure starts a fresh cycle from core so students retry in the intended order.
+    setSelectedVariantIndexByUnit((previousValue) => ({
+      ...previousValue,
+      [questionUnit.questionUnitId]: null,
+    }));
+    setNudgeNextVariantByQuestionUnitId((previousValue) => ({
+      ...previousValue,
+      [questionUnit.questionUnitId]: false,
+    }));
+
+    const contentIds = [
+      questionUnit.coreQuestion.questionContent.id,
+      ...questionUnit.variants.map((variant) => variant.questionContent.id),
+    ];
+
+    // We persist null overrides to mask server attempts until refetch/persisted retry state catches up.
+    setSubmittedAttemptByContentId((previousValue) => {
+      const nextValue = { ...previousValue };
+      for (const contentId of contentIds) {
+        nextValue[contentId] = null;
+      }
+      return nextValue;
+    });
+    setSubmittedByContentId((previousValue) => {
+      const nextValue = { ...previousValue };
+      for (const contentId of contentIds) {
+        delete nextValue[contentId];
+      }
+      return nextValue;
+    });
+    setSelectedOptionOverrideByContentId((previousValue) => {
+      const nextValue = { ...previousValue };
+      for (const contentId of contentIds) {
+        delete nextValue[contentId];
+      }
+      return nextValue;
+    });
+  }
 }
 
 // Apply local submissions over server snapshots so unlocking/status bars update instantly while query refetch catches up.
 function applySubmittedAttemptOverrides(
   questionUnit: PracticeQuestionUnit,
-  submittedAttemptByContentId: Record<number, PracticeAttemptSnapshot>,
+  submittedAttemptByContentId: Record<number, PracticeAttemptSnapshot | null>,
   forceHasCorrectAttempt: boolean,
 ): PracticeQuestionUnit {
-  const coreAttemptOverride =
-    submittedAttemptByContentId[questionUnit.coreQuestion.questionContent.id];
+  const coreContentId = questionUnit.coreQuestion.questionContent.id;
+  const hasCoreAttemptOverride = Object.prototype.hasOwnProperty.call(
+    submittedAttemptByContentId,
+    coreContentId,
+  );
+  const coreAttemptOverride = submittedAttemptByContentId[coreContentId];
   const coreQuestion = {
     ...questionUnit.coreQuestion,
-    lastAttempt: coreAttemptOverride ?? questionUnit.coreQuestion.lastAttempt,
+    lastAttempt: hasCoreAttemptOverride
+      ? coreAttemptOverride
+      : questionUnit.coreQuestion.lastAttempt,
   };
   const variants = questionUnit.variants.map((variant) => {
-    const variantAttemptOverride =
-      submittedAttemptByContentId[variant.questionContent.id];
+    const hasVariantAttemptOverride = Object.prototype.hasOwnProperty.call(
+      submittedAttemptByContentId,
+      variant.questionContent.id,
+    );
+    const variantAttemptOverride = submittedAttemptByContentId[variant.questionContent.id];
     return {
       ...variant,
-      lastAttempt: variantAttemptOverride ?? variant.lastAttempt,
+      lastAttempt: hasVariantAttemptOverride
+        ? variantAttemptOverride
+        : variant.lastAttempt,
     };
   });
 

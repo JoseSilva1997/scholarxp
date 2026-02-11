@@ -365,4 +365,179 @@ describe('usePracticeRoomPageState', () => {
     state = r.getState();
     expect(state.activeQuestion.kind).toBe('core');
   });
+
+  it('keeps current question and nudges next variant when submitted answer is incorrect', async () => {
+    const mutateAsync = vi.fn().mockResolvedValue({
+      moduleExpAwarded: 0,
+      studentExpAwarded: 0,
+      hasCorrectAttempt: false,
+    });
+    (useSubmitModuleUnitPracticeAttemptMutation as any).mockReturnValue({
+      isPending: false,
+      error: null,
+      mutateAsync,
+    });
+
+    const room = {
+      practiceRoom: {
+        sessionId: 10,
+        moduleUnitId: 1,
+        questions: [
+          {
+            questionUnitId: 50,
+            coreQuestion: {
+              questionContent: {
+                id: 500,
+                type: 'mcq',
+                questionData: {
+                  options: [{ optionText: 'A' }, { optionText: 'B' }],
+                  correctOptionIndex: 1,
+                },
+              },
+              lastAttempt: null,
+            },
+            variants: [
+              {
+                questionContent: {
+                  id: 501,
+                  type: 'mcq',
+                  questionData: { options: [{ optionText: 'V1' }] },
+                },
+                lastAttempt: null,
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    (useModuleUnitPracticeRoomQuery as any).mockReturnValue({
+      isPending: false,
+      data: room,
+      error: null,
+    });
+    (useModuleDetailQuery as any).mockReturnValue({
+      isPending: false,
+      data: null,
+      error: null,
+    });
+
+    const r = renderHookWithParams('1', '1');
+    let state = r.getState();
+    expect(state.activeQuestion.kind).toBe('core');
+
+    act(() => {
+      state.selectOption(500, 0);
+    });
+    state = r.getState();
+
+    await act(async () => {
+      await state.submitActiveQuestionAttempt();
+    });
+
+    state = r.getState();
+    expect(state.activeQuestion.kind).toBe('core');
+    expect(state.activeQuestion.question.id).toBe(500);
+    expect(state.shouldNudgeNextVariant).toBe(true);
+
+    act(() => {
+      state.goToNextQuestionVersion();
+    });
+    state = r.getState();
+    expect(state.activeQuestion.kind).toBe('variant');
+    expect(state.activeQuestion.question.id).toBe(501);
+    expect(state.shouldNudgeNextVariant).toBe(false);
+  });
+
+  it('resets to core retry when final variant is submitted incorrectly', async () => {
+    const mutateAsync = vi.fn().mockResolvedValue({
+      moduleExpAwarded: 0,
+      studentExpAwarded: 0,
+      hasCorrectAttempt: false,
+    });
+    (useSubmitModuleUnitPracticeAttemptMutation as any).mockReturnValue({
+      isPending: false,
+      error: null,
+      mutateAsync,
+    });
+
+    const room = {
+      practiceRoom: {
+        sessionId: 22,
+        moduleUnitId: 1,
+        questions: [
+          {
+            questionUnitId: 90,
+            coreQuestion: {
+              questionContent: {
+                id: 900,
+                type: 'mcq',
+                questionData: {
+                  options: [{ optionText: 'A' }, { optionText: 'B' }],
+                  correctOptionIndex: 1,
+                },
+              },
+              // Seed as previously incorrect so the only variant is already unlocked.
+              lastAttempt: { isCorrect: false, studentAnswer: { selectedOptionIndex: 0 } },
+            },
+            variants: [
+              {
+                questionContent: {
+                  id: 901,
+                  type: 'mcq',
+                  questionData: {
+                    options: [{ optionText: 'C' }, { optionText: 'D' }],
+                    correctOptionIndex: 1,
+                  },
+                },
+                lastAttempt: null,
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    (useModuleUnitPracticeRoomQuery as any).mockReturnValue({
+      isPending: false,
+      data: room,
+      error: null,
+    });
+    (useModuleDetailQuery as any).mockReturnValue({
+      isPending: false,
+      data: null,
+      error: null,
+    });
+
+    const r = renderHookWithParams('1', '1');
+    let state = r.getState();
+
+    // Move to the only unlocked variant.
+    act(() => {
+      state.goToNextQuestionVersion();
+    });
+    state = r.getState();
+    expect(state.activeQuestion.kind).toBe('variant');
+    expect(state.activeQuestion.question.id).toBe(901);
+
+    // Fail the final variant.
+    act(() => {
+      state.selectOption(901, 0);
+    });
+    state = r.getState();
+    await act(async () => {
+      await state.submitActiveQuestionAttempt();
+    });
+    state = r.getState();
+
+    // Next now resets to core retry with a fresh submit-ready state.
+    act(() => {
+      state.goToNextQuestionVersion();
+    });
+    state = r.getState();
+    expect(state.activeQuestion.kind).toBe('core');
+    expect(state.activeQuestion.question.id).toBe(900);
+    expect(state.selectedOptionIndex).toBe(null);
+    expect(state.hasSubmittedActiveQuestion).toBe(false);
+  });
 });

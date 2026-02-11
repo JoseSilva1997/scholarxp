@@ -84,6 +84,8 @@ let pageState: {
   trackNav: { activeLabel: string; canGoPrevious: boolean; canGoNext: boolean };
   questionUnitNav: { canGoPrevious: boolean; canGoNext: boolean };
   selectedOptionIndex: number | null;
+  hasSubmittedActiveQuestion: boolean;
+  shouldNudgeNextVariant: boolean;
   isActiveHintUnlocked: boolean;
 } = {
   parsedModuleId: 1,
@@ -102,6 +104,8 @@ let pageState: {
   trackNav: { activeLabel: 'Core', canGoPrevious: false, canGoNext: false },
   questionUnitNav: { canGoPrevious: false, canGoNext: false },
   selectedOptionIndex: null,
+  hasSubmittedActiveQuestion: false,
+  shouldNudgeNextVariant: false,
   isActiveHintUnlocked: false,
 };
 
@@ -154,6 +158,8 @@ describe('PracticeRoomPage route', () => {
       trackNav: { activeLabel: 'Core', canGoPrevious: false, canGoNext: false },
       questionUnitNav: { canGoPrevious: false, canGoNext: false },
       selectedOptionIndex: null,
+      hasSubmittedActiveQuestion: false,
+      shouldNudgeNextVariant: false,
       isActiveHintUnlocked: false,
     };
     vi.clearAllMocks();

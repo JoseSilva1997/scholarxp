@@ -34,6 +34,7 @@ export default function PracticeRoomPage() {
     questionUnitNav,
     selectedOptionIndex,
     hasSubmittedActiveQuestion,
+    shouldNudgeNextVariant,
     selectQuestionUnit,
     selectOption,
     isActiveHintUnlocked,
@@ -158,7 +159,11 @@ export default function PracticeRoomPage() {
                 <span className={styles.variantLabel}>{trackNav.activeLabel}</span>
                 <button
                   type="button"
-                  className={styles.navButton}
+                  className={`${styles.navButton} ${
+                    shouldNudgeNextVariant && trackNav.canGoNext
+                      ? styles.navButtonNudge
+                      : ''
+                  }`}
                   onClick={goToNextQuestionVersion}
                   disabled={!trackNav.canGoNext}
                   aria-label="Next question or variant"
