@@ -1,5 +1,9 @@
 // Tests for ModuleService enforcing scoped creation and filtered reads.
-import { ForbiddenException, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { GlobalRole } from '@prisma/client';
 import { ModuleService } from './module.service';
 import { createPrismaMock, type PrismaMock } from '../../test/test-helpers';

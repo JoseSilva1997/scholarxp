@@ -1,5 +1,9 @@
 // Targeted tests for ModuleInviteService enforcing capability checks and CRUD behavior.
-import { BadRequestException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { GlobalRole, InviteType, Prisma } from '@prisma/client';
 import { createHash } from 'crypto';
 import { ModuleInviteService } from './module-invite.service';

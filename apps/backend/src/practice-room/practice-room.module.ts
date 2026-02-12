@@ -3,12 +3,17 @@ import { AuthModule } from '../auth/auth.module';
 import { PracticeRoomController } from './practice-room.controller';
 import { PracticeRoomMapper } from './practice-room.mapper';
 import { PracticeRoomService } from './practice-room.service';
+import { StudentModuleUnitProgressService } from './student-module-unit-progress.service';
 
 // This module isolates practice-room read orchestration and keeps route wiring explicit in one place.
 @Module({
   imports: [AuthModule],
   controllers: [PracticeRoomController],
-  providers: [PracticeRoomService, PracticeRoomMapper],
+  providers: [
+    PracticeRoomService,
+    PracticeRoomMapper,
+    StudentModuleUnitProgressService,
+  ],
   exports: [PracticeRoomService],
 })
 export class PracticeRoomModule {}
