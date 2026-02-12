@@ -1,0 +1,5 @@
+-- RenameIndex
+ALTER INDEX "question_attempts_module_unit_id_student_id_question_id_content" RENAME TO "question_attempts_module_unit_id_student_id_question_id_con_idx";
+
+-- RenameIndex
+ALTER INDEX "question_attempts_module_unit_id_student_id_question_id_is_corr" RENAME TO "question_attempts_module_unit_id_student_id_question_id_is__idx";

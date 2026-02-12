@@ -184,6 +184,8 @@ model ModuleUnitUserProgress {
   moduleUnit          ModuleUnit @relation(fields: [moduleUnitId], references: [id], onDelete: Cascade)
   student             User?      @relation(fields: [studentId], references: [id], onDelete: SetNull)
 
+  // One progress aggregate per student per module unit keeps upserts deterministic from practice attempts.
+  @@unique([moduleUnitId, studentId])
   @@map("module_unit_user_progress")
 }
 
@@ -256,6 +258,10 @@ model QuestionAttempt {
   question      QuestionUnit     @relation(fields: [questionId], references: [id], onDelete: Cascade)
   student       User?            @relation(fields: [studentId], references: [id], onDelete: SetNull)
 
+  // Supports first-correct lookups used by unit-progress aggregation on submit.
+  @@index([moduleUnitId, studentId, questionId, isCorrect])
+  // Supports latest-attempt room hydration filtered by unit/student/question/content.
+  @@index([moduleUnitId, studentId, questionId, contentId, attemptedAt, id])
   @@index([sessionId])
   @@map("question_attempts")
 }
