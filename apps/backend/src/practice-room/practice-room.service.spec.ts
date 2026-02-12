@@ -48,25 +48,6 @@ describe('PracticeRoomService', () => {
           },
         ]
       : [],
-    variants: [
-      {
-        contentId: 20 + id,
-        content: {
-          id: 20 + id,
-          type: 'mcq',
-          questionStem: 'Variant Question Stem',
-          questionData: {
-            options: [
-              { optionText: 'X' },
-              { optionText: 'Y' },
-              { optionText: 'Z' },
-            ],
-          } as any,
-          hint: null,
-          difficultyScore: 6,
-        },
-      },
-    ],
   });
 
   const buildQuestionUnitDraft = (
@@ -74,7 +55,6 @@ describe('PracticeRoomService', () => {
   ): RoomQuestionUnitDraft => ({
     questionUnitId: 1,
     coreContentId: 11,
-    variantContentIds: [21],
     coreQuestion: {
       questionId: 1,
       questionContent: {
@@ -88,21 +68,6 @@ describe('PracticeRoomService', () => {
         difficultyScore: 5,
       },
     },
-    variants: [
-      {
-        questionId: 1,
-        questionContent: {
-          id: 21,
-          type: 'mcq',
-          questionStem: 'Variant',
-          questionData: {
-            options: [{ optionText: 'X' }, { optionText: 'Y' }],
-          } as any,
-          hint: null,
-          difficultyScore: 6,
-        },
-      },
-    ],
     ...overrides,
   });
 
@@ -275,7 +240,7 @@ describe('PracticeRoomService', () => {
     });
 
     // ===== BRANCH COVERAGE: Query includes correct select fields =====
-    it('should query with nested includes for variants and contents', async () => {
+    it('should query with nested includes for core contents', async () => {
       const mockModuleUnit = buildMockModuleUnit();
       prisma.moduleUnit.findFirst.mockResolvedValue(mockModuleUnit as any);
 
@@ -284,10 +249,7 @@ describe('PracticeRoomService', () => {
       const call = prisma.moduleUnit.findFirst.mock.calls[0]?.[0] as any;
       expect(call?.select?.questionUnits).toBeDefined();
       expect(call?.select?.questionUnits?.include?.contents).toBeDefined();
-      expect(call?.select?.questionUnits?.include?.variants).toBeDefined();
-      expect(
-        call?.select?.questionUnits?.include?.variants?.include?.content,
-      ).toBeDefined();
+      expect(call?.select?.questionUnits?.include?.variants).toBeUndefined();
     });
   });
 
@@ -354,7 +316,6 @@ describe('PracticeRoomService', () => {
         buildQuestionUnitDraft({
           questionUnitId: 2,
           coreContentId: 12,
-          variantContentIds: [22],
         }),
       ];
 
@@ -397,18 +358,14 @@ describe('PracticeRoomService', () => {
 
     // ===== BRANCH: Empty contentIds =====
     it('should return empty array when no contents exist (all questions have no core)', async () => {
-      // Create drafts with empty variantContentIds and no coreContentId mapping
+      // Core-only mode still short-circuits when no draft questions are provided.
       const questionUnitDrafts = [
         buildQuestionUnitDraft({
           coreContentId: 11,
-          variantContentIds: [],
         }),
       ];
 
-      // Simulate condition where flatMap results in empty array
-      // This is tricky because we'd need to mock the drafts such that
-      // both contentIds ends up empty. In practice, this means no cores and no variants.
-      // But our builder always creates at least a core. Let's directly test with mocked empty array.
+      // Simulate condition where contentIds would be empty by testing with no drafts.
       const result = await (service as any).getLatestAttempts(10, 100, []);
 
       expect(result).toEqual([]);
@@ -432,7 +389,7 @@ describe('PracticeRoomService', () => {
           moduleUnitId: 10,
           studentId: 100,
           questionId: { in: [1] },
-          contentId: { in: [11, 21] },
+          contentId: { in: [11] },
         },
         orderBy: [{ attemptedAt: 'desc' }, { id: 'desc' }],
         select: expect.any(Object),
@@ -472,12 +429,10 @@ describe('PracticeRoomService', () => {
         buildQuestionUnitDraft({
           questionUnitId: 1,
           coreContentId: 11,
-          variantContentIds: [21, 22],
         }),
         buildQuestionUnitDraft({
           questionUnitId: 2,
           coreContentId: 12,
-          variantContentIds: [23],
         }),
       ];
 
@@ -490,7 +445,7 @@ describe('PracticeRoomService', () => {
           moduleUnitId: 10,
           studentId: 100,
           questionId: { in: [1, 2] },
-          contentId: { in: [11, 21, 22, 12, 23] },
+          contentId: { in: [11, 12] },
         },
         orderBy: [{ attemptedAt: 'desc' }, { id: 'desc' }],
         select: {

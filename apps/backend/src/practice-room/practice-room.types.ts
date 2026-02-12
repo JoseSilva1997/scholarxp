@@ -27,9 +27,7 @@ export type RoomQuestion = {
 export type RoomQuestionUnitDraft = {
   questionUnitId: number;
   coreContentId: number;
-  variantContentIds: number[];
   coreQuestion: RoomQuestion;
-  variants: RoomQuestion[];
 };
 
 export type LoadedModuleUnit = {
@@ -45,17 +43,6 @@ export type LoadedModuleUnit = {
       questionData: Prisma.JsonValue;
       hint: string | null;
       difficultyScore: number;
-    }[];
-    variants: {
-      contentId: number;
-      content: {
-        id: number;
-        type: string;
-        questionStem: string;
-        questionData: Prisma.JsonValue;
-        hint: string | null;
-        difficultyScore: number;
-      };
     }[];
   }[];
 };

@@ -21,7 +21,7 @@ type AttemptQuestionContent = {
   questionData: Prisma.JsonValue;
 };
 
-// PracticeRoomService builds the page-load payload so the frontend can render core questions, variants, and latest attempts.
+// PracticeRoomService builds the page-load payload so the frontend can render core questions and latest attempts.
 @Injectable()
 export class PracticeRoomService {
   constructor(
@@ -109,15 +109,6 @@ export class PracticeRoomService {
               where: { isArchived: false },
               orderBy: { id: 'asc' },
             },
-            variants: {
-              where: {
-                content: {
-                  isArchived: false,
-                },
-              },
-              orderBy: { id: 'asc' },
-              include: { content: true },
-            },
           },
         },
       },
@@ -152,10 +143,9 @@ export class PracticeRoomService {
     const questionUnitIds = questionUnitDrafts.map(
       (questionUnit) => questionUnit.questionUnitId,
     );
-    const contentIds = questionUnitDrafts.flatMap((questionUnit) => [
-      questionUnit.coreContentId,
-      ...questionUnit.variantContentIds,
-    ]);
+    const contentIds = questionUnitDrafts.map(
+      (questionUnit) => questionUnit.coreContentId,
+    );
 
     const latestAttempts =
       questionUnitIds.length === 0 || contentIds.length === 0
@@ -237,29 +227,13 @@ export class PracticeRoomService {
         contents: {
           where: {
             id: questionContentId,
+            isCore: true,
             isArchived: false,
           },
           select: {
             id: true,
             type: true,
             questionData: true,
-          },
-        },
-        variants: {
-          where: {
-            contentId: questionContentId,
-            content: {
-              isArchived: false,
-            },
-          },
-          select: {
-            content: {
-              select: {
-                id: true,
-                type: true,
-                questionData: true,
-              },
-            },
           },
         },
       },
@@ -274,14 +248,6 @@ export class PracticeRoomService {
       return {
         type: directContent.type,
         questionData: directContent.questionData,
-      };
-    }
-
-    const variantContent = questionUnit.variants[0]?.content;
-    if (variantContent) {
-      return {
-        type: variantContent.type,
-        questionData: variantContent.questionData,
       };
     }
 

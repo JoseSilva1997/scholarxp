@@ -30,18 +30,14 @@ export default function PracticeRoomPage() {
     activeQuestionUnit,
     activeQuestion,
     activeQuestionOptions,
-    trackNav,
     questionUnitNav,
     selectedOptionIndex,
     hasSubmittedActiveQuestion,
-    shouldNudgeNextVariant,
     selectQuestionUnit,
     selectOption,
     isActiveHintUnlocked,
     unlockHintForContent,
     submitActiveQuestionAttempt,
-    goToPreviousQuestionVersion,
-    goToNextQuestionVersion,
     goToPreviousQuestionUnit,
     goToNextQuestionUnit,
   } = usePracticeRoomPageState({
@@ -129,10 +125,13 @@ export default function PracticeRoomPage() {
               <button
                 key={questionUnit.questionUnitId}
                 type="button"
-                className={`${styles.navBar} ${getQuestionUnitStatusClass({
-                  questionUnit,
-                  isCurrent: index === selectedQuestionUnitIndex,
-                }, styles)}`}
+                className={`${styles.navBar} ${getQuestionUnitStatusClass(
+                  {
+                    questionUnit,
+                    isCurrent: index === selectedQuestionUnitIndex,
+                  },
+                  styles,
+                )}`}
                 onClick={() => selectQuestionUnit(index)}
                 aria-label={`Question ${index + 1}`}
                 aria-current={index === selectedQuestionUnitIndex ? 'true' : undefined}
@@ -144,36 +143,6 @@ export default function PracticeRoomPage() {
 
           {activeQuestionUnit && activeQuestion ? (
             <section className={styles.questionPanel}>
-              <div className={styles.questionTrackNav}>
-                <button
-                  type="button"
-                  className={styles.navButton}
-                  onClick={goToPreviousQuestionVersion}
-                  disabled={!trackNav.canGoPrevious}
-                  aria-label="Previous question or variant"
-                >
-                  <IconContext.Provider value={{ className: styles.navIcon }}>
-                    <FaCircleChevronLeft />
-                  </IconContext.Provider>
-                </button>
-                <span className={styles.variantLabel}>{trackNav.activeLabel}</span>
-                <button
-                  type="button"
-                  className={`${styles.navButton} ${
-                    shouldNudgeNextVariant && trackNav.canGoNext
-                      ? styles.navButtonNudge
-                      : ''
-                  }`}
-                  onClick={goToNextQuestionVersion}
-                  disabled={!trackNav.canGoNext}
-                  aria-label="Next question or variant"
-                >
-                  <IconContext.Provider value={{ className: styles.navIcon }}>
-                    <FaCircleChevronRight />
-                  </IconContext.Provider>
-                </button>
-              </div>
-
               <h2 className={styles.questionStem}>{activeQuestion.question.questionStem}</h2>
               <div className={styles.questionContent}>
                 <div

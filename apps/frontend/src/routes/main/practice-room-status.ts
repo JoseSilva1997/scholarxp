@@ -15,10 +15,8 @@ export function getQuestionUnitStatusClass(
   if (questionUnit.hasCorrectAttempt) {
     statusClass = css.navBarCorrect;
   } else {
-    // Any recorded attempt with no correctness indicates an incorrect progression so far.
-    const hasAnyAttempt =
-      questionUnit.coreQuestion.lastAttempt !== null ||
-      questionUnit.variants.some((variant) => variant.lastAttempt !== null);
+    // Core-only mode: any recorded core attempt with no correctness indicates an incorrect progression so far.
+    const hasAnyAttempt = questionUnit.coreQuestion.lastAttempt !== null;
     if (hasAnyAttempt) {
       statusClass = css.navBarIncorrect;
     } else {

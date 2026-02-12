@@ -16,7 +16,6 @@ export interface PracticeQuestionUnit {
   position: number;
   hasCorrectAttempt: boolean | null;
   coreQuestion: PracticeQuestionWithLatestAttempt;
-  variants: PracticeQuestionWithLatestAttempt[];
 }
 
 
@@ -35,7 +34,7 @@ export interface PracticeAttemptSnapshot {
 }
 
 
-//Shared render shape for a core question or one of its variants.
+//Shared render shape for a core practice question.
 export interface PracticeQuestion {
   id: number;
   type: questionType;

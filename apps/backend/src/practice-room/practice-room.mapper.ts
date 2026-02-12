@@ -33,9 +33,6 @@ export class PracticeRoomMapper {
         return {
           questionUnitId: questionUnit.id,
           coreContentId: coreContent.id,
-          variantContentIds: questionUnit.variants.map(
-            (variant) => variant.contentId,
-          ),
           coreQuestion: {
             questionId: questionUnit.id,
             questionContent: {
@@ -47,17 +44,6 @@ export class PracticeRoomMapper {
               difficultyScore: coreContent.difficultyScore,
             },
           },
-          variants: questionUnit.variants.map((variant) => ({
-            questionId: questionUnit.id,
-            questionContent: {
-              id: variant.content.id,
-              type: variant.content.type as questionType,
-              questionStem: variant.content.questionStem,
-              questionData: variant.content.questionData as QuestionData,
-              hint: variant.content.hint,
-              difficultyScore: variant.content.difficultyScore,
-            },
-          })),
         };
       })
       .filter((questionUnit) => questionUnit !== null);
@@ -113,25 +99,8 @@ export class PracticeRoomMapper {
       ),
     );
 
-    const mappedVariants = questionUnitDraft.variants.map((variant) => {
-      const variantAttempt = latestAttemptByKey.get(
-        this.buildAttemptKey(
-          questionUnitDraft.questionUnitId,
-          variant.questionContent.id,
-        ),
-      );
-      return {
-        questionId: variant.questionId,
-        questionContent: variant.questionContent,
-        lastAttempt: this.mapAttempt(variantAttempt),
-      };
-    });
-
-    const hasCorrectAttempt =
-      coreAttempt?.isCorrect === true ||
-      mappedVariants.some((variant) => variant.lastAttempt?.isCorrect === true)
-        ? true
-        : null;
+    // Core-only mode: question-unit solved state is driven exclusively by the core question latest attempt.
+    const hasCorrectAttempt = coreAttempt?.isCorrect === true ? true : null;
 
     return {
       questionUnitId: questionUnitDraft.questionUnitId,
@@ -142,7 +111,6 @@ export class PracticeRoomMapper {
         questionContent: questionUnitDraft.coreQuestion.questionContent,
         lastAttempt: this.mapAttempt(coreAttempt),
       },
-      variants: mappedVariants,
     };
   }
 

@@ -29,7 +29,6 @@ export class PracticeQuestionUnitDto implements PracticeQuestionUnit {
   position!: number;
   hasCorrectAttempt!: boolean | null;
   coreQuestion!: PracticeQuestionWithLatestAttemptDto;
-  variants!: PracticeQuestionWithLatestAttemptDto[];
 }
 
 export class PracticeQuestionWithLatestAttemptDto implements PracticeQuestionWithLatestAttempt {

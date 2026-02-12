@@ -9,7 +9,10 @@ import type {
   SubmitAttemptPayload,
 } from '@scholarxp/api-contracts';
 import { MODULE_EXP_MAX, PRACTICE_MODES } from '@scholarxp/constants';
-import { getDisplayErrorMessage, shouldLogApiError } from '../../api/get-display-error';
+import {
+  getDisplayErrorMessage,
+  shouldLogApiError,
+} from '../../api/get-display-error';
 import { logError } from '../../utils/logger';
 import {
   useModuleUnitPracticeRoomQuery,
@@ -22,9 +25,7 @@ type UsePracticeRoomPageStateParams = {
   unitIdParam: string | undefined;
 };
 
-type ActiveQuestionVariant = {
-  kind: 'core' | 'variant';
-  index: number | null;
+type ActiveQuestion = {
   question: PracticeQuestion;
 };
 
@@ -39,12 +40,6 @@ type ModuleProgress = {
   level: number;
   currentExp: number;
   expPercent: number;
-};
-
-type QuestionTrackNav = {
-  activeLabel: string;
-  canGoPrevious: boolean;
-  canGoNext: boolean;
 };
 
 type QuestionUnitNav = {
@@ -77,17 +72,12 @@ export function usePracticeRoomPageState({
     parsedUnitId,
   );
   const moduleDetailQuery = useModuleDetailQuery(parsedModuleId);
-  // This hook currently orchestrates the module-unit scoped room flow (not cross-module sessions).
   const moduleUnitRoom = practiceRoomQuery.data?.practiceRoom ?? null;
   const moduleDetail = moduleDetailQuery.data ?? null;
 
   const [selectedQuestionUnitIndex, setSelectedQuestionUnitIndex] = useState(0);
-  const [selectedVariantIndexByUnit, setSelectedVariantIndexByUnit] = useState<
-    Record<number, number | null>
-  >({});
-  const [selectedOptionOverrideByContentId, setSelectedOptionOverrideByContentId] = useState<
-    Record<number, number>
-  >({});
+  const [selectedOptionOverrideByContentId, setSelectedOptionOverrideByContentId] =
+    useState<Record<number, number>>({});
   const [unlockedHintByContentId, setUnlockedHintByContentId] = useState<
     Record<number, boolean>
   >({});
@@ -97,8 +87,6 @@ export function usePracticeRoomPageState({
   const [submittedByContentId, setSubmittedByContentId] = useState<
     Record<number, boolean>
   >({});
-  const [nudgeNextVariantByQuestionUnitId, setNudgeNextVariantByQuestionUnitId] =
-    useState<Record<number, boolean>>({});
   const [hasCorrectAttemptByQuestionUnitId, setHasCorrectAttemptByQuestionUnitId] =
     useState<Record<number, boolean>>({});
   const [submitErrorMessage, setSubmitErrorMessage] = useState<string | null>(null);
@@ -152,7 +140,7 @@ export function usePracticeRoomPageState({
   const seededOptionByContentId = useMemo(() => {
     if (!roomWithLocalAttempts) return {};
 
-    // Seed option selections from latest attempts to preserve continuity when students re-enter a session.
+    // Seed option selections from latest core attempts to preserve continuity across room reloads.
     const seededSelection: Record<number, number> = {};
     for (const questionUnit of roomWithLocalAttempts.questions) {
       const coreAttemptSelection = readSelectedOptionIndex(
@@ -161,15 +149,6 @@ export function usePracticeRoomPageState({
       if (coreAttemptSelection !== null) {
         seededSelection[questionUnit.coreQuestion.questionContent.id] =
           coreAttemptSelection;
-      }
-
-      for (const variant of questionUnit.variants) {
-        const variantAttemptSelection = readSelectedOptionIndex(
-          variant.lastAttempt?.studentAnswer,
-        );
-        if (variantAttemptSelection !== null) {
-          seededSelection[variant.questionContent.id] = variantAttemptSelection;
-        }
       }
     }
     return seededSelection;
@@ -189,10 +168,7 @@ export function usePracticeRoomPageState({
     }
     const clampedSelectedIndex = Math.max(
       0,
-      Math.min(
-        selectedQuestionUnitIndex,
-        roomWithLocalAttempts.questions.length - 1,
-      ),
+      Math.min(selectedQuestionUnitIndex, roomWithLocalAttempts.questions.length - 1),
     );
     return (
       roomWithLocalAttempts.questions[clampedSelectedIndex] ??
@@ -200,74 +176,12 @@ export function usePracticeRoomPageState({
     );
   }, [roomWithLocalAttempts, selectedQuestionUnitIndex]);
 
-  const activeQuestion = useMemo<ActiveQuestionVariant | null>(() => {
+  const activeQuestion = useMemo<ActiveQuestion | null>(() => {
     if (!activeQuestionUnit) return null;
-    const unlockedVariantCount = getUnlockedVariantCount(activeQuestionUnit);
-
-    const selectedVariantIndex =
-      selectedVariantIndexByUnit[activeQuestionUnit.questionUnitId] ?? null;
-    if (
-      selectedVariantIndex === null ||
-      selectedVariantIndex < 0 ||
-      selectedVariantIndex >= unlockedVariantCount
-    ) {
-      return {
-        kind: 'core',
-        index: null,
-        question: activeQuestionUnit.coreQuestion.questionContent,
-      };
-    }
-
-    const variant = activeQuestionUnit.variants[selectedVariantIndex];
-    if (!variant) {
-      return {
-        kind: 'core',
-        index: null,
-        question: activeQuestionUnit.coreQuestion.questionContent,
-      };
-    }
-
     return {
-      kind: 'variant',
-      index: selectedVariantIndex,
-      question: variant.questionContent,
+      question: activeQuestionUnit.coreQuestion.questionContent,
     };
-  }, [activeQuestionUnit, selectedVariantIndexByUnit]);
-
-  const trackNav = useMemo<QuestionTrackNav>(() => {
-    if (!activeQuestionUnit || !activeQuestion) {
-      return {
-        activeLabel: 'Core',
-        canGoPrevious: false,
-        canGoNext: false,
-      };
-    }
-
-    const unlockedVariantCount = getUnlockedVariantCount(activeQuestionUnit);
-    if (activeQuestion.kind === 'core') {
-      return {
-        activeLabel: 'Core',
-        canGoPrevious: false,
-        canGoNext: unlockedVariantCount > 0,
-      };
-    }
-
-    const isLastVariant =
-      activeQuestion.index === activeQuestionUnit.variants.length - 1 &&
-      activeQuestionUnit.variants.length > 0;
-    const isQuestionUnitSolved = activeQuestionUnit.hasCorrectAttempt === true;
-    const isCurrentVariantIncorrect =
-      activeQuestionUnit.variants[activeQuestion.index!]?.lastAttempt?.isCorrect ===
-      false;
-
-    return {
-      activeLabel: `Variant ${activeQuestion.index! + 1}`,
-      canGoPrevious: true,
-      canGoNext:
-        activeQuestion.index! < unlockedVariantCount - 1 ||
-        (isLastVariant && !isQuestionUnitSolved && isCurrentVariantIncorrect),
-    };
-  }, [activeQuestion, activeQuestionUnit]);
+  }, [activeQuestionUnit]);
 
   const activeQuestionOptions = useMemo(() => {
     if (!activeQuestion) return [];
@@ -291,12 +205,14 @@ export function usePracticeRoomPageState({
     }
     if (moduleDetailQuery.error) {
       return getDisplayErrorMessage(moduleDetailQuery.error, {
-        fallbackMessage: 'We could not load this practice room right now. Please try again.',
+        fallbackMessage:
+          'We could not load this practice room right now. Please try again.',
       });
     }
     if (practiceRoomQuery.error) {
       return getDisplayErrorMessage(practiceRoomQuery.error, {
-        fallbackMessage: 'We could not load this practice room right now. Please try again.',
+        fallbackMessage:
+          'We could not load this practice room right now. Please try again.',
       });
     }
     return null;
@@ -350,32 +266,6 @@ export function usePracticeRoomPageState({
     setSelectedQuestionUnitIndex(clampedIndex);
   };
 
-  const selectCoreQuestion = (questionUnitId: number) => {
-    setSelectedVariantIndexByUnit((previousValue) => ({
-      ...previousValue,
-      [questionUnitId]: null,
-    }));
-  };
-
-  const selectVariantQuestion = (questionUnitId: number, variantIndex: number) => {
-    const questionUnit = roomWithLocalAttempts?.questions.find(
-      (candidate) => candidate.questionUnitId === questionUnitId,
-    );
-    if (!questionUnit) {
-      return;
-    }
-
-    const unlockedVariantCount = getUnlockedVariantCount(questionUnit);
-    if (variantIndex < 0 || variantIndex >= unlockedVariantCount) {
-      return;
-    }
-
-    setSelectedVariantIndexByUnit((previousValue) => ({
-      ...previousValue,
-      [questionUnitId]: variantIndex,
-    }));
-  };
-
   const selectOption = (contentId: number, optionIndex: number) => {
     setSelectedOptionOverrideByContentId((previousValue) => ({
       ...previousValue,
@@ -397,65 +287,6 @@ export function usePracticeRoomPageState({
   const hasSubmittedActiveQuestion = activeQuestion
     ? Boolean(submittedByContentId[activeQuestion.question.id])
     : false;
-  const shouldNudgeNextVariant = activeQuestionUnit
-    ? Boolean(nudgeNextVariantByQuestionUnitId[activeQuestionUnit.questionUnitId])
-    : false;
-
-  const goToPreviousQuestionVersion = () => {
-    if (!activeQuestionUnit || !activeQuestion || activeQuestion.kind === 'core') {
-      return;
-    }
-    const previousVariantIndex = activeQuestion.index! - 1;
-    if (previousVariantIndex < 0) {
-      selectCoreQuestion(activeQuestionUnit.questionUnitId);
-      return;
-    }
-    selectVariantQuestion(activeQuestionUnit.questionUnitId, previousVariantIndex);
-  };
-
-  const goToNextQuestionVersion = () => {
-    if (!activeQuestionUnit) return;
-    const unlockedVariantCount = getUnlockedVariantCount(activeQuestionUnit);
-    if (unlockedVariantCount <= 0) {
-      return;
-    }
-
-    if (!activeQuestion || activeQuestion.kind === 'core') {
-      // Clear nudge once student consumes it and moves into the newly unlocked variant.
-      setNudgeNextVariantByQuestionUnitId((previousValue) => ({
-        ...previousValue,
-        [activeQuestionUnit.questionUnitId]: false,
-      }));
-      selectVariantQuestion(activeQuestionUnit.questionUnitId, 0);
-      return;
-    }
-
-    const nextVariantIndex = activeQuestion.index! + 1;
-    if (nextVariantIndex >= unlockedVariantCount) {
-      const isLastVariant =
-        activeQuestion.index === activeQuestionUnit.variants.length - 1 &&
-        activeQuestionUnit.variants.length > 0;
-      const isQuestionUnitSolved = activeQuestionUnit.hasCorrectAttempt === true;
-      const isCurrentVariantIncorrect =
-        activeQuestionUnit.variants[activeQuestion.index!]?.lastAttempt?.isCorrect ===
-        false;
-
-      if (
-        isLastVariant &&
-        !isQuestionUnitSolved &&
-        isCurrentVariantIncorrect
-      ) {
-        resetQuestionUnitForCoreRetry(activeQuestionUnit);
-      }
-      return;
-    }
-    // Clear nudge after navigating to the next unlocked variant.
-    setNudgeNextVariantByQuestionUnitId((previousValue) => ({
-      ...previousValue,
-      [activeQuestionUnit.questionUnitId]: false,
-    }));
-    selectVariantQuestion(activeQuestionUnit.questionUnitId, nextVariantIndex);
-  };
 
   const goToPreviousQuestionUnit = () => {
     if (!questionUnitNav.canGoPrevious) return;
@@ -464,7 +295,6 @@ export function usePracticeRoomPageState({
 
   const goToNextQuestionUnit = () => {
     if (!roomWithLocalAttempts || !questionUnitNav.canGoNext) return;
-    // Cap next index to array bounds to keep navigation resilient after refetches.
     setSelectedQuestionUnitIndex((previousValue) =>
       Math.min(roomWithLocalAttempts.questions.length - 1, previousValue + 1),
     );
@@ -527,19 +357,6 @@ export function usePracticeRoomPageState({
         ...previousValue,
         [activeQuestion.question.id]: true,
       }));
-      if (!optimisticIsCorrect) {
-        const hasNextVariantToUnlock =
-          activeQuestion.kind === 'core'
-            ? activeQuestionUnit.variants.length > 0
-            : (activeQuestion.index ?? -1) + 1 < activeQuestionUnit.variants.length;
-        if (hasNextVariantToUnlock) {
-          // Keep focus on current question and nudge manual progression for better review flow.
-          setNudgeNextVariantByQuestionUnitId((previousValue) => ({
-            ...previousValue,
-            [activeQuestionUnit.questionUnitId]: true,
-          }));
-        }
-      }
       if (submitResult.hasCorrectAttempt) {
         setHasCorrectAttemptByQuestionUnitId((previousValue) => ({
           ...previousValue,
@@ -566,7 +383,6 @@ export function usePracticeRoomPageState({
   return {
     parsedModuleId,
     parsedUnitId,
-    // Preserve the public `room` key for route compatibility while internals use module-unit naming.
     room: roomWithLocalAttempts,
     moduleProgress,
     isLoading:
@@ -581,64 +397,20 @@ export function usePracticeRoomPageState({
     activeQuestionUnit,
     activeQuestion,
     activeQuestionOptions,
-    trackNav,
     questionUnitNav,
     selectedOptionIndex,
     hasSubmittedActiveQuestion,
-    shouldNudgeNextVariant,
     selectQuestionUnit,
     selectOption,
     isActiveHintUnlocked,
     unlockHintForContent,
     submitActiveQuestionAttempt,
-    goToPreviousQuestionVersion,
-    goToNextQuestionVersion,
     goToPreviousQuestionUnit,
     goToNextQuestionUnit,
   };
-
-  function resetQuestionUnitForCoreRetry(questionUnit: PracticeQuestionUnit) {
-    // Final-variant failure starts a fresh cycle from core so students retry in the intended order.
-    setSelectedVariantIndexByUnit((previousValue) => ({
-      ...previousValue,
-      [questionUnit.questionUnitId]: null,
-    }));
-    setNudgeNextVariantByQuestionUnitId((previousValue) => ({
-      ...previousValue,
-      [questionUnit.questionUnitId]: false,
-    }));
-
-    const contentIds = [
-      questionUnit.coreQuestion.questionContent.id,
-      ...questionUnit.variants.map((variant) => variant.questionContent.id),
-    ];
-
-    // We persist null overrides to mask server attempts until refetch/persisted retry state catches up.
-    setSubmittedAttemptByContentId((previousValue) => {
-      const nextValue = { ...previousValue };
-      for (const contentId of contentIds) {
-        nextValue[contentId] = null;
-      }
-      return nextValue;
-    });
-    setSubmittedByContentId((previousValue) => {
-      const nextValue = { ...previousValue };
-      for (const contentId of contentIds) {
-        delete nextValue[contentId];
-      }
-      return nextValue;
-    });
-    setSelectedOptionOverrideByContentId((previousValue) => {
-      const nextValue = { ...previousValue };
-      for (const contentId of contentIds) {
-        delete nextValue[contentId];
-      }
-      return nextValue;
-    });
-  }
 }
 
-// Apply local submissions over server snapshots so unlocking/status bars update instantly while query refetch catches up.
+// Apply local submissions over server snapshots so completion bars update instantly while query refetch catches up.
 function applySubmittedAttemptOverrides(
   questionUnit: PracticeQuestionUnit,
   submittedAttemptByContentId: Record<number, PracticeAttemptSnapshot | null>,
@@ -656,24 +428,9 @@ function applySubmittedAttemptOverrides(
       ? coreAttemptOverride
       : questionUnit.coreQuestion.lastAttempt,
   };
-  const variants = questionUnit.variants.map((variant) => {
-    const hasVariantAttemptOverride = Object.prototype.hasOwnProperty.call(
-      submittedAttemptByContentId,
-      variant.questionContent.id,
-    );
-    const variantAttemptOverride = submittedAttemptByContentId[variant.questionContent.id];
-    return {
-      ...variant,
-      lastAttempt: hasVariantAttemptOverride
-        ? variantAttemptOverride
-        : variant.lastAttempt,
-    };
-  });
 
   const hasCorrectAttempt =
-    forceHasCorrectAttempt ||
-    coreQuestion.lastAttempt?.isCorrect === true ||
-    variants.some((variant) => variant.lastAttempt?.isCorrect === true)
+    forceHasCorrectAttempt || coreQuestion.lastAttempt?.isCorrect === true
       ? true
       : null;
 
@@ -681,30 +438,7 @@ function applySubmittedAttemptOverrides(
     ...questionUnit,
     hasCorrectAttempt,
     coreQuestion,
-    variants,
   };
-}
-
-// Unlock chain: core wrong unlocks variant 1; each wrong variant unlocks exactly the next variant.
-function getUnlockedVariantCount(questionUnit: PracticeQuestionUnit): number {
-  if (questionUnit.variants.length === 0) {
-    return 0;
-  }
-
-  if (questionUnit.coreQuestion.lastAttempt?.isCorrect !== false) {
-    return 0;
-  }
-
-  let unlockedCount = 1;
-  for (let variantIndex = 0; variantIndex < questionUnit.variants.length - 1; variantIndex += 1) {
-    const currentVariantAttempt = questionUnit.variants[variantIndex]?.lastAttempt;
-    if (currentVariantAttempt?.isCorrect !== false) {
-      break;
-    }
-    unlockedCount += 1;
-  }
-
-  return Math.min(unlockedCount, questionUnit.variants.length);
 }
 
 // Student-answer payloads differ by question type; this helper safely extracts MCQ/true-false indexes when available.
@@ -760,26 +494,19 @@ function isSelectedOptionCorrect(
     return false;
   }
 
-  if (
-    question.type === 'mcq' &&
-    'correctOptionIndex' in question.questionData &&
-    typeof question.questionData.correctOptionIndex === 'number'
-  ) {
-    return question.questionData.correctOptionIndex === selectedOptionIndex;
+  const questionData = question.questionData as QuestionDataWithOptions;
+  if (question.type === 'mcq') {
+    const candidate = questionData as { correctOptionIndex?: unknown };
+    return candidate.correctOptionIndex === selectedOptionIndex;
   }
 
-  if (
-    question.type === 'true-false' &&
-    'trueOption' in question.questionData &&
-    'falseOption' in question.questionData &&
-    question.questionData.trueOption &&
-    question.questionData.falseOption &&
-    typeof question.questionData.trueOption === 'object' &&
-    typeof question.questionData.falseOption === 'object'
-  ) {
-    return selectedOptionIndex === 0
-      ? Boolean(question.questionData.trueOption.isCorrect)
-      : Boolean(question.questionData.falseOption.isCorrect);
+  if (question.type === 'true-false') {
+    if (selectedOptionIndex === 0) {
+      return questionData.trueOption?.isCorrect === true;
+    }
+    if (selectedOptionIndex === 1) {
+      return questionData.falseOption?.isCorrect === true;
+    }
   }
 
   return false;
