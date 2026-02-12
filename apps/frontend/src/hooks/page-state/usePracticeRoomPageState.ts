@@ -87,8 +87,6 @@ export function usePracticeRoomPageState({
   const [submittedByContentId, setSubmittedByContentId] = useState<
     Record<number, boolean>
   >({});
-  const [hasCorrectAttemptByQuestionUnitId, setHasCorrectAttemptByQuestionUnitId] =
-    useState<Record<number, boolean>>({});
   const [submitErrorMessage, setSubmitErrorMessage] = useState<string | null>(null);
   const activeContentIdRef = useRef<number | null>(null);
   const activeContentViewStartMsRef = useRef<number | null>(null);
@@ -127,15 +125,10 @@ export function usePracticeRoomPageState({
         applySubmittedAttemptOverrides(
           questionUnit,
           submittedAttemptByContentId,
-          hasCorrectAttemptByQuestionUnitId[questionUnit.questionUnitId] ?? false,
         ),
       ),
     } satisfies ModuleUnitPracticeRoomResponse['practiceRoom'];
-  }, [
-    hasCorrectAttemptByQuestionUnitId,
-    moduleUnitRoom,
-    submittedAttemptByContentId,
-  ]);
+  }, [moduleUnitRoom, submittedAttemptByContentId]);
 
   const seededOptionByContentId = useMemo(() => {
     if (!roomWithLocalAttempts) return {};
@@ -348,7 +341,7 @@ export function usePracticeRoomPageState({
 
     setSubmitErrorMessage(null);
     try {
-      const submitResult = await submitAttemptMutation.mutateAsync(payload);
+      await submitAttemptMutation.mutateAsync(payload);
       setSubmittedAttemptByContentId((previousValue) => ({
         ...previousValue,
         [activeQuestion.question.id]: {
@@ -360,12 +353,6 @@ export function usePracticeRoomPageState({
         ...previousValue,
         [activeQuestion.question.id]: true,
       }));
-      if (submitResult.hasCorrectAttempt) {
-        setHasCorrectAttemptByQuestionUnitId((previousValue) => ({
-          ...previousValue,
-          [activeQuestionUnit.questionUnitId]: true,
-        }));
-      }
     } catch (error) {
       const message = getDisplayErrorMessage(error, {
         fallbackMessage:
@@ -437,7 +424,6 @@ export function usePracticeRoomPageState({
 function applySubmittedAttemptOverrides(
   questionUnit: PracticeQuestionUnit,
   submittedAttemptByContentId: Record<number, PracticeAttemptSnapshot | null>,
-  forceHasCorrectAttempt: boolean,
 ): PracticeQuestionUnit {
   const coreContentId = questionUnit.coreQuestion.questionContent.id;
   const hasCoreAttemptOverride = Object.prototype.hasOwnProperty.call(
@@ -452,10 +438,8 @@ function applySubmittedAttemptOverrides(
       : questionUnit.coreQuestion.lastAttempt,
   };
 
-  const hasCorrectAttempt =
-    forceHasCorrectAttempt || coreQuestion.lastAttempt?.isCorrect === true
-      ? true
-      : null;
+  // Navbar status must represent the latest core attempt outcome, not historical correctness.
+  const hasCorrectAttempt = coreQuestion.lastAttempt?.isCorrect === true ? true : null;
 
   return {
     ...questionUnit,
