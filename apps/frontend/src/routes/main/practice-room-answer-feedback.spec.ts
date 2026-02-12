@@ -49,7 +49,7 @@ describe('buildPracticeRoomAnswerFeedback', () => {
     expect(feedback.every((entry) => entry.explanation === null)).toBe(true);
   });
 
-  it('marks correct and incorrect MCQ options after submit', () => {
+  it('marks only the selected incorrect MCQ option after submit', () => {
     const feedback = buildPracticeRoomAnswerFeedback({
       question: buildMcqQuestion(),
       selectedOptionIndex: 1,
@@ -58,9 +58,9 @@ describe('buildPracticeRoomAnswerFeedback', () => {
     });
 
     expect(feedback[2]).toMatchObject({
-      isCorrectOption: true,
-      statusLabel: 'Correct',
-      explanation: 'Because C',
+      isCorrectOption: false,
+      statusLabel: null,
+      explanation: null,
     });
     expect(feedback[1]).toMatchObject({
       isSelectedIncorrect: true,
@@ -94,9 +94,9 @@ describe('buildPracticeRoomAnswerFeedback', () => {
     });
 
     expect(feedback[0]).toMatchObject({
-      isCorrectOption: true,
-      statusLabel: 'Correct',
-      explanation: 'True explanation',
+      isCorrectOption: false,
+      statusLabel: null,
+      explanation: null,
     });
     expect(feedback[1]).toMatchObject({
       isSelectedIncorrect: true,

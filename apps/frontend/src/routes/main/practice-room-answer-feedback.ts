@@ -66,25 +66,26 @@ function applyMcqFeedback(
 
   const correctOptionIndex = candidate.correctOptionIndex as number;
   const options = candidate.options;
+  const selectedIsCorrect = selectedOptionIndex === correctOptionIndex;
 
   return baseFeedback.map((entry, optionIndex) => {
-    const isCorrectOption = optionIndex === correctOptionIndex;
     const isSelected = selectedOptionIndex === optionIndex;
-    const isSelectedIncorrect = isSelected && !isCorrectOption;
+    const isSelectedIncorrect = isSelected && !selectedIsCorrect;
     const explanationSource = options?.[optionIndex];
     const explanation =
-      isCorrectOption || isSelectedIncorrect
+      isSelected && (selectedIsCorrect || isSelectedIncorrect)
         ? explanationSource?.explanation ?? null
         : null;
-    const statusLabel = isCorrectOption
-      ? 'Correct'
-      : isSelectedIncorrect
-        ? 'Incorrect'
-        : null;
+    const statusLabel = isSelected
+      ? selectedIsCorrect
+        ? 'Correct'
+        : 'Incorrect'
+      : null;
 
     return {
       ...entry,
-      isCorrectOption,
+      // Core-only feedback intentionally does not reveal the correct option when the student is incorrect.
+      isCorrectOption: isSelected && selectedIsCorrect,
       isSelected,
       isSelectedIncorrect,
       statusLabel,
@@ -120,33 +121,34 @@ function applyTrueFalseFeedback(
   const falseOptionIsCorrect = candidate.falseOption.isCorrect as boolean;
   const trueOptionExplanation = candidate.trueOption.explanation;
   const falseOptionExplanation = candidate.falseOption.explanation;
+  const selectedIsCorrect =
+    selectedOptionIndex === 0
+      ? trueOptionIsCorrect
+      : selectedOptionIndex === 1
+        ? falseOptionIsCorrect
+        : false;
 
   return baseFeedback.map((entry, optionIndex) => {
-    const isCorrectOption =
-      optionIndex === 0
-        ? trueOptionIsCorrect
-        : optionIndex === 1
-          ? falseOptionIsCorrect
-          : false;
     const isSelected = selectedOptionIndex === optionIndex;
-    const isSelectedIncorrect = isSelected && !isCorrectOption;
+    const isSelectedIncorrect = isSelected && !selectedIsCorrect;
     const explanationCandidate =
       optionIndex === 0 ? trueOptionExplanation : falseOptionExplanation;
     const explanation =
-      isCorrectOption || isSelectedIncorrect
+      isSelected && (selectedIsCorrect || isSelectedIncorrect)
         ? typeof explanationCandidate === 'string'
           ? explanationCandidate
           : null
         : null;
-    const statusLabel = isCorrectOption
-      ? 'Correct'
-      : isSelectedIncorrect
-        ? 'Incorrect'
-        : null;
+    const statusLabel = isSelected
+      ? selectedIsCorrect
+        ? 'Correct'
+        : 'Incorrect'
+      : null;
 
     return {
       ...entry,
-      isCorrectOption,
+      // Core-only feedback intentionally does not reveal the correct option when the student is incorrect.
+      isCorrectOption: isSelected && selectedIsCorrect,
       isSelected,
       isSelectedIncorrect,
       statusLabel,

@@ -46,6 +46,7 @@ const mocks = vi.hoisted(() => ({
   selectQuestionUnit: vi.fn(),
   selectOption: vi.fn(),
   unlockHintForContent: vi.fn(),
+  tryAgainActiveQuestion: vi.fn(),
   goToPreviousQuestionUnit: vi.fn(),
   goToNextQuestionUnit: vi.fn(),
   submitActiveQuestionAttempt: vi.fn(),
@@ -68,6 +69,7 @@ type MockPageState = {
   questionUnitNav: { canGoPrevious: boolean; canGoNext: boolean };
   selectedOptionIndex: number | null;
   hasSubmittedActiveQuestion: boolean;
+  showTryAgainButton: boolean;
   isActiveHintUnlocked: boolean;
 };
 
@@ -88,6 +90,7 @@ let pageState: MockPageState = {
   questionUnitNav: { canGoPrevious: false, canGoNext: false },
   selectedOptionIndex: null,
   hasSubmittedActiveQuestion: false,
+  showTryAgainButton: false,
   isActiveHintUnlocked: false,
 };
 
@@ -105,6 +108,7 @@ vi.mock('../../hooks/page-state/usePracticeRoomPageState', () => ({
     selectQuestionUnit: mocks.selectQuestionUnit,
     selectOption: mocks.selectOption,
     unlockHintForContent: mocks.unlockHintForContent,
+    tryAgainActiveQuestion: mocks.tryAgainActiveQuestion,
     goToPreviousQuestionUnit: mocks.goToPreviousQuestionUnit,
     goToNextQuestionUnit: mocks.goToNextQuestionUnit,
     submitActiveQuestionAttempt: mocks.submitActiveQuestionAttempt,
@@ -137,6 +141,7 @@ describe('PracticeRoomPage route (core-only)', () => {
       questionUnitNav: { canGoPrevious: false, canGoNext: false },
       selectedOptionIndex: null,
       hasSubmittedActiveQuestion: false,
+      showTryAgainButton: false,
       isActiveHintUnlocked: false,
     };
     vi.clearAllMocks();
@@ -183,6 +188,33 @@ describe('PracticeRoomPage route (core-only)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Submit answer/i }));
     expect(mocks.submitActiveQuestionAttempt).toHaveBeenCalled();
+  });
+
+  it('renders try again button before submit when question is incorrect and submitted', () => {
+    const question = createMockQuestionUnit();
+    pageState.isLoading = false;
+    pageState.room = { moduleUnitTitle: 'Unit 1', questions: [question] };
+    pageState.activeQuestionUnit = question;
+    pageState.activeQuestion = { question: question.coreQuestion.questionContent };
+    pageState.activeQuestionOptions = [{ optionText: 'A' }, { optionText: 'B' }];
+    pageState.hasSubmittedActiveQuestion = true;
+    pageState.showTryAgainButton = true;
+
+    render(
+      <MemoryRouter>
+        <PracticeRoomPage />
+      </MemoryRouter>,
+    );
+
+    const allButtons = screen.getAllByRole('button');
+    const tryAgainButton = screen.getByRole('button', { name: /Try again/i });
+    const submitButton = screen.getByRole('button', { name: /Submitted/i });
+    expect(allButtons.indexOf(tryAgainButton)).toBeLessThan(
+      allButtons.indexOf(submitButton),
+    );
+
+    fireEvent.click(tryAgainButton);
+    expect(mocks.tryAgainActiveQuestion).toHaveBeenCalled();
   });
 
   it('shows not found for invalid parsed params', () => {

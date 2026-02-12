@@ -185,4 +185,73 @@ describe('usePracticeRoomPageState (core-only)', () => {
     expect(rendered.getState().submitErrorMessage).toBe('display:Error: submit-fail');
     expect(logError).toHaveBeenCalled();
   });
+
+  it('shows try again after incorrect submit and clears submitted state when retried', async () => {
+    const mutateAsync = vi.fn().mockResolvedValue({
+      moduleExpAwarded: 0,
+      studentExpAwarded: 0,
+      hasCorrectAttempt: false,
+    });
+    useSubmitModuleUnitPracticeAttemptMutationMock.mockReturnValue({
+      isPending: false,
+      mutateAsync,
+    });
+    useModuleUnitPracticeRoomQueryMock.mockReturnValue({
+      isPending: false,
+      error: null,
+      data: {
+        practiceRoom: {
+          sessionId: 10,
+          moduleUnitId: 3,
+          moduleUnitTitle: 'Unit',
+          questions: [
+            {
+              questionUnitId: 22,
+              position: 1,
+              hasCorrectAttempt: null,
+              coreQuestion: {
+                questionId: 22,
+                questionContent: {
+                  id: 200,
+                  type: 'mcq',
+                  questionStem: 'Q',
+                  questionData: {
+                    options: [{ optionText: 'A' }, { optionText: 'B' }],
+                    correctOptionIndex: 1,
+                  },
+                  hint: null,
+                  difficultyScore: 1,
+                },
+                lastAttempt: null,
+              },
+            },
+          ],
+        },
+      },
+    });
+
+    const rendered = renderHookWithParams('1', '1');
+    let state = rendered.getState();
+
+    act(() => {
+      state.selectOption(200, 0);
+    });
+
+    state = rendered.getState();
+    await act(async () => {
+      await state.submitActiveQuestionAttempt();
+    });
+
+    state = rendered.getState();
+    expect(state.hasSubmittedActiveQuestion).toBe(true);
+    expect(state.showTryAgainButton).toBe(true);
+
+    act(() => {
+      state.tryAgainActiveQuestion();
+    });
+
+    state = rendered.getState();
+    expect(state.hasSubmittedActiveQuestion).toBe(false);
+    expect(state.showTryAgainButton).toBe(false);
+  });
 });

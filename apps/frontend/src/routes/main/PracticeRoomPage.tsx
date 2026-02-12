@@ -33,10 +33,12 @@ export default function PracticeRoomPage() {
     questionUnitNav,
     selectedOptionIndex,
     hasSubmittedActiveQuestion,
+    showTryAgainButton,
     selectQuestionUnit,
     selectOption,
     isActiveHintUnlocked,
     unlockHintForContent,
+    tryAgainActiveQuestion,
     submitActiveQuestionAttempt,
     goToPreviousQuestionUnit,
     goToNextQuestionUnit,
@@ -242,6 +244,15 @@ export default function PracticeRoomPage() {
                 ) : null}
 
                 <div className={styles.submitRow}>
+                  {showTryAgainButton ? (
+                    <button
+                      type="button"
+                      className={styles.tryAgainButton}
+                      onClick={tryAgainActiveQuestion}
+                    >
+                      Try again
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     className={styles.submitButton}

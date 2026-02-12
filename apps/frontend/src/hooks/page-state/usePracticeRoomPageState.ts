@@ -287,6 +287,9 @@ export function usePracticeRoomPageState({
   const hasSubmittedActiveQuestion = activeQuestion
     ? Boolean(submittedByContentId[activeQuestion.question.id])
     : false;
+  const isActiveQuestionIncorrect =
+    activeQuestionUnit?.coreQuestion.lastAttempt?.isCorrect === false;
+  const showTryAgainButton = hasSubmittedActiveQuestion && isActiveQuestionIncorrect;
 
   const goToPreviousQuestionUnit = () => {
     if (!questionUnitNav.canGoPrevious) return;
@@ -380,6 +383,24 @@ export function usePracticeRoomPageState({
     }
   };
 
+  const tryAgainActiveQuestion = () => {
+    if (!activeQuestion) {
+      return;
+    }
+    // Clearing local submit locks lets students immediately retry after an incorrect attempt while preserving seeded selection.
+    setSubmittedByContentId((previousValue) => {
+      const nextValue = { ...previousValue };
+      delete nextValue[activeQuestion.question.id];
+      return nextValue;
+    });
+    setSubmittedAttemptByContentId((previousValue) => {
+      const nextValue = { ...previousValue };
+      delete nextValue[activeQuestion.question.id];
+      return nextValue;
+    });
+    setSubmitErrorMessage(null);
+  };
+
   return {
     parsedModuleId,
     parsedUnitId,
@@ -400,10 +421,12 @@ export function usePracticeRoomPageState({
     questionUnitNav,
     selectedOptionIndex,
     hasSubmittedActiveQuestion,
+    showTryAgainButton,
     selectQuestionUnit,
     selectOption,
     isActiveHintUnlocked,
     unlockHintForContent,
+    tryAgainActiveQuestion,
     submitActiveQuestionAttempt,
     goToPreviousQuestionUnit,
     goToNextQuestionUnit,

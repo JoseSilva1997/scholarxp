@@ -486,8 +486,23 @@
 
 .submitRow {
   display: flex;
+  gap: 0.5rem;
   justify-content: flex-end;
   margin-top: 0.85rem;
+}
+
+.tryAgainButton {
+  background: var(--color-brand-surface-dark);
+  color: white;
+  border-radius: 0.625rem;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tryAgainButton:hover:not(:disabled) {
+  background: var(--color-brand-surface-dark-muted);
 }
 
 .submitButton {
