@@ -25,57 +25,31 @@ export type StudentModuleUnitProgressSnapshot = {
 export class StudentModuleUnitProgressService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // Rebuilds persisted unit progress from attempts so submit flow remains deterministic across retries and retries-in-session.
+  // Rebuilds persisted unit progress from attempts so submit flow remains deterministic across retries and sessions.
   async syncFromAttempts(
     params: SyncStudentModuleUnitProgressParams,
     tx?: PrismaClientLike,
   ): Promise<StudentModuleUnitProgressSnapshot> {
     const prismaClient = tx ?? this.prisma;
 
-    // Progress should only consider active question units that still expose a non-archived core question.
-    const totalEligibleQuestions = await prismaClient.questionUnit.count({
-      where: {
-        moduleUnitId: params.moduleUnitId,
-        isArchived: false,
-        contents: {
-          some: {
-            isCore: true,
-            isArchived: false,
-          },
-        },
-      },
-    });
-
-    // Distinct correct question-unit ids represent solved units regardless of variant used for the first correct answer.
-    const correctAttempts = await prismaClient.questionAttempt.findMany({
-      where: {
-        moduleUnitId: params.moduleUnitId,
-        studentId: params.studentId,
-        isCorrect: true,
-        question: {
-          isArchived: false,
-          contents: {
-            some: {
-              isCore: true,
-              isArchived: false,
-            },
-          },
-        },
-      },
-      distinct: ['questionId'],
-      select: {
-        questionId: true,
-      },
-    });
-
-    const noOfCorrectAnswers = correctAttempts.length;
-    const currentMasteryScore =
-      totalEligibleQuestions > 0
-        ? noOfCorrectAnswers / totalEligibleQuestions
-        : 0;
-    const isCompleted =
-      totalEligibleQuestions > 0 &&
-      noOfCorrectAnswers >= totalEligibleQuestions;
+    const totalEligibleQuestions = await this.countEligibleQuestionUnits(
+      params.moduleUnitId,
+      prismaClient,
+    );
+    const noOfCorrectAnswers = await this.countCorrectLatestAttempts(
+      params.moduleUnitId,
+      params.studentId,
+      totalEligibleQuestions,
+      prismaClient,
+    );
+    const currentMasteryScore = this.calculateMasteryScore(
+      noOfCorrectAnswers,
+      totalEligibleQuestions,
+    );
+    const isCompletedFromLatestAttempts = this.calculateIsCompleted(
+      noOfCorrectAnswers,
+      totalEligibleQuestions,
+    );
 
     // Completion timestamp is sticky across future attempts and only resets if the unit is no longer complete.
     const existingProgress =
@@ -92,6 +66,9 @@ export class StudentModuleUnitProgressService {
         },
       });
 
+    // Completion is sticky: once achieved, it should not regress on later incorrect attempts.
+    const isCompleted =
+      existingProgress?.isCompleted === true || isCompletedFromLatestAttempts;
     const completedAt = this.resolveCompletedAt({
       isCompleted,
       attemptedAt: params.attemptedAt,
@@ -142,6 +119,91 @@ export class StudentModuleUnitProgressService {
       completedAt: persisted.completedAt,
       lastPracticedAt: persisted.lastPracticedAt ?? params.attemptedAt,
     };
+  }
+
+  // Progress should only consider active question units that still expose a non-archived core question.
+  private countEligibleQuestionUnits(
+    moduleUnitId: number,
+    prismaClient: PrismaClientLike,
+  ): Promise<number> {
+    return prismaClient.questionUnit.count({
+      where: {
+        moduleUnitId,
+        isArchived: false,
+        contents: {
+          some: {
+            isCore: true,
+            isArchived: false,
+          },
+        },
+      },
+    });
+  }
+
+  // Latest-attempt-wins semantics are implemented by loading ordered attempts and keeping the first hit per question id.
+  private async countCorrectLatestAttempts(
+    moduleUnitId: number,
+    studentId: number,
+    totalEligibleQuestions: number,
+    prismaClient: PrismaClientLike,
+  ): Promise<number> {
+    if (totalEligibleQuestions === 0) {
+      return 0;
+    }
+
+    const attempts = await prismaClient.questionAttempt.findMany({
+      where: {
+        moduleUnitId,
+        studentId,
+        question: {
+          isArchived: false,
+          contents: {
+            some: {
+              isCore: true,
+              isArchived: false,
+            },
+          },
+        },
+      },
+      orderBy: [{ attemptedAt: 'desc' }, { id: 'desc' }],
+      select: {
+        questionId: true,
+        isCorrect: true,
+      },
+    });
+
+    const latestAttemptByQuestionId = new Map<number, boolean>();
+    for (const attempt of attempts) {
+      if (latestAttemptByQuestionId.has(attempt.questionId)) {
+        continue;
+      }
+      latestAttemptByQuestionId.set(attempt.questionId, attempt.isCorrect);
+    }
+
+    return Array.from(latestAttemptByQuestionId.values()).filter(Boolean)
+      .length;
+  }
+
+  // Keeping this explicit makes mastery math easy to reuse and easy to test in isolation later.
+  private calculateMasteryScore(
+    noOfCorrectAnswers: number,
+    totalEligibleQuestions: number,
+  ): number {
+    if (totalEligibleQuestions <= 0) {
+      return 0;
+    }
+
+    return noOfCorrectAnswers / totalEligibleQuestions;
+  }
+
+  // Completion requires at least one eligible question and all of them currently answered correctly.
+  private calculateIsCompleted(
+    noOfCorrectAnswers: number,
+    totalEligibleQuestions: number,
+  ): boolean {
+    return (
+      totalEligibleQuestions > 0 && noOfCorrectAnswers >= totalEligibleQuestions
+    );
   }
 
   private resolveCompletedAt(input: {

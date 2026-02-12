@@ -10,6 +10,7 @@ import { ModuleUnitPracticeRoomResponseDto } from './dto/practice-room-response.
 import { SubmitAttemptDto } from './dto/submit-attempt.dto';
 import { SubmitAttemptResponseDto } from './dto/submit-attempt-response.dto';
 import { PracticeRoomMapper } from './practice-room.mapper';
+import { StudentModuleUnitProgressService } from './student-module-unit-progress.service';
 import type {
   LatestAttemptSnapshot,
   LoadedModuleUnit,
@@ -20,6 +21,7 @@ type AttemptQuestionContent = {
   type: string;
   questionData: Prisma.JsonValue;
 };
+type PrismaClientLike = Prisma.TransactionClient | PrismaService;
 
 // PracticeRoomService builds the page-load payload so the frontend can render core questions and latest attempts.
 @Injectable()
@@ -27,6 +29,7 @@ export class PracticeRoomService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly practiceRoomMapper: PracticeRoomMapper,
+    private readonly studentModuleUnitProgressService: StudentModuleUnitProgressService,
   ) {}
 
   // Builds the initial room state for one student in one module unit and opens a fresh practice session.
@@ -75,13 +78,36 @@ export class PracticeRoomService {
       payload.studentAnswer,
     );
 
-    const alreadyHasCorrectAttempt = await this.hasAnyCorrectAttempt(
-      moduleUnitId,
-      studentId,
-      payload.questionUnitId,
-    );
+    const attemptedAt = new Date();
+    const alreadyHasCorrectAttempt = await this.prisma.$transaction(
+      async (tx) => {
+        const hadCorrectAttemptBeforeSubmit = await this.hasAnyCorrectAttempt(
+          moduleUnitId,
+          studentId,
+          payload.questionUnitId,
+          tx,
+        );
 
-    await this.createAttemptRecord(moduleUnitId, studentId, payload, isCorrect);
+        await this.createAttemptRecord(
+          moduleUnitId,
+          studentId,
+          payload,
+          isCorrect,
+          attemptedAt,
+          tx,
+        );
+        await this.studentModuleUnitProgressService.syncFromAttempts(
+          {
+            moduleUnitId,
+            studentId,
+            attemptedAt,
+          },
+          tx,
+        );
+
+        return hadCorrectAttemptBeforeSubmit;
+      },
+    );
 
     // XP engine integration is intentionally deferred; this flag lets the future engine gate first-correct rewards.
     return {
@@ -344,8 +370,10 @@ export class PracticeRoomService {
     moduleUnitId: number,
     studentId: number,
     questionUnitId: number,
+    tx?: PrismaClientLike,
   ): Promise<boolean> {
-    const correctAttempt = await this.prisma.questionAttempt.findFirst({
+    const prismaClient = tx ?? this.prisma;
+    const correctAttempt = await prismaClient.questionAttempt.findFirst({
       where: {
         moduleUnitId,
         studentId,
@@ -364,8 +392,11 @@ export class PracticeRoomService {
     studentId: number,
     payload: SubmitAttemptDto,
     isCorrect: boolean,
+    attemptedAt: Date,
+    tx?: PrismaClientLike,
   ) {
-    return this.prisma.questionAttempt.create({
+    const prismaClient = tx ?? this.prisma;
+    return prismaClient.questionAttempt.create({
       data: {
         moduleUnitId,
         studentId,
@@ -378,7 +409,7 @@ export class PracticeRoomService {
         hintsUsed: payload.hintUnlocked ? 1 : 0,
         studentAnswer:
           payload.studentAnswer as unknown as Prisma.InputJsonValue,
-        attemptedAt: new Date(),
+        attemptedAt,
       },
       select: { id: true },
     });

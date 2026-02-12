@@ -91,6 +91,15 @@ describe('StudentModuleUnitProgressService', () => {
       attemptedAt,
     });
 
+    expect(prisma.questionAttempt.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          moduleUnitId: 10,
+          studentId: 100,
+        }),
+        orderBy: [{ attemptedAt: 'desc' }, { id: 'desc' }],
+      }),
+    );
     expect(result.noOfCorrectAnswers).toBe(1);
     expect(result.currentMasteryScore).toBeCloseTo(1 / 3);
     expect(result.isCompleted).toBe(false);
@@ -158,5 +167,49 @@ describe('StudentModuleUnitProgressService', () => {
 
     expect(result.isCompleted).toBe(true);
     expect(result.completedAt).toEqual(attemptedAt);
+  });
+
+  it('keeps isCompleted true even when later latest attempts are incorrect', async () => {
+    const attemptedAt = new Date('2026-02-12T16:00:00Z');
+    const originalCompletedAt = new Date('2026-02-12T09:30:00Z');
+
+    prisma.questionUnit.count.mockResolvedValue(2);
+    prisma.questionAttempt.findMany.mockResolvedValue([
+      // Latest states no longer represent full correctness.
+      { questionId: 1, isCorrect: false },
+      { questionId: 2, isCorrect: true },
+    ] as any);
+    prisma.moduleUnitUserProgress.findUnique.mockResolvedValue({
+      isCompleted: true,
+      completedAt: originalCompletedAt,
+    } as any);
+    prisma.moduleUnitUserProgress.upsert.mockResolvedValue({
+      moduleUnitId: 10,
+      studentId: 100,
+      currentMasteryScore: 0.5,
+      noOfCorrectAnswers: 1,
+      isCompleted: true,
+      completedAt: originalCompletedAt,
+      lastPracticedAt: attemptedAt,
+    } as any);
+
+    const result = await service.syncFromAttempts({
+      moduleUnitId: 10,
+      studentId: 100,
+      attemptedAt,
+    });
+
+    expect(result.noOfCorrectAnswers).toBe(1);
+    expect(result.currentMasteryScore).toBeCloseTo(0.5);
+    expect(result.isCompleted).toBe(true);
+    expect(result.completedAt).toEqual(originalCompletedAt);
+    expect(prisma.moduleUnitUserProgress.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: expect.objectContaining({
+          isCompleted: true,
+          completedAt: originalCompletedAt,
+        }),
+      }),
+    );
   });
 });

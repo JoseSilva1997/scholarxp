@@ -217,6 +217,30 @@ describe('PracticeRoomPage route (core-only)', () => {
     expect(mocks.tryAgainActiveQuestion).toHaveBeenCalled();
   });
 
+  it('shows incorrect feedback for persisted incorrect attempts on revisit', () => {
+    const question = createMockQuestionUnit({
+      coreQuestion: {
+        ...createMockQuestionUnit().coreQuestion,
+        lastAttempt: { studentAnswer: { selectedOptionIndex: 1 }, isCorrect: false },
+      },
+    });
+    pageState.isLoading = false;
+    pageState.room = { moduleUnitTitle: 'Unit 1', questions: [question] };
+    pageState.activeQuestionUnit = question;
+    pageState.activeQuestion = { question: question.coreQuestion.questionContent };
+    pageState.activeQuestionOptions = [{ optionText: 'A' }, { optionText: 'B' }];
+    pageState.selectedOptionIndex = 1;
+    pageState.hasSubmittedActiveQuestion = false;
+
+    render(
+      <MemoryRouter>
+        <PracticeRoomPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('Incorrect')).toBeInTheDocument();
+  });
+
   it('shows not found for invalid parsed params', () => {
     pageState.parsedModuleId = null;
 

@@ -48,11 +48,15 @@ export default function PracticeRoomPage() {
   });
 
   // Feedback remains presentation-only and uses local question data so it can be swapped to server-driven feedback later.
+  // Revisited questions should still render prior feedback from persisted attempts.
+  const hasSubmittedFeedback =
+    hasSubmittedActiveQuestion ||
+    activeQuestionUnit?.coreQuestion.lastAttempt !== null;
   const optionFeedback = activeQuestion
     ? buildPracticeRoomAnswerFeedback({
         question: activeQuestion.question,
         selectedOptionIndex,
-        hasSubmitted: hasSubmittedActiveQuestion,
+        hasSubmitted: hasSubmittedFeedback,
         optionCount: activeQuestionOptions.length,
       })
     : [];

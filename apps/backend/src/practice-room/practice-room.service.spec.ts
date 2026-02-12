@@ -4,6 +4,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { PracticeRoomService } from './practice-room.service';
 import { PracticeRoomMapper } from './practice-room.mapper';
+import { StudentModuleUnitProgressService } from './student-module-unit-progress.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock, type PrismaMock } from '../test/test-helpers';
 import type {
@@ -16,6 +17,9 @@ describe('PracticeRoomService', () => {
   let service: PracticeRoomService;
   let mapper: PracticeRoomMapper;
   let prisma: PrismaMock;
+  let studentModuleUnitProgressService: {
+    syncFromAttempts: jest.Mock;
+  };
 
   // Mock data builders for consistent test setup
   const buildMockModuleUnit = (
@@ -85,7 +89,22 @@ describe('PracticeRoomService', () => {
   beforeEach(async () => {
     // Create mocks for dependencies
     prisma = createPrismaMock();
+    // Transaction callback mode keeps submit-attempt tests deterministic without a real database transaction.
+    (prisma.$transaction as jest.Mock).mockImplementation(async (callback) =>
+      callback(prisma),
+    );
     mapper = new PracticeRoomMapper();
+    studentModuleUnitProgressService = {
+      syncFromAttempts: jest.fn().mockResolvedValue({
+        moduleUnitId: 10,
+        studentId: 100,
+        currentMasteryScore: 0,
+        noOfCorrectAnswers: 0,
+        isCompleted: false,
+        completedAt: null,
+        lastPracticedAt: new Date('2026-02-12T10:00:00.000Z'),
+      }),
+    };
 
     // Build test module with mocked dependencies
     const module: TestingModule = await Test.createTestingModule({
@@ -93,6 +112,10 @@ describe('PracticeRoomService', () => {
         PracticeRoomService,
         { provide: PracticeRoomMapper, useValue: mapper },
         { provide: PrismaService, useValue: prisma },
+        {
+          provide: StudentModuleUnitProgressService,
+          useValue: studentModuleUnitProgressService,
+        },
       ],
     }).compile();
 
@@ -644,6 +667,16 @@ describe('PracticeRoomService', () => {
         }),
         select: { id: true },
       });
+      expect(
+        studentModuleUnitProgressService.syncFromAttempts,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          moduleUnitId: 10,
+          studentId: 100,
+          attemptedAt: expect.any(Date),
+        }),
+        prisma,
+      );
       expect(result).toEqual({
         moduleExpAwarded: 0,
         studentExpAwarded: 0,
