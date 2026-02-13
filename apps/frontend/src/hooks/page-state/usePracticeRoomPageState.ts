@@ -42,6 +42,10 @@ type ModuleProgress = {
   currentExp: number;
   expPercent: number;
 };
+type ModuleProgressAnimationSnapshot = {
+  totalExp: number;
+  expMax: number;
+};
 
 type QuestionUnitNav = {
   canGoPrevious: boolean;
@@ -149,6 +153,14 @@ export function usePracticeRoomPageState({
     Record<number, PracticeAttemptSnapshot | null>
   >({});
   const [submitErrorMessage, setSubmitErrorMessage] = useState<string | null>(null);
+  const [moduleProgressAnimation, setModuleProgressAnimation] =
+    useState<ModuleProgressAnimationSnapshot | null>(null);
+  const [displayedModuleTotalExp, setDisplayedModuleTotalExp] = useState<
+    number | null
+  >(null);
+  const moduleProgressAnimationFrameRef = useRef<number | null>(null);
+  const moduleProgressSyncFrameRef = useRef<number | null>(null);
+  const moduleProgressScopeRef = useRef<string | null>(null);
   const activeContentIdRef = useRef<number | null>(null);
   const activeContentViewStartMsRef = useRef<number | null>(null);
 
@@ -174,6 +186,18 @@ export function usePracticeRoomPageState({
       });
     }
   }, [moduleDetailQuery.error, parsedModuleId]);
+
+  useEffect(
+    () => () => {
+      if (moduleProgressAnimationFrameRef.current !== null) {
+        cancelAnimationFrame(moduleProgressAnimationFrameRef.current);
+      }
+      if (moduleProgressSyncFrameRef.current !== null) {
+        cancelAnimationFrame(moduleProgressSyncFrameRef.current);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!moduleUnitRoom) {
@@ -314,6 +338,105 @@ export function usePracticeRoomPageState({
     return null;
   }, [moduleDetailQuery.error, parsedModuleId, parsedUnitId, practiceRoomQuery.error]);
 
+  useEffect(() => {
+    if (!moduleDetail || !parsedModuleId) {
+      return;
+    }
+
+    const expMax =
+      moduleDetail.expMax && moduleDetail.expMax > 0
+        ? moduleDetail.expMax
+        : MODULE_EXP_MAX;
+    const currentExp = moduleDetail.currentExp ?? 0;
+    const level = moduleDetail.userModuleLevel;
+
+    if (level === undefined) {
+      return;
+    }
+
+    const scopeKey = String(parsedModuleId);
+    const serverTotalExp = toModuleTotalExp(level, currentExp, expMax);
+    const isNewScope = moduleProgressScopeRef.current !== scopeKey;
+    const hasNoAnimationSnapshot = moduleProgressAnimation === null;
+    const shouldSyncFromServer =
+      isNewScope ||
+      hasNoAnimationSnapshot ||
+      serverTotalExp > moduleProgressAnimation.totalExp;
+
+    if (!shouldSyncFromServer) {
+      return;
+    }
+
+    moduleProgressScopeRef.current = scopeKey;
+    // Deferring state updates avoids sync effect-write churn while still keeping progress tied to latest server truth.
+    if (moduleProgressSyncFrameRef.current !== null) {
+      cancelAnimationFrame(moduleProgressSyncFrameRef.current);
+    }
+    moduleProgressSyncFrameRef.current = requestAnimationFrame(() => {
+      setModuleProgressAnimation({
+        totalExp: serverTotalExp,
+        expMax,
+      });
+      setDisplayedModuleTotalExp(serverTotalExp);
+      moduleProgressSyncFrameRef.current = null;
+    });
+  }, [moduleDetail, moduleProgressAnimation, parsedModuleId]);
+
+  useEffect(() => {
+    if (!moduleProgressAnimation) {
+      return;
+    }
+    if (displayedModuleTotalExp === null) {
+      moduleProgressAnimationFrameRef.current = requestAnimationFrame(() => {
+        setDisplayedModuleTotalExp(moduleProgressAnimation.totalExp);
+        moduleProgressAnimationFrameRef.current = null;
+      });
+      return;
+    }
+    if (displayedModuleTotalExp === moduleProgressAnimation.totalExp) {
+      return;
+    }
+
+    const animationDistance = Math.abs(
+      moduleProgressAnimation.totalExp - displayedModuleTotalExp,
+    );
+    const animationDurationMs = Math.max(
+      250,
+      Math.min(900, animationDistance * 12),
+    );
+    const animationStart = displayedModuleTotalExp;
+    const animationDelta = moduleProgressAnimation.totalExp - animationStart;
+    const startedAt = performance.now();
+
+    if (moduleProgressAnimationFrameRef.current !== null) {
+      cancelAnimationFrame(moduleProgressAnimationFrameRef.current);
+    }
+
+    // The bar and XP text should move together so learners can immediately perceive gained progress.
+    const step = (now: number) => {
+      const elapsed = now - startedAt;
+      const progress = Math.min(1, elapsed / animationDurationMs);
+      const easedProgress = easeOutCubic(progress);
+      const nextValue = Math.round(animationStart + animationDelta * easedProgress);
+      setDisplayedModuleTotalExp(nextValue);
+
+      if (progress < 1) {
+        moduleProgressAnimationFrameRef.current = requestAnimationFrame(step);
+        return;
+      }
+
+      moduleProgressAnimationFrameRef.current = null;
+    };
+
+    moduleProgressAnimationFrameRef.current = requestAnimationFrame(step);
+
+    return () => {
+      if (moduleProgressAnimationFrameRef.current !== null) {
+        cancelAnimationFrame(moduleProgressAnimationFrameRef.current);
+      }
+    };
+  }, [displayedModuleTotalExp, moduleProgressAnimation]);
+
   const moduleProgress = useMemo<ModuleProgress | null>(() => {
     if (!moduleDetail || moduleDetail.userModuleLevel === undefined) {
       return null;
@@ -323,16 +446,23 @@ export function usePracticeRoomPageState({
       moduleDetail.expMax && moduleDetail.expMax > 0
         ? moduleDetail.expMax
         : MODULE_EXP_MAX;
-    const currentExp = moduleDetail.currentExp ?? 0;
+    const fallbackTotalExp = toModuleTotalExp(
+      moduleDetail.userModuleLevel,
+      moduleDetail.currentExp ?? 0,
+      expMax,
+    );
+    const animatedTotalExp = displayedModuleTotalExp ?? fallbackTotalExp;
+    const derivedProgress = fromModuleTotalExp(animatedTotalExp, expMax);
+    const currentExp = derivedProgress.currentExp;
     const expPercent =
       expMax > 0 ? Math.min(100, Math.round((currentExp / expMax) * 100)) : 0;
 
     return {
-      level: moduleDetail.userModuleLevel,
+      level: derivedProgress.level,
       currentExp,
       expPercent,
     };
-  }, [moduleDetail]);
+  }, [displayedModuleTotalExp, moduleDetail]);
 
   const selectedOptionIndex = useMemo(() => {
     if (!activeQuestion) {
@@ -496,7 +626,36 @@ export function usePracticeRoomPageState({
 
     setSubmitErrorMessage(null);
     try {
-      await submitAttemptMutation.mutateAsync(payload);
+      const submitResponse = await submitAttemptMutation.mutateAsync(payload);
+      if (submitResponse.moduleExpAwarded > 0) {
+        setModuleProgressAnimation((previousValue) => {
+          const expMax =
+            moduleDetail?.expMax && moduleDetail.expMax > 0
+              ? moduleDetail.expMax
+              : MODULE_EXP_MAX;
+          const fallbackTotalExp =
+            moduleDetail && moduleDetail.userModuleLevel !== undefined
+              ? toModuleTotalExp(
+                  moduleDetail.userModuleLevel,
+                  moduleDetail.currentExp ?? 0,
+                  expMax,
+                )
+              : null;
+          const currentTotalExp =
+            previousValue?.totalExp ??
+            displayedModuleTotalExp ??
+            fallbackTotalExp;
+
+          if (currentTotalExp === null) {
+            return previousValue;
+          }
+
+          return {
+            totalExp: currentTotalExp + submitResponse.moduleExpAwarded,
+            expMax,
+          };
+        });
+      }
       setSubmittedAttemptByContentId((previousValue) => ({
         ...previousValue,
         [activeQuestion.question.id]: {
@@ -582,6 +741,30 @@ export function usePracticeRoomPageState({
     goToPreviousQuestionUnit,
     goToNextQuestionUnit,
   };
+}
+
+function toModuleTotalExp(level: number, currentExp: number, expMax: number) {
+  // Total-exp normalization lets us animate across level boundaries without special-case branching.
+  return Math.max(0, level - 1) * expMax + Math.max(0, currentExp);
+}
+
+function fromModuleTotalExp(totalExp: number, expMax: number) {
+  if (expMax <= 0) {
+    return {
+      level: 1,
+      currentExp: 0,
+    };
+  }
+
+  const safeTotalExp = Math.max(0, totalExp);
+  return {
+    level: Math.floor(safeTotalExp / expMax) + 1,
+    currentExp: safeTotalExp % expMax,
+  };
+}
+
+function easeOutCubic(progress: number) {
+  return 1 - Math.pow(1 - progress, 3);
 }
 
 // Apply local submissions over server snapshots so completion bars update instantly while query refetch catches up.

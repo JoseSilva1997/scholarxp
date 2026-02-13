@@ -521,4 +521,95 @@ describe('usePracticeRoomPageState (core-only)', () => {
     expect(state.hasSubmittedActiveQuestion).toBe(false);
     expect(state.showTryAgainButton).toBe(false);
   });
+
+  it('animates module progress and levels up when awarded exp crosses the threshold', async () => {
+    const requestAnimationFrameSpy = vi
+      .spyOn(globalThis, 'requestAnimationFrame')
+      .mockImplementation((callback: FrameRequestCallback) => {
+        callback(performance.now() + 1_000);
+        return 1;
+      });
+    const cancelAnimationFrameSpy = vi
+      .spyOn(globalThis, 'cancelAnimationFrame')
+      .mockImplementation(() => undefined);
+
+    const mutateAsync = vi.fn().mockResolvedValue({
+      moduleExpAwarded: 50,
+      studentExpAwarded: 25,
+      hasCorrectAttempt: true,
+    });
+    useSubmitModuleUnitPracticeAttemptMutationMock.mockReturnValue({
+      isPending: false,
+      mutateAsync,
+    });
+    useModuleDetailQueryMock.mockReturnValue({
+      isPending: false,
+      error: null,
+      data: {
+        id: 1,
+        userModuleLevel: 1,
+        currentExp: 980,
+        expMax: 1000,
+      },
+    });
+    useModuleUnitPracticeRoomQueryMock.mockReturnValue({
+      isPending: false,
+      error: null,
+      data: {
+        practiceRoom: {
+          sessionId: '11111111-1111-4111-8111-111111111010',
+          moduleUnitId: 3,
+          moduleUnitTitle: 'Unit',
+          questions: [
+            {
+              questionUnitId: 22,
+              position: 1,
+              hasCorrectAttempt: null,
+              coreQuestion: {
+                questionId: 22,
+                questionContent: {
+                  id: 200,
+                  type: 'mcq',
+                  questionStem: 'Q',
+                  questionData: {
+                    options: [{ optionText: 'A' }, { optionText: 'B' }],
+                    correctOptionIndex: 1,
+                  },
+                  hint: null,
+                  difficultyScore: 1,
+                },
+                lastAttempt: null,
+              },
+            },
+          ],
+        },
+      },
+    });
+
+    const rendered = renderHookWithParams('1', '1');
+    let state = rendered.getState();
+    expect(state.moduleProgress).toEqual({
+      level: 1,
+      currentExp: 980,
+      expPercent: 98,
+    });
+
+    act(() => {
+      state.selectOption(200, 1);
+    });
+    state = rendered.getState();
+    await act(async () => {
+      await state.submitActiveQuestionAttempt();
+    });
+
+    state = rendered.getState();
+    expect(state.moduleProgress).toEqual({
+      level: 2,
+      currentExp: 30,
+      expPercent: 3,
+    });
+
+    requestAnimationFrameSpy.mockRestore();
+    cancelAnimationFrameSpy.mockRestore();
+  });
 });
