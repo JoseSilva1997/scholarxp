@@ -74,6 +74,57 @@
   font-size: 1.1rem;
 }
 
+.levelValue {
+  display: inline-block;
+  position: relative;
+  z-index: 1;
+}
+
+.levelValueWrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1ch;
+}
+
+.levelRays {
+  position: absolute;
+  width: 2.8em;
+  height: 2.8em;
+  pointer-events: none;
+}
+
+.levelRays::before,
+.levelRays::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  /* Linear "sun rays" masked to outer ring so the center stays clean around the level digits. */
+  background:
+    repeating-conic-gradient(
+      from 0deg,
+      rgba(76, 175, 80, 0.95) 0deg 10deg,
+      transparent 10deg 45deg
+    );
+  -webkit-mask: radial-gradient(
+    circle,
+    transparent 0 42%,
+    #000 42% 92%,
+    transparent 92% 100%
+  );
+  mask: radial-gradient(
+    circle,
+    transparent 0 42%,
+    #000 42% 92%,
+    transparent 92% 100%
+  );
+}
+
+.levelRays::after {
+  display: none;
+}
+
 .levelIcon {
   width: 24px;
   height: 24px;

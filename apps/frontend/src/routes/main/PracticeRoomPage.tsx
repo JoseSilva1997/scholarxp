@@ -1,4 +1,6 @@
 // Module-unit-scoped student practice-room route that renders unit progress, question-unit bars, and a selectable question panel.
+import { useEffect, useRef, useState } from 'react';
+import { motion } from 'motion/react';
 import { Link, useParams } from 'react-router-dom';
 import { IconContext } from 'react-icons';
 import {
@@ -63,6 +65,30 @@ export default function PracticeRoomPage() {
         optionCount: activeQuestionOptions.length,
       })
     : [];
+  const previousLevelRef = useRef<number | null>(null);
+  const [levelUpAnimationCycle, setLevelUpAnimationCycle] = useState(0);
+
+  useEffect(() => {
+    const nextLevel = moduleProgress?.level;
+    if (nextLevel === undefined) {
+      previousLevelRef.current = null;
+      return;
+    }
+
+    const previousLevel = previousLevelRef.current;
+    if (previousLevel === null) {
+      previousLevelRef.current = nextLevel;
+      return;
+    }
+    if (nextLevel <= previousLevel) {
+      return;
+    }
+
+    previousLevelRef.current = nextLevel;
+
+    // Advancing this cycle remounts motion elements so each level-up gets one fresh burst.
+    setLevelUpAnimationCycle((previousValue) => previousValue + 1);
+  }, [moduleProgress?.level]);
 
   if (!parsedModuleId || !parsedUnitId) {
     return (
@@ -87,7 +113,45 @@ export default function PracticeRoomPage() {
             {/* Keep progress visible inside practice so students can see momentum while answering questions. */}
             <span className={styles.level}>
               <img src={expIcon} alt="" aria-hidden="true" className={styles.levelIcon} />
-              Level {moduleProgress.level}
+              Level{' '}<span className={styles.levelValueWrap}>
+                {levelUpAnimationCycle > 0 ? (
+                  <motion.span
+                    key={`level-rays-${levelUpAnimationCycle}`}
+                    aria-hidden="true"
+                    className={styles.levelRays}
+                    initial={{ opacity: 0, scale: 0.6 }}
+                    animate={{
+                      opacity: [0, 1, 0],
+                      scale: [0.6, 1.15, 1.45],
+                      y: [0, -5, 0],
+                    }}
+                    transition={{
+                      duration: 0.7,
+                      ease: 'easeOut',
+                      times: [0, 0.35, 1],
+                    }}
+                  />
+                ) : null}
+                <motion.span
+                  key={`level-value-${levelUpAnimationCycle}`}
+                  className={styles.levelValue}
+                  initial={
+                    levelUpAnimationCycle === 0 ? false : { y: 0, scale: 1 }
+                  }
+                  animate={
+                    levelUpAnimationCycle === 0
+                      ? { y: 0, scale: 1 }
+                      : { y: [0, -5, 0], scale: [1, 1.65, 1] }
+                  }
+                  transition={{
+                    duration: 0.7,
+                    ease: 'easeOut',
+                    times: [0, 0.4, 1],
+                  }}
+                >
+                  {moduleProgress.level}
+                </motion.span>
+              </span>
             </span>
             <div
               className={styles.barTrack}
