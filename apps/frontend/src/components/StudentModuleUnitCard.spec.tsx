@@ -1,6 +1,6 @@
 // Verifies student lesson card behavior for lock state and collapsible detail display.
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import StudentModuleUnitCard from './StudentModuleUnitCard';
 
 const baseUnit = {
@@ -12,6 +12,10 @@ const baseUnit = {
 };
 
 describe('StudentModuleUnitCard', () => {
+  beforeEach(() => {
+    window.history.pushState({}, '', '/main/modules/9');
+  });
+
   it('shows question count for live lessons and toggles detail panel', () => {
     render(<StudentModuleUnitCard unit={baseUnit} />);
 
@@ -24,5 +28,28 @@ describe('StudentModuleUnitCard', () => {
     render(<StudentModuleUnitCard unit={{ ...baseUnit, status: 'locked' }} />);
 
     expect(screen.getByRole('button', { name: 'Start practice' })).toBeDisabled();
+  });
+
+  it('navigates to a specific practice-room question when question is clicked', () => {
+    const assign = vi.fn();
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...window.location, assign },
+    });
+
+    render(<StudentModuleUnitCard unit={baseUnit} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Expand lesson details' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Practice Q1' }));
+
+    expect(assign).toHaveBeenCalledWith('/main/modules/9/11/practice-room?questionId=101');
+  });
+
+  it('keeps question links disabled for locked lessons', () => {
+    render(<StudentModuleUnitCard unit={{ ...baseUnit, status: 'locked' }} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Expand lesson details' }));
+
+    expect(screen.getByRole('button', { name: 'Practice Q1' })).toBeDisabled();
   });
 });

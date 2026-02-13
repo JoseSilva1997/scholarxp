@@ -81,6 +81,9 @@ export function usePracticeRoomPageState({
   const requestedSessionId = parsePracticeRoomSessionIdQuery(
     searchParams.get('sessionId'),
   );
+  const requestedQuestionUnitId = parsePracticeRoomQuestionUnitIdQuery(
+    searchParams.get('questionId'),
+  );
 
   const practiceRoomQuery = useModuleUnitPracticeRoomQuery(
     parsedModuleId,
@@ -225,6 +228,33 @@ export function usePracticeRoomPageState({
     searchParamsString,
     setSearchParams,
   ]);
+
+  useEffect(() => {
+    if (!moduleUnitRoom || requestedQuestionUnitId === null) {
+      return;
+    }
+    const targetQuestionIndex = moduleUnitRoom.questions.findIndex(
+      (questionUnit) => questionUnit.questionUnitId === requestedQuestionUnitId,
+    );
+    if (targetQuestionIndex < 0) {
+      return;
+    }
+    // Defer state sync to the next frame to satisfy hook linting while preserving deep-link behavior.
+    const frameId = requestAnimationFrame(() => {
+      setSelectedQuestionUnitIndexBySessionId((previousValue) => {
+        if (previousValue[moduleUnitRoom.sessionId] === targetQuestionIndex) {
+          return previousValue;
+        }
+        return {
+          ...previousValue,
+          [moduleUnitRoom.sessionId]: targetQuestionIndex,
+        };
+      });
+    });
+    return () => {
+      cancelAnimationFrame(frameId);
+    };
+  }, [moduleUnitRoom, requestedQuestionUnitId]);
 
   useEffect(() => {
     if (questionSelectionPersistenceKey === null || !moduleUnitRoom) {
@@ -964,6 +994,19 @@ function parsePracticeRoomSessionIdQuery(
     return null;
   }
   return sessionIdParam;
+}
+
+function parsePracticeRoomQuestionUnitIdQuery(
+  questionIdParam: string | null,
+): number | null {
+  if (!questionIdParam) {
+    return null;
+  }
+  const parsedQuestionId = Number(questionIdParam);
+  if (!Number.isInteger(parsedQuestionId) || parsedQuestionId <= 0) {
+    return null;
+  }
+  return parsedQuestionId;
 }
 
 function isUuidString(value: string): boolean {

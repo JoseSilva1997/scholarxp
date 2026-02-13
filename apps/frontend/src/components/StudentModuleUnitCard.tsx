@@ -13,6 +13,7 @@ export default function StudentModuleUnitCard({ unit }: StudentModuleUnitCardPro
   const isLocked = unit.status === 'locked';
   const [isOpen, setIsOpen] = useState(false);
   const moduleId = window.location.pathname.split('/')[3];
+  const basePracticeRoomPath = `/main/modules/${moduleId}/${unit.id}/practice-room`;
 
   return (
     <div className={styles.wrapper}>
@@ -41,9 +42,7 @@ export default function StudentModuleUnitCard({ unit }: StudentModuleUnitCardPro
                 disabled={isLocked}
                 onClick={() => {
                   // Full-path assignment keeps this card router-agnostic for tests while still opening the practice room.
-                  window.location.assign(
-                    `/main/modules/${moduleId}/${unit.id}/practice-room`,
-                  );
+                  window.location.assign(basePracticeRoomPath);
                 }}
               >
                 Start Practice
@@ -75,9 +74,21 @@ export default function StudentModuleUnitCard({ unit }: StudentModuleUnitCardPro
             <div className={styles.questions}>
               {group.questions && group.questions.length > 0 ? (
                 group.questions.map((question) => (
-                  <span key={question.id} className={styles.question}>
+                  <button
+                    key={question.id}
+                    type="button"
+                    className={styles.question}
+                    disabled={isLocked}
+                    aria-label={`Practice ${question.title}`}
+                    onClick={() => {
+                      // Deep-link to a question unit so students can resume from the entry they selected in the card.
+                      window.location.assign(
+                        `${basePracticeRoomPath}?questionId=${encodeURIComponent(question.id)}`,
+                      );
+                    }}
+                  >
                     {question.title}
-                  </span>
+                  </button>
                 ))
               ) : (
                 <span className={styles.empty}>No questions yet</span>

@@ -181,12 +181,28 @@
   text-decoration: underline;
   text-underline-offset: 2px;
   text-decoration-thickness: 1px;
-  cursor: default;
+  cursor: pointer;
 }
 
 .question:hover {
   color: var(--color-accent-secondary-strong);
   text-decoration-thickness: 2px;
+}
+
+.question:focus-visible {
+  outline: 2px solid var(--color-accent-secondary);
+  outline-offset: 2px;
+}
+
+.question:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+.question:disabled:hover {
+  color: var(--text-muted);
+  text-decoration: none;
 }
 
 .empty {
