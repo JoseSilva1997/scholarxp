@@ -85,6 +85,7 @@
   left: 0;
   bottom: 0;
   background: linear-gradient(135deg, #4caf50, #32a86f);
+  transition: width 0.1s ease;
 }
 
 .expLabel {

@@ -97,17 +97,8 @@
   inset: 0;
   background: linear-gradient(90deg, var(--color-accent-primary) 0%, var(--color-brand-surface-dark) 100%);
   border-radius: 999px;
-  transition: width 0.5s ease;
+  transition: width 0.4s ease;
   box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
-}
-
-.expLabel {
-  grid-area: exp;
-  font-size: 14px;
-  color: var(--color-muted);
-  font-weight: 600;
-  white-space: nowrap;
-  text-align: right;
 }
 
 .expLabel {

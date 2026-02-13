@@ -14,6 +14,7 @@ import {
   getDisplayErrorMessage,
   shouldLogApiError,
 } from '../../api/get-display-error';
+import { useAuth } from '../../context/AuthContext';
 import { logError } from '../../utils/logger';
 import {
   useModuleUnitPracticeRoomQuery,
@@ -63,6 +64,7 @@ export function usePracticeRoomPageState({
   moduleIdParam,
   unitIdParam,
 }: UsePracticeRoomPageStateParams) {
+  const { applyStudentExpReward } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const searchParamsString = searchParams.toString();
   const parsedModuleId = useMemo(() => {
@@ -655,6 +657,10 @@ export function usePracticeRoomPageState({
             expMax,
           };
         });
+      }
+      if (submitResponse.studentExpAwarded > 0) {
+        // Updating auth cache immediately keeps header avatar progress in sync with the in-room reward feedback.
+        applyStudentExpReward(submitResponse.studentExpAwarded);
       }
       setSubmittedAttemptByContentId((previousValue) => ({
         ...previousValue,

@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AuthResponse } from '@scholarxp/api-contracts';
+import { STUDENT_EXP_MAX } from '@scholarxp/constants';
 import { getCurrentUser, logout as apiLogout } from '../api/auth';
 import { clearCsrfToken, refreshCsrfToken } from '../api/client';
 import { queryKeys } from '../hooks/query-keys';
@@ -17,6 +18,7 @@ import type { AuthUser } from '../types/auth';
 type AuthContextValue = {
   user: AuthUser | null;
   setUser: (user: AuthUser | null) => void;
+  applyStudentExpReward: (expGained: number) => void;
   refreshUser: () => Promise<AuthUser | null>;
   logout: () => Promise<void>;
   isLoading: boolean;
@@ -42,6 +44,45 @@ export function AuthProvider({ children }: AuthProviderProps) {
     (user: AuthUser | null) => {
       // Keep auth writes in one cache key so all subscribers observe a consistent session snapshot.
       queryClient.setQueryData<AuthResponse>(queryKeys.auth.me, { user });
+    },
+    [queryClient],
+  );
+  const applyStudentExpReward = useCallback(
+    (expGained: number) => {
+      if (expGained <= 0) {
+        return;
+      }
+
+      // Apply rewards through one cache update so header and any auth consumers react in the same render cycle.
+      queryClient.setQueryData<AuthResponse | undefined>(
+        queryKeys.auth.me,
+        (previousValue) => {
+          if (!previousValue?.user || previousValue.user.globalRole !== 'student') {
+            return previousValue;
+          }
+
+          const avatar = previousValue.user.avatar;
+          if (!avatar) {
+            return previousValue;
+          }
+
+          const totalExp = avatar.currentExp + expGained;
+          const levelGain = Math.floor(totalExp / STUDENT_EXP_MAX);
+          const remainingExp = totalExp % STUDENT_EXP_MAX;
+
+          return {
+            ...previousValue,
+            user: {
+              ...previousValue.user,
+              avatar: {
+                ...avatar,
+                level: avatar.level + levelGain,
+                currentExp: remainingExp,
+              },
+            },
+          };
+        },
+      );
     },
     [queryClient],
   );
@@ -87,11 +128,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
     () => ({
       user: authQuery.data?.user ?? null,
       setUser,
+      applyStudentExpReward,
       refreshUser,
       logout,
       isLoading: authQuery.isPending,
     }),
-    [authQuery.data?.user, authQuery.isPending, refreshUser, logout, setUser],
+    [
+      applyStudentExpReward,
+      authQuery.data?.user,
+      authQuery.isPending,
+      refreshUser,
+      logout,
+      setUser,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -105,4 +154,3 @@ export function useAuth() {
   }
   return ctx;
 }
-

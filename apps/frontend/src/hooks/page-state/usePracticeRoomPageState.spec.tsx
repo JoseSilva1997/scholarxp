@@ -13,6 +13,9 @@ vi.mock('../queries/usePracticeRoomQueries', () => ({
 vi.mock('../queries/useModulesQueries', () => ({
   useModuleDetailQuery: vi.fn(),
 }));
+vi.mock('../../context/AuthContext', () => ({
+  useAuth: vi.fn(),
+}));
 vi.mock('../../api/get-display-error', () => ({
   getDisplayErrorMessage: (err: unknown) => `display:${String(err)}`,
   shouldLogApiError: () => true,
@@ -25,6 +28,7 @@ import {
   useSubmitModuleUnitPracticeAttemptMutation,
 } from '../queries/usePracticeRoomQueries';
 import { useModuleDetailQuery } from '../queries/useModulesQueries';
+import { useAuth } from '../../context/AuthContext';
 
 type PracticeRoomPageState = ReturnType<typeof usePracticeRoomPageState>;
 
@@ -60,10 +64,15 @@ describe('usePracticeRoomPageState (core-only)', () => {
   const useModuleDetailQueryMock = useModuleDetailQuery as unknown as Mock;
   const useSubmitModuleUnitPracticeAttemptMutationMock =
     useSubmitModuleUnitPracticeAttemptMutation as unknown as Mock;
+  const useAuthMock = useAuth as unknown as Mock;
+  const applyStudentExpRewardMock = vi.fn();
 
   beforeEach(() => {
     vi.resetAllMocks();
     localStorage.clear();
+    useAuthMock.mockReturnValue({
+      applyStudentExpReward: applyStudentExpRewardMock,
+    });
     useModuleUnitPracticeRoomQueryMock.mockReturnValue({
       isPending: false,
       data: null,
@@ -608,6 +617,7 @@ describe('usePracticeRoomPageState (core-only)', () => {
       currentExp: 30,
       expPercent: 3,
     });
+    expect(applyStudentExpRewardMock).toHaveBeenCalledWith(25);
 
     requestAnimationFrameSpy.mockRestore();
     cancelAnimationFrameSpy.mockRestore();
