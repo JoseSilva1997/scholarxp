@@ -2,6 +2,7 @@ import React from 'react';
 import { act, render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Mock } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 
 import { logError } from '../../utils/logger';
 
@@ -27,7 +28,11 @@ import { useModuleDetailQuery } from '../queries/useModulesQueries';
 
 type PracticeRoomPageState = ReturnType<typeof usePracticeRoomPageState>;
 
-function renderHookWithParams(moduleIdParam?: string, unitIdParam?: string) {
+function renderHookWithParams(
+  moduleIdParam?: string,
+  unitIdParam?: string,
+  initialEntry: string = '/main/modules/1/1/practice-room',
+) {
   let latest: PracticeRoomPageState | null = null;
 
   function TestWrapper() {
@@ -38,7 +43,11 @@ function renderHookWithParams(moduleIdParam?: string, unitIdParam?: string) {
     return <div>ok</div>;
   }
 
-  const utils = render(<TestWrapper />);
+  const utils = render(
+    <MemoryRouter initialEntries={[initialEntry]}>
+      <TestWrapper />
+    </MemoryRouter>,
+  );
   return {
     ...utils,
     getState: () => latest as PracticeRoomPageState,
@@ -54,6 +63,7 @@ describe('usePracticeRoomPageState (core-only)', () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
+    localStorage.clear();
     useModuleUnitPracticeRoomQueryMock.mockReturnValue({
       isPending: false,
       data: null,
@@ -81,6 +91,16 @@ describe('usePracticeRoomPageState (core-only)', () => {
 
     const invalid = renderHookWithParams(undefined, undefined).getState();
     expect(invalid.pageError).toContain('Practice room not found');
+  });
+
+  it('passes sessionId query param into the practice-room query hook', () => {
+    renderHookWithParams(
+      '1',
+      '1',
+      '/main/modules/1/1/practice-room?sessionId=77',
+    );
+
+    expect(useModuleUnitPracticeRoomQueryMock).toHaveBeenCalledWith(1, 1, 77);
   });
 
   it('uses core question as active question and seeds selected option from core last attempt', () => {
@@ -119,9 +139,148 @@ describe('usePracticeRoomPageState (core-only)', () => {
     });
 
     const state = renderHookWithParams('1', '1').getState();
-    expect(state.activeQuestion.question.id).toBe(100);
+    expect(state.activeQuestion?.question.id).toBe(100);
     expect(state.selectedOptionIndex).toBe(1);
     expect(state.activeQuestionOptions).toHaveLength(2);
+  });
+
+  it('restores selected question after reload while clearing unsubmitted option selection', () => {
+    useModuleUnitPracticeRoomQueryMock.mockReturnValue({
+      isPending: false,
+      error: null,
+      data: {
+        practiceRoom: {
+          sessionId: 7,
+          moduleUnitId: 3,
+          moduleUnitTitle: 'Unit',
+          questions: [
+            {
+              questionUnitId: 11,
+              position: 1,
+              hasCorrectAttempt: null,
+              coreQuestion: {
+                questionId: 11,
+                questionContent: {
+                  id: 100,
+                  type: 'mcq',
+                  questionStem: 'Core stem',
+                  questionData: {
+                    options: [{ optionText: 'A' }, { optionText: 'B' }],
+                    correctOptionIndex: 1,
+                  },
+                  hint: null,
+                  difficultyScore: 1,
+                },
+                lastAttempt: null,
+              },
+            },
+            {
+              questionUnitId: 12,
+              position: 2,
+              hasCorrectAttempt: null,
+              coreQuestion: {
+                questionId: 12,
+                questionContent: {
+                  id: 101,
+                  type: 'mcq',
+                  questionStem: 'Second core stem',
+                  questionData: {
+                    options: [{ optionText: 'C' }, { optionText: 'D' }],
+                    correctOptionIndex: 0,
+                  },
+                  hint: null,
+                  difficultyScore: 1,
+                },
+                lastAttempt: null,
+              },
+            },
+          ],
+        },
+      },
+    });
+
+    const initialRender = renderHookWithParams('1', '1');
+    act(() => {
+      initialRender.getState().selectQuestionUnit(1);
+      initialRender.getState().selectOption(101, 1);
+    });
+    expect(initialRender.getState().selectedQuestionUnitIndex).toBe(1);
+    expect(initialRender.getState().selectedOptionIndex).toBe(1);
+    initialRender.unmount();
+
+    const reloadedRender = renderHookWithParams('1', '1');
+    expect(reloadedRender.getState().selectedQuestionUnitIndex).toBe(1);
+    expect(reloadedRender.getState().activeQuestion.question.id).toBe(101);
+    expect(reloadedRender.getState().selectedOptionIndex).toBeNull();
+  });
+
+  it('resets selected question to the beginning when a new practice session starts', () => {
+    let currentSessionId = 7;
+    useModuleUnitPracticeRoomQueryMock.mockImplementation(() => ({
+      isPending: false,
+      error: null,
+      data: {
+        practiceRoom: {
+          sessionId: currentSessionId,
+          moduleUnitId: 3,
+          moduleUnitTitle: 'Unit',
+          questions: [
+            {
+              questionUnitId: 11,
+              position: 1,
+              hasCorrectAttempt: null,
+              coreQuestion: {
+                questionId: 11,
+                questionContent: {
+                  id: 100,
+                  type: 'mcq',
+                  questionStem: 'Core stem',
+                  questionData: {
+                    options: [{ optionText: 'A' }, { optionText: 'B' }],
+                    correctOptionIndex: 1,
+                  },
+                  hint: null,
+                  difficultyScore: 1,
+                },
+                lastAttempt: null,
+              },
+            },
+            {
+              questionUnitId: 12,
+              position: 2,
+              hasCorrectAttempt: null,
+              coreQuestion: {
+                questionId: 12,
+                questionContent: {
+                  id: 101,
+                  type: 'mcq',
+                  questionStem: 'Second stem',
+                  questionData: {
+                    options: [{ optionText: 'C' }, { optionText: 'D' }],
+                    correctOptionIndex: 0,
+                  },
+                  hint: null,
+                  difficultyScore: 1,
+                },
+                lastAttempt: null,
+              },
+            },
+          ],
+        },
+      },
+    }));
+
+    const initialRender = renderHookWithParams('1', '1');
+    act(() => {
+      initialRender.getState().selectQuestionUnit(1);
+    });
+    expect(initialRender.getState().selectedQuestionUnitIndex).toBe(1);
+    initialRender.unmount();
+
+    currentSessionId = 8;
+    const nextSessionRender = renderHookWithParams('1', '1');
+    expect(nextSessionRender.getState().selectedQuestionUnitIndex).toBe(0);
+    expect(nextSessionRender.getState().activeQuestion.question.id).toBe(100);
   });
 
   it('submits core attempt payload and records submit errors with logger', async () => {

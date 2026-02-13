@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -14,6 +15,7 @@ import { ModuleAccessGuard } from '../auth/guards/module-access.guard';
 import { ModuleAccess } from '../auth/decorators/module-access.decorator';
 import type { AuthUser } from '../types/auth-user.type';
 import { GetPracticeRoomParamsDto } from './dto/get-practice-room-params.dto';
+import { GetPracticeRoomQueryDto } from './dto/get-practice-room-query.dto';
 import { SubmitAttemptDto } from './dto/submit-attempt.dto';
 
 // PracticeRoomController exposes module-unit-scoped room endpoints used when students start practice from a module unit.
@@ -27,6 +29,7 @@ export class PracticeRoomController {
   @ModuleAccess({ paramKey: 'moduleId', allowStudentRead: true })
   getPracticeRoom(
     @Param() params: GetPracticeRoomParamsDto,
+    @Query() query: GetPracticeRoomQueryDto,
     @Req() req: Request,
   ) {
     const user = req.user as AuthUser;
@@ -34,6 +37,7 @@ export class PracticeRoomController {
       params.moduleId,
       params.moduleUnitId,
       user.id,
+      query.sessionId,
     );
   }
 

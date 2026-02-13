@@ -71,6 +71,10 @@ export interface CreateModuleUnitPracticeRoomPayload {
   moduleUnitId: number;
 }
 
+// Optional query params for loading a room; when provided, sessionId resumes an in-progress session.
+export interface GetModuleUnitPracticeRoomQuery {
+  sessionId?: number;
+}
 
 // Top-level response used by the module-unit practice room page on initial load.
 export interface ModuleUnitPracticeRoomResponse {

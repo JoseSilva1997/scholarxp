@@ -8,8 +8,13 @@ export const queryKeys = {
     detail: (moduleId: number) => ['modules', 'detail', moduleId] as const,
     units: (moduleId: number) => ['modules', 'units', moduleId] as const,
     invites: (moduleId: number) => ['modules', 'invites', moduleId] as const,
-    // Module-unit-scoped practice room key is intentionally distinct from future session-scoped room keys.
-    moduleUnitPracticeRoom: (moduleId: number, unitId: number) =>
+    // Session id is included so switching/replacing URL session ids triggers a room refetch.
+    moduleUnitPracticeRoom: (
+      moduleId: number,
+      unitId: number,
+      sessionId?: number,
+    ) => ['modules', 'practice-room', moduleId, unitId, sessionId ?? 'new'] as const,
+    moduleUnitPracticeRoomBase: (moduleId: number, unitId: number) =>
       ['modules', 'practice-room', moduleId, unitId] as const,
   },
 };

@@ -201,6 +201,41 @@ describe('PracticeRoomService', () => {
       expect(result.practiceRoom.questions).toHaveLength(0);
     });
 
+    it('reuses an existing practice session when sessionId is provided', async () => {
+      const mockModuleUnit = buildMockModuleUnit({
+        questionUnits: [buildQuestionUnit(1, true)],
+      });
+      prisma.moduleUnit.findFirst.mockResolvedValue(mockModuleUnit as any);
+      prisma.practiceSession.findFirst.mockResolvedValue({ id: 444 } as any);
+      prisma.questionAttempt.findMany.mockResolvedValue([]);
+
+      const result = await service.getPracticeRoom(1, 10, 100, 444);
+
+      expect(prisma.practiceSession.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: 444,
+          moduleId: 1,
+          userId: 100,
+        },
+        select: { id: true },
+      });
+      expect(prisma.practiceSession.create).not.toHaveBeenCalled();
+      expect(result.practiceRoom.sessionId).toBe(444);
+    });
+
+    it('throws when provided sessionId does not belong to the student/module', async () => {
+      const mockModuleUnit = buildMockModuleUnit({
+        questionUnits: [buildQuestionUnit(1, true)],
+      });
+      prisma.moduleUnit.findFirst.mockResolvedValue(mockModuleUnit as any);
+      prisma.practiceSession.findFirst.mockResolvedValue(null);
+
+      await expect(service.getPracticeRoom(1, 10, 100, 999)).rejects.toThrow(
+        'Practice session not found for this module.',
+      );
+      expect(prisma.practiceSession.create).not.toHaveBeenCalled();
+    });
+
     // ===== BASIS PATH: Module unit with archived questions =====
     it('should filter out archived question units via database query', async () => {
       // Note: filtering happens at DB level (where: { isArchived: false })

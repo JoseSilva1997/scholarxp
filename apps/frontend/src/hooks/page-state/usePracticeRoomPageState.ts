@@ -1,5 +1,6 @@
 // Encapsulates practice-room route orchestration so the page component can stay presentational.
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import type {
   ModuleUnitPracticeRoomResponse,
   PracticeAttemptSnapshot,
@@ -47,10 +48,17 @@ type QuestionUnitNav = {
   canGoNext: boolean;
 };
 
+type PracticeRoomQuestionSelectionPersistence = {
+  sessionId: number;
+  selectedQuestionUnitIndex: number;
+};
+
 export function usePracticeRoomPageState({
   moduleIdParam,
   unitIdParam,
 }: UsePracticeRoomPageStateParams) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchParamsString = searchParams.toString();
   const parsedModuleId = useMemo(() => {
     if (!moduleIdParam) return null;
     const value = Number(moduleIdParam);
@@ -62,10 +70,14 @@ export function usePracticeRoomPageState({
     const value = Number(unitIdParam);
     return Number.isFinite(value) && value > 0 ? value : null;
   }, [unitIdParam]);
+  const requestedSessionId = parsePracticeRoomSessionIdQuery(
+    searchParams.get('sessionId'),
+  );
 
   const practiceRoomQuery = useModuleUnitPracticeRoomQuery(
     parsedModuleId,
     parsedUnitId,
+    requestedSessionId,
   );
   const submitAttemptMutation = useSubmitModuleUnitPracticeAttemptMutation(
     parsedModuleId,
@@ -74,8 +86,41 @@ export function usePracticeRoomPageState({
   const moduleDetailQuery = useModuleDetailQuery(parsedModuleId);
   const moduleUnitRoom = practiceRoomQuery.data?.practiceRoom ?? null;
   const moduleDetail = moduleDetailQuery.data ?? null;
+  const questionSelectionPersistenceKey = useMemo(
+    () =>
+      buildPracticeRoomQuestionSelectionStorageKey({
+        moduleId: parsedModuleId,
+        unitId: parsedUnitId,
+      }),
+    [parsedModuleId, parsedUnitId],
+  );
+  const persistedQuestionSelection = useMemo(
+    () =>
+      questionSelectionPersistenceKey === null
+        ? null
+        : readPracticeRoomQuestionSelectionPersistence(
+            questionSelectionPersistenceKey,
+          ),
+    [questionSelectionPersistenceKey],
+  );
 
-  const [selectedQuestionUnitIndex, setSelectedQuestionUnitIndex] = useState(0);
+  const [selectedQuestionUnitIndexBySessionId, setSelectedQuestionUnitIndexBySessionId] =
+    useState<Record<number, number>>(
+      () =>
+        persistedQuestionSelection
+          ? {
+              [persistedQuestionSelection.sessionId]:
+                persistedQuestionSelection.selectedQuestionUnitIndex,
+            }
+          : {},
+    );
+  const selectedQuestionUnitIndex = useMemo(
+    () =>
+      moduleUnitRoom
+        ? selectedQuestionUnitIndexBySessionId[moduleUnitRoom.sessionId] ?? 0
+        : 0,
+    [moduleUnitRoom, selectedQuestionUnitIndexBySessionId],
+  );
   const [selectedOptionOverrideByContentId, setSelectedOptionOverrideByContentId] =
     useState<Record<number, number>>({});
   const [unlockedHintByContentId, setUnlockedHintByContentId] = useState<
@@ -113,6 +158,38 @@ export function usePracticeRoomPageState({
       });
     }
   }, [moduleDetailQuery.error, parsedModuleId]);
+
+  useEffect(() => {
+    if (!moduleUnitRoom) {
+      return;
+    }
+    if (requestedSessionId === moduleUnitRoom.sessionId) {
+      return;
+    }
+    // Keep session id in the URL so browser reload resumes the same backend practice session.
+    const nextSearchParams = new URLSearchParams(searchParamsString);
+    nextSearchParams.set('sessionId', String(moduleUnitRoom.sessionId));
+    setSearchParams(nextSearchParams, { replace: true });
+  }, [
+    moduleUnitRoom,
+    requestedSessionId,
+    searchParamsString,
+    setSearchParams,
+  ]);
+
+  useEffect(() => {
+    if (questionSelectionPersistenceKey === null || !moduleUnitRoom) {
+      return;
+    }
+    // Persist the question position per session so a brand-new practice session starts at question one.
+    writePracticeRoomQuestionSelectionPersistence(
+      questionSelectionPersistenceKey,
+      {
+        sessionId: moduleUnitRoom.sessionId,
+        selectedQuestionUnitIndex,
+      },
+    );
+  }, [moduleUnitRoom, questionSelectionPersistenceKey, selectedQuestionUnitIndex]);
 
   const roomWithLocalAttempts = useMemo(() => {
     if (!moduleUnitRoom) {
@@ -231,9 +308,20 @@ export function usePracticeRoomPageState({
     };
   }, [moduleDetail]);
 
-  const selectedOptionIndex = activeQuestion
-    ? selectedOptionByContentId[activeQuestion.question.id] ?? null
-    : null;
+  const selectedOptionIndex = useMemo(() => {
+    if (!activeQuestion) {
+      return null;
+    }
+    const persistedSelection = selectedOptionByContentId[activeQuestion.question.id];
+    if (
+      typeof persistedSelection !== 'number' ||
+      persistedSelection < 0 ||
+      persistedSelection >= activeQuestionOptions.length
+    ) {
+      return null;
+    }
+    return persistedSelection;
+  }, [activeQuestion, activeQuestionOptions.length, selectedOptionByContentId]);
 
   useEffect(() => {
     if (!activeQuestion) {
@@ -256,7 +344,10 @@ export function usePracticeRoomPageState({
       0,
       Math.min(index, roomWithLocalAttempts.questions.length - 1),
     );
-    setSelectedQuestionUnitIndex(clampedIndex);
+    setSelectedQuestionUnitIndexBySessionId((previousValue) => ({
+      ...previousValue,
+      [roomWithLocalAttempts.sessionId]: clampedIndex,
+    }));
   };
 
   const selectOption = (contentId: number, optionIndex: number) => {
@@ -293,14 +384,24 @@ export function usePracticeRoomPageState({
 
   const goToPreviousQuestionUnit = () => {
     if (!questionUnitNav.canGoPrevious) return;
-    setSelectedQuestionUnitIndex((previousValue) => Math.max(0, previousValue - 1));
+    if (!roomWithLocalAttempts) return;
+    const sessionId = roomWithLocalAttempts.sessionId;
+    setSelectedQuestionUnitIndexBySessionId((previousValue) => ({
+      ...previousValue,
+      [sessionId]: Math.max(0, (previousValue[sessionId] ?? 0) - 1),
+    }));
   };
 
   const goToNextQuestionUnit = () => {
     if (!roomWithLocalAttempts || !questionUnitNav.canGoNext) return;
-    setSelectedQuestionUnitIndex((previousValue) =>
-      Math.min(roomWithLocalAttempts.questions.length - 1, previousValue + 1),
-    );
+    const sessionId = roomWithLocalAttempts.sessionId;
+    setSelectedQuestionUnitIndexBySessionId((previousValue) => ({
+      ...previousValue,
+      [sessionId]: Math.min(
+        roomWithLocalAttempts.questions.length - 1,
+        (previousValue[sessionId] ?? 0) + 1,
+      ),
+    }));
   };
 
   const canSubmitAttempt =
@@ -525,4 +626,75 @@ function isSelectedOptionCorrect(
   }
 
   return false;
+}
+
+function buildPracticeRoomQuestionSelectionStorageKey(params: {
+  moduleId: number | null;
+  unitId: number | null;
+}): string | null {
+  if (!params.moduleId || !params.unitId) {
+    return null;
+  }
+  return `practice-room-question-selection-v1:${params.moduleId}:${params.unitId}`;
+}
+
+function readPracticeRoomQuestionSelectionPersistence(
+  storageKey: string,
+): PracticeRoomQuestionSelectionPersistence | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const rawValue = window.localStorage.getItem(storageKey);
+  if (!rawValue) {
+    return null;
+  }
+
+  try {
+    const parsedValue =
+      JSON.parse(rawValue) as Partial<PracticeRoomQuestionSelectionPersistence>;
+    if (
+      typeof parsedValue.sessionId !== 'number' ||
+      !Number.isInteger(parsedValue.sessionId) ||
+      parsedValue.sessionId <= 0
+    ) {
+      return null;
+    }
+    if (
+      typeof parsedValue.selectedQuestionUnitIndex !== 'number' ||
+      parsedValue.selectedQuestionUnitIndex < 0
+    ) {
+      return null;
+    }
+    return {
+      sessionId: parsedValue.sessionId,
+      selectedQuestionUnitIndex: parsedValue.selectedQuestionUnitIndex,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writePracticeRoomQuestionSelectionPersistence(
+  storageKey: string,
+  value: PracticeRoomQuestionSelectionPersistence,
+) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.setItem(storageKey, JSON.stringify(value));
+}
+
+function parsePracticeRoomSessionIdQuery(
+  sessionIdParam: string | null,
+): number | null {
+  if (!sessionIdParam) {
+    return null;
+  }
+  const parsedValue = Number(sessionIdParam);
+  if (!Number.isInteger(parsedValue) || parsedValue <= 0) {
+    return null;
+  }
+  return parsedValue;
 }

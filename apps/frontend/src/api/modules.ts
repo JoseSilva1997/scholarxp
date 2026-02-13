@@ -10,6 +10,7 @@ import type {
   ModuleUnitEditorResponse,
   ModuleUnitGroupResponse,
   ModuleUnitPracticeRoomResponse,
+  GetModuleUnitPracticeRoomQuery,
   SubmitAttemptPayload,
   SubmitAttemptResponse,
 } from '@scholarxp/api-contracts';
@@ -78,9 +79,18 @@ export async function getModuleUnitEditor(moduleId: number, moduleUnitId: number
 export async function getPracticeRoom(
   moduleId: number,
   moduleUnitId: number,
+  query: GetModuleUnitPracticeRoomQuery = {},
 ): Promise<ModuleUnitPracticeRoomResponse> {
+  const searchParams = new URLSearchParams();
+  if (query.sessionId !== undefined) {
+    // Session id in query lets reloads resume the same backend session instead of creating a new one.
+    searchParams.set('sessionId', String(query.sessionId));
+  }
+  const queryString = searchParams.toString();
   return apiFetch<ModuleUnitPracticeRoomResponse>(
-    `/module/${moduleId}/unit/${moduleUnitId}/practice-room`,
+    `/module/${moduleId}/unit/${moduleUnitId}/practice-room${
+      queryString ? `?${queryString}` : ''
+    }`,
     {
       method: 'GET',
     },

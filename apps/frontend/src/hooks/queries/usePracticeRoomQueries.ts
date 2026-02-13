@@ -7,13 +7,21 @@ import { queryKeys } from '../query-keys';
 export function useModuleUnitPracticeRoomQuery(
   moduleId: number | null,
   moduleUnitId: number | null,
+  sessionId: number | null,
 ) {
   return useQuery({
     queryKey:
       moduleId !== null && moduleUnitId !== null
-        ? queryKeys.modules.moduleUnitPracticeRoom(moduleId, moduleUnitId)
+        ? queryKeys.modules.moduleUnitPracticeRoom(
+            moduleId,
+            moduleUnitId,
+            sessionId ?? undefined,
+          )
         : queryKeys.modules.moduleUnitPracticeRoom(0, 0),
-    queryFn: () => getPracticeRoom(moduleId!, moduleUnitId!),
+    queryFn: () =>
+      getPracticeRoom(moduleId!, moduleUnitId!, {
+        sessionId: sessionId ?? undefined,
+      }),
     // Delay the fetch until route params are valid numeric ids.
     enabled: moduleId !== null && moduleUnitId !== null,
     staleTime: 30_000,
@@ -41,7 +49,10 @@ export function useSubmitModuleUnitPracticeAttemptMutation(
       }
       // Refetch room data so bars/variant unlocks reflect the newly stored attempt from server truth.
       await queryClient.invalidateQueries({
-        queryKey: queryKeys.modules.moduleUnitPracticeRoom(moduleId, moduleUnitId),
+        queryKey: queryKeys.modules.moduleUnitPracticeRoomBase(
+          moduleId,
+          moduleUnitId,
+        ),
       });
     },
   });

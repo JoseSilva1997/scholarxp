@@ -9,8 +9,8 @@ const useQueryClientMock = vi.fn(() => ({
   invalidateQueries: invalidateQueriesMock,
 }));
 vi.mock('@tanstack/react-query', () => ({
-  useQuery: (opts: any) => useQueryMock(opts),
-  useMutation: (opts: any) => useMutationMock(opts),
+  useQuery: (opts: unknown) => useQueryMock(opts),
+  useMutation: (opts: unknown) => useMutationMock(opts),
   useQueryClient: () => useQueryClientMock(),
 }));
 
@@ -18,8 +18,8 @@ vi.mock('@tanstack/react-query', () => ({
 const getPracticeRoomMock = vi.fn();
 const submitPracticeRoomAttemptMock = vi.fn();
 vi.mock('../../api/modules', () => ({
-  getPracticeRoom: (...args: any[]) => getPracticeRoomMock(...args),
-  submitPracticeRoomAttempt: (...args: any[]) =>
+  getPracticeRoom: (...args: unknown[]) => getPracticeRoomMock(...args),
+  submitPracticeRoomAttempt: (...args: unknown[]) =>
     submitPracticeRoomAttemptMock(...args),
 }));
 
@@ -44,49 +44,45 @@ describe('useModuleUnitPracticeRoomQuery', () => {
   });
 
   it('uses numeric ids when both module and unit provided', () => {
-    const res = useModuleUnitPracticeRoomQuery(5, 2);
+    const res = useModuleUnitPracticeRoomQuery(5, 2, 9);
     expect(useQueryMock).toHaveBeenCalled();
     const opts = useQueryMock.mock.calls[0][0];
-    expect(opts.queryKey).toEqual(queryKeys.modules.moduleUnitPracticeRoom(5, 2));
+    expect(opts.queryKey).toEqual(queryKeys.modules.moduleUnitPracticeRoom(5, 2, 9));
     expect(opts.enabled).toBe(true);
     expect(opts.staleTime).toBe(30_000);
 
     // calling queryFn should invoke getPracticeRoom with provided ids
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    opts.queryFn();
-    expect(getPracticeRoomMock).toHaveBeenCalledWith(5, 2);
+    void opts.queryFn();
+    expect(getPracticeRoomMock).toHaveBeenCalledWith(5, 2, { sessionId: 9 });
     expect(res).toEqual({ data: 'ok' });
   });
 
   it('disables query and uses fallback key when module id is null', () => {
-    useModuleUnitPracticeRoomQuery(null, 2);
+    useModuleUnitPracticeRoomQuery(null, 2, 9);
     const opts = useQueryMock.mock.calls[0][0];
     expect(opts.queryKey).toEqual(queryKeys.modules.moduleUnitPracticeRoom(0, 0));
     expect(opts.enabled).toBe(false);
     // calling queryFn still calls underlying API with null
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    opts.queryFn();
-    expect(getPracticeRoomMock).toHaveBeenCalledWith(null, 2);
+    void opts.queryFn();
+    expect(getPracticeRoomMock).toHaveBeenCalledWith(null, 2, { sessionId: 9 });
   });
 
   it('disables query when unit id is null', () => {
-    useModuleUnitPracticeRoomQuery(3, null);
+    useModuleUnitPracticeRoomQuery(3, null, 9);
     const opts = useQueryMock.mock.calls[0][0];
     expect(opts.queryKey).toEqual(queryKeys.modules.moduleUnitPracticeRoom(0, 0));
     expect(opts.enabled).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    opts.queryFn();
-    expect(getPracticeRoomMock).toHaveBeenCalledWith(3, null);
+    void opts.queryFn();
+    expect(getPracticeRoomMock).toHaveBeenCalledWith(3, null, { sessionId: 9 });
   });
 
   it('disables query when both ids are null', () => {
-    useModuleUnitPracticeRoomQuery(null, null);
+    useModuleUnitPracticeRoomQuery(null, null, null);
     const opts = useQueryMock.mock.calls[0][0];
     expect(opts.queryKey).toEqual(queryKeys.modules.moduleUnitPracticeRoom(0, 0));
     expect(opts.enabled).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    opts.queryFn();
-    expect(getPracticeRoomMock).toHaveBeenCalledWith(null, null);
+    void opts.queryFn();
+    expect(getPracticeRoomMock).toHaveBeenCalledWith(null, null, { sessionId: undefined });
   });
 });
 
@@ -149,7 +145,7 @@ describe('useSubmitModuleUnitPracticeAttemptMutation', () => {
     await opts.onSuccess();
 
     expect(invalidateQueriesMock).toHaveBeenCalledWith({
-      queryKey: queryKeys.modules.moduleUnitPracticeRoom(5, 2),
+      queryKey: queryKeys.modules.moduleUnitPracticeRoomBase(5, 2),
     });
   });
 });

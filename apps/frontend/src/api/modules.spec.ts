@@ -6,6 +6,7 @@ import {
   getModuleById,
   getModuleUnitEditor,
   getModuleUnits,
+  getPracticeRoom,
   listModules,
   updateModule,
   updateModuleUnitStatus,
@@ -169,6 +170,17 @@ describe('modules api', () => {
       {
         method: 'POST',
         body: JSON.stringify(payload),
+      },
+    );
+  });
+
+  it('loads practice room with sessionId query when provided', async () => {
+    await getPracticeRoom(4, 99, { sessionId: 55 });
+
+    expect(clientMocks.apiFetch).toHaveBeenCalledWith(
+      '/module/4/unit/99/practice-room?sessionId=55',
+      {
+        method: 'GET',
       },
     );
   });

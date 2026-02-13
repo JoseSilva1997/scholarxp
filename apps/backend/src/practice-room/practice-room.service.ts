@@ -32,14 +32,22 @@ export class PracticeRoomService {
     private readonly studentModuleUnitProgressService: StudentModuleUnitProgressService,
   ) {}
 
-  // Builds the initial room state for one student in one module unit and opens a fresh practice session.
+  // Builds the initial room state for one student in one module unit and either resumes a provided session or opens a fresh one.
   async getPracticeRoom(
     moduleId: number,
     moduleUnitId: number,
     studentId: number,
+    existingSessionId?: number,
   ): Promise<ModuleUnitPracticeRoomResponseDto> {
     const moduleUnit = await this.getModuleUnitOrThrow(moduleId, moduleUnitId);
-    const session = await this.createPracticeSession(moduleId, studentId);
+    const session =
+      existingSessionId === undefined
+        ? await this.createPracticeSession(moduleId, studentId)
+        : await this.getPracticeSessionOrThrow(
+            moduleId,
+            studentId,
+            existingSessionId,
+          );
     const questionUnitDrafts =
       this.practiceRoomMapper.toQuestionUnitDrafts(moduleUnit);
     const latestAttempts = await this.getLatestAttempts(
@@ -220,6 +228,15 @@ export class PracticeRoomService {
     studentId: number,
     sessionId: number,
   ) {
+    await this.getPracticeSessionOrThrow(moduleId, studentId, sessionId);
+  }
+
+  // Session ownership checks are shared by room-load and submit paths so both flows enforce the same authorization boundary.
+  private async getPracticeSessionOrThrow(
+    moduleId: number,
+    studentId: number,
+    sessionId: number,
+  ): Promise<{ id: number }> {
     const session = await this.prisma.practiceSession.findFirst({
       where: {
         id: sessionId,
@@ -230,7 +247,7 @@ export class PracticeRoomService {
     });
 
     if (session) {
-      return;
+      return session;
     }
 
     throw new NotFoundException('Practice session not found for this module.');
