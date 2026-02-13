@@ -21,6 +21,7 @@ export default function PracticeRoomPage() {
     parsedUnitId,
     room,
     moduleProgress,
+    moduleExpGainIndicator,
     isLoading,
     pageError,
     submitErrorMessage,
@@ -97,7 +98,12 @@ export default function PracticeRoomPage() {
             >
               <div className={styles.barFill} style={{ width: `${moduleProgress.expPercent}%` }} />
             </div>
-            <span className={styles.expLabel}>{moduleProgress.currentExp} xp</span>
+            <div className={styles.expLabelRow}>
+              <span className={styles.expLabel}>{moduleProgress.currentExp} xp</span>
+              {moduleExpGainIndicator ? (
+                <span className={styles.expGain}>+{moduleExpGainIndicator}</span>
+              ) : null}
+            </div>
           </div>
         </div>
       ) : null}

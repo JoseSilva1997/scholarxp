@@ -155,6 +155,9 @@ export function usePracticeRoomPageState({
     Record<number, PracticeAttemptSnapshot | null>
   >({});
   const [submitErrorMessage, setSubmitErrorMessage] = useState<string | null>(null);
+  const [moduleExpGainIndicator, setModuleExpGainIndicator] = useState<number | null>(
+    null,
+  );
   const [moduleProgressAnimation, setModuleProgressAnimation] =
     useState<ModuleProgressAnimationSnapshot | null>(null);
   const [displayedModuleTotalExp, setDisplayedModuleTotalExp] = useState<
@@ -162,6 +165,7 @@ export function usePracticeRoomPageState({
   >(null);
   const moduleProgressAnimationFrameRef = useRef<number | null>(null);
   const moduleProgressSyncFrameRef = useRef<number | null>(null);
+  const moduleExpGainIndicatorTimeoutRef = useRef<number | null>(null);
   const moduleProgressScopeRef = useRef<string | null>(null);
   const activeContentIdRef = useRef<number | null>(null);
   const activeContentViewStartMsRef = useRef<number | null>(null);
@@ -196,6 +200,9 @@ export function usePracticeRoomPageState({
       }
       if (moduleProgressSyncFrameRef.current !== null) {
         cancelAnimationFrame(moduleProgressSyncFrameRef.current);
+      }
+      if (moduleExpGainIndicatorTimeoutRef.current !== null) {
+        clearTimeout(moduleExpGainIndicatorTimeoutRef.current);
       }
     },
     [],
@@ -657,6 +664,15 @@ export function usePracticeRoomPageState({
             expMax,
           };
         });
+        setModuleExpGainIndicator(submitResponse.moduleExpAwarded);
+        if (moduleExpGainIndicatorTimeoutRef.current !== null) {
+          clearTimeout(moduleExpGainIndicatorTimeoutRef.current);
+        }
+        // The gain chip is intentionally brief so it celebrates progress without cluttering the header.
+        moduleExpGainIndicatorTimeoutRef.current = window.setTimeout(() => {
+          setModuleExpGainIndicator(null);
+          moduleExpGainIndicatorTimeoutRef.current = null;
+        }, 1400);
       }
       if (submitResponse.studentExpAwarded > 0) {
         // Updating auth cache immediately keeps header avatar progress in sync with the in-room reward feedback.
@@ -721,6 +737,7 @@ export function usePracticeRoomPageState({
     parsedUnitId,
     room: roomWithLocalAttempts,
     moduleProgress,
+    moduleExpGainIndicator,
     isLoading:
       practiceRoomQuery.isPending ||
       moduleDetailQuery.isPending ||

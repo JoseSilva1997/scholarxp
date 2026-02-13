@@ -110,6 +110,40 @@
   text-align: right;
 }
 
+.expLabelRow {
+  grid-area: exp;
+  justify-self: end;
+  display: inline-block;
+  position: relative;
+}
+
+.expGain {
+  position: absolute;
+  right: calc(100% + 8px);
+  top: 50%;
+  white-space: nowrap;
+  color: #16a34a;
+  font-size: 14px;
+  font-weight: 900;
+  animation: expGainRise 1.4s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes expGainRise {
+  0% {
+    opacity: 0;
+    transform: translateY(calc(-50% + 4px)) scale(0.95);
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(calc(-50% - 8px)) scale(1);
+  }
+}
+
 .header {
   display: flex;
   justify-content: space-between;
