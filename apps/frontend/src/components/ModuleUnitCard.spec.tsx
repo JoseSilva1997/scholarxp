@@ -39,6 +39,7 @@ describe('ModuleUnitCard', () => {
     id: '12',
     title: 'Unit A',
     status: 'draft' as const,
+    isCompleted: false,
     questionCount: 2,
     questionGroups: [
       {

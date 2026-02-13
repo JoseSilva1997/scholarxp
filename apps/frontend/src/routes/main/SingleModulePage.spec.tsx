@@ -18,6 +18,7 @@ type MockModule = {
 type MockUnit = {
   id: number;
   status: 'draft' | 'live' | 'locked' | 'archived';
+  isCompleted: boolean;
 };
 
 const mocks = vi.hoisted(() => ({
@@ -48,8 +49,8 @@ let pageState: {
 } = {
   module: { id: 10, title: 'Biology', userModuleLevel: 3, currentExp: 120 },
   moduleUnits: [
-    { id: 1, status: 'live' },
-    { id: 2, status: 'draft' },
+    { id: 1, status: 'live', isCompleted: false },
+    { id: 2, status: 'draft', isCompleted: false },
   ],
   isLoading: false,
   pageError: null,
@@ -133,8 +134,8 @@ describe('SingleModulePage route', () => {
     pageState = {
       module: { id: 10, title: 'Biology', userModuleLevel: 3, currentExp: 120 },
       moduleUnits: [
-        { id: 1, status: 'live' },
-        { id: 2, status: 'draft' },
+        { id: 1, status: 'live', isCompleted: false },
+        { id: 2, status: 'draft', isCompleted: false },
       ],
       isLoading: false,
       pageError: null,
@@ -304,10 +305,10 @@ describe('SingleModulePage route', () => {
     authState = { user: { globalRole: 'student' } };
     pageState.canManageModuleContent = false;
     pageState.moduleUnits = [
-      { id: 1, status: 'live' },
-      { id: 2, status: 'draft' },
-      { id: 3, status: 'locked' },
-      { id: 4, status: 'archived' },
+      { id: 1, status: 'live', isCompleted: false },
+      { id: 2, status: 'draft', isCompleted: false },
+      { id: 3, status: 'locked', isCompleted: false },
+      { id: 4, status: 'archived', isCompleted: false },
     ];
 
     render(

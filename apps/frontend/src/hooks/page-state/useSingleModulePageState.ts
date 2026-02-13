@@ -102,6 +102,8 @@ export function useSingleModulePageState({
         id: String(unit.id),
         title: unit.title,
         status: unit.status,
+        // Backend completion flag is the source of truth for awarding the module-unit medal.
+        isCompleted: unit.isCompleted,
         // Persist API count so cards show an accurate question total even when group previews are collapsed.
         questionCount: unit.questionCount ?? 0,
         questionGroups: (unit.questionGroups ?? []).map((group) => {

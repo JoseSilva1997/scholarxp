@@ -71,6 +71,7 @@ function makeModuleUnit(partial: Partial<ModuleUnitResponse> = {}): ModuleUnitRe
     variantContext: 'default',
     title: 'Unit',
     questionCount: 1,
+    isCompleted: false,
     status: 'draft',
     sortOrder: 1,
     createdAt: '2026-02-09T00:00:00.000Z',

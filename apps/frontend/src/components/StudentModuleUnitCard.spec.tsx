@@ -7,6 +7,7 @@ const baseUnit = {
   id: '11',
   title: 'Lesson A',
   status: 'live' as const,
+  isCompleted: false,
   questionCount: 2,
   questionGroups: [
     {
@@ -92,5 +93,11 @@ describe('StudentModuleUnitCard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Expand lesson details' }));
 
     expect(screen.getByRole('button', { name: 'Practice Q1' })).toBeDisabled();
+  });
+
+  it('renders completion medal when the unit is marked completed', () => {
+    render(<StudentModuleUnitCard unit={{ ...baseUnit, isCompleted: true }} />);
+
+    expect(screen.getByAltText('Completion medal awarded')).toBeInTheDocument();
   });
 });

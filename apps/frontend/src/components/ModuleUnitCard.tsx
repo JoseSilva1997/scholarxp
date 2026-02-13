@@ -29,6 +29,7 @@ export type ModuleUnit = {
   title: string;
   status: ModuleUnitStatus;
   questionCount: number;
+  isCompleted: boolean;
   questionGroups: QuestionUnitGroup[];
 };
 

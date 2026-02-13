@@ -64,6 +64,7 @@ export interface ModuleUnitResponse {
   variantContext: string;
   title: string;
   questionCount: number;
+  isCompleted: boolean;
   status: ModuleUnitStatus;
   sortOrder: number;
   createdAt: string;

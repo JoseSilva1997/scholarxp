@@ -62,10 +62,18 @@
     inset -1px -1px 3px rgba(255, 255, 255, 0.7);
 }
 
-.statusButton img {
+.statusIconImage {
   width: 32px;
   height: 32px;
   filter: grayscale(1);
+}
+
+.completionMedal {
+  /* Keep completion medal full-color so the awarded state is visually distinct from neutral/locked icons. */
+  filter: none;
+  transform: translateY(5px);
+  width: var(--status-icon-size);
+  height: var(--status-icon-size);
 }
 
 .meta {

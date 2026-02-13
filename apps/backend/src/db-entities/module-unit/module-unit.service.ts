@@ -40,12 +40,23 @@ export class ModuleUnitService {
           where: { isArchived: false },
           select: { id: true, title: true, questionGroupId: true },
         },
+        // Include only the requesting student's progress record so completion-medal state comes from one source of truth.
+        userProgress: {
+          where: {
+            // For non-student callers we force an impossible id to avoid loading unrelated student progress.
+            studentId: studentId ?? -1,
+          },
+          select: { isCompleted: true },
+        },
       },
     })) as Prisma.ModuleUnitGetPayload<{
       include: {
         questionGroups: true;
         questionUnits: {
           select: { id: true; title: true; questionGroupId: true };
+        };
+        userProgress: {
+          select: { isCompleted: true };
         };
       };
     }>[];
@@ -58,37 +69,51 @@ export class ModuleUnitService {
           )
         : new Map<string, QuestionAttemptResult>();
 
-    return units.map((unit) => ({
-      ...unit,
-      // Derive count from active questions at read time to avoid stale denormalized values.
-      questionCount: unit.questionUnits.length,
-      questionGroups: unit.questionGroups.map((group) => ({
-        ...group,
-        questions: unit.questionUnits
-          .filter((question) => question.questionGroupId === group.id)
-          .map((question) => {
-            const questionAttemptKey = this.buildQuestionAttemptKey(
-              unit.id,
-              question.id,
-            );
-            // Prisma payload inference can degrade through nested map callbacks; narrow explicitly for stable API output.
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            const lastAttemptResult = latestAttemptByQuestionKey.has(
-              questionAttemptKey,
-            )
-              ? (latestAttemptByQuestionKey.get(
-                  questionAttemptKey,
-                ) as QuestionAttemptResult)
-              : null;
-            return {
-              id: question.id,
-              title: question.title,
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-              lastAttemptResult,
-            };
-          }),
-      })),
-    }));
+    return units.map((unit) => {
+      const isCompleted = unit.userProgress.some(
+        (progress) => progress.isCompleted,
+      );
+
+      return {
+        id: unit.id,
+        moduleId: unit.moduleId,
+        variantContext: unit.variantContext,
+        title: unit.title,
+        // Derive count from active questions at read time to avoid stale denormalized values.
+        questionCount: unit.questionUnits.length,
+        // This flips true exactly when module_unit_user_progress.isCompleted is true for the student.
+        isCompleted,
+        status: unit.status,
+        sortOrder: unit.sortOrder,
+        createdAt: unit.createdAt,
+        questionGroups: unit.questionGroups.map((group) => ({
+          ...group,
+          questions: unit.questionUnits
+            .filter((question) => question.questionGroupId === group.id)
+            .map((question) => {
+              const questionAttemptKey = this.buildQuestionAttemptKey(
+                unit.id,
+                question.id,
+              );
+              // Prisma payload inference can degrade through nested map callbacks; narrow explicitly for stable API output.
+
+              const lastAttemptResult = latestAttemptByQuestionKey.has(
+                questionAttemptKey,
+              )
+                ? (latestAttemptByQuestionKey.get(
+                    questionAttemptKey,
+                  ) as QuestionAttemptResult)
+                : null;
+              return {
+                id: question.id,
+                title: question.title,
+
+                lastAttemptResult,
+              };
+            }),
+        })),
+      };
+    });
   }
 
   async findOne(id: number) {

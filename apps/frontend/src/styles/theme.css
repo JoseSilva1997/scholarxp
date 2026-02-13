@@ -72,6 +72,7 @@
   --sidebar-collapsed-width: 76px;
   --module-unit-round-button-size: 72px;
   --avatar-size: 48px;
+  --status-icon-size: 80px;
 
   font-family: var(--font-sans);
   color: var(--color-text);

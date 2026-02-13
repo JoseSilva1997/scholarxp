@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import styles from './StudentModuleUnitCard.module.css';
 import lockIcon from '../assets/module-unit/student-module-unit-padlock.svg';
+import completionMedalIcon from '../assets/module-unit/module-unit-completed-medal.png';
 import { FaCheck, FaMinus, FaXmark } from 'react-icons/fa6';
 import type { QuestionAttemptResult } from '@scholarxp/api-contracts';
 
@@ -34,7 +35,21 @@ export default function StudentModuleUnitCard({ unit }: StudentModuleUnitCardPro
           <div className={styles.header}>
             {/* Badge placeholder: displays lock when unit is locked, badge when completed */}
             <div className={styles.statusButton}>
-              {isLocked ? <img src={lockIcon} alt="" aria-hidden="true" /> : null}
+              {unit.isCompleted ? (
+                // Completion medal is shown as soon as backend progress marks the unit complete.
+                <img
+                  src={completionMedalIcon}
+                  alt="Completion medal awarded"
+                  className={`${styles.statusIconImage} ${styles.completionMedal}`}
+                />
+              ) : isLocked ? (
+                <img
+                  src={lockIcon}
+                  alt=""
+                  aria-hidden="true"
+                  className={styles.statusIconImage}
+                />
+              ) : null}
             </div>
             <div className={styles.meta}>
               <h3 className={styles.title}>{unit.title}</h3>

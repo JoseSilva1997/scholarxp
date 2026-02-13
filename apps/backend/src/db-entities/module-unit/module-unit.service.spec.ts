@@ -132,6 +132,7 @@ describe('ModuleUnitService.findByModule', () => {
           { id: 101, title: 'Q1', questionGroupId: 11 },
           { id: 102, title: 'Q2', questionGroupId: 11 },
         ],
+        userProgress: [],
       },
       {
         id: 2,
@@ -144,6 +145,7 @@ describe('ModuleUnitService.findByModule', () => {
         createdAt: new Date(),
         questionGroups: [],
         questionUnits: [{ id: 201, title: 'Q3', questionGroupId: null }],
+        userProgress: [],
       },
     ] as any);
 
@@ -161,10 +163,16 @@ describe('ModuleUnitService.findByModule', () => {
           where: { isArchived: false },
           select: { id: true, title: true, questionGroupId: true },
         },
+        userProgress: {
+          where: { studentId: -1 },
+          select: { isCompleted: true },
+        },
       },
     });
     expect(result[0]?.questionCount).toBe(2);
     expect(result[1]?.questionCount).toBe(1);
+    expect(result[0]?.isCompleted).toBe(false);
+    expect(result[1]?.isCompleted).toBe(false);
   });
 
   it('maps latest student attempts into grouped question status values', async () => {
@@ -185,6 +193,7 @@ describe('ModuleUnitService.findByModule', () => {
           { id: 101, title: 'Q1', questionGroupId: 11 },
           { id: 102, title: 'Q2', questionGroupId: 11 },
         ],
+        userProgress: [{ isCompleted: true }],
       },
     ] as any);
     prisma.questionAttempt.findMany.mockResolvedValue([
@@ -218,9 +227,28 @@ describe('ModuleUnitService.findByModule', () => {
         isCorrect: true,
       },
     });
+    expect(prisma.moduleUnit.findMany).toHaveBeenCalledWith({
+      where: { moduleId: 77 },
+      orderBy: { sortOrder: 'asc' },
+      include: {
+        questionGroups: {
+          where: { isArchived: false },
+          orderBy: { sortOrder: 'asc' },
+        },
+        questionUnits: {
+          where: { isArchived: false },
+          select: { id: true, title: true, questionGroupId: true },
+        },
+        userProgress: {
+          where: { studentId: 42 },
+          select: { isCompleted: true },
+        },
+      },
+    });
     expect(result[0]?.questionGroups[0]?.questions).toEqual([
       { id: 101, title: 'Q1', lastAttemptResult: 'correct' },
       { id: 102, title: 'Q2', lastAttemptResult: 'incorrect' },
     ]);
+    expect(result[0]?.isCompleted).toBe(true);
   });
 });

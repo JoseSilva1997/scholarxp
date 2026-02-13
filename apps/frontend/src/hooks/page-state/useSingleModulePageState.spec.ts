@@ -141,6 +141,7 @@ describe('useSingleModulePageState', () => {
           id: 4,
           title: 'Unit 1',
           status: 'draft',
+          isCompleted: true,
           questionCount: 3,
           questionGroups: [
             {
@@ -168,6 +169,7 @@ describe('useSingleModulePageState', () => {
         id: '4',
         title: 'Unit 1',
         status: 'draft',
+        isCompleted: true,
         questionCount: 3,
         questionGroups: [
           {
