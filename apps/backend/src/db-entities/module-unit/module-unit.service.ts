@@ -5,6 +5,7 @@ import type { QuestionData } from '@scholarxp/question-type-dtos';
 import {
   getModuleUnitGroupName,
   MODULE_UNIT_GROUP_START_ORDER,
+  type QuestionAttemptResult,
   type QuestionSource,
 } from '@scholarxp/api-contracts';
 import { CreateModuleUnitDto } from './dto/create-module-unit.dto';
@@ -25,30 +26,69 @@ export class ModuleUnitService {
     return this.prisma.moduleUnit.findMany();
   }
 
-  findByModule(moduleId: number) {
-    return this.prisma.moduleUnit
-      .findMany({
-        where: { moduleId },
-        orderBy: { sortOrder: 'asc' },
-        include: {
-          questionGroups: {
-            where: { isArchived: false },
-            orderBy: { sortOrder: 'asc' },
-          },
-          // Count only active questions so card subtitles stay accurate after archives/deletes.
-          questionUnits: {
-            where: { isArchived: false },
-            select: { id: true },
-          },
+  async findByModule(moduleId: number, studentId?: number) {
+    const units = (await this.prisma.moduleUnit.findMany({
+      where: { moduleId },
+      orderBy: { sortOrder: 'asc' },
+      include: {
+        questionGroups: {
+          where: { isArchived: false },
+          orderBy: { sortOrder: 'asc' },
         },
-      })
-      .then((units) =>
-        units.map((unit) => ({
-          ...unit,
-          // Derive count from active questions at read time to avoid stale denormalized values.
-          questionCount: unit.questionUnits.length,
-        })),
-      );
+        // Include question metadata so cards can render grouped question previews.
+        questionUnits: {
+          where: { isArchived: false },
+          select: { id: true, title: true, questionGroupId: true },
+        },
+      },
+    })) as Prisma.ModuleUnitGetPayload<{
+      include: {
+        questionGroups: true;
+        questionUnits: {
+          select: { id: true; title: true; questionGroupId: true };
+        };
+      };
+    }>[];
+
+    const latestAttemptByQuestionKey: Map<string, QuestionAttemptResult> =
+      studentId !== undefined
+        ? await this.getLatestAttemptByQuestionKey(
+            units.map((unit) => unit.id),
+            studentId,
+          )
+        : new Map<string, QuestionAttemptResult>();
+
+    return units.map((unit) => ({
+      ...unit,
+      // Derive count from active questions at read time to avoid stale denormalized values.
+      questionCount: unit.questionUnits.length,
+      questionGroups: unit.questionGroups.map((group) => ({
+        ...group,
+        questions: unit.questionUnits
+          .filter((question) => question.questionGroupId === group.id)
+          .map((question) => {
+            const questionAttemptKey = this.buildQuestionAttemptKey(
+              unit.id,
+              question.id,
+            );
+            // Prisma payload inference can degrade through nested map callbacks; narrow explicitly for stable API output.
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            const lastAttemptResult = latestAttemptByQuestionKey.has(
+              questionAttemptKey,
+            )
+              ? (latestAttemptByQuestionKey.get(
+                  questionAttemptKey,
+                ) as QuestionAttemptResult)
+              : null;
+            return {
+              id: question.id,
+              title: question.title,
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+              lastAttemptResult,
+            };
+          }),
+      })),
+    }));
   }
 
   async findOne(id: number) {
@@ -239,5 +279,51 @@ export class ModuleUnitService {
       throw new NotFoundException(`ModuleUnit ${id} not found`);
     }
     return record;
+  }
+
+  private async getLatestAttemptByQuestionKey(
+    moduleUnitIds: number[],
+    studentId: number,
+  ): Promise<Map<string, QuestionAttemptResult>> {
+    if (moduleUnitIds.length === 0) {
+      return new Map();
+    }
+
+    const latestAttempts = await this.prisma.questionAttempt.findMany({
+      where: {
+        moduleUnitId: { in: moduleUnitIds },
+        studentId,
+      },
+      orderBy: [{ attemptedAt: 'desc' }, { id: 'desc' }],
+      select: {
+        moduleUnitId: true,
+        questionId: true,
+        isCorrect: true,
+      },
+    });
+
+    const latestAttemptByQuestionKey = new Map<string, QuestionAttemptResult>();
+    for (const latestAttempt of latestAttempts) {
+      const key = this.buildQuestionAttemptKey(
+        latestAttempt.moduleUnitId!,
+        latestAttempt.questionId,
+      );
+      if (latestAttemptByQuestionKey.has(key)) {
+        continue;
+      }
+      latestAttemptByQuestionKey.set(
+        key,
+        latestAttempt.isCorrect === true ? 'correct' : 'incorrect',
+      );
+    }
+
+    return latestAttemptByQuestionKey;
+  }
+
+  private buildQuestionAttemptKey(
+    moduleUnitId: number,
+    questionId: number,
+  ): string {
+    return `${moduleUnitId}:${questionId}`;
   }
 }

@@ -2,6 +2,8 @@
 import { useState } from 'react';
 import styles from './StudentModuleUnitCard.module.css';
 import lockIcon from '../assets/module-unit/student-module-unit-padlock.svg';
+import { FaCheck, FaMinus, FaXmark } from 'react-icons/fa6';
+import type { QuestionAttemptResult } from '@scholarxp/api-contracts';
 
 import type { ModuleUnit } from './ModuleUnitCard';
 
@@ -14,6 +16,15 @@ export default function StudentModuleUnitCard({ unit }: StudentModuleUnitCardPro
   const [isOpen, setIsOpen] = useState(false);
   const moduleId = window.location.pathname.split('/')[3];
   const basePracticeRoomPath = `/main/modules/${moduleId}/${unit.id}/practice-room`;
+  const renderQuestionStatusIcon = (lastAttemptResult: QuestionAttemptResult) => {
+    if (lastAttemptResult === 'correct') {
+      return <FaCheck className={`${styles.questionStatusIcon} ${styles.questionStatusCorrect}`} aria-hidden="true" />;
+    }
+    if (lastAttemptResult === 'incorrect') {
+      return <FaXmark className={`${styles.questionStatusIcon} ${styles.questionStatusIncorrect}`} aria-hidden="true" />;
+    }
+    return <FaMinus className={`${styles.questionStatusIcon} ${styles.questionStatusUnattempted}`} aria-hidden="true" />;
+  };
 
   return (
     <div className={styles.wrapper}>
@@ -87,7 +98,14 @@ export default function StudentModuleUnitCard({ unit }: StudentModuleUnitCardPro
                       );
                     }}
                   >
-                    {question.title}
+                    <span className={styles.questionTitle}>{question.title}</span>
+                    {/* Status icon mirrors latest attempt state so students can scan completion quickly. */}
+                    <span
+                      className={styles.questionStatus}
+                      data-testid={`question-status-${question.id}`}
+                    >
+                      {renderQuestionStatusIcon(question.lastAttemptResult ?? null)}
+                    </span>
                   </button>
                 ))
               ) : (

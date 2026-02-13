@@ -8,13 +8,14 @@ import { IconContext } from 'react-icons';
 import styles from './ModuleUnitCard.module.css';
 import ConfirmPublishModal from './Modals/ConfirmPublishModal';
 import { useNavigate } from 'react-router-dom';
-import type { ModuleUnitStatus } from '@scholarxp/api-contracts';
+import type { ModuleUnitStatus, QuestionAttemptResult } from '@scholarxp/api-contracts';
 
 export type { ModuleUnitStatus } from '@scholarxp/api-contracts';
 
 export type ModuleUnitQuestionPreview = {
   id: string;
   title: string;
+  lastAttemptResult?: QuestionAttemptResult;
 };
 
 export type QuestionUnitGroup = {

@@ -7,8 +7,6 @@ export const queryKeys = {
     all: ['modules'] as const,
     detail: (moduleId: number) => ['modules', 'detail', moduleId] as const,
     units: (moduleId: number) => ['modules', 'units', moduleId] as const,
-    unitEditor: (moduleId: number, unitId: number) =>
-      ['modules', 'unit-editor', moduleId, unitId] as const,
     invites: (moduleId: number) => ['modules', 'invites', moduleId] as const,
     // Session id is included so switching/replacing URL session ids triggers a room refetch.
     moduleUnitPracticeRoom: (

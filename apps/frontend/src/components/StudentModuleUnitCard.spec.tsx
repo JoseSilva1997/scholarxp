@@ -8,7 +8,13 @@ const baseUnit = {
   title: 'Lesson A',
   status: 'live' as const,
   questionCount: 2,
-  questionGroups: [{ id: 'g1', title: 'Group 1', questions: [{ id: '101', title: 'Q1' }] }],
+  questionGroups: [
+    {
+      id: 'g1',
+      title: 'Group 1',
+      questions: [{ id: '101', title: 'Q1', lastAttemptResult: null }],
+    },
+  ],
 };
 
 describe('StudentModuleUnitCard', () => {
@@ -21,7 +27,7 @@ describe('StudentModuleUnitCard', () => {
 
     expect(screen.getByText('2 Questions')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Expand lesson details' }));
-    expect(screen.getByText('Q1')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Practice Q1' })).toBeInTheDocument();
   });
 
   it('disables practice button for locked lessons', () => {
@@ -43,6 +49,41 @@ describe('StudentModuleUnitCard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Practice Q1' }));
 
     expect(assign).toHaveBeenCalledWith('/main/modules/9/11/practice-room?questionId=101');
+  });
+
+  it('renders status symbols for correct and incorrect attempts', () => {
+    render(
+      <StudentModuleUnitCard
+        unit={{
+          ...baseUnit,
+          questionGroups: [
+            {
+              id: 'g1',
+              title: 'Group 1',
+              questions: [
+                { id: '101', title: 'Q1', lastAttemptResult: 'correct' as const },
+                { id: '102', title: 'Q2', lastAttemptResult: 'incorrect' as const },
+              ],
+            },
+          ],
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Expand lesson details' }));
+
+    expect(
+      screen
+        .getByTestId('question-status-101')
+        .querySelector('svg')
+        ?.getAttribute('class'),
+    ).toContain('questionStatusCorrect');
+    expect(
+      screen
+        .getByTestId('question-status-102')
+        .querySelector('svg')
+        ?.getAttribute('class'),
+    ).toContain('questionStatusIncorrect');
   });
 
   it('keeps question links disabled for locked lessons', () => {

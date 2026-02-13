@@ -96,7 +96,7 @@ export class UserModuleService {
       select: {
         id: true,
         currentExp: true,
-        userModuleLevel: true
+        userModuleLevel: true,
       },
     });
 

@@ -66,8 +66,11 @@ export class ModuleUnitController {
   @Get('module/:moduleId/units')
   @UseGuards(SessionAuthGuard, ModuleAccessGuard)
   @ModuleAccess({ paramKey: 'moduleId', allowStudentRead: true })
-  findByModule(@Param('moduleId') moduleId: string) {
-    return this.moduleUnitService.findByModule(+moduleId);
+  findByModule(@Param('moduleId') moduleId: string, @Req() req: Request) {
+    const user = req.user as AuthUser;
+    // Student readers receive latest-attempt status in grouped question previews.
+    const studentId = user.globalRole === 'student' ? user.id : undefined;
+    return this.moduleUnitService.findByModule(+moduleId, studentId);
   }
 
   @Get('module-unit/:id')

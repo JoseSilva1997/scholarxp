@@ -171,6 +171,9 @@
 }
 
 .question {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   padding: 0;
   border: none;
   background: transparent;
@@ -182,6 +185,34 @@
   text-underline-offset: 2px;
   text-decoration-thickness: 1px;
   cursor: pointer;
+}
+
+.questionTitle {
+  line-height: 1.2;
+}
+
+.questionStatus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 14px;
+}
+
+.questionStatusIcon {
+  width: 14px;
+  height: 14px;
+}
+
+.questionStatusCorrect {
+  color: #16a34a;
+}
+
+.questionStatusIncorrect {
+  color: #dc2626;
+}
+
+.questionStatusUnattempted {
+  color: var(--text-muted);
 }
 
 .question:hover {

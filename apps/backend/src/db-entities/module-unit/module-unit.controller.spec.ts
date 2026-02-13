@@ -88,3 +88,52 @@ describe('ModuleUnitController.createForModule', () => {
     expect(result).toEqual(created);
   });
 });
+
+describe('ModuleUnitController.findByModule', () => {
+  let controller: ModuleUnitController;
+  const service = {
+    findByModule: jest.fn(),
+  } as unknown as ModuleUnitService;
+
+  beforeEach(async () => {
+    const moduleRef = await Test.createTestingModule({
+      controllers: [ModuleUnitController],
+      providers: [
+        { provide: ModuleUnitService, useValue: service },
+        { provide: QuestionUnitService, useValue: { findOne: jest.fn() } },
+        {
+          provide: ModuleUnitQuestionGroupService,
+          useValue: { findOne: jest.fn() },
+        },
+      ],
+    })
+      .overrideGuard(SessionAuthGuard)
+      .useValue({ canActivate: jest.fn().mockReturnValue(true) })
+      .overrideGuard(ModuleAccessGuard)
+      .useValue({ canActivate: jest.fn().mockReturnValue(true) })
+      .compile();
+    controller = moduleRef.get(ModuleUnitController);
+  });
+
+  afterEach(() => {
+    jest.resetAllMocks();
+  });
+
+  it('passes student id to service for student user', async () => {
+    const req = { user: { id: 8, globalRole: 'student' } } as any;
+    (service.findByModule as any).mockResolvedValue([]);
+
+    await controller.findByModule('12', req);
+
+    expect(service.findByModule).toHaveBeenCalledWith(12, 8);
+  });
+
+  it('omits student id for non-student user', async () => {
+    const req = { user: { id: 3, globalRole: 'teacher' } } as any;
+    (service.findByModule as any).mockResolvedValue([]);
+
+    await controller.findByModule('12', req);
+
+    expect(service.findByModule).toHaveBeenCalledWith(12, undefined);
+  });
+});

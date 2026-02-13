@@ -128,7 +128,10 @@ describe('ModuleUnitService.findByModule', () => {
         questionGroups: [
           { id: 11, moduleUnitId: 1, name: 'Group 1', sortOrder: 1 },
         ],
-        questionUnits: [{ id: 101 }, { id: 102 }],
+        questionUnits: [
+          { id: 101, title: 'Q1', questionGroupId: 11 },
+          { id: 102, title: 'Q2', questionGroupId: 11 },
+        ],
       },
       {
         id: 2,
@@ -140,7 +143,7 @@ describe('ModuleUnitService.findByModule', () => {
         sortOrder: 2,
         createdAt: new Date(),
         questionGroups: [],
-        questionUnits: [{ id: 201 }],
+        questionUnits: [{ id: 201, title: 'Q3', questionGroupId: null }],
       },
     ] as any);
 
@@ -156,11 +159,68 @@ describe('ModuleUnitService.findByModule', () => {
         },
         questionUnits: {
           where: { isArchived: false },
-          select: { id: true },
+          select: { id: true, title: true, questionGroupId: true },
         },
       },
     });
     expect(result[0]?.questionCount).toBe(2);
     expect(result[1]?.questionCount).toBe(1);
+  });
+
+  it('maps latest student attempts into grouped question status values', async () => {
+    prisma.moduleUnit.findMany.mockResolvedValue([
+      {
+        id: 1,
+        moduleId: 77,
+        variantContext: '',
+        title: 'Unit A',
+        questionCount: 0,
+        status: ModuleUnitStatus.live,
+        sortOrder: 1,
+        createdAt: new Date(),
+        questionGroups: [
+          { id: 11, moduleUnitId: 1, name: 'Group 1', sortOrder: 1 },
+        ],
+        questionUnits: [
+          { id: 101, title: 'Q1', questionGroupId: 11 },
+          { id: 102, title: 'Q2', questionGroupId: 11 },
+        ],
+      },
+    ] as any);
+    prisma.questionAttempt.findMany.mockResolvedValue([
+      {
+        moduleUnitId: 1,
+        questionId: 102,
+        isCorrect: false,
+        attemptedAt: new Date(),
+        id: 2,
+      },
+      {
+        moduleUnitId: 1,
+        questionId: 101,
+        isCorrect: true,
+        attemptedAt: new Date(),
+        id: 1,
+      },
+    ] as any);
+
+    const result = await service.findByModule(77, 42);
+
+    expect(prisma.questionAttempt.findMany).toHaveBeenCalledWith({
+      where: {
+        moduleUnitId: { in: [1] },
+        studentId: 42,
+      },
+      orderBy: [{ attemptedAt: 'desc' }, { id: 'desc' }],
+      select: {
+        moduleUnitId: true,
+        questionId: true,
+        isCorrect: true,
+      },
+    });
+    expect(result[0]?.questionGroups[0]?.questions).toEqual([
+      { id: 101, title: 'Q1', lastAttemptResult: 'correct' },
+      { id: 102, title: 'Q2', lastAttemptResult: 'incorrect' },
+    ]);
   });
 });

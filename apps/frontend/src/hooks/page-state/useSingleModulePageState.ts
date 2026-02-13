@@ -15,7 +15,6 @@ import { canUserAccess } from '../../permissions/permission';
 import {
   useCreateModuleUnitMutation,
   useModuleDetailQuery,
-  useModuleUnitQuestionPreviewsQuery,
   useModuleUnitsQuery,
   useUpdateModuleUnitStatusMutation,
 } from '../queries/useModulesQueries';
@@ -68,10 +67,6 @@ export function useSingleModulePageState({
 
   const moduleQuery = useModuleDetailQuery(parsedId);
   const moduleUnitsQuery = useModuleUnitsQuery(parsedId);
-  const unitQuestionPreviews = useModuleUnitQuestionPreviewsQuery(
-    parsedId,
-    (moduleUnitsQuery.data ?? []).map((unit) => unit.id),
-  );
   const createModuleUnitMutation = useCreateModuleUnitMutation(parsedId);
   const updateModuleUnitStatusMutation = useUpdateModuleUnitStatusMutation(parsedId);
 
@@ -110,22 +105,19 @@ export function useSingleModulePageState({
         // Persist API count so cards show an accurate question total even when group previews are collapsed.
         questionCount: unit.questionCount ?? 0,
         questionGroups: (unit.questionGroups ?? []).map((group) => {
-          // Group question titles come from the editor payload because the units list endpoint ships metadata only.
-          const previewGroup = unitQuestionPreviews[unit.id]?.questionGroups?.find(
-            (candidate) => candidate.id === group.id,
-          );
           return {
             id: String(group.id),
             title: group.name,
-            // Preserve ids so module cards can deep-link directly to a selected question in the editor.
-            questions: (previewGroup?.questions ?? []).map((question) => ({
+            // Question previews come from module-unit list data and include latest attempt status for student cards.
+            questions: (group.questions ?? []).map((question) => ({
               id: String(question.id),
               title: question.title,
+              lastAttemptResult: question.lastAttemptResult,
             })),
           };
         }),
       })),
-    [moduleUnitsQuery.data, unitQuestionPreviews],
+    [moduleUnitsQuery.data],
   );
 
   const isLoading = parsedId !== null && (moduleQuery.isPending || moduleUnitsQuery.isPending);

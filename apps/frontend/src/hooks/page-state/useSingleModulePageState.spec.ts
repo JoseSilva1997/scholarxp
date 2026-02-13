@@ -35,8 +35,6 @@ let moduleUnitsQueryState: {
   error: null,
 };
 
-let unitQuestionPreviewByUnitId: Record<number, { questionGroups: Array<{ id: number; questions: Array<{ title: string }> }> }> = {};
-
 let permissionByKey: Record<string, boolean> = {
   'modules.settings': true,
   'modules.toggleStudentView': true,
@@ -82,7 +80,6 @@ vi.mock('../../utils/logger', () => ({
 vi.mock('../queries/useModulesQueries', () => ({
   useModuleDetailQuery: () => moduleQueryState,
   useModuleUnitsQuery: () => moduleUnitsQueryState,
-  useModuleUnitQuestionPreviewsQuery: () => unitQuestionPreviewByUnitId,
   useCreateModuleUnitMutation: () => ({
     mutateAsync: mocks.createMutateAsync,
     isPending: false,
@@ -96,7 +93,6 @@ describe('useSingleModulePageState', () => {
   beforeEach(() => {
     moduleQueryState = { data: null, isPending: false, error: null };
     moduleUnitsQueryState = { data: [], isPending: false, error: null };
-    unitQuestionPreviewByUnitId = {};
     permissionByKey = {
       'modules.settings': true,
       'modules.toggleStudentView': true,
@@ -146,24 +142,20 @@ describe('useSingleModulePageState', () => {
           title: 'Unit 1',
           status: 'draft',
           questionCount: 3,
-          questionGroups: [{ id: 11, name: 'Group A' }],
+          questionGroups: [
+            {
+              id: 11,
+              name: 'Group A',
+              questions: [
+                { id: 201, title: 'Question A', lastAttemptResult: 'correct' },
+                { id: 202, title: 'Question B', lastAttemptResult: null },
+              ],
+            },
+          ],
         },
       ],
       isPending: false,
       error: null,
-    };
-    unitQuestionPreviewByUnitId = {
-      4: {
-        questionGroups: [
-          {
-            id: 11,
-            questions: [
-              { id: 201, title: 'Question A' },
-              { id: 202, title: 'Question B' },
-            ],
-          },
-        ],
-      },
     };
     permissionByKey['modules.invitations'] = false;
 
@@ -182,8 +174,8 @@ describe('useSingleModulePageState', () => {
             id: '11',
             title: 'Group A',
             questions: [
-              { id: '201', title: 'Question A' },
-              { id: '202', title: 'Question B' },
+              { id: '201', title: 'Question A', lastAttemptResult: 'correct' },
+              { id: '202', title: 'Question B', lastAttemptResult: null },
             ],
           },
         ],

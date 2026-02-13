@@ -19,12 +19,20 @@ export interface ModuleSummaryResponse {
 }
 
 export type ModuleUnitStatus = 'draft' | 'live' | 'locked' | 'archived';
+export type QuestionAttemptResult = 'correct' | 'incorrect' | null;
+
+export interface ModuleUnitQuestionResponse {
+  id: number;
+  title: string;
+  lastAttemptResult: QuestionAttemptResult;
+}
 
 export interface ModuleUnitGroupResponse {
   id: number;
   moduleUnitId: number;
   name: string;
   sortOrder: number;
+  questions?: ModuleUnitQuestionResponse[];
 }
 
 export interface CreateModuleUnitQuestionGroupPayload {
