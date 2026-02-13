@@ -165,4 +165,58 @@ describe('AvatarService', () => {
 
     await expect(service.remove(1)).rejects.toThrow(NotFoundException);
   });
+
+  it('addStudentExp increments currentExp for an existing avatar', async () => {
+    prisma.avatar.findUnique.mockResolvedValue({
+      id: 4,
+      currentExp: 200,
+      level: 1,
+    } as any);
+    prisma.avatar.update.mockResolvedValue({
+      id: 4,
+      userId,
+      level: 1,
+      currentExp: 225,
+      createdAt: now,
+    } as any);
+
+    const result = await service.addStudentExp(userId, 25);
+
+    expect(prisma.avatar.findUnique).toHaveBeenCalledWith({
+      where: { userId },
+      select: { id: true, currentExp: true, level: true },
+    });
+    expect(prisma.avatar.update).toHaveBeenCalledWith({
+      where: { id: 4 },
+      data: {
+        currentExp: {
+          set: 225,
+        },
+        level: {
+          set: 1,
+        },
+      },
+    });
+    expect(result).toEqual({
+      id: 4,
+      userId,
+      level: 1,
+      currentExp: 225,
+      createdAt: now,
+    });
+  });
+
+  it('addStudentExp rejects non-positive exp gain', async () => {
+    await expect(service.addStudentExp(userId, 0)).rejects.toThrow(
+      BadRequestException,
+    );
+  });
+
+  it('addStudentExp throws when avatar does not exist', async () => {
+    prisma.avatar.findUnique.mockResolvedValue(null);
+
+    await expect(service.addStudentExp(userId, 25)).rejects.toThrow(
+      NotFoundException,
+    );
+  });
 });

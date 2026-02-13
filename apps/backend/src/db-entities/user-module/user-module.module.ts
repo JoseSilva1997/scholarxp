@@ -7,5 +7,7 @@ import { AuthModule } from '../../auth/auth.module';
   imports: [AuthModule],
   controllers: [UserModuleController],
   providers: [UserModuleService],
+  // Exporting service allows domain modules to reuse module XP mutations.
+  exports: [UserModuleService],
 })
 export class UserModuleModule {}

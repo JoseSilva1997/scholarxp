@@ -3,9 +3,13 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { CreateAvatarDto } from './dto/create-avatar.dto';
 import { UpdateAvatarDto } from './dto/update-avatar.dto';
 import { PrismaService } from '../../prisma/prisma.service';
+import { STUDENT_EXP_MAX } from '@scholarxp/constants';
+
+type PrismaClientLike = Prisma.TransactionClient | PrismaService;
 
 @Injectable()
 export class AvatarService {
@@ -54,6 +58,46 @@ export class AvatarService {
   async remove(id: number) {
     await this.getOrThrow(id);
     return this.prisma.avatar.delete({ where: { id } });
+  }
+
+  // Practice flows award student XP through this helper so avatar progression writes stay centralized.
+  async addStudentExp(
+    userId: number,
+    expGained: number,
+    tx?: PrismaClientLike,
+  ) {
+    if (expGained <= 0) {
+      throw new BadRequestException(
+        'Experience gain must be greater than zero.',
+      );
+    }
+
+    const prismaClient = tx ?? this.prisma;
+    const avatar = await prismaClient.avatar.findUnique({
+      where: { userId },
+      select: { id: true, currentExp: true, level: true },
+    });
+
+    if (!avatar) {
+      throw new NotFoundException(`Avatar not found for user ${userId}`);
+    }
+
+    // Calculate new XP and level, ensuring XP wraps around at the max threshold.
+    const totalExp = avatar.currentExp + expGained;
+    const levelGain = Math.floor(totalExp / STUDENT_EXP_MAX);
+    const remainingExp = totalExp % STUDENT_EXP_MAX;
+
+    return prismaClient.avatar.update({
+      where: { id: avatar.id },
+      data: {
+        currentExp: {
+          set: remainingExp,
+        },
+        level: {
+          set: avatar.level + levelGain,
+        },
+      },
+    });
   }
 
   private async getOrThrow(id: number) {

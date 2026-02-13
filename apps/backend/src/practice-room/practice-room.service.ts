@@ -5,6 +5,8 @@ import {
 } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import type { StudentAnswer } from '@scholarxp/api-contracts';
+import { AvatarService } from '../db-entities/avatar/avatar.service';
+import { UserModuleService } from '../db-entities/user-module/user-module.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ModuleUnitPracticeRoomResponseDto } from './dto/practice-room-response.dto';
 import { SubmitAttemptDto } from './dto/submit-attempt.dto';
@@ -22,6 +24,8 @@ type AttemptQuestionContent = {
   questionData: Prisma.JsonValue;
 };
 type PrismaClientLike = Prisma.TransactionClient | PrismaService;
+const MODULE_UNIT_EXP_REWARD = 50;
+const STUDENT_EXP_REWARD = 25;
 
 // PracticeRoomService builds the page-load payload so the frontend can render core questions and latest attempts.
 @Injectable()
@@ -30,6 +34,8 @@ export class PracticeRoomService {
     private readonly prisma: PrismaService,
     private readonly practiceRoomMapper: PracticeRoomMapper,
     private readonly studentModuleUnitProgressService: StudentModuleUnitProgressService,
+    private readonly avatarService: AvatarService,
+    private readonly userModuleService: UserModuleService,
   ) {}
 
   // Builds the initial room state for one student in one module unit and either resumes a provided session or opens a fresh one.
@@ -112,15 +118,16 @@ export class PracticeRoomService {
           },
           tx,
         );
+        await this.persistAttemptExpRewards(moduleId, studentId, tx);
 
         return hadCorrectAttemptBeforeSubmit;
       },
     );
 
-    // XP engine integration is intentionally deferred; this flag lets the future engine gate first-correct rewards.
+    // Placeholder XP amounts unblock frontend progress until the real XP engine decides dynamic rewards.
     return {
-      moduleExpAwarded: 0,
-      studentExpAwarded: 0,
+      moduleExpAwarded: MODULE_UNIT_EXP_REWARD,
+      studentExpAwarded: STUDENT_EXP_REWARD,
       hasCorrectAttempt: alreadyHasCorrectAttempt || isCorrect,
     };
   }
@@ -207,6 +214,21 @@ export class PracticeRoomService {
       isCorrect: attempt.isCorrect,
       attemptedAt: attempt.attemptedAt,
     }));
+  }
+
+  // Reward persistence stays in the same transaction as attempt creation to avoid partially applied progress.
+  private async persistAttemptExpRewards(
+    moduleId: number,
+    studentId: number,
+    tx: Prisma.TransactionClient,
+  ) {
+    await this.userModuleService.addStudentModuleExp(
+      moduleId,
+      studentId,
+      MODULE_UNIT_EXP_REWARD,
+      tx,
+    );
+    await this.avatarService.addStudentExp(studentId, STUDENT_EXP_REWARD, tx);
   }
 
   // Route params remain the source of truth, so payload moduleUnitId must match to prevent accidental cross-unit writes.

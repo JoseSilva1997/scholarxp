@@ -1,10 +1,18 @@
 // UserModuleService handles roster records; it now supports module-scoped listing.
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { CreateUserModuleDto } from './dto/create-user-module.dto';
 import { UpdateUserModuleDto } from './dto/update-user-module.dto';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { AuthUser } from '../../types/auth-user.type';
 import { assertHasAccess } from '../../helpers/permissions.helper';
+import { MODULE_EXP_MAX } from '@scholarxp/constants';
+
+type PrismaClientLike = Prisma.TransactionClient | PrismaService;
 
 @Injectable()
 export class UserModuleService {
@@ -62,6 +70,57 @@ export class UserModuleService {
     );
     await this.getOrThrow(id);
     return this.prisma.userModule.delete({ where: { id } });
+  }
+
+  // Practice-room rewards increment module XP here so module-progress mutation rules stay centralized.
+  async addStudentModuleExp(
+    moduleId: number,
+    studentId: number,
+    expGained: number,
+    tx?: PrismaClientLike,
+  ) {
+    if (expGained <= 0) {
+      throw new BadRequestException(
+        'Module experience gain must be greater than zero.',
+      );
+    }
+
+    const prismaClient = tx ?? this.prisma;
+    const membership = await prismaClient.userModule.findUnique({
+      where: {
+        moduleId_userId: {
+          moduleId,
+          userId: studentId,
+        },
+      },
+      select: {
+        id: true,
+        currentExp: true,
+        userModuleLevel: true
+      },
+    });
+
+    if (!membership) {
+      throw new NotFoundException(
+        `Student ${studentId} is not enrolled in module ${moduleId}.`,
+      );
+    }
+
+    const totalExp = membership.currentExp + expGained;
+    const levelGain = Math.floor(totalExp / MODULE_EXP_MAX);
+    const remainingExp = totalExp % MODULE_EXP_MAX;
+
+    return prismaClient.userModule.update({
+      where: { id: membership.id },
+      data: {
+        currentExp: {
+          set: remainingExp,
+        },
+        userModuleLevel: {
+          set: membership.userModuleLevel + levelGain,
+        },
+      },
+    });
   }
 
   private async getOrThrow(id: number) {

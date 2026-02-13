@@ -1,5 +1,9 @@
 // Tests for UserModuleService ensuring module-scoped listing.
-import { NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { UserModuleService } from './user-module.service';
 import { createPrismaMock, type PrismaMock } from '../../test/test-helpers';
 import { GlobalRole } from '@prisma/client';
@@ -49,5 +53,64 @@ describe('UserModuleService', () => {
     expect(() =>
       service.create({ moduleId: 1, userId: 2 } as any, noAccess),
     ).toThrow(UnauthorizedException);
+  });
+
+  it('addStudentModuleExp increments module XP for enrolled student', async () => {
+    const now = new Date('2026-02-13T12:00:00.000Z');
+    prisma.userModule.findUnique.mockResolvedValue({ id: 11 } as any);
+    prisma.userModule.update.mockResolvedValue({
+      id: 11,
+      moduleId: 5,
+      userId: 2,
+      roleInModule: 'student',
+      userModuleLevel: 1,
+      currentExp: 50,
+      enrolledVia: 'invite',
+      createdAt: now,
+    } as any);
+
+    const result = await service.addStudentModuleExp(5, 2, 50);
+
+    expect(prisma.userModule.findUnique).toHaveBeenCalledWith({
+      where: {
+        moduleId_userId: {
+          moduleId: 5,
+          userId: 2,
+        },
+      },
+      select: { id: true },
+    });
+    expect(prisma.userModule.update).toHaveBeenCalledWith({
+      where: { id: 11 },
+      data: {
+        currentExp: {
+          increment: 50,
+        },
+      },
+    });
+    expect(result).toEqual({
+      id: 11,
+      moduleId: 5,
+      userId: 2,
+      roleInModule: 'student',
+      userModuleLevel: 1,
+      currentExp: 50,
+      enrolledVia: 'invite',
+      createdAt: now,
+    });
+  });
+
+  it('addStudentModuleExp throws when enrollment is missing', async () => {
+    prisma.userModule.findUnique.mockResolvedValue(null);
+
+    await expect(service.addStudentModuleExp(5, 2, 50)).rejects.toThrow(
+      NotFoundException,
+    );
+  });
+
+  it('addStudentModuleExp rejects non-positive XP gains', async () => {
+    await expect(service.addStudentModuleExp(5, 2, 0)).rejects.toThrow(
+      BadRequestException,
+    );
   });
 });

@@ -5,6 +5,8 @@ import { NotFoundException } from '@nestjs/common';
 import { PracticeRoomService } from './practice-room.service';
 import { PracticeRoomMapper } from './practice-room.mapper';
 import { StudentModuleUnitProgressService } from './student-module-unit-progress.service';
+import { AvatarService } from '../db-entities/avatar/avatar.service';
+import { UserModuleService } from '../db-entities/user-module/user-module.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock, type PrismaMock } from '../test/test-helpers';
 import type {
@@ -19,6 +21,12 @@ describe('PracticeRoomService', () => {
   let prisma: PrismaMock;
   let studentModuleUnitProgressService: {
     syncFromAttempts: jest.Mock;
+  };
+  let avatarService: {
+    addStudentExp: jest.Mock;
+  };
+  let userModuleService: {
+    addStudentModuleExp: jest.Mock;
   };
 
   // Mock data builders for consistent test setup
@@ -105,6 +113,27 @@ describe('PracticeRoomService', () => {
         lastPracticedAt: new Date('2026-02-12T10:00:00.000Z'),
       }),
     };
+    avatarService = {
+      addStudentExp: jest.fn().mockResolvedValue({
+        id: 15,
+        userId: 100,
+        level: 1,
+        currentExp: 25,
+        createdAt: new Date('2026-02-12T10:00:00.000Z'),
+      }),
+    };
+    userModuleService = {
+      addStudentModuleExp: jest.fn().mockResolvedValue({
+        id: 700,
+        moduleId: 1,
+        userId: 100,
+        roleInModule: 'student',
+        userModuleLevel: 1,
+        currentExp: 50,
+        enrolledVia: 'invite',
+        createdAt: new Date('2026-02-12T10:00:00.000Z'),
+      }),
+    };
 
     // Build test module with mocked dependencies
     const module: TestingModule = await Test.createTestingModule({
@@ -115,6 +144,14 @@ describe('PracticeRoomService', () => {
         {
           provide: StudentModuleUnitProgressService,
           useValue: studentModuleUnitProgressService,
+        },
+        {
+          provide: AvatarService,
+          useValue: avatarService,
+        },
+        {
+          provide: UserModuleService,
+          useValue: userModuleService,
         },
       ],
     }).compile();
@@ -748,9 +785,16 @@ describe('PracticeRoomService', () => {
         }),
         prisma,
       );
+      expect(userModuleService.addStudentModuleExp).toHaveBeenCalledWith(
+        1,
+        100,
+        50,
+        prisma,
+      );
+      expect(avatarService.addStudentExp).toHaveBeenCalledWith(100, 25, prisma);
       expect(result).toEqual({
-        moduleExpAwarded: 0,
-        studentExpAwarded: 0,
+        moduleExpAwarded: 50,
+        studentExpAwarded: 25,
         hasCorrectAttempt: true,
       });
     });
