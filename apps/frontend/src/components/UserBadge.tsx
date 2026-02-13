@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import type { AuthUser } from '../types/auth';
 import defaultAvatar from '../assets/default-profile-pic.png';
@@ -23,7 +24,9 @@ function formatName(user: AuthUser) {
 export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [displayedTotalExp, setDisplayedTotalExp] = useState<number | null>(null);
+  const [levelUpAnimationCycle, setLevelUpAnimationCycle] = useState(0);
   const expAnimationFrameRef = useRef<number | null>(null);
+  const previousDisplayedLevelRef = useRef<number | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
 
@@ -122,6 +125,27 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
       ? Math.min(100, Math.round((animatedProgress.currentExp / expMax) * 100))
       : 0;
 
+  useEffect(() => {
+    const nextLevel = animatedProgress?.level;
+    if (nextLevel === undefined) {
+      previousDisplayedLevelRef.current = null;
+      return;
+    }
+
+    const previousLevel = previousDisplayedLevelRef.current;
+    if (previousLevel === null) {
+      previousDisplayedLevelRef.current = nextLevel;
+      return;
+    }
+    if (nextLevel <= previousLevel) {
+      return;
+    }
+
+    previousDisplayedLevelRef.current = nextLevel;
+    // Cycle increments remount motion nodes so each level-up in the climb gets a fresh burst.
+    setLevelUpAnimationCycle((previousValue) => previousValue + 1);
+  }, [animatedProgress?.level]);
+
   return (
     <div className={styles.badge} aria-label={`${formatName(user)} profile`} ref={menuRef}>
       <div className={styles.meta}>
@@ -132,7 +156,46 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
           <div className={styles.progress}>
             <span className={styles.level}>
               <img src={expIcon} alt="" aria-hidden="true" className={styles.levelIcon} />
-              Level {animatedProgress.level}
+              Level{' '}
+              <span className={styles.levelValueWrap}>
+                {levelUpAnimationCycle > 0 ? (
+                  <motion.span
+                    key={`badge-level-rays-${levelUpAnimationCycle}`}
+                    aria-hidden="true"
+                    className={styles.levelRays}
+                    initial={{ opacity: 0, scale: 0.6 }}
+                    animate={{
+                      opacity: [0, 1, 0],
+                      scale: [0.6, 1.1, 1.35],
+                      y: [0, -2, 0],
+                    }}
+                    transition={{
+                      duration: 0.6,
+                      ease: 'easeOut',
+                      times: [0, 0.35, 1],
+                    }}
+                  />
+                ) : null}
+                <motion.span
+                  key={`badge-level-value-${levelUpAnimationCycle}`}
+                  className={styles.levelValue}
+                  initial={
+                    levelUpAnimationCycle === 0 ? false : { y: 0, scale: 1 }
+                  }
+                  animate={
+                    levelUpAnimationCycle === 0
+                      ? { y: 0, scale: 1 }
+                      : { y: [0, -2, 0], scale: [1, 1.3, 1] }
+                  }
+                  transition={{
+                    duration: 0.6,
+                    ease: 'easeOut',
+                    times: [0, 0.4, 1],
+                  }}
+                >
+                  {animatedProgress.level}
+                </motion.span>
+              </span>
             </span>
             <div className={styles.barTrack} role="progressbar" aria-valuenow={expPercent} aria-valuemin={0} aria-valuemax={100}>
               <div className={styles.barFill} style={{ width: `${expPercent}%` }} />

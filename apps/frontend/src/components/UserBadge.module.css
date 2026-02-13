@@ -63,6 +63,56 @@
   white-space: nowrap;
 }
 
+.levelValue {
+  display: inline-block;
+  position: relative;
+  z-index: 1;
+}
+
+.levelValueWrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1ch;
+}
+
+.levelRays {
+  position: absolute;
+  width: 1.9em;
+  height: 1.9em;
+  pointer-events: none;
+}
+
+.levelRays::before,
+.levelRays::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-conic-gradient(
+      from 0deg,
+      rgba(76, 175, 80, 0.95) 0deg 8deg,
+      transparent 8deg 45deg
+    );
+  -webkit-mask: radial-gradient(
+    circle,
+    transparent 0 40%,
+    #000 40% 90%,
+    transparent 90% 100%
+  );
+  mask: radial-gradient(
+    circle,
+    transparent 0 40%,
+    #000 40% 90%,
+    transparent 90% 100%
+  );
+}
+
+.levelRays::after {
+  display: none;
+}
+
 .levelIcon {
   width: 12px;
   height: 12px;
