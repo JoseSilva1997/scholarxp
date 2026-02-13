@@ -51,6 +51,8 @@ type QuestionUnitNav = {
 type PracticeRoomQuestionSelectionPersistence = {
   sessionId: string;
   selectedQuestionUnitIndex: number;
+  unlockedHintByContentId: Record<number, boolean>;
+  submittedByContentId: Record<number, boolean>;
 };
 
 export function usePracticeRoomPageState({
@@ -114,6 +116,26 @@ export function usePracticeRoomPageState({
             }
           : {},
     );
+  const [unlockedHintByContentIdBySessionId, setUnlockedHintByContentIdBySessionId] =
+    useState<Record<string, Record<number, boolean>>>(
+      () =>
+        persistedQuestionSelection
+          ? {
+              [persistedQuestionSelection.sessionId]:
+                persistedQuestionSelection.unlockedHintByContentId,
+            }
+          : {},
+    );
+  const [submittedByContentIdBySessionId, setSubmittedByContentIdBySessionId] =
+    useState<Record<string, Record<number, boolean>>>(
+      () =>
+        persistedQuestionSelection
+          ? {
+              [persistedQuestionSelection.sessionId]:
+                persistedQuestionSelection.submittedByContentId,
+            }
+          : {},
+    );
   const selectedQuestionUnitIndex = useMemo(
     () =>
       moduleUnitRoom
@@ -123,14 +145,8 @@ export function usePracticeRoomPageState({
   );
   const [selectedOptionOverrideByContentId, setSelectedOptionOverrideByContentId] =
     useState<Record<number, number>>({});
-  const [unlockedHintByContentId, setUnlockedHintByContentId] = useState<
-    Record<number, boolean>
-  >({});
   const [submittedAttemptByContentId, setSubmittedAttemptByContentId] = useState<
     Record<number, PracticeAttemptSnapshot | null>
-  >({});
-  const [submittedByContentId, setSubmittedByContentId] = useState<
-    Record<number, boolean>
   >({});
   const [submitErrorMessage, setSubmitErrorMessage] = useState<string | null>(null);
   const activeContentIdRef = useRef<number | null>(null);
@@ -181,15 +197,25 @@ export function usePracticeRoomPageState({
     if (questionSelectionPersistenceKey === null || !moduleUnitRoom) {
       return;
     }
+    const sessionId = moduleUnitRoom.sessionId;
     // Persist the question position per session so a brand-new practice session starts at question one.
     writePracticeRoomQuestionSelectionPersistence(
       questionSelectionPersistenceKey,
       {
-        sessionId: moduleUnitRoom.sessionId,
+        sessionId,
         selectedQuestionUnitIndex,
+        unlockedHintByContentId:
+          unlockedHintByContentIdBySessionId[sessionId] ?? {},
+        submittedByContentId: submittedByContentIdBySessionId[sessionId] ?? {},
       },
     );
-  }, [moduleUnitRoom, questionSelectionPersistenceKey, selectedQuestionUnitIndex]);
+  }, [
+    moduleUnitRoom,
+    questionSelectionPersistenceKey,
+    selectedQuestionUnitIndex,
+    submittedByContentIdBySessionId,
+    unlockedHintByContentIdBySessionId,
+  ]);
 
   const roomWithLocalAttempts = useMemo(() => {
     if (!moduleUnitRoom) {
@@ -322,6 +348,20 @@ export function usePracticeRoomPageState({
     }
     return persistedSelection;
   }, [activeQuestion, activeQuestionOptions.length, selectedOptionByContentId]);
+  const unlockedHintByContentId = useMemo(
+    () =>
+      moduleUnitRoom
+        ? unlockedHintByContentIdBySessionId[moduleUnitRoom.sessionId] ?? {}
+        : {},
+    [moduleUnitRoom, unlockedHintByContentIdBySessionId],
+  );
+  const submittedByContentId = useMemo(
+    () =>
+      moduleUnitRoom
+        ? submittedByContentIdBySessionId[moduleUnitRoom.sessionId] ?? {}
+        : {},
+    [moduleUnitRoom, submittedByContentIdBySessionId],
+  );
 
   useEffect(() => {
     if (!activeQuestion) {
@@ -358,10 +398,17 @@ export function usePracticeRoomPageState({
   };
 
   const unlockHintForContent = (contentId: number) => {
+    if (!roomWithLocalAttempts) {
+      return;
+    }
+    const sessionId = roomWithLocalAttempts.sessionId;
     // Hints unlock once per content id and remain available so XP rules can treat unlock as a single event.
-    setUnlockedHintByContentId((previousValue) => ({
+    setUnlockedHintByContentIdBySessionId((previousValue) => ({
       ...previousValue,
-      [contentId]: true,
+      [sessionId]: {
+        ...(previousValue[sessionId] ?? {}),
+        [contentId]: true,
+      },
     }));
   };
 
@@ -457,9 +504,13 @@ export function usePracticeRoomPageState({
           isCorrect: optimisticIsCorrect,
         },
       }));
-      setSubmittedByContentId((previousValue) => ({
+      const sessionId = roomWithLocalAttempts.sessionId;
+      setSubmittedByContentIdBySessionId((previousValue) => ({
         ...previousValue,
-        [activeQuestion.question.id]: true,
+        [sessionId]: {
+          ...(previousValue[sessionId] ?? {}),
+          [activeQuestion.question.id]: true,
+        },
       }));
     } catch (error) {
       const message = getDisplayErrorMessage(error, {
@@ -479,14 +530,18 @@ export function usePracticeRoomPageState({
   };
 
   const tryAgainActiveQuestion = () => {
-    if (!activeQuestion) {
+    if (!activeQuestion || !roomWithLocalAttempts) {
       return;
     }
+    const sessionId = roomWithLocalAttempts.sessionId;
     // Clearing local submit locks lets students immediately retry after an incorrect attempt while preserving seeded selection.
-    setSubmittedByContentId((previousValue) => {
-      const nextValue = { ...previousValue };
-      delete nextValue[activeQuestion.question.id];
-      return nextValue;
+    setSubmittedByContentIdBySessionId((previousValue) => {
+      const nextSessionValue = { ...(previousValue[sessionId] ?? {}) };
+      delete nextSessionValue[activeQuestion.question.id];
+      return {
+        ...previousValue,
+        [sessionId]: nextSessionValue,
+      };
     });
     setSubmittedAttemptByContentId((previousValue) => {
       const nextValue = { ...previousValue };
@@ -665,9 +720,17 @@ function readPracticeRoomQuestionSelectionPersistence(
     ) {
       return null;
     }
+    const unlockedHintByContentId = sanitizePersistedBooleanByContentId(
+      parsedValue.unlockedHintByContentId,
+    );
+    const submittedByContentId = sanitizePersistedBooleanByContentId(
+      parsedValue.submittedByContentId,
+    );
     return {
       sessionId: parsedValue.sessionId,
       selectedQuestionUnitIndex: parsedValue.selectedQuestionUnitIndex,
+      unlockedHintByContentId,
+      submittedByContentId,
     };
   } catch {
     return null;
@@ -702,4 +765,25 @@ function isUuidString(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
     value,
   );
+}
+
+function sanitizePersistedBooleanByContentId(
+  value: unknown,
+): Record<number, boolean> {
+  if (!value || typeof value !== 'object') {
+    return {};
+  }
+
+  const sanitized: Record<number, boolean> = {};
+  for (const [rawContentId, rawFlag] of Object.entries(value)) {
+    const contentId = Number(rawContentId);
+    if (!Number.isInteger(contentId) || contentId <= 0) {
+      continue;
+    }
+    if (typeof rawFlag !== 'boolean') {
+      continue;
+    }
+    sanitized[contentId] = rawFlag;
+  }
+  return sanitized;
 }

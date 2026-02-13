@@ -218,6 +218,110 @@ describe('usePracticeRoomPageState (core-only)', () => {
     expect(reloadedRender.getState().selectedOptionIndex).toBeNull();
   });
 
+  it('persists unlocked hint state on reload for the same session', () => {
+    useModuleUnitPracticeRoomQueryMock.mockReturnValue({
+      isPending: false,
+      error: null,
+      data: {
+        practiceRoom: {
+          sessionId: '11111111-1111-4111-8111-111111111007',
+          moduleUnitId: 3,
+          moduleUnitTitle: 'Unit',
+          questions: [
+            {
+              questionUnitId: 11,
+              position: 1,
+              hasCorrectAttempt: null,
+              coreQuestion: {
+                questionId: 11,
+                questionContent: {
+                  id: 100,
+                  type: 'mcq',
+                  questionStem: 'Core stem',
+                  questionData: {
+                    options: [{ optionText: 'A' }, { optionText: 'B' }],
+                    correctOptionIndex: 1,
+                  },
+                  hint: 'Helpful hint',
+                  difficultyScore: 1,
+                },
+                lastAttempt: null,
+              },
+            },
+          ],
+        },
+      },
+    });
+
+    const initialRender = renderHookWithParams('1', '1');
+    act(() => {
+      initialRender.getState().unlockHintForContent(100);
+    });
+    expect(initialRender.getState().isActiveHintUnlocked).toBe(true);
+    initialRender.unmount();
+
+    const reloadedRender = renderHookWithParams('1', '1');
+    expect(reloadedRender.getState().isActiveHintUnlocked).toBe(true);
+  });
+
+  it('persists submitted status on reload for the same session', async () => {
+    const mutateAsync = vi.fn().mockResolvedValue({
+      moduleExpAwarded: 0,
+      studentExpAwarded: 0,
+      hasCorrectAttempt: false,
+    });
+    useSubmitModuleUnitPracticeAttemptMutationMock.mockReturnValue({
+      isPending: false,
+      mutateAsync,
+    });
+    useModuleUnitPracticeRoomQueryMock.mockReturnValue({
+      isPending: false,
+      error: null,
+      data: {
+        practiceRoom: {
+          sessionId: '11111111-1111-4111-8111-111111111007',
+          moduleUnitId: 3,
+          moduleUnitTitle: 'Unit',
+          questions: [
+            {
+              questionUnitId: 11,
+              position: 1,
+              hasCorrectAttempt: null,
+              coreQuestion: {
+                questionId: 11,
+                questionContent: {
+                  id: 100,
+                  type: 'mcq',
+                  questionStem: 'Core stem',
+                  questionData: {
+                    options: [{ optionText: 'A' }, { optionText: 'B' }],
+                    correctOptionIndex: 1,
+                  },
+                  hint: null,
+                  difficultyScore: 1,
+                },
+                lastAttempt: null,
+              },
+            },
+          ],
+        },
+      },
+    });
+
+    const initialRender = renderHookWithParams('1', '1');
+    act(() => {
+      initialRender.getState().selectOption(100, 0);
+    });
+    await act(async () => {
+      await initialRender.getState().submitActiveQuestionAttempt();
+    });
+    expect(initialRender.getState().hasSubmittedActiveQuestion).toBe(true);
+    initialRender.unmount();
+
+    const reloadedRender = renderHookWithParams('1', '1');
+    expect(reloadedRender.getState().hasSubmittedActiveQuestion).toBe(true);
+  });
+
   it('resets selected question to the beginning when a new practice session starts', () => {
     let currentSessionId = '11111111-1111-4111-8111-111111111007';
     useModuleUnitPracticeRoomQueryMock.mockImplementation(() => ({
