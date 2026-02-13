@@ -2,38 +2,51 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-  max-width: 72rem;
+  gap: 1.5rem;
+  max-width: 80rem;
   margin: 0 auto;
   width: 100%;
+  padding: 0 1rem;
+  min-height: 100vh;
 }
 
 .topBar {
   display: flex;
   align-items: center;
+  padding: 1rem 0;
 }
 
 .backLink {
   color: var(--color-muted);
   text-decoration: none;
   font-weight: 600;
+  transition: color 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .backLink:hover {
   color: var(--color-text);
+  transform: translateX(-2px);
 }
 
 .statusCard {
-  border-radius: 0.75rem;
+  border-radius: 1rem;
   border: 1px solid var(--color-border);
-  background: var(--color-surface-subtle);
-  padding: 1rem;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  font-weight: 500;
 }
 
 .progressContainer {
   display: flex;
   width: 100%;
-  padding: 1vw 20%;
+  padding: 1rem 15%;
+  margin-bottom: 1rem;
 }
 
 .progressRow {
@@ -43,41 +56,58 @@
   grid-template-areas:
     ". exp"
     "level bar";
-  gap: 4px 10px;
+  gap: 8px 12px;
   align-items: center;
   width: 100%;
+  border-radius: 0.75rem;
+  padding: 1rem;
 }
 
 .level {
   grid-area: level;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-weight: 700;
   color: var(--color-brand-surface-dark);
   white-space: nowrap;
+  font-size: 1.1rem;
 }
 
 .levelIcon {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
 .barTrack {
   grid-area: bar;
   position: relative;
-  height: 14px;
+  height: 16px;
   width: 100%;
-  background: var(--color-surface-subtle);
+  background: rgba(0, 0, 0, 0.1);
   border-radius: 999px;
   overflow: hidden;
-  border: 1px solid var(--color-border);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .barFill {
   position: absolute;
   inset: 0;
-  background: var(--btn-primary-gradient);
+  background: linear-gradient(90deg, var(--color-accent-primary) 0%, var(--color-brand-surface-dark) 100%);
+  border-radius: 999px;
+  transition: width 0.5s ease;
+  box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+}
+
+.expLabel {
+  grid-area: exp;
+  font-size: 14px;
+  color: var(--color-muted);
+  font-weight: 600;
+  white-space: nowrap;
+  text-align: right;
 }
 
 .expLabel {
@@ -94,42 +124,55 @@
   justify-content: space-between;
   align-items: flex-end;
   gap: 1rem;
+  margin-bottom: 0.5rem;
 }
 
 .title {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 2rem;
   line-height: 1.2;
+  font-weight: 700;
+  color: var(--color-text);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .sessionLabel {
-  margin: 0.375rem 0 0;
+  margin: 0.5rem 0 0;
   color: var(--color-muted);
-  font-size: 0.875rem;
+  font-size: 0.9rem;
 }
 
 .progressMeta {
   color: var(--color-muted);
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: 0.9rem;
+  background: var(--color-surface-subtle);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-border);
 }
 
 .beadRow {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 .navBar {
   flex: 1;
-  min-width: 2.5rem;
-  height: 0.5rem;
+  min-width: 2.75rem;
+  height: 0.625rem;
   border: 0;
   border-radius: 999px;
   padding: 0;
   background: transparent;
   cursor: pointer;
   overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
 }
 
 .navBarInner {
@@ -137,6 +180,7 @@
   width: 100%;
   height: 100%;
   border-radius: 999px;
+  transition: background-color 0.3s ease;
 }
 
 .navBarCorrect .navBarInner {
@@ -148,7 +192,7 @@
 }
 
 .navBar.navBarCurrent {
-  transform: scaleY(1.5);
+  transform: scaleY(1.4);
 }
 
 .navBar.navBarCurrent.navBarCorrect {
@@ -172,20 +216,41 @@
   outline-offset: 2px;
 }
 
+.navBar:hover {
+  transform: scaleY(1.2);
+}
+
 .questionPanel {
-  border-radius: 0.875rem;
-  padding: 1.25rem;
+  border-radius: 1.25rem;
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
   /* Keep panel height stable so bottom question navigation does not jump between short/long questions. */
-  min-height: 32rem;
+  min-height: 36rem;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(15px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.questionPanel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--color-accent-primary) 0%, var(--color-brand-surface-dark) 100%);
 }
 
 .questionContent {
   display: flex;
   flex-direction: column;
   flex: 1;
+  overflow-y: auto;
 }
 
 .questionTrackNav {
@@ -197,32 +262,40 @@
 
 .questionUnitTrackNav {
   display: flex;
-  gap: 0.5rem;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.questionNavButtons {
+  display: flex;
+  gap: 1rem;
   align-items: center;
   justify-content: flex-end;
   margin-top: auto;
-  padding-top: 0.75rem;
 }
 
 .questionUnitNavButton {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface-subtle);
+  gap: 0.5rem;
+  border: 2px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.9);
   color: var(--color-text);
   border-radius: 999px;
-  padding: 0.3rem 0.6rem;
-  font-size: 0.85rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
-  transition: transform 120ms ease, border-color 120ms ease, background-color 120ms ease;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
 }
 
 .questionUnitNavButton:hover:not(:disabled) {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
   border-color: var(--color-accent-primary);
-  background: color-mix(in srgb, var(--color-accent-primary) 10%, var(--color-surface-subtle) 90%);
+  background: rgba(76, 175, 80, 0.1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
 }
 
 .questionUnitNavButton:focus-visible {
@@ -232,7 +305,9 @@
 
 .questionUnitNavButton:disabled {
   cursor: not-allowed;
-  opacity: 0.45;
+  opacity: 0.5;
+  transform: none;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
 }
 
 .questionUnitNavLabel {
@@ -261,11 +336,13 @@
   color: var(--color-muted);
   border-radius: 999px;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .navButton:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  color: var(--color-text);
 }
 
 .navButton:focus-visible {
@@ -285,9 +362,10 @@
 
 .navIcon {
   color: var(--color-brand-surface-dark);
-  width: 28px;
-  height: 28px;
-  font-size: 18px;
+  width: 32px;
+  height: 32px;
+  font-size: 20px;
+  transition: color 0.2s ease;
 }
 
 @keyframes navNextNudgePulse {
@@ -297,37 +375,37 @@
     text-shadow: 0 0 0px var(--color-accent-secondary);
   }
   15% {
-    transform: scale(1.08);
+    transform: scale(1.1);
     filter: brightness(1.01);
-    text-shadow: 0 0 2px var(--color-accent-secondary);
-  }
-  30% {
-    transform: scale(1.18);
-    filter: brightness(1.02);
-    text-shadow: 0 0 5px var(--color-accent-secondary);
-  }
-  40% {
-    transform: scale(1.25);
-    filter: brightness(1.05);
-    text-shadow: 0 0 8px var(--color-accent-secondary);
-  }
-  55% {
-    transform: scale(1.18);
-    filter: brightness(1.02);
-    text-shadow: 0 0 5px var(--color-accent-secondary);
-  }
-  70% {
-    transform: scale(1.08);
-    filter: brightness(1.02);
     text-shadow: 0 0 3px var(--color-accent-secondary);
   }
+  30% {
+    transform: scale(1.2);
+    filter: brightness(1.02);
+    text-shadow: 0 0 6px var(--color-accent-secondary);
+  }
+  40% {
+    transform: scale(1.3);
+    filter: brightness(1.05);
+    text-shadow: 0 0 10px var(--color-accent-secondary);
+  }
+  55% {
+    transform: scale(1.2);
+    filter: brightness(1.02);
+    text-shadow: 0 0 6px var(--color-accent-secondary);
+  }
+  70% {
+    transform: scale(1.1);
+    filter: brightness(1.02);
+    text-shadow: 0 0 4px var(--color-accent-secondary);
+  }
   80% {
-    transform: scale(1.03);
+    transform: scale(1.05);
     filter: brightness(1.01);
     text-shadow: 0 0 2px var(--color-accent-secondary);
   }
   90% {
-    transform: scale(1.01);
+    transform: scale(1.02);
     filter: brightness(1);
     text-shadow: 0 0 1px var(--color-accent-secondary);
   }
@@ -348,6 +426,12 @@
   font-size: 0.875rem;
   padding: 0.35rem 0.7rem;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.trackNavButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .trackNavButton:disabled {
@@ -357,57 +441,90 @@
 
 .questionStem {
   margin: 0;
-  margin-left: 2px;
-  font-size: 1.1rem;
-  line-height: 1.35;
-  margin-bottom: 1rem;
+  margin-left: 4px;
+  font-size: 1.25rem;
+  line-height: 1.4;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+  color: var(--color-text);
 }
 
 .optionsList {
   display: flex;
   flex-direction: column;
-  gap: 0.625rem;
+  margin-top: 5px;
+  gap: 0.875rem;
+  flex: 1;
 }
 
 .optionsListTrueFalse {
   /* Force a single row for binary answers so True/False can be scanned and selected faster. */
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
+  gap: 1.25rem;
+  flex: 0;
 }
 
 .hintIcon {
-  color: var(--color-accent-secondary)
+  color: var(--color-accent-secondary);
 }
 
 .optionButton {
   text-align: left;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface-subtle);
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.8);
   color: var(--color-text);
-  border-radius: 0.625rem;
-  padding: 0.75rem;
-  font-size: 0.95rem;
+  border-radius: 0.875rem;
+  padding: 1rem;
+  font-size: 1rem;
   cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.optionButton::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.optionButton:hover::before {
+  left: 100%;
+}
+
+.optionButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  border-color: rgba(0, 0, 0, 0.2);
 }
 
 .optionButtonSelected {
   border-color: var(--color-accent-primary);
-  background: color-mix(in srgb, var(--color-accent-primary) 12%, var(--color-surface-subtle) 88%);
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(76, 175, 80, 0.05) 100%);
+  box-shadow: 0 0 20px rgba(76, 175, 80, 0.2);
 }
 
 .optionButtonCorrect {
-  border-color: #16a34a;
-  background: color-mix(in srgb, #16a34a 12%, var(--color-surface-subtle) 88%);
+  border-color: #10b981;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
 }
 
 .optionButtonIncorrect {
   border-color: #ef4444;
-  background: color-mix(in srgb, #ef4444 12%, var(--color-surface-subtle) 88%);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
 }
 
 .optionButton:disabled {
   cursor: default;
+  opacity: 0.7;
 }
 
 .optionTextRow {
@@ -441,25 +558,37 @@
 .hintSection {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  margin-top: 1rem;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
 }
 
 .hintToggle {
   display: inline-flex;
   align-self: flex-start;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.5rem;
   color: var(--color-text);
-  padding: 0.25rem 0;
-  font-size: 0.85rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   user-select: none;
+  border-radius: 0.75rem;
+  transition: all 0.2s ease;
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.hintToggle:hover:not([aria-disabled='true']) {
+  background: rgba(255, 215, 0, 0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 10px rgba(255, 215, 0, 0.2);
 }
 
 .hintToggle[aria-disabled='true'] {
   cursor: default;
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
 }
 
 .hintChevron {
@@ -467,7 +596,7 @@
   align-items: center;
   justify-content: center;
   margin-left: 0.1rem;
-  transition: transform 140ms ease;
+  transition: transform 0.2s ease;
 }
 
 .hintChevronExpanded {
@@ -476,74 +605,121 @@
 
 .hintText {
   margin: 0;
-  border-radius: 0.625rem;
-  border: 1px solid color-mix(in srgb, var(--color-accent-secondary) 45%, var(--color-border) 55%);
-  background: color-mix(in srgb, var(--color-accent-secondary) 14%, var(--color-surface) 86%);
-  padding: 0.75rem;
-  font-size: 0.92rem;
-  line-height: 1.4;
+  border-radius: 0.875rem;
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  background: rgba(255, 215, 0, 0.1);
+  padding: 1rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  box-shadow: 0 2px 10px rgba(255, 215, 0, 0.1);
 }
 
 .submitRow {
   display: flex;
-  gap: 0.5rem;
+  gap: 1rem;
   justify-content: flex-end;
-  margin-top: 0.85rem;
+  margin-top: auto;
 }
 
 .tryAgainButton {
-  background: var(--color-brand-surface-dark);
+  background: linear-gradient(135deg, var(--color-brand-surface-dark) 0%, var(--color-brand-surface-dark-muted) 100%);
   color: white;
-  border-radius: 0.625rem;
-  padding: 0.5rem 0.9rem;
-  font-size: 0.9rem;
+  border-radius: 0.875rem;
+  padding: 0.75rem 1.25rem;
+  font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
 .tryAgainButton:hover:not(:disabled) {
-  background: var(--color-brand-surface-dark-muted);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }
 
 .submitButton {
-  border: 1px solid var(--color-accent-primary);
-  background: color-mix(in srgb, var(--color-accent-primary) 12%, var(--color-surface-subtle) 88%);
+  border: 2px solid var(--color-accent-primary);
+  background: linear-gradient(135deg, var(--color-accent-primary) 0%, color-mix(in srgb, var(--color-accent-primary) 80%, var(--color-surface-subtle) 20%) 100%);
   color: var(--color-text);
-  border-radius: 0.625rem;
-  padding: 0.5rem 0.9rem;
-  font-size: 0.9rem;
+  border-radius: 0.875rem;
+  padding: 0.75rem 1.25rem;
+  font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 15px rgba(76, 175, 80, 0.2);
 }
 
 .submitButton:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--color-accent-primary) 18%, var(--color-surface-subtle) 82%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(76, 175, 80, 0.3);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-accent-primary) 90%, white 10%) 0%, var(--color-accent-primary) 100%);
 }
 
 .submitButton:disabled {
   cursor: not-allowed;
-  opacity: 0.5;
+  opacity: 0.6;
+  transform: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .submitError {
-  margin-top: 0.8rem;
+  margin-top: 1rem;
   color: #ef4444;
-  font-size: 0.86rem;
+  font-size: 0.9rem;
   font-weight: 600;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  text-align: center;
 }
 
 @media (max-width: 768px) {
+  .page {
+    padding: 0 0.5rem;
+  }
+
   .header {
     align-items: flex-start;
     flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .title {
+    font-size: 1.75rem;
   }
 
   .questionPanel {
     min-height: 0;
+    padding: 1.5rem;
   }
 
   .optionsListTrueFalse {
     /* Keep True/False in one row on mobile as requested; buttons shrink evenly. */
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.875rem;
+  }
+
+  .questionUnitTrackNav {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .questionUnitNavButton {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .beadRow {
+    padding: 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .navBar {
+    min-width: 2rem;
+    height: 0.6rem;
   }
 }

@@ -69,6 +69,7 @@ type MockPageState = {
   questionUnitNav: { canGoPrevious: boolean; canGoNext: boolean };
   selectedOptionIndex: number | null;
   hasSubmittedActiveQuestion: boolean;
+  hasActiveOptionOverride: boolean;
   showTryAgainButton: boolean;
   isActiveHintUnlocked: boolean;
 };
@@ -90,6 +91,7 @@ let pageState: MockPageState = {
   questionUnitNav: { canGoPrevious: false, canGoNext: false },
   selectedOptionIndex: null,
   hasSubmittedActiveQuestion: false,
+  hasActiveOptionOverride: false,
   showTryAgainButton: false,
   isActiveHintUnlocked: false,
 };
@@ -141,6 +143,7 @@ describe('PracticeRoomPage route (core-only)', () => {
       questionUnitNav: { canGoPrevious: false, canGoNext: false },
       selectedOptionIndex: null,
       hasSubmittedActiveQuestion: false,
+      hasActiveOptionOverride: false,
       showTryAgainButton: false,
       isActiveHintUnlocked: false,
     };
@@ -231,6 +234,7 @@ describe('PracticeRoomPage route (core-only)', () => {
     pageState.activeQuestionOptions = [{ optionText: 'A' }, { optionText: 'B' }];
     pageState.selectedOptionIndex = 1;
     pageState.hasSubmittedActiveQuestion = false;
+    pageState.hasActiveOptionOverride = false;
 
     render(
       <MemoryRouter>
@@ -239,6 +243,31 @@ describe('PracticeRoomPage route (core-only)', () => {
     );
 
     expect(screen.getByText('Incorrect')).toBeInTheDocument();
+  });
+
+  it('hides persisted feedback after the learner starts a new selection', () => {
+    const question = createMockQuestionUnit({
+      coreQuestion: {
+        ...createMockQuestionUnit().coreQuestion,
+        lastAttempt: { studentAnswer: { selectedOptionIndex: 1 }, isCorrect: false },
+      },
+    });
+    pageState.isLoading = false;
+    pageState.room = { moduleUnitTitle: 'Unit 1', questions: [question] };
+    pageState.activeQuestionUnit = question;
+    pageState.activeQuestion = { question: question.coreQuestion.questionContent };
+    pageState.activeQuestionOptions = [{ optionText: 'A' }, { optionText: 'B' }];
+    pageState.selectedOptionIndex = 0;
+    pageState.hasSubmittedActiveQuestion = false;
+    pageState.hasActiveOptionOverride = true;
+
+    render(
+      <MemoryRouter>
+        <PracticeRoomPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByText('Incorrect')).not.toBeInTheDocument();
   });
 
   it('shows not found for invalid parsed params', () => {

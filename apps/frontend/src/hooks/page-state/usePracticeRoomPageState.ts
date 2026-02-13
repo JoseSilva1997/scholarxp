@@ -280,6 +280,13 @@ export function usePracticeRoomPageState({
   const hasSubmittedActiveQuestion = activeQuestion
     ? Boolean(submittedByContentId[activeQuestion.question.id])
     : false;
+  // Persisted feedback should be suppressed once the learner starts a new draft selection.
+  const hasActiveOptionOverride = activeQuestion
+    ? Object.prototype.hasOwnProperty.call(
+        selectedOptionOverrideByContentId,
+        activeQuestion.question.id,
+      )
+    : false;
   const isActiveQuestionIncorrect =
     activeQuestionUnit?.coreQuestion.lastAttempt?.isCorrect === false;
   const showTryAgainButton = hasSubmittedActiveQuestion && isActiveQuestionIncorrect;
@@ -408,6 +415,7 @@ export function usePracticeRoomPageState({
     questionUnitNav,
     selectedOptionIndex,
     hasSubmittedActiveQuestion,
+    hasActiveOptionOverride,
     showTryAgainButton,
     selectQuestionUnit,
     selectOption,

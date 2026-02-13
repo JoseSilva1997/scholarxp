@@ -33,6 +33,7 @@ export default function PracticeRoomPage() {
     questionUnitNav,
     selectedOptionIndex,
     hasSubmittedActiveQuestion,
+    hasActiveOptionOverride,
     showTryAgainButton,
     selectQuestionUnit,
     selectOption,
@@ -48,10 +49,11 @@ export default function PracticeRoomPage() {
   });
 
   // Feedback remains presentation-only and uses local question data so it can be swapped to server-driven feedback later.
-  // Revisited questions should still render prior feedback from persisted attempts.
+  // Revisited questions render prior feedback until the student starts a new draft selection.
   const hasSubmittedFeedback =
     hasSubmittedActiveQuestion ||
-    activeQuestionUnit?.coreQuestion.lastAttempt !== null;
+    (activeQuestionUnit?.coreQuestion.lastAttempt !== null &&
+      !hasActiveOptionOverride);
   const optionFeedback = activeQuestion
     ? buildPracticeRoomAnswerFeedback({
         question: activeQuestion.question,
@@ -78,12 +80,6 @@ export default function PracticeRoomPage() {
 
   return (
     <MainSection className={styles.page}>
-      <div className={styles.topBar}>
-        <Link className={styles.backLink} to={`/main/modules/${moduleId}`}>
-          ← Back to module
-        </Link>
-      </div>
-
       {moduleProgress ? (
         <div className={styles.progressContainer}>
           <div className={styles.progressRow} aria-label="Module progress">
@@ -240,40 +236,45 @@ export default function PracticeRoomPage() {
                     ) : null}
                   </div>
                 ) : null}
+              </div>
 
-                {submitErrorMessage ? (
-                  <div className={styles.submitError} role="alert">
-                    {submitErrorMessage}
-                  </div>
-                ) : null}
+              {submitErrorMessage ? (
+                <div className={styles.submitError} role="alert">
+                  {submitErrorMessage}
+                </div>
+              ) : null}
 
-                <div className={styles.submitRow}>
-                  {showTryAgainButton ? (
-                    <button
-                      type="button"
-                      className={styles.tryAgainButton}
-                      onClick={tryAgainActiveQuestion}
-                    >
-                      Try again
-                    </button>
-                  ) : null}
+              <div className={styles.submitRow}>
+                {showTryAgainButton ? (
                   <button
                     type="button"
-                    className={styles.submitButton}
-                    onClick={() => {
-                      void submitActiveQuestionAttempt();
-                    }}
-                    disabled={!canSubmitAttempt}
+                    className={styles.tryAgainButton}
+                    onClick={tryAgainActiveQuestion}
                   >
-                    {isSubmittingAttempt
-                      ? 'Submitting…'
-                      : hasSubmittedActiveQuestion
-                        ? 'Submitted'
-                        : 'Submit answer'}
+                    Try again
                   </button>
-                </div>
+                ) : null}
+                <button
+                  type="button"
+                  className={styles.submitButton}
+                  onClick={() => {
+                    void submitActiveQuestionAttempt();
+                  }}
+                  disabled={!canSubmitAttempt}
+                >
+                  {isSubmittingAttempt
+                    ? 'Submitting…'
+                    : hasSubmittedActiveQuestion
+                      ? 'Submitted'
+                      : 'Submit answer'}
+                </button>
+              </div>
 
-                <div className={styles.questionUnitTrackNav}>
+              <div className={styles.questionUnitTrackNav}>
+                <Link className={styles.backLink} to={`/main/modules/${moduleId}`}>
+                  ← Back to module
+                </Link>
+                <div className={styles.questionNavButtons}>
                   <button
                     type="button"
                     className={styles.questionUnitNavButton}
