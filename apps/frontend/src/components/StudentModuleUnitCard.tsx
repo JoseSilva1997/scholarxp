@@ -17,6 +17,12 @@ export default function StudentModuleUnitCard({ unit }: StudentModuleUnitCardPro
   const [isOpen, setIsOpen] = useState(false);
   const moduleId = window.location.pathname.split('/')[3];
   const basePracticeRoomPath = `/main/modules/${moduleId}/${unit.id}/practice-room`;
+
+  // Count successfully completed questions across all groups
+  const completedQuestionsCount = unit.questionGroups.reduce((count, group) => {
+    return count + (group.questions?.filter(q => q.lastAttemptResult === 'correct').length ?? 0);
+  }, 0);
+
   const renderQuestionStatusIcon = (lastAttemptResult: QuestionAttemptResult) => {
     if (lastAttemptResult === 'correct') {
       return <FaCheck className={`${styles.questionStatusIcon} ${styles.questionStatusCorrect}`} aria-hidden="true" />;
@@ -56,7 +62,7 @@ export default function StudentModuleUnitCard({ unit }: StudentModuleUnitCardPro
               {/* Only live units expose question totals; locked units stay title-only until practice is available. */}
               {unit.status === 'live' ? (
                 <p className={styles.subtitle}>
-                  {unit.questionCount} {unit.questionCount === 1 ? 'Question' : 'Questions'}
+                  {completedQuestionsCount}/{unit.questionCount} {unit.questionCount === 1 ? 'Question' : 'Questions'}
                 </p>
               ) : null}
             </div>

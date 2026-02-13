@@ -26,7 +26,7 @@ describe('StudentModuleUnitCard', () => {
   it('shows question count for live lessons and toggles detail panel', () => {
     render(<StudentModuleUnitCard unit={baseUnit} />);
 
-    expect(screen.getByText('2 Questions')).toBeInTheDocument();
+    expect(screen.getByText('0/2 Questions')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Expand lesson details' }));
     expect(screen.getByRole('button', { name: 'Practice Q1' })).toBeInTheDocument();
   });
@@ -70,6 +70,8 @@ describe('StudentModuleUnitCard', () => {
         }}
       />,
     );
+
+    expect(screen.getByText('1/2 Questions')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Expand lesson details' }));
 
