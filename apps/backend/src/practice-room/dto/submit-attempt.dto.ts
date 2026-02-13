@@ -6,6 +6,7 @@ import {
   IsInt,
   IsNotEmpty,
   IsObject,
+  IsUUID,
   Min,
 } from 'class-validator';
 import { PRACTICE_MODES, type PracticeMode } from '@scholarxp/constants';
@@ -30,10 +31,8 @@ export class SubmitAttemptDto implements SubmitAttemptPayload {
   @Min(1)
   questionContentId: number;
 
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  sessionId: number;
+  @IsUUID()
+  sessionId: string;
 
   @IsIn(Object.values(PRACTICE_MODES))
   practiceMode: PracticeMode;

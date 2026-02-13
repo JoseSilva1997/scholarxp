@@ -127,7 +127,7 @@ model DailyQuest {
 }
 
 model PracticeSession {
-  id               Int               @id @default(autoincrement())
+  id               String            @id @default(uuid()) @db.Uuid
   moduleId         Int?              @map("module_id")
   userId           Int?              @map("user_id")
   startTime        DateTime          @map("start_time")
@@ -240,7 +240,7 @@ model QuestionVariant {
 
 model QuestionAttempt {
   id            Int              @id @default(autoincrement())
-  sessionId     Int?             @map("session_id")
+  sessionId     String?          @db.Uuid @map("session_id")
   moduleUnitId  Int?             @map("module_unit_id")
   studentId     Int?             @map("student_id")
   questionId    Int              @map("question_id")

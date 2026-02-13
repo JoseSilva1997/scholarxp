@@ -18,7 +18,7 @@ export class ModuleUnitPracticeRoomResponseDto implements ModuleUnitPracticeRoom
 }
 
 export class ModuleUnitPracticeRoomDto implements ModuleUnitPracticeRoom {
-  sessionId!: number;
+  sessionId!: string;
   moduleUnitId!: number;
   moduleUnitTitle!: string;
   questions!: PracticeQuestionUnitDto[];

@@ -49,7 +49,7 @@ type QuestionUnitNav = {
 };
 
 type PracticeRoomQuestionSelectionPersistence = {
-  sessionId: number;
+  sessionId: string;
   selectedQuestionUnitIndex: number;
 };
 
@@ -105,7 +105,7 @@ export function usePracticeRoomPageState({
   );
 
   const [selectedQuestionUnitIndexBySessionId, setSelectedQuestionUnitIndexBySessionId] =
-    useState<Record<number, number>>(
+    useState<Record<string, number>>(
       () =>
         persistedQuestionSelection
           ? {
@@ -654,9 +654,8 @@ function readPracticeRoomQuestionSelectionPersistence(
     const parsedValue =
       JSON.parse(rawValue) as Partial<PracticeRoomQuestionSelectionPersistence>;
     if (
-      typeof parsedValue.sessionId !== 'number' ||
-      !Number.isInteger(parsedValue.sessionId) ||
-      parsedValue.sessionId <= 0
+      typeof parsedValue.sessionId !== 'string' ||
+      !isUuidString(parsedValue.sessionId)
     ) {
       return null;
     }
@@ -688,13 +687,19 @@ function writePracticeRoomQuestionSelectionPersistence(
 
 function parsePracticeRoomSessionIdQuery(
   sessionIdParam: string | null,
-): number | null {
+): string | null {
   if (!sessionIdParam) {
     return null;
   }
-  const parsedValue = Number(sessionIdParam);
-  if (!Number.isInteger(parsedValue) || parsedValue <= 0) {
+  if (!isUuidString(sessionIdParam)) {
     return null;
   }
-  return parsedValue;
+  return sessionIdParam;
+}
+
+function isUuidString(value: string): boolean {
+  // UUID validation keeps URL and local persistence aligned with backend session-id constraints.
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value,
+  );
 }

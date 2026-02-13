@@ -44,36 +44,60 @@ describe('useModuleUnitPracticeRoomQuery', () => {
   });
 
   it('uses numeric ids when both module and unit provided', () => {
-    const res = useModuleUnitPracticeRoomQuery(5, 2, 9);
+    const res = useModuleUnitPracticeRoomQuery(
+      5,
+      2,
+      '11111111-1111-4111-8111-111111111009',
+    );
     expect(useQueryMock).toHaveBeenCalled();
     const opts = useQueryMock.mock.calls[0][0];
-    expect(opts.queryKey).toEqual(queryKeys.modules.moduleUnitPracticeRoom(5, 2, 9));
+    expect(opts.queryKey).toEqual(
+      queryKeys.modules.moduleUnitPracticeRoom(
+        5,
+        2,
+        '11111111-1111-4111-8111-111111111009',
+      ),
+    );
     expect(opts.enabled).toBe(true);
     expect(opts.staleTime).toBe(30_000);
 
     // calling queryFn should invoke getPracticeRoom with provided ids
     void opts.queryFn();
-    expect(getPracticeRoomMock).toHaveBeenCalledWith(5, 2, { sessionId: 9 });
+    expect(getPracticeRoomMock).toHaveBeenCalledWith(5, 2, {
+      sessionId: '11111111-1111-4111-8111-111111111009',
+    });
     expect(res).toEqual({ data: 'ok' });
   });
 
   it('disables query and uses fallback key when module id is null', () => {
-    useModuleUnitPracticeRoomQuery(null, 2, 9);
+    useModuleUnitPracticeRoomQuery(
+      null,
+      2,
+      '11111111-1111-4111-8111-111111111009',
+    );
     const opts = useQueryMock.mock.calls[0][0];
     expect(opts.queryKey).toEqual(queryKeys.modules.moduleUnitPracticeRoom(0, 0));
     expect(opts.enabled).toBe(false);
     // calling queryFn still calls underlying API with null
     void opts.queryFn();
-    expect(getPracticeRoomMock).toHaveBeenCalledWith(null, 2, { sessionId: 9 });
+    expect(getPracticeRoomMock).toHaveBeenCalledWith(null, 2, {
+      sessionId: '11111111-1111-4111-8111-111111111009',
+    });
   });
 
   it('disables query when unit id is null', () => {
-    useModuleUnitPracticeRoomQuery(3, null, 9);
+    useModuleUnitPracticeRoomQuery(
+      3,
+      null,
+      '11111111-1111-4111-8111-111111111009',
+    );
     const opts = useQueryMock.mock.calls[0][0];
     expect(opts.queryKey).toEqual(queryKeys.modules.moduleUnitPracticeRoom(0, 0));
     expect(opts.enabled).toBe(false);
     void opts.queryFn();
-    expect(getPracticeRoomMock).toHaveBeenCalledWith(3, null, { sessionId: 9 });
+    expect(getPracticeRoomMock).toHaveBeenCalledWith(3, null, {
+      sessionId: '11111111-1111-4111-8111-111111111009',
+    });
   });
 
   it('disables query when both ids are null', () => {
@@ -108,7 +132,7 @@ describe('useSubmitModuleUnitPracticeAttemptMutation', () => {
       moduleUnitId: 2,
       questionUnitId: 20,
       questionContentId: 50,
-      sessionId: 9,
+      sessionId: '11111111-1111-4111-8111-111111111009',
       practiceMode: 'PRACTICE_ROOM',
       timeTakenMs: 1234,
       hintUnlocked: false,
@@ -129,7 +153,7 @@ describe('useSubmitModuleUnitPracticeAttemptMutation', () => {
         moduleUnitId: 2,
         questionUnitId: 20,
         questionContentId: 50,
-        sessionId: 9,
+        sessionId: '11111111-1111-4111-8111-111111111009',
         practiceMode: 'PRACTICE_ROOM',
         timeTakenMs: 1234,
         hintUnlocked: false,

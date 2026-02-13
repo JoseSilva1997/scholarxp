@@ -156,7 +156,7 @@ describe('modules api', () => {
       moduleUnitId: 99,
       questionUnitId: 200,
       questionContentId: 300,
-      sessionId: 55,
+      sessionId: '11111111-1111-4111-8111-111111111055',
       practiceMode: 'PRACTICE_ROOM',
       timeTakenMs: 4200,
       hintUnlocked: true,
@@ -175,10 +175,12 @@ describe('modules api', () => {
   });
 
   it('loads practice room with sessionId query when provided', async () => {
-    await getPracticeRoom(4, 99, { sessionId: 55 });
+    await getPracticeRoom(4, 99, {
+      sessionId: '11111111-1111-4111-8111-111111111055',
+    });
 
     expect(clientMocks.apiFetch).toHaveBeenCalledWith(
-      '/module/4/unit/99/practice-room?sessionId=55',
+      '/module/4/unit/99/practice-room?sessionId=11111111-1111-4111-8111-111111111055',
       {
         method: 'GET',
       },

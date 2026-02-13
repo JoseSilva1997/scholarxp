@@ -135,7 +135,9 @@ describe('PracticeRoomService', () => {
       });
 
       // Setup: practice session
-      prisma.practiceSession.create.mockResolvedValue({ id: 999 } as any);
+      prisma.practiceSession.create.mockResolvedValue({
+        id: '11111111-1111-4111-8111-111111111999',
+      } as any);
 
       // Setup: find module unit
       prisma.moduleUnit.findFirst.mockResolvedValue(mockModuleUnit as any);
@@ -171,7 +173,9 @@ describe('PracticeRoomService', () => {
 
       // Verify result structure
       expect(result.practiceRoom).toBeDefined();
-      expect(result.practiceRoom.sessionId).toBe(999);
+      expect(result.practiceRoom.sessionId).toBe(
+        '11111111-1111-4111-8111-111111111999',
+      );
       expect(result.practiceRoom.moduleUnitId).toBe(1);
       expect(result.practiceRoom.moduleUnitTitle).toBe('Test Module Unit');
       expect(result.practiceRoom.questions).toHaveLength(2);
@@ -193,7 +197,9 @@ describe('PracticeRoomService', () => {
     it('should handle module unit with no questions', async () => {
       const mockModuleUnit = buildMockModuleUnit({ questionUnits: [] });
       prisma.moduleUnit.findFirst.mockResolvedValue(mockModuleUnit as any);
-      prisma.practiceSession.create.mockResolvedValue({ id: 888 } as any);
+      prisma.practiceSession.create.mockResolvedValue({
+        id: '11111111-1111-4111-8111-111111111888',
+      } as any);
       prisma.questionAttempt.findMany.mockResolvedValue([]);
 
       const result = await service.getPracticeRoom(1, 10, 100);
@@ -206,21 +212,30 @@ describe('PracticeRoomService', () => {
         questionUnits: [buildQuestionUnit(1, true)],
       });
       prisma.moduleUnit.findFirst.mockResolvedValue(mockModuleUnit as any);
-      prisma.practiceSession.findFirst.mockResolvedValue({ id: 444 } as any);
+      prisma.practiceSession.findFirst.mockResolvedValue({
+        id: '11111111-1111-4111-8111-111111111444',
+      } as any);
       prisma.questionAttempt.findMany.mockResolvedValue([]);
 
-      const result = await service.getPracticeRoom(1, 10, 100, 444);
+      const result = await service.getPracticeRoom(
+        1,
+        10,
+        100,
+        '11111111-1111-4111-8111-111111111444',
+      );
 
       expect(prisma.practiceSession.findFirst).toHaveBeenCalledWith({
         where: {
-          id: 444,
+          id: '11111111-1111-4111-8111-111111111444',
           moduleId: 1,
           userId: 100,
         },
         select: { id: true },
       });
       expect(prisma.practiceSession.create).not.toHaveBeenCalled();
-      expect(result.practiceRoom.sessionId).toBe(444);
+      expect(result.practiceRoom.sessionId).toBe(
+        '11111111-1111-4111-8111-111111111444',
+      );
     });
 
     it('throws when provided sessionId does not belong to the student/module', async () => {
@@ -230,9 +245,14 @@ describe('PracticeRoomService', () => {
       prisma.moduleUnit.findFirst.mockResolvedValue(mockModuleUnit as any);
       prisma.practiceSession.findFirst.mockResolvedValue(null);
 
-      await expect(service.getPracticeRoom(1, 10, 100, 999)).rejects.toThrow(
-        'Practice session not found for this module.',
-      );
+      await expect(
+        service.getPracticeRoom(
+          1,
+          10,
+          100,
+          '11111111-1111-4111-8111-111111111999',
+        ),
+      ).rejects.toThrow('Practice session not found for this module.');
       expect(prisma.practiceSession.create).not.toHaveBeenCalled();
     });
 
@@ -244,7 +264,9 @@ describe('PracticeRoomService', () => {
         questionUnits: [buildQuestionUnit(1, true)],
       });
       prisma.moduleUnit.findFirst.mockResolvedValue(mockModuleUnit as any);
-      prisma.practiceSession.create.mockResolvedValue({ id: 777 } as any);
+      prisma.practiceSession.create.mockResolvedValue({
+        id: '11111111-1111-4111-8111-111111111777',
+      } as any);
       prisma.questionAttempt.findMany.mockResolvedValue([]);
 
       await service.getPracticeRoom(1, 10, 100);
@@ -334,7 +356,9 @@ describe('PracticeRoomService', () => {
 
     // ===== EDGE CASE: Different module and student ids =====
     it('should create session with different module and student ids', async () => {
-      prisma.practiceSession.create.mockResolvedValue({ id: 666 } as any);
+      prisma.practiceSession.create.mockResolvedValue({
+        id: '11111111-1111-4111-8111-111111111666',
+      } as any);
 
       await (service as any).createPracticeSession(99, 999);
 
@@ -351,7 +375,9 @@ describe('PracticeRoomService', () => {
     // ===== TIMING EDGE CASE: Verify startTime is set close to execution time =====
     it('should set startTime to current date', async () => {
       const beforeCall = new Date();
-      prisma.practiceSession.create.mockResolvedValue({ id: 777 } as any);
+      prisma.practiceSession.create.mockResolvedValue({
+        id: '11111111-1111-4111-8111-111111111777',
+      } as any);
 
       await (service as any).createPracticeSession(1, 100);
 
@@ -575,7 +601,9 @@ describe('PracticeRoomService', () => {
       });
 
       prisma.moduleUnit.findFirst.mockResolvedValue(mockModuleUnit as any);
-      prisma.practiceSession.create.mockResolvedValue({ id: 12345 } as any);
+      prisma.practiceSession.create.mockResolvedValue({
+        id: '11111111-1111-4111-8111-111111112345',
+      } as any);
 
       const attempts = [
         buildAttempt({ questionId: 1, contentId: 11, isCorrect: true }),
@@ -590,7 +618,9 @@ describe('PracticeRoomService', () => {
       );
 
       // Verify complete result
-      expect(result.practiceRoom.sessionId).toBe(12345);
+      expect(result.practiceRoom.sessionId).toBe(
+        '11111111-1111-4111-8111-111111112345',
+      );
       expect(result.practiceRoom.moduleUnitId).toBe(moduleUnitId);
       expect(result.practiceRoom.moduleUnitTitle).toBe(
         'Advanced Calculus Unit 2',
@@ -613,7 +643,9 @@ describe('PracticeRoomService', () => {
       });
 
       prisma.moduleUnit.findFirst.mockResolvedValue(mockModuleUnit as any);
-      prisma.practiceSession.create.mockResolvedValue({ id: 888 } as any);
+      prisma.practiceSession.create.mockResolvedValue({
+        id: '11111111-1111-4111-8111-111111111888',
+      } as any);
       prisma.questionAttempt.findMany.mockResolvedValue([]);
 
       const result = await service.getPracticeRoom(1, 10, 100);
@@ -647,7 +679,9 @@ describe('PracticeRoomService', () => {
         questionUnits: [buildQuestionUnit(1, true)],
       });
       prisma.moduleUnit.findFirst.mockResolvedValue(mockModuleUnit as any);
-      prisma.practiceSession.create.mockResolvedValue({ id: 999 } as any);
+      prisma.practiceSession.create.mockResolvedValue({
+        id: '11111111-1111-4111-8111-111111111999',
+      } as any);
       prisma.questionAttempt.findMany.mockRejectedValue(
         new Error('Query timeout'),
       );
@@ -660,7 +694,9 @@ describe('PracticeRoomService', () => {
 
   describe('submitAttempt', () => {
     it('creates an attempt and marks hasCorrectAttempt true when submission is correct', async () => {
-      prisma.practiceSession.findFirst.mockResolvedValue({ id: 77 } as any);
+      prisma.practiceSession.findFirst.mockResolvedValue({
+        id: '11111111-1111-4111-8111-111111111077',
+      } as any);
       prisma.questionUnit.findFirst.mockResolvedValue({
         id: 201,
         contents: [
@@ -679,7 +715,7 @@ describe('PracticeRoomService', () => {
         moduleUnitId: 10,
         questionUnitId: 201,
         questionContentId: 301,
-        sessionId: 77,
+        sessionId: '11111111-1111-4111-8111-111111111077',
         practiceMode: 'PRACTICE_ROOM' as any,
         timeTakenMs: 1200,
         hintUnlocked: false,
@@ -692,7 +728,7 @@ describe('PracticeRoomService', () => {
           studentId: 100,
           questionId: 201,
           contentId: 301,
-          sessionId: 77,
+          sessionId: '11111111-1111-4111-8111-111111111077',
           practiceMode: 'PRACTICE_ROOM',
           isCorrect: true,
           timeTakenMs: 1200,
@@ -725,7 +761,7 @@ describe('PracticeRoomService', () => {
           moduleUnitId: 999,
           questionUnitId: 201,
           questionContentId: 301,
-          sessionId: 77,
+          sessionId: '11111111-1111-4111-8111-111111111077',
           practiceMode: 'PRACTICE_ROOM' as any,
           timeTakenMs: 1200,
           hintUnlocked: true,
@@ -744,7 +780,7 @@ describe('PracticeRoomService', () => {
           moduleUnitId: 10,
           questionUnitId: 201,
           questionContentId: 301,
-          sessionId: 77,
+          sessionId: '11111111-1111-4111-8111-111111111077',
           practiceMode: 'PRACTICE_ROOM' as any,
           timeTakenMs: 1200,
           hintUnlocked: true,
@@ -762,7 +798,9 @@ describe('PracticeRoomService', () => {
       );
       const mockModuleUnit = buildMockModuleUnit({ questionUnits: questions });
       prisma.moduleUnit.findFirst.mockResolvedValue(mockModuleUnit as any);
-      prisma.practiceSession.create.mockResolvedValue({ id: 1000 } as any);
+      prisma.practiceSession.create.mockResolvedValue({
+        id: '11111111-1111-4111-8111-111111112000',
+      } as any);
 
       prisma.questionAttempt.findMany.mockResolvedValue([]);
 
@@ -796,7 +834,9 @@ describe('PracticeRoomService', () => {
         questionUnits: [buildQuestionUnit(1, true)],
       });
       prisma.moduleUnit.findFirst.mockResolvedValue(mockModuleUnit as any);
-      prisma.practiceSession.create.mockResolvedValue({ id: 999 } as any);
+      prisma.practiceSession.create.mockResolvedValue({
+        id: '11111111-1111-4111-8111-111111111999',
+      } as any);
       prisma.questionAttempt.findMany.mockResolvedValue([]);
 
       const result = await service.getPracticeRoom(1, 10, 100);
@@ -813,12 +853,16 @@ describe('PracticeRoomService', () => {
         questionUnits: [buildQuestionUnit(888888, true)],
       });
       prisma.moduleUnit.findFirst.mockResolvedValue(mockModuleUnit as any);
-      prisma.practiceSession.create.mockResolvedValue({ id: 9999999 } as any);
+      prisma.practiceSession.create.mockResolvedValue({
+        id: '11111111-1111-4111-8111-111119999999',
+      } as any);
       prisma.questionAttempt.findMany.mockResolvedValue([]);
 
       const result = await service.getPracticeRoom(777777, 999999, 666666);
 
-      expect(result.practiceRoom.sessionId).toBe(9999999);
+      expect(result.practiceRoom.sessionId).toBe(
+        '11111111-1111-4111-8111-111119999999',
+      );
       expect(result.practiceRoom.moduleUnitId).toBe(999999);
     });
   });

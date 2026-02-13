@@ -8,7 +8,7 @@ describe('PracticeSessionService', () => {
   let prisma: PrismaMock;
   let service: PracticeSessionService;
   const modelKey = 'practiceSession';
-  const id = 7;
+  const id = '11111111-1111-4111-8111-111111111111';
   const baseDto = {
     moduleId: 1,
     userId: 2,

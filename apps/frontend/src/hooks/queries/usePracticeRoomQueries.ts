@@ -7,7 +7,7 @@ import { queryKeys } from '../query-keys';
 export function useModuleUnitPracticeRoomQuery(
   moduleId: number | null,
   moduleUnitId: number | null,
-  sessionId: number | null,
+  sessionId: string | null,
 ) {
   return useQuery({
     queryKey:

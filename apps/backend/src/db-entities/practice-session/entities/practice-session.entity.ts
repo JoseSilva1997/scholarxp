@@ -1,5 +1,5 @@
 export class PracticeSession {
-  id: number;
+  id: string;
   moduleId: number;
   userId: number;
   startTime: Date;

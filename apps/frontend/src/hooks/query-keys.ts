@@ -12,7 +12,7 @@ export const queryKeys = {
     moduleUnitPracticeRoom: (
       moduleId: number,
       unitId: number,
-      sessionId?: number,
+      sessionId?: string,
     ) => ['modules', 'practice-room', moduleId, unitId, sessionId ?? 'new'] as const,
     moduleUnitPracticeRoomBase: (moduleId: number, unitId: number) =>
       ['modules', 'practice-room', moduleId, unitId] as const,

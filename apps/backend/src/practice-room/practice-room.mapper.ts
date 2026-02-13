@@ -10,7 +10,7 @@ import type {
 } from './practice-room.types';
 
 type BuildResponseInput = {
-  sessionId: number;
+  sessionId: string;
   moduleUnitId: number;
   moduleUnitTitle: string;
   questionUnitDrafts: RoomQuestionUnitDraft[];

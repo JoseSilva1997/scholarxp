@@ -5,6 +5,7 @@ import {
   IsNotEmpty,
   IsObject,
   IsString,
+  IsUUID,
 } from 'class-validator';
 import type { PracticeMode } from '@scholarxp/constants';
 
@@ -25,8 +26,8 @@ export class CreateQuestionAttemptDto {
   @IsNotEmpty()
   contentId: number;
 
-  @IsInt()
-  sessionId: number;
+  @IsUUID()
+  sessionId: string;
 
   @IsString()
   @IsNotEmpty()

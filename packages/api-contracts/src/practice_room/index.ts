@@ -3,7 +3,7 @@ import type { PracticeMode } from '@scholarxp/constants';
 
 // Module-unit-scoped room payload used by the current practice-room flow.
 export interface ModuleUnitPracticeRoom {
-  sessionId: number;
+  sessionId: string;
   moduleUnitId: number;
   moduleUnitTitle: string;
   questions: PracticeQuestionUnit[];
@@ -73,7 +73,7 @@ export interface CreateModuleUnitPracticeRoomPayload {
 
 // Optional query params for loading a room; when provided, sessionId resumes an in-progress session.
 export interface GetModuleUnitPracticeRoomQuery {
-  sessionId?: number;
+  sessionId?: string;
 }
 
 // Top-level response used by the module-unit practice room page on initial load.
@@ -86,7 +86,7 @@ export interface SubmitAttemptPayload {
   moduleUnitId: number;
   questionUnitId: number;
   questionContentId: number;
-  sessionId: number;
+  sessionId: string;
   practiceMode: PracticeMode;
   timeTakenMs: number;
   hintUnlocked: boolean;

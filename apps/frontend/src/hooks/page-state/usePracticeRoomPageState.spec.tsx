@@ -97,10 +97,14 @@ describe('usePracticeRoomPageState (core-only)', () => {
     renderHookWithParams(
       '1',
       '1',
-      '/main/modules/1/1/practice-room?sessionId=77',
+      '/main/modules/1/1/practice-room?sessionId=11111111-1111-4111-8111-111111111077',
     );
 
-    expect(useModuleUnitPracticeRoomQueryMock).toHaveBeenCalledWith(1, 1, 77);
+    expect(useModuleUnitPracticeRoomQueryMock).toHaveBeenCalledWith(
+      1,
+      1,
+      '11111111-1111-4111-8111-111111111077',
+    );
   });
 
   it('uses core question as active question and seeds selected option from core last attempt', () => {
@@ -109,7 +113,7 @@ describe('usePracticeRoomPageState (core-only)', () => {
       error: null,
       data: {
         practiceRoom: {
-          sessionId: 7,
+          sessionId: '11111111-1111-4111-8111-111111111007',
           moduleUnitId: 3,
           moduleUnitTitle: 'Unit',
           questions: [
@@ -150,7 +154,7 @@ describe('usePracticeRoomPageState (core-only)', () => {
       error: null,
       data: {
         practiceRoom: {
-          sessionId: 7,
+          sessionId: '11111111-1111-4111-8111-111111111007',
           moduleUnitId: 3,
           moduleUnitTitle: 'Unit',
           questions: [
@@ -215,7 +219,7 @@ describe('usePracticeRoomPageState (core-only)', () => {
   });
 
   it('resets selected question to the beginning when a new practice session starts', () => {
-    let currentSessionId = 7;
+    let currentSessionId = '11111111-1111-4111-8111-111111111007';
     useModuleUnitPracticeRoomQueryMock.mockImplementation(() => ({
       isPending: false,
       error: null,
@@ -277,7 +281,7 @@ describe('usePracticeRoomPageState (core-only)', () => {
     expect(initialRender.getState().selectedQuestionUnitIndex).toBe(1);
     initialRender.unmount();
 
-    currentSessionId = 8;
+    currentSessionId = '11111111-1111-4111-8111-111111111008';
     const nextSessionRender = renderHookWithParams('1', '1');
     expect(nextSessionRender.getState().selectedQuestionUnitIndex).toBe(0);
     expect(nextSessionRender.getState().activeQuestion.question.id).toBe(100);
@@ -294,7 +298,7 @@ describe('usePracticeRoomPageState (core-only)', () => {
       error: null,
       data: {
         practiceRoom: {
-          sessionId: 9,
+          sessionId: '11111111-1111-4111-8111-111111111009',
           moduleUnitId: 3,
           moduleUnitTitle: 'Unit',
           questions: [
@@ -360,7 +364,7 @@ describe('usePracticeRoomPageState (core-only)', () => {
       error: null,
       data: {
         practiceRoom: {
-          sessionId: 10,
+          sessionId: '11111111-1111-4111-8111-111111111010',
           moduleUnitId: 3,
           moduleUnitTitle: 'Unit',
           questions: [

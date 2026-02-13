@@ -29,7 +29,7 @@ export class PracticeSessionController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.practiceSessionService.findOne(+id);
+    return this.practiceSessionService.findOne(id);
   }
 
   @Patch(':id')
@@ -37,11 +37,11 @@ export class PracticeSessionController {
     @Param('id') id: string,
     @Body() updatePracticeSessionDto: UpdatePracticeSessionDto,
   ) {
-    return this.practiceSessionService.update(+id, updatePracticeSessionDto);
+    return this.practiceSessionService.update(id, updatePracticeSessionDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.practiceSessionService.remove(+id);
+    return this.practiceSessionService.remove(id);
   }
 }

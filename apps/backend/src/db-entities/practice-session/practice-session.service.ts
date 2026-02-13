@@ -23,11 +23,11 @@ export class PracticeSessionService {
     return this.prisma.practiceSession.findMany();
   }
 
-  async findOne(id: number) {
+  async findOne(id: string) {
     return this.getOrThrow(id);
   }
 
-  async update(id: number, updatePracticeSessionDto: UpdatePracticeSessionDto) {
+  async update(id: string, updatePracticeSessionDto: UpdatePracticeSessionDto) {
     await this.getOrThrow(id);
     const { startTime, endTime, ...rest } = updatePracticeSessionDto;
     return this.prisma.practiceSession.update({
@@ -45,12 +45,12 @@ export class PracticeSessionService {
     });
   }
 
-  async remove(id: number) {
+  async remove(id: string) {
     await this.getOrThrow(id);
     return this.prisma.practiceSession.delete({ where: { id } });
   }
 
-  private async getOrThrow(id: number) {
+  private async getOrThrow(id: string) {
     const record = await this.prisma.practiceSession.findUnique({
       where: { id },
     });

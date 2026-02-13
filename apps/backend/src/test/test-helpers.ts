@@ -153,7 +153,8 @@ interface CrudControllerTestConfig<TCreate, TUpdate> {
   createDto: TCreate;
   updateDto: TUpdate;
   sampleResponse?: any;
-  baseId?: number;
+  baseId?: number | string;
+  parseId?: (id: string) => unknown;
   extraProviders?: any[];
 }
 
@@ -171,6 +172,7 @@ export function runCrudControllerTests<TCreate, TUpdate>(
     };
 
     const baseId = config.baseId ?? 21;
+    const parseId = config.parseId ?? ((id: string) => Number(id));
 
     beforeEach(async () => {
       service = {
@@ -219,33 +221,36 @@ export function runCrudControllerTests<TCreate, TUpdate>(
       expect(result).toEqual(response);
     });
 
-    it('findOne parses id to number and returns service result', async () => {
+    it('findOne parses id and returns service result', async () => {
       const response = { id: baseId };
       service.findOne.mockResolvedValue(response);
 
       const result = await controller.findOne(String(baseId));
 
-      expect(service.findOne).toHaveBeenCalledWith(baseId);
+      expect(service.findOne).toHaveBeenCalledWith(parseId(String(baseId)));
       expect(result).toEqual(response);
     });
 
-    it('update parses id to number and forwards DTO', async () => {
+    it('update parses id and forwards DTO', async () => {
       const response = { id: baseId, ...config.updateDto };
       service.update.mockResolvedValue(response);
 
       const result = await controller.update(String(baseId), config.updateDto);
 
-      expect(service.update).toHaveBeenCalledWith(baseId, config.updateDto);
+      expect(service.update).toHaveBeenCalledWith(
+        parseId(String(baseId)),
+        config.updateDto,
+      );
       expect(result).toEqual(response);
     });
 
-    it('remove parses id to number and delegates', async () => {
+    it('remove parses id and delegates', async () => {
       const response = { id: baseId };
       service.remove.mockResolvedValue(response);
 
       const result = await controller.remove(String(baseId));
 
-      expect(service.remove).toHaveBeenCalledWith(baseId);
+      expect(service.remove).toHaveBeenCalledWith(parseId(String(baseId)));
       expect(result).toEqual(response);
     });
 

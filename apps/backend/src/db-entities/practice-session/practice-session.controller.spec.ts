@@ -6,6 +6,9 @@ runCrudControllerTests({
   name: 'PracticeSessionController',
   controller: PracticeSessionController,
   service: PracticeSessionService,
+  // PracticeSession now uses UUID identifiers, so controller routes pass id strings through without numeric coercion.
+  baseId: '11111111-1111-4111-8111-111111111111',
+  parseId: (id: string) => id,
   createDto: {
     moduleId: 1,
     userId: 2,

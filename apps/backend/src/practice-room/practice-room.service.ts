@@ -37,7 +37,7 @@ export class PracticeRoomService {
     moduleId: number,
     moduleUnitId: number,
     studentId: number,
-    existingSessionId?: number,
+    existingSessionId?: string,
   ): Promise<ModuleUnitPracticeRoomResponseDto> {
     const moduleUnit = await this.getModuleUnitOrThrow(moduleId, moduleUnitId);
     const session =
@@ -226,7 +226,7 @@ export class PracticeRoomService {
   private async validateSession(
     moduleId: number,
     studentId: number,
-    sessionId: number,
+    sessionId: string,
   ) {
     await this.getPracticeSessionOrThrow(moduleId, studentId, sessionId);
   }
@@ -235,8 +235,8 @@ export class PracticeRoomService {
   private async getPracticeSessionOrThrow(
     moduleId: number,
     studentId: number,
-    sessionId: number,
-  ): Promise<{ id: number }> {
+    sessionId: string,
+  ): Promise<{ id: string }> {
     const session = await this.prisma.practiceSession.findFirst({
       where: {
         id: sessionId,
