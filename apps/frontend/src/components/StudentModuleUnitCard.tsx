@@ -74,9 +74,9 @@ export default function StudentModuleUnitCard({ unit }: StudentModuleUnitCardPro
             <p className={styles.groupTitle}>{group.title}</p>
             <div className={styles.questions}>
               {group.questions && group.questions.length > 0 ? (
-                group.questions.map((q, idx) => (
-                  <span key={idx} className={styles.question}>
-                    {q}
+                group.questions.map((question) => (
+                  <span key={question.id} className={styles.question}>
+                    {question.title}
                   </span>
                 ))
               ) : (

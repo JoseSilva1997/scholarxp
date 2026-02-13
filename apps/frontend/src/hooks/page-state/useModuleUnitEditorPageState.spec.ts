@@ -226,6 +226,36 @@ describe('useModuleUnitEditorPageState', () => {
       expect(result.current.parsedModuleId).toBe(1);
       expect(result.current.parsedUnitId).toBeNull();
     });
+
+    it('selects question from initial question id param when present', async () => {
+      editorDataState = {
+        isPending: false,
+        isError: false,
+        error: null,
+        data: buildEditorData({
+          questionGroups: [
+            createQuestionGroup(100, 'Group 1', 1, [createQuestion(200, 'Q1')]),
+            createQuestionGroup(101, 'Group 2', 2, [createQuestion(300, 'Q2')]),
+          ],
+        }),
+      };
+
+      const { result } = renderHook(() =>
+        useModuleUnitEditorPageState({
+          moduleIdParam: '1',
+          unitIdParam: '2',
+          initialQuestionIdParam: '300',
+        }),
+      );
+
+      await waitFor(() => {
+        expect(result.current.selected).toEqual({
+          groupId: '101',
+          questionId: '300',
+          variantId: null,
+        });
+      });
+    });
   });
 
   // ===== Loading States =====

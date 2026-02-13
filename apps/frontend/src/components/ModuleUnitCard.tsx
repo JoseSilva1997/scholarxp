@@ -12,10 +12,15 @@ import type { ModuleUnitStatus } from '@scholarxp/api-contracts';
 
 export type { ModuleUnitStatus } from '@scholarxp/api-contracts';
 
+export type ModuleUnitQuestionPreview = {
+  id: string;
+  title: string;
+};
+
 export type QuestionUnitGroup = {
   id: string;
   title: string;
-  questions?: string[];
+  questions?: ModuleUnitQuestionPreview[];
 };
 
 export type ModuleUnit = {
@@ -35,6 +40,7 @@ export default function ModuleUnitCard({ unit, onChangeStatus }: ModuleUnitCardP
   const [isOpen, setIsOpen] = useState(false);
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [showEditWarningModal, setShowEditWarningModal] = useState(false);
+  const [pendingQuestionId, setPendingQuestionId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -73,6 +79,12 @@ export default function ModuleUnitCard({ unit, onChangeStatus }: ModuleUnitCardP
     };
   }, [unit.status]);
 
+  const openEditorWarning = (questionId: string | null = null) => {
+    // Reuse lifecycle warning before entering editor regardless of whether a specific question was selected.
+    setPendingQuestionId(questionId);
+    setShowEditWarningModal(true);
+  };
+
   return (
     <div className={styles.wrapper}>
       <article className={styles.card}>
@@ -106,8 +118,7 @@ export default function ModuleUnitCard({ unit, onChangeStatus }: ModuleUnitCardP
                 className={styles.editButton} 
                 aria-label="Edit module unit"
                 onClick={() => {
-                  // Route transitions are gated by explicit confirmation so instructors see lifecycle warnings first.
-                  setShowEditWarningModal(true);
+                  openEditorWarning();
                 }}
                 >
                 Edit
@@ -139,10 +150,16 @@ export default function ModuleUnitCard({ unit, onChangeStatus }: ModuleUnitCardP
             <p className={styles.groupTitle}>{group.title}</p>
             <div className={styles.questions}>
               {group.questions && group.questions.length > 0 ? (
-                group.questions.map((q, idx) => (
-                  <span key={idx} className={styles.question}>
-                    {q}
-                  </span>
+                group.questions.map((question) => (
+                  <button
+                    key={question.id}
+                    type="button"
+                    className={styles.question}
+                    onClick={() => openEditorWarning(question.id)}
+                    aria-label={`Edit ${question.title}`}
+                  >
+                    {question.title}
+                  </button>
                 ))
               ) : (
                 <span className={styles.empty}>No questions yet</span>
@@ -187,10 +204,17 @@ export default function ModuleUnitCard({ unit, onChangeStatus }: ModuleUnitCardP
 
       <ConfirmPublishModal
         isOpen={showEditWarningModal}
-        onCancel={() => setShowEditWarningModal(false)}
-        onConfirm={() => {
+        onCancel={() => {
           setShowEditWarningModal(false);
-          navigate(`/main/modules/${moduleId}/${unit.id}/editor`);
+          setPendingQuestionId(null);
+        }}
+        onConfirm={() => {
+          const targetPath = pendingQuestionId
+            ? `/main/modules/${moduleId}/${unit.id}/editor?questionId=${encodeURIComponent(pendingQuestionId)}`
+            : `/main/modules/${moduleId}/${unit.id}/editor`;
+          setShowEditWarningModal(false);
+          setPendingQuestionId(null);
+          navigate(targetPath);
         }}
         title={editWarningCopy.title}
         body={editWarningCopy.body}

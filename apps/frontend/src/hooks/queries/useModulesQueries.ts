@@ -1,8 +1,10 @@
 // Shared modules query/mutation hooks so list and creation flows use one cache contract.
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   CreateModulePayload,
   CreateModuleUnitMinimalPayload,
+  ModuleUnitEditorResponse,
   ModuleSummaryResponse,
   ModuleUnitResponse,
   UpdateModulePayload,
@@ -12,6 +14,7 @@ import {
   createModule,
   createModuleUnit,
   getModuleById,
+  getModuleUnitEditor,
   getModuleUnits,
   listModules,
   updateModule,
@@ -104,6 +107,32 @@ export function useModuleUnitsQuery(moduleId: number | null) {
     enabled: moduleId !== null,
     staleTime: 30_000,
   });
+}
+
+type ModuleUnitQuestionPreviewMap = Record<number, ModuleUnitEditorResponse>;
+
+export function useModuleUnitQuestionPreviewsQuery(moduleId: number | null, unitIds: number[]) {
+  const queries = useQueries({
+    queries: unitIds.map((unitId) => ({
+      queryKey: queryKeys.modules.unitEditor(moduleId ?? 0, unitId),
+      queryFn: () => getModuleUnitEditor(moduleId!, unitId),
+      // Fetch previews only when module scope is known; callers pass unit ids from the units list.
+      enabled: moduleId !== null,
+      staleTime: 30_000,
+    })),
+  });
+
+  const previewsByUnitId = useMemo<ModuleUnitQuestionPreviewMap>(() => {
+    return unitIds.reduce<ModuleUnitQuestionPreviewMap>((acc, unitId, index) => {
+      const preview = queries[index]?.data;
+      if (preview) {
+        acc[unitId] = preview;
+      }
+      return acc;
+    }, {});
+  }, [queries, unitIds]);
+
+  return previewsByUnitId;
 }
 
 export function useCreateModuleUnitMutation(moduleId: number | null) {

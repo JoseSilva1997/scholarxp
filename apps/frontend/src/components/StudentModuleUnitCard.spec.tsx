@@ -8,7 +8,7 @@ const baseUnit = {
   title: 'Lesson A',
   status: 'live' as const,
   questionCount: 2,
-  questionGroups: [{ id: 'g1', title: 'Group 1', questions: ['Q1'] }],
+  questionGroups: [{ id: 'g1', title: 'Group 1', questions: [{ id: '101', title: 'Q1' }] }],
 };
 
 describe('StudentModuleUnitCard', () => {

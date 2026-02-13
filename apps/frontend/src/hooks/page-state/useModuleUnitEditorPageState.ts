@@ -101,6 +101,7 @@ type SelectionState = {
 type UseModuleUnitEditorPageStateParams = {
   moduleIdParam: string | undefined;
   unitIdParam: string | undefined;
+  initialQuestionIdParam?: string;
 };
 
 type DeleteCopy = {
@@ -287,6 +288,7 @@ const mapEditorGroupsToState = (
 export function useModuleUnitEditorPageState({
   moduleIdParam,
   unitIdParam,
+  initialQuestionIdParam,
 }: UseModuleUnitEditorPageStateParams) {
   // ===== Route Scope and Server State =====
   // Route scope parsing keeps downstream query/mutation hooks guarded by valid numeric ids.
@@ -1519,22 +1521,44 @@ export function useModuleUnitEditorPageState({
     setExpandedGroups(new Set(mappedGroups.map((group) => group.id)));
 
     const firstQuestion = mappedGroups[0]?.questions[0];
+    // Deep-link support from module cards: focus a requested question when it exists in this unit.
+    const initialQuestionSelection = initialQuestionIdParam
+      ? mappedGroups
+          .map((group) => ({
+            groupId: group.id,
+            question: group.questions.find(
+              (question) => question.id === initialQuestionIdParam,
+            ),
+          }))
+          .find((candidate) => candidate.question)
+      : null;
+    const selectedGroupId = initialQuestionSelection?.groupId ?? mappedGroups[0]?.id;
+    const selectedQuestion = initialQuestionSelection?.question ?? firstQuestion;
     setSelected(
-      mappedGroups[0]
+      selectedGroupId
         ? {
-            groupId: mappedGroups[0].id,
-            questionId: firstQuestion?.id ?? null,
+            groupId: selectedGroupId,
+            questionId: selectedQuestion?.id ?? null,
             variantId: null,
           }
         : null,
     );
 
-    if (firstQuestion?.coreContent) {
-      loadContentIntoForm(firstQuestion.coreContent, `${firstQuestion.id}-core`);
+    if (selectedQuestion?.coreContent) {
+      loadContentIntoForm(
+        selectedQuestion.coreContent,
+        `${selectedQuestion.id}-core`,
+      );
     } else {
       setForm(buildInitialForm());
     }
-  }, [editorDataQuery.data, parsedUnitId, loadContentIntoForm, buildInitialForm]);
+  }, [
+    editorDataQuery.data,
+    parsedUnitId,
+    initialQuestionIdParam,
+    loadContentIntoForm,
+    buildInitialForm,
+  ]);
 
   useEffect(() => {
     // Selection changes rehydrate form state from either core content or selected variant content.

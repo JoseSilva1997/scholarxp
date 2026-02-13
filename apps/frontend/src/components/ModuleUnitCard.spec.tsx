@@ -40,7 +40,16 @@ describe('ModuleUnitCard', () => {
     title: 'Unit A',
     status: 'draft' as const,
     questionCount: 2,
-    questionGroups: [{ id: 'g1', title: 'Group 1', questions: ['Q1', 'Q2'] }],
+    questionGroups: [
+      {
+        id: 'g1',
+        title: 'Group 1',
+        questions: [
+          { id: '101', title: 'Q1' },
+          { id: '102', title: 'Q2' },
+        ],
+      },
+    ],
   };
 
   beforeEach(() => {
@@ -256,6 +265,34 @@ describe('ModuleUnitCard', () => {
       expect(navigateMock).toHaveBeenCalledWith('/main/modules/9/12/editor');
     });
 
+    it('opens edit warning and navigates to specific question when question is clicked', async () => {
+      const unit = { ...baseUnit, status: 'draft' as const };
+      render(<ModuleUnitCard unit={unit} />);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Expand question groups' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Edit Q1' }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Edit draft lesson?')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Edit draft lesson', { selector: 'button' }));
+
+      expect(navigateMock).toHaveBeenCalledWith('/main/modules/9/12/editor?questionId=101');
+    });
+
+    it('shows live warning when question is clicked for a live lesson', async () => {
+      const unit = { ...baseUnit, status: 'live' as const };
+      render(<ModuleUnitCard unit={unit} />);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Expand question groups' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Edit Q1' }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Edit live lesson?')).toBeInTheDocument();
+      });
+    });
+
     it('closes edit warning modal on cancel', async () => {
       const unit = { ...baseUnit, status: 'draft' as const };
       render(<ModuleUnitCard unit={unit} />);
@@ -361,8 +398,15 @@ describe('ModuleUnitCard', () => {
       const unit = {
         ...baseUnit,
         questionGroups: [
-          { id: 'g1', title: 'Group 1', questions: ['Q1', 'Q2'] },
-          { id: 'g2', title: 'Group 2', questions: ['Q3'] },
+          {
+            id: 'g1',
+            title: 'Group 1',
+            questions: [
+              { id: '101', title: 'Q1' },
+              { id: '102', title: 'Q2' },
+            ],
+          },
+          { id: 'g2', title: 'Group 2', questions: [{ id: '201', title: 'Q3' }] },
         ],
       };
       render(<ModuleUnitCard unit={unit} />);
@@ -403,7 +447,7 @@ describe('ModuleUnitCard', () => {
       const unit = {
         ...baseUnit,
         questionGroups: [
-          { id: 'g1', title: 'Group 1', questions: ['Q1'] },
+          { id: 'g1', title: 'Group 1', questions: [{ id: '101', title: 'Q1' }] },
           { id: 'g2', title: 'Group 2', questions: [] },
           { id: 'g3', title: 'Group 3' }, // undefined questions
         ],

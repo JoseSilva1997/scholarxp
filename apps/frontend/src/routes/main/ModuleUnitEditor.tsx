@@ -1,5 +1,5 @@
 // Module unit authoring workspace UI that renders editor state from the page-state hook.
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { FiArchive, FiCheck, FiEdit2, FiTrash2, FiX } from 'react-icons/fi';
 import { VscSparkleFilled } from 'react-icons/vsc';
 import {
@@ -19,6 +19,8 @@ import styles from './ModuleUnitEditor.module.css';
 
 export default function ModuleUnitEditor() {
   const { moduleId, unitId } = useParams<{ moduleId: string; unitId: string }>();
+  const [searchParams] = useSearchParams();
+  const initialQuestionIdParam = searchParams.get('questionId') ?? undefined;
   const {
     parsedModuleId,
     parsedUnitId,
@@ -73,6 +75,7 @@ export default function ModuleUnitEditor() {
   } = useModuleUnitEditorPageState({
     moduleIdParam: moduleId,
     unitIdParam: unitId,
+    initialQuestionIdParam,
   });
 
   const handleGenerateVariant = () => {
