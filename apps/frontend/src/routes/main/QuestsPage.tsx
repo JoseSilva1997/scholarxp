@@ -5,19 +5,30 @@ import { useQuestPageState } from '../../hooks/page-state/useQuestPageState';
 import styles from './QuestsPage.module.css';
 
 export default function QuestsPage() {
-  const { daySections } = useQuestPageState();
+  const { daySections, isLoading, pageError, canLoadMore, loadMore } = useQuestPageState();
 
   return (
     <MainSection>
       <h1>Quest History</h1>
+      {isLoading ? <p>Loading quest history...</p> : null}
+      {pageError ? (
+        <p role="alert" className={styles.errorMessage}>
+          {pageError}
+        </p>
+      ) : null}
       <div className={styles.dayList}>
         {daySections.map((daySection) => (
           <section key={daySection.questDayUtc} className={styles.daySection}>
             <p className={styles.dayLabel}>{daySection.dayLabel}</p>
-            <QuestHistoryCard />
+            <QuestHistoryCard quests={daySection.quests} />
           </section>
         ))}
       </div>
+      {canLoadMore ? (
+        <button type="button" className={styles.loadMoreButton} onClick={loadMore}>
+          Load more
+        </button>
+      ) : null}
     </MainSection>
   );
 }

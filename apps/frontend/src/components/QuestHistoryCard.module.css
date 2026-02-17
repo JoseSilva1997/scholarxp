@@ -20,7 +20,14 @@
 .slot {
   display: flex;
   justify-content: center;
+  align-items: center;
   min-width: 0;
+}
+
+.badge {
+  width: var(--quest-badge-size);
+  height: var(--quest-badge-size);
+  object-fit: contain;
 }
 
 .emptyIcon {

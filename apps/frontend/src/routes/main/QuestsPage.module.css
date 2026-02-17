@@ -18,3 +18,25 @@
   font-weight: 600;
   color: #475569;
 }
+
+.loadMoreButton {
+  margin-top: 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #334155;
+  padding: 8px 14px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.loadMoreButton:hover {
+  background: #f8fafc;
+}
+
+.errorMessage {
+  margin: 8px 0 0;
+  color: #b91c1c;
+  font-weight: 500;
+}

@@ -17,4 +17,7 @@ export const queryKeys = {
     moduleUnitPracticeRoomBase: (moduleId: number, unitId: number) =>
       ['modules', 'practice-room', moduleId, unitId] as const,
   },
+  quests: {
+    history: ['quests', 'history'] as const,
+  },
 };
