@@ -23,6 +23,7 @@ export const QUEST_TYPE_LABELS = {
 } as const;
 
 // Structure of a quest object as returned by the API.
+// Quests are generated at UTC midnight each day for each student based on their current progress.
 export interface Quest {
     id: number;
     moduleId: number;
@@ -30,7 +31,12 @@ export interface Quest {
     type: QuestType;
     expGranted: number;
     isCompleted: boolean;
-    generatedAt: string; // ISO date string
+    // Canonical UTC day for "today" and history grouping.
+    questDateUtc: string; // YYYY-MM-DD
+    // Creation timestamp for auditing and troubleshooting generation runs.
+    generatedAt: string; // ISO date-time string (UTC)
+    // Nullable because incomplete quests do not have a completion timestamp.
+    completedAt: string | null; // ISO date-time string (UTC)
 };
 
 // Stucture of the response from the API when fetching quests for a student.

@@ -57,7 +57,10 @@ export class PracticeRoomService {
           );
     const questionUnitDrafts =
       this.practiceRoomMapper.toQuestionUnitDrafts(moduleUnit);
-    const isReadOnly = await this.isModuleUnitCompleted(moduleUnitId, studentId);
+    const isReadOnly = await this.isModuleUnitCompleted(
+      moduleUnitId,
+      studentId,
+    );
     const latestAttempts = await this.getLatestAttempts(
       moduleUnitId,
       studentId,

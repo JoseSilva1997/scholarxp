@@ -113,16 +113,21 @@ model UserModule {
 }
 
 model DailyQuest {
-  id          Int      @id @default(autoincrement())
-  moduleId    Int      @map("module_id")
-  userId      Int      @map("user_id")
+  id          Int       @id @default(autoincrement())
+  moduleId    Int       @map("module_id")
+  userId      Int       @map("user_id")
   type        String
-  expGranted  Int      @map("exp_granted")
-  isCompleted Boolean  @default(false) @map("is_completed")
-  generatedAt DateTime @default(now()) @map("generated_at")
-  module      Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expGranted  Int       @map("exp_granted")
+  isCompleted Boolean   @default(false) @map("is_completed")
+  // UTC calendar day anchor used for "today" reads and quest history grouping.
+  questDateUtc DateTime  @db.Date @map("quest_date_utc")
+  generatedAt DateTime  @default(now()) @map("generated_at")
+  // Nullable because incomplete quests do not have a completion timestamp.
+  completedAt DateTime? @map("completed_at")
+  module      Module    @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, moduleId, type, questDateUtc])
   @@map("daily_quests")
 }
 
