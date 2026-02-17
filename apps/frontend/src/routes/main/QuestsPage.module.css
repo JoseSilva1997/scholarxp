@@ -1,0 +1,20 @@
+/* Quests page layout styles keep each date label directly attached to its corresponding history card. */
+.dayList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.daySection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dayLabel {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #475569;
+}

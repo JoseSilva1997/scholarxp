@@ -73,6 +73,7 @@
   --module-unit-round-button-size: 72px;
   --avatar-size: 48px;
   --status-icon-size: 80px;
+  --quest-badge-size: 108px;
 
   font-family: var(--font-sans);
   color: var(--color-text);
