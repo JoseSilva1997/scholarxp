@@ -5,7 +5,8 @@ import { useQuestPageState } from '../../hooks/page-state/useQuestPageState';
 import styles from './QuestsPage.module.css';
 
 export default function QuestsPage() {
-  const { daySections, isLoading, pageError, canLoadMore, loadMore } = useQuestPageState();
+  const { daySections, isLoading, isLoadingMore, pageError, canLoadMore, loadMore } =
+    useQuestPageState();
 
   return (
     <MainSection>
@@ -25,8 +26,13 @@ export default function QuestsPage() {
         ))}
       </div>
       {canLoadMore ? (
-        <button type="button" className={styles.loadMoreButton} onClick={loadMore}>
-          Load more
+        <button
+          type="button"
+          className={styles.loadMoreButton}
+          onClick={loadMore}
+          disabled={isLoadingMore}
+        >
+          {isLoadingMore ? 'Loading...' : 'Load more'}
         </button>
       ) : null}
     </MainSection>

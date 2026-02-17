@@ -19,6 +19,7 @@ describe('QuestsPage route', () => {
         { questDayUtc: '2026-02-17', dayLabel: 'Today', quests: [null, null, null] },
       ],
       isLoading: false,
+      isLoadingMore: false,
       pageError: null,
       canLoadMore: true,
       loadMore,

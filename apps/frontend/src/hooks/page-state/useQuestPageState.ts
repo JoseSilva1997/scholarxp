@@ -1,10 +1,13 @@
-// Quests page-state orchestrates quest history fetching, UTC day grouping, and incremental day pagination.
-import { useEffect, useMemo, useState } from 'react';
+// Quests page-state orchestrates paged quest-history fetching, UTC day grouping, and load-more actions.
+import { useEffect, useMemo } from 'react';
 import type { Quest } from '@scholarxp/api-contracts';
-import { getDisplayErrorMessage, shouldLogApiError } from '../../api/get-display-error';
+import {
+  getDisplayErrorMessage,
+  shouldLogApiError,
+} from '../../api/get-display-error';
 import { useAuth } from '../../context/AuthContext';
 import { logError } from '../../utils/logger';
-import { useQuestHistoryQuery } from '../queries/useQuestsQueries';
+import { useQuestHistoryInfiniteQuery } from '../queries/useQuestsQueries';
 
 const QUESTS_PER_DAY = 3;
 const DAY_PAGE_SIZE = 14;
@@ -18,6 +21,7 @@ export type QuestDaySection = {
 type UseQuestPageStateResult = {
   daySections: QuestDaySection[];
   isLoading: boolean;
+  isLoadingMore: boolean;
   pageError: string | null;
   canLoadMore: boolean;
   loadMore: () => void;
@@ -25,9 +29,11 @@ type UseQuestPageStateResult = {
 
 export function useQuestPageState(): UseQuestPageStateResult {
   const { user, isLoading: isAuthLoading } = useAuth();
-  const [visibleDayCount, setVisibleDayCount] = useState(DAY_PAGE_SIZE);
   const isHistoryQueryEnabled = !isAuthLoading && Boolean(user);
-  const questHistoryQuery = useQuestHistoryQuery(isHistoryQueryEnabled);
+  const questHistoryQuery = useQuestHistoryInfiniteQuery(
+    isHistoryQueryEnabled,
+    DAY_PAGE_SIZE,
+  );
 
   useEffect(() => {
     if (!questHistoryQuery.error) return;
@@ -37,10 +43,11 @@ export function useQuestPageState(): UseQuestPageStateResult {
   }, [questHistoryQuery.error]);
 
   const groupedQuestDays = useMemo(() => {
-    const quests = questHistoryQuery.data?.quests ?? [];
     const groupedByDay = new Map<string, Quest[]>();
+    const pages = questHistoryQuery.data?.pages ?? [];
+    const flatQuests = pages.flatMap((page) => page.quests);
 
-    for (const quest of quests) {
+    for (const quest of flatQuests) {
       const dayQuests = groupedByDay.get(quest.questDateUtc);
       if (dayQuests) {
         dayQuests.push(quest);
@@ -52,34 +59,37 @@ export function useQuestPageState(): UseQuestPageStateResult {
     return Array.from(groupedByDay.entries()).sort(([leftDay], [rightDay]) =>
       leftDay < rightDay ? 1 : -1,
     );
-  }, [questHistoryQuery.data?.quests]);
+  }, [questHistoryQuery.data?.pages]);
 
   const daySections = useMemo(() => {
-    return groupedQuestDays.slice(0, visibleDayCount).map(([questDayUtc, dayQuests]) => ({
+    return groupedQuestDays.map(([questDayUtc, dayQuests]) => ({
       questDayUtc,
       dayLabel: formatQuestDayLabel(questDayUtc),
-      // Fixed 3-slot shape keeps cards consistent even if historical data is incomplete.
+      // Fixed 3-slot shape keeps cards consistent even if one day has fewer quests.
       quests: Array.from({ length: QUESTS_PER_DAY }, (_, index) => dayQuests[index] ?? null),
     }));
-  }, [groupedQuestDays, visibleDayCount]);
+  }, [groupedQuestDays]);
 
-  const canLoadMore = groupedQuestDays.length > visibleDayCount;
-  const isLoading = isHistoryQueryEnabled && questHistoryQuery.isPending;
   const pageError = questHistoryQuery.error
     ? getDisplayErrorMessage(questHistoryQuery.error, {
-        fallbackMessage: 'We could not load your quest history right now. Please try again.',
+        fallbackMessage:
+          'We could not load your quest history right now. Please try again.',
       })
     : null;
 
   const loadMore = () => {
-    setVisibleDayCount((currentValue) => currentValue + DAY_PAGE_SIZE);
+    // Query metadata controls continuation so UI only requests valid next-day windows.
+    if (questHistoryQuery.hasNextPage && !questHistoryQuery.isFetchingNextPage) {
+      void questHistoryQuery.fetchNextPage();
+    }
   };
 
   return {
     daySections,
-    isLoading,
+    isLoading: isHistoryQueryEnabled && questHistoryQuery.isPending,
+    isLoadingMore: questHistoryQuery.isFetchingNextPage,
     pageError,
-    canLoadMore,
+    canLoadMore: Boolean(questHistoryQuery.hasNextPage),
     loadMore,
   };
 }

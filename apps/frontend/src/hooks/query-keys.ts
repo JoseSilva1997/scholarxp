@@ -18,6 +18,6 @@ export const queryKeys = {
       ['modules', 'practice-room', moduleId, unitId] as const,
   },
   quests: {
-    history: ['quests', 'history'] as const,
+    history: (dayLimit: number) => ['quests', 'history', dayLimit] as const,
   },
 };
