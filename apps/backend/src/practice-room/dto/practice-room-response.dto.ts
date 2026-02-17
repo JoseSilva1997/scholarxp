@@ -21,6 +21,7 @@ export class ModuleUnitPracticeRoomDto implements ModuleUnitPracticeRoom {
   sessionId!: string;
   moduleUnitId!: number;
   moduleUnitTitle!: string;
+  isReadOnly?: boolean;
   questions!: PracticeQuestionUnitDto[];
 }
 

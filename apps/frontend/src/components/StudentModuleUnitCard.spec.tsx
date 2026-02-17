@@ -34,7 +34,7 @@ describe('StudentModuleUnitCard', () => {
   it('disables practice button for locked lessons', () => {
     render(<StudentModuleUnitCard unit={{ ...baseUnit, status: 'locked' }} />);
 
-    expect(screen.getByRole('button', { name: 'Start practice' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Start Practice' })).toBeDisabled();
   });
 
   it('navigates to a specific practice-room question when question is clicked', () => {
@@ -101,5 +101,6 @@ describe('StudentModuleUnitCard', () => {
     render(<StudentModuleUnitCard unit={{ ...baseUnit, isCompleted: true }} />);
 
     expect(screen.getByAltText('Completion medal awarded')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'View answers' })).toBeInTheDocument();
   });
 });

@@ -832,6 +832,31 @@ describe('PracticeRoomService', () => {
         }),
       ).rejects.toThrow('Practice session not found for this module.');
     });
+
+    it('throws ForbiddenException when module unit is already completed', async () => {
+      prisma.practiceSession.findFirst.mockResolvedValue({
+        id: '11111111-1111-4111-8111-111111111077',
+      } as any);
+      prisma.moduleUnitUserProgress.findFirst.mockResolvedValue({
+        isCompleted: true,
+      } as any);
+
+      await expect(
+        service.submitAttempt(1, 10, 100, {
+          moduleUnitId: 10,
+          questionUnitId: 201,
+          questionContentId: 301,
+          sessionId: '11111111-1111-4111-8111-111111111077',
+          practiceMode: 'PRACTICE_ROOM' as any,
+          timeTakenMs: 1200,
+          hintUnlocked: true,
+          studentAnswer: { selectedOptionIndex: 2 } as any,
+        }),
+      ).rejects.toMatchObject({
+        message: 'This unit is completed. Viewing answers is read-only.',
+      });
+      expect(prisma.questionAttempt.create).not.toHaveBeenCalled();
+    });
   });
 
   describe('Boundary conditions', () => {

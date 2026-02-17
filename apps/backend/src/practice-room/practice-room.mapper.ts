@@ -13,6 +13,7 @@ type BuildResponseInput = {
   sessionId: string;
   moduleUnitId: number;
   moduleUnitTitle: string;
+  isReadOnly: boolean;
   questionUnitDrafts: RoomQuestionUnitDraft[];
   latestAttemptByKey: Map<string, LatestAttemptSnapshot>;
 };
@@ -70,6 +71,7 @@ export class PracticeRoomMapper {
       sessionId: input.sessionId,
       moduleUnitId: input.moduleUnitId,
       moduleUnitTitle: input.moduleUnitTitle,
+      isReadOnly: input.isReadOnly,
       questions: input.questionUnitDrafts.map((questionUnitDraft, index) =>
         this.mapQuestionUnitForResponse(
           questionUnitDraft,

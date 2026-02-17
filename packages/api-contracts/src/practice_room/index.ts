@@ -6,6 +6,8 @@ export interface ModuleUnitPracticeRoom {
   sessionId: string;
   moduleUnitId: number;
   moduleUnitTitle: string;
+  // Completed units are delivered as read-only so clients can disable answer interactions.
+  isReadOnly?: boolean;
   questions: PracticeQuestionUnit[];
 }
 

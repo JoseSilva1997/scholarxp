@@ -529,6 +529,58 @@ describe('usePracticeRoomPageState (core-only)', () => {
     expect(logError).toHaveBeenCalled();
   });
 
+  it('keeps selection and submit locked when backend marks room as read-only', () => {
+    useModuleUnitPracticeRoomQueryMock.mockReturnValue({
+      isPending: false,
+      error: null,
+      data: {
+        practiceRoom: {
+          sessionId: '11111111-1111-4111-8111-111111111011',
+          moduleUnitId: 3,
+          moduleUnitTitle: 'Unit',
+          isReadOnly: true,
+          questions: [
+            {
+              questionUnitId: 22,
+              position: 1,
+              hasCorrectAttempt: null,
+              coreQuestion: {
+                questionId: 22,
+                questionContent: {
+                  id: 200,
+                  type: 'mcq',
+                  questionStem: 'Q',
+                  questionData: {
+                    options: [{ optionText: 'A' }, { optionText: 'B' }],
+                    correctOptionIndex: 1,
+                  },
+                  hint: 'Read-only hint',
+                  difficultyScore: 1,
+                },
+                lastAttempt: null,
+              },
+            },
+          ],
+        },
+      },
+    });
+
+    const rendered = renderHookWithParams('1', '1');
+    let state = rendered.getState();
+    expect(state.isRoomReadOnly).toBe(true);
+    expect(state.canSubmitAttempt).toBe(false);
+
+    act(() => {
+      state.selectOption(200, 1);
+      state.unlockHintForContent(200);
+    });
+
+    state = rendered.getState();
+    expect(state.selectedOptionIndex).toBeNull();
+    expect(state.isActiveHintUnlocked).toBe(false);
+    expect(state.canSubmitAttempt).toBe(false);
+  });
+
   it('shows try again after incorrect submit and clears submitted state when retried', async () => {
     const mutateAsync = vi.fn().mockResolvedValue({
       moduleExpAwarded: 0,

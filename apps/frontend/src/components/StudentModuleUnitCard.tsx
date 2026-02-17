@@ -1,5 +1,5 @@
 // Student-facing module unit card; shows neutral badge and start practice CTA without edit or authoring controls.
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import styles from './StudentModuleUnitCard.module.css';
 import lockIcon from '../assets/module-unit/student-module-unit-padlock.svg';
 import completionMedalIcon from '../assets/module-unit/module-unit-completed-medal.png';
@@ -14,6 +14,12 @@ type StudentModuleUnitCardProps = {
 
 export default function StudentModuleUnitCard({ unit }: StudentModuleUnitCardProps) {
   const isLocked = unit.status === 'locked';
+  // Store the initial completion state to prevent label flip-flops when refetching after navigation.
+  // This ensures the button shows "View answers" for units that were completed at mount time,
+  // even if the API returns different data after a page refresh/cache invalidation.
+  const initialIsCompletedRef = useRef(unit.isCompleted);
+  // Use the memoized initial state rather than the potentially stale prop to determine button label.
+  const practiceButtonLabel = initialIsCompletedRef.current ? 'View answers' : 'Start Practice';
   const [isOpen, setIsOpen] = useState(false);
   const moduleId = window.location.pathname.split('/')[3];
   const basePracticeRoomPath = `/main/modules/${moduleId}/${unit.id}/practice-room`;
@@ -41,7 +47,7 @@ export default function StudentModuleUnitCard({ unit }: StudentModuleUnitCardPro
           <div className={styles.header}>
             {/* Badge placeholder: displays lock when unit is locked, badge when completed */}
             <div className={styles.statusButton}>
-              {unit.isCompleted ? (
+              {initialIsCompletedRef.current ? (
                 // Completion medal is shown as soon as backend progress marks the unit complete.
                 <img
                   src={completionMedalIcon}
@@ -70,14 +76,14 @@ export default function StudentModuleUnitCard({ unit }: StudentModuleUnitCardPro
               <button 
                 type="button" 
                 className={styles.practiceButton} 
-                aria-label="Start practice"
+                aria-label={practiceButtonLabel}
                 disabled={isLocked}
                 onClick={() => {
                   // Full-path assignment keeps this card router-agnostic for tests while still opening the practice room.
                   window.location.assign(basePracticeRoomPath);
                 }}
               >
-                Start Practice
+                {practiceButtonLabel}
               </button>
             </div>
           </div>

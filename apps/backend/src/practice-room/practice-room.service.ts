@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -56,6 +57,7 @@ export class PracticeRoomService {
           );
     const questionUnitDrafts =
       this.practiceRoomMapper.toQuestionUnitDrafts(moduleUnit);
+    const isReadOnly = await this.isModuleUnitCompleted(moduleUnitId, studentId);
     const latestAttempts = await this.getLatestAttempts(
       moduleUnitId,
       studentId,
@@ -68,6 +70,7 @@ export class PracticeRoomService {
       sessionId: session.id,
       moduleUnitId: moduleUnit.id,
       moduleUnitTitle: moduleUnit.title,
+      isReadOnly,
       questionUnitDrafts,
       latestAttemptByKey,
     });
@@ -82,6 +85,7 @@ export class PracticeRoomService {
   ): Promise<SubmitAttemptResponseDto> {
     this.validateModuleUnitPayload(moduleUnitId, payload.moduleUnitId);
     await this.validateSession(moduleId, studentId, payload.sessionId);
+    await this.assertModuleUnitAllowsSubmissions(moduleUnitId, studentId);
     const attemptQuestionContent = await this.loadQuestionContentForAttempt(
       moduleUnitId,
       payload.questionUnitId,
@@ -251,6 +255,32 @@ export class PracticeRoomService {
     sessionId: string,
   ) {
     await this.getPracticeSessionOrThrow(moduleId, studentId, sessionId);
+  }
+
+  // Completed module units are view-only; this prevents creating new attempts from "View answers" entry points.
+  private async assertModuleUnitAllowsSubmissions(
+    moduleUnitId: number,
+    studentId: number,
+  ) {
+    if (await this.isModuleUnitCompleted(moduleUnitId, studentId)) {
+      throw new ForbiddenException(
+        'This unit is completed. Viewing answers is read-only.',
+      );
+    }
+  }
+
+  // Completion is read directly from persisted progress so UI and submit rules share one backend source of truth.
+  private async isModuleUnitCompleted(moduleUnitId: number, studentId: number) {
+    const progress = await this.prisma.moduleUnitUserProgress.findFirst({
+      where: {
+        moduleUnitId,
+        studentId,
+      },
+      select: {
+        isCompleted: true,
+      },
+    });
+    return progress?.isCompleted === true;
   }
 
   // Session ownership checks are shared by room-load and submit paths so both flows enforce the same authorization boundary.

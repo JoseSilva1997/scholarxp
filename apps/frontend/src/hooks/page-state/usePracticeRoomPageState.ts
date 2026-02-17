@@ -295,6 +295,8 @@ export function usePracticeRoomPageState({
       ),
     } satisfies ModuleUnitPracticeRoomResponse['practiceRoom'];
   }, [moduleUnitRoom, submittedAttemptByContentId]);
+  // Backend-owned completion state makes answer interactions read-only when students open completed units.
+  const isRoomReadOnly = roomWithLocalAttempts?.isReadOnly === true;
 
   const seededOptionByContentId = useMemo(() => {
     if (!roomWithLocalAttempts) return {};
@@ -560,6 +562,9 @@ export function usePracticeRoomPageState({
   };
 
   const selectOption = (contentId: number, optionIndex: number) => {
+    if (isRoomReadOnly) {
+      return;
+    }
     setSelectedOptionOverrideByContentId((previousValue) => ({
       ...previousValue,
       [contentId]: optionIndex,
@@ -567,7 +572,7 @@ export function usePracticeRoomPageState({
   };
 
   const unlockHintForContent = (contentId: number) => {
-    if (!roomWithLocalAttempts) {
+    if (!roomWithLocalAttempts || isRoomReadOnly) {
       return;
     }
     const sessionId = roomWithLocalAttempts.sessionId;
@@ -622,6 +627,7 @@ export function usePracticeRoomPageState({
 
   const canSubmitAttempt =
     Boolean(roomWithLocalAttempts && activeQuestionUnit && activeQuestion) &&
+    !isRoomReadOnly &&
     selectedOptionIndex !== null &&
     !hasSubmittedActiveQuestion &&
     !submitAttemptMutation.isPending;
@@ -631,6 +637,7 @@ export function usePracticeRoomPageState({
       !roomWithLocalAttempts ||
       !activeQuestionUnit ||
       !activeQuestion ||
+      isRoomReadOnly ||
       selectedOptionIndex === null ||
       hasSubmittedActiveQuestion
     ) {
@@ -775,6 +782,7 @@ export function usePracticeRoomPageState({
     pageError,
     submitErrorMessage,
     isSubmittingAttempt: submitAttemptMutation.isPending,
+    isRoomReadOnly,
     canSubmitAttempt,
     selectedQuestionUnitIndex,
     activeQuestionUnit,

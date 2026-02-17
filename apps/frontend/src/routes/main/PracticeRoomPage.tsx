@@ -28,6 +28,7 @@ export default function PracticeRoomPage() {
     pageError,
     submitErrorMessage,
     isSubmittingAttempt,
+    isRoomReadOnly,
     canSubmitAttempt,
     selectedQuestionUnitIndex,
     activeQuestionUnit,
@@ -241,7 +242,7 @@ export default function PracticeRoomPage() {
                         }`}
                         onClick={() => selectOption(activeQuestion.question.id, optionIndex)}
                         aria-pressed={isSelected}
-                        disabled={hasSubmittedActiveQuestion}
+                        disabled={hasSubmittedActiveQuestion || isRoomReadOnly}
                       >
                         <div className={styles.optionTextRow}>
                           <span>{option.optionText}</span>
@@ -270,18 +271,19 @@ export default function PracticeRoomPage() {
                     <div
                       role="button"
                       tabIndex={0}
-                      className={styles.hintToggle}
+                      className={`${styles.hintToggle} ${isRoomReadOnly ? styles.hintToggleDisabled : ''}`}
                       onClick={() => {
-                        if (!isActiveHintUnlocked) {
+                        if (!isActiveHintUnlocked && !isRoomReadOnly) {
                           unlockHintForContent(activeQuestion.question.id);
                         }
                       }}
                       aria-expanded={isActiveHintUnlocked}
-                      aria-disabled={isActiveHintUnlocked}
+                      aria-disabled={isActiveHintUnlocked || isRoomReadOnly}
                       onKeyDown={(event) => {
                         if (
                           (event.key === 'Enter' || event.key === ' ') &&
-                          !isActiveHintUnlocked
+                          !isActiveHintUnlocked &&
+                          !isRoomReadOnly
                         ) {
                           event.preventDefault();
                           unlockHintForContent(activeQuestion.question.id);

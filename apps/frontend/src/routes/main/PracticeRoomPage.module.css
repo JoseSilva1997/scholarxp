@@ -667,6 +667,14 @@
   border-color: rgba(16, 185, 129, 0.3);
 }
 
+.hintToggleDisabled {
+  color: var(--color-disabled);
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: rgba(100, 116, 139, 0.05);
+  border-color: rgba(100, 116, 139, 0.2);
+}
+
 .hintChevron {
   display: inline-flex;
   align-items: center;
