@@ -7,10 +7,21 @@ import Header from './Header';
 import type { AuthUser } from '../types/auth';
 
 // Mock UserBadge to track props passed to it, allowing assertion on level/exp values
-let mockUserBadgeProps: Record<string, any> = {};
+type MockUserBadgeProps = {
+  level?: number;
+  exp?: {
+    current: number;
+    max: number;
+  };
+};
+
+let mockUserBadgeProps: Partial<MockUserBadgeProps> = {};
 vi.mock('./UserBadge', () => ({
-  default: (props: any) => {
-    mockUserBadgeProps = props;
+  default: (props: unknown) => {
+    // The test only needs level/exp, so we narrow incoming props to that minimal shape.
+    if (props && typeof props === 'object') {
+      mockUserBadgeProps = props as MockUserBadgeProps;
+    }
     return <div data-testid="user-badge">user-badge</div>;
   },
 }));

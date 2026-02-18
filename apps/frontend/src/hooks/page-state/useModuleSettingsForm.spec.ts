@@ -3,6 +3,7 @@ import { act, renderHook } from '@testing-library/react';
 import type { FormEvent } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../../api/client';
+import type { ModuleSummary } from '../../types/module';
 import { useModuleSettingsForm } from './useModuleSettingsForm';
 
 const mocks = vi.hoisted(() => ({
@@ -141,10 +142,10 @@ describe('useModuleSettingsForm', () => {
         title: undefined,
         description: undefined,
         variantContext: undefined,
-      };
+      } as unknown as ModuleSummary;
 
       const { result } = renderHook(() =>
-        useModuleSettingsForm({ module: moduleWithNulls as any, isOpen: true, onSaved }),
+        useModuleSettingsForm({ module: moduleWithNulls, isOpen: true, onSaved }),
       );
 
       expect(result.current.title).toBe('');
@@ -465,7 +466,6 @@ describe('useModuleSettingsForm', () => {
 
     it('maintains isSaving=true during async submission', async () => {
       const onSaved = vi.fn();
-      const savingStatesDuringMutation: boolean[] = [];
 
       mocks.updateMutateAsync.mockImplementation(async () => {
         // Capture isSaving state during mutation - but we can't access result.current here

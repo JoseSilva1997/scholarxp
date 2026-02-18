@@ -96,7 +96,7 @@ function buildEditorData({
         status,
       },
     ],
-  } as any;
+  } as unknown as ModuleUnitEditorResponse;
 }
 
 function createQuestionGroup(id: number, name: string, sortOrder: number, questions: unknown[] = []) {
@@ -2431,8 +2431,14 @@ describe('useModuleUnitEditorPageState', () => {
       const initialType = result.current.form.type;
 
       // Modify form
+      const firstOptionId = result.current.form.options[0]?.id;
+      expect(firstOptionId).toBeDefined();
+      if (!firstOptionId) {
+        throw new Error('Expected the form to include at least one option.');
+      }
+
       act(() => {
-        result.current.handleOptionChange(result.current.form.options[0]?.id!, 'Modified');
+        result.current.handleOptionChange(firstOptionId, 'Modified');
       });
 
       // Form should update

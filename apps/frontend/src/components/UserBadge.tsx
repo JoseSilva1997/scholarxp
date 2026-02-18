@@ -24,9 +24,7 @@ function formatName(user: AuthUser) {
 export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [displayedTotalExp, setDisplayedTotalExp] = useState<number | null>(null);
-  const [levelUpAnimationCycle, setLevelUpAnimationCycle] = useState(0);
   const expAnimationFrameRef = useRef<number | null>(null);
-  const previousDisplayedLevelRef = useRef<number | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
 
@@ -124,27 +122,8 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
     animatedProgress && expMax > 0
       ? Math.min(100, Math.round((animatedProgress.currentExp / expMax) * 100))
       : 0;
-
-  useEffect(() => {
-    const nextLevel = animatedProgress?.level;
-    if (nextLevel === undefined) {
-      previousDisplayedLevelRef.current = null;
-      return;
-    }
-
-    const previousLevel = previousDisplayedLevelRef.current;
-    if (previousLevel === null) {
-      previousDisplayedLevelRef.current = nextLevel;
-      return;
-    }
-    if (nextLevel <= previousLevel) {
-      return;
-    }
-
-    previousDisplayedLevelRef.current = nextLevel;
-    // Cycle increments remount motion nodes so each level-up in the climb gets a fresh burst.
-    setLevelUpAnimationCycle((previousValue) => previousValue + 1);
-  }, [animatedProgress?.level]);
+  // Key motion elements directly by animated level so each level transition remounts once without effect-driven state.
+  const levelAnimationKey = animatedProgress?.level ?? 0;
 
   return (
     <div className={styles.badge} aria-label={`${formatName(user)} profile`} ref={menuRef}>
@@ -158,9 +137,9 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
               <img src={expIcon} alt="" aria-hidden="true" className={styles.levelIcon} />
               Level{' '}
               <span className={styles.levelValueWrap}>
-                {levelUpAnimationCycle > 0 ? (
+                {levelAnimationKey > 0 ? (
                   <motion.span
-                    key={`badge-level-rays-${levelUpAnimationCycle}`}
+                    key={`badge-level-rays-${levelAnimationKey}`}
                     aria-hidden="true"
                     className={styles.levelRays}
                     initial={{ opacity: 0, scale: 0.6 }}
@@ -177,16 +156,10 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
                   />
                 ) : null}
                 <motion.span
-                  key={`badge-level-value-${levelUpAnimationCycle}`}
+                  key={`badge-level-value-${levelAnimationKey}`}
                   className={styles.levelValue}
-                  initial={
-                    levelUpAnimationCycle === 0 ? false : { y: 0, scale: 1 }
-                  }
-                  animate={
-                    levelUpAnimationCycle === 0
-                      ? { y: 0, scale: 1 }
-                      : { y: [0, -2, 0], scale: [1, 1.3, 1] }
-                  }
+                  initial={{ y: 0, scale: 1 }}
+                  animate={{ y: [0, -2, 0], scale: [1, 1.3, 1] }}
                   transition={{
                     duration: 0.6,
                     ease: 'easeOut',

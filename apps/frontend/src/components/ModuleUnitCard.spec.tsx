@@ -5,6 +5,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ModuleUnitCard from './ModuleUnitCard';
 
 const navigateMock = vi.fn();
+type MockConfirmPublishModalProps = {
+  isOpen?: boolean;
+  title?: string;
+  body?: string;
+  errorMessage?: string;
+  onConfirm?: () => void;
+  onCancel?: () => void;
+  isSubmitting?: boolean;
+  confirmLabel?: string;
+};
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
@@ -15,9 +25,9 @@ vi.mock('react-router-dom', async () => {
 });
 
 // Track all ConfirmPublishModal instances separately by capturing title
-const mockModalInstances: Record<string, any>[] = [];
+const mockModalInstances: MockConfirmPublishModalProps[] = [];
 vi.mock('./Modals/ConfirmPublishModal', () => ({
-  default: (props: any) => {
+  default: (props: MockConfirmPublishModalProps) => {
     // Store this instance's props indexed by title to differentiate between publish and edit modals
     mockModalInstances.push({ ...props });
     return props.isOpen ? (
