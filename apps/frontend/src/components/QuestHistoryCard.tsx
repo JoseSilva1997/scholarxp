@@ -21,24 +21,29 @@ export default function QuestHistoryCard({
   return (
     <div className={`${styles.card} ${className ?? ''}`.trim()}>
       <div className={styles.slotRow}>
-        {slots.map((slotQuest, slotIndex) => (
-          <div
-            key={slotIndex}
-            className={styles.slot}
-            data-testid="quest-slot"
-          >
-            {slotQuest ? (
-              <img
-                src={getQuestBadge(slotQuest)}
-                alt={`${slotQuest.moduleTitle} quest badge`}
-                className={styles.badge}
-              />
-            ) : (
-              // Icon placeholder makes empty quest slots visually obvious when less than three quests exist for a day.
-              <BsHexagon className={styles.emptyIcon} aria-hidden="true" />
-            )}
-          </div>
-        ))}
+        {slots.map((slotQuest, slotIndex) => {
+          // Determine if slot is incomplete (empty or quest not finished).
+          const isIncomplete = !slotQuest || !slotQuest.isCompleted;
+          
+          return (
+            <div
+              key={slotIndex}
+              className={`${styles.slot} ${isIncomplete ? styles.incompleteSlot : ''}`.trim()}
+              data-testid="quest-slot"
+            >
+              {slotQuest ? (
+                <img
+                  src={getQuestBadge(slotQuest)}
+                  alt={`${slotQuest.moduleTitle} quest badge`}
+                  className={styles.badge}
+                />
+              ) : (
+                // Icon placeholder makes empty quest slots visually obvious when less than three quests exist for a day.
+                <BsHexagon className={styles.emptyIcon} aria-hidden="true" />
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
