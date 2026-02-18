@@ -50,76 +50,75 @@ export default function SingleModulePage() {
         </div>
 
         {isLoading ? (
-          <div className={styles.panel}>Loading module…</div>
+          <div className={styles.contentWrapper}>
+            <div className={styles.panel}>Gathering module details…</div>
+          </div>
         ) : pageError ? (
-          <div className={styles.panel} role="alert">
-            {pageError}
+          <div className={styles.contentWrapper}>
+            <div className={styles.panel} role="alert">
+              {pageError}
+            </div>
           </div>
         ) : module ? (
           <>
             <header className={styles.header}>
-              <div className={styles.titleGroup}>
-                <div className={styles.titleRow}>
+              <div className={styles.headerContent}>
+                <div className={styles.titleGroup}>
                   <h1 className={styles.title}>{module.title}</h1>
-                  {user && (canToggleStudentView || canEditSettings) && (
-                    <div className={styles.actions}>
-                      {canToggleStudentView ? (
-                        <button
-                          className={styles.toggleButton}
-                          type="button"
-                          aria-label={isStudentViewEnabled ? 'Disable student view' : 'Enable student view'}
-                          title={isStudentViewEnabled ? 'Disable student view' : 'Enable student view'}
-                          onClick={() => setIsStudentViewEnabled(!isStudentViewEnabled)}
-                        >
-                          <img
-                            src={isStudentViewEnabled ? untoggleStudentViewIcon : toggleStudentViewIcon}
-                            alt=""
-                            aria-hidden="true"
-                          />
-                        </button>
-                      ) : null}
-                      {canEditSettings ? (
-                        <button
-                          className={styles.settingsButton}
-                          type="button"
-                          aria-label="Module settings"
-                          title="Module settings"
-                          aria-expanded={isSettingsOpen}
-                          onClick={() => setIsSettingsOpen((open) => !open)}
-                        >
-                          <IconContext.Provider value={{ className: styles.settingsIcon }}>
-                            <IoSettingsSharp aria-hidden="true" />
-                          </IconContext.Provider>
-                        </button>
-                      ) : null}
-                    </div>
-                  )}
+                  <p className={styles.subtitle}>
+                    {module.description ||
+                      'Master your knowledge through consistent practice and revision.'}
+                  </p>
                 </div>
+
+                {user && (canToggleStudentView || canEditSettings) && (
+                  <div className={styles.actions}>
+                    {canToggleStudentView ? (
+                      <button
+                        className={styles.toggleButton}
+                        type="button"
+                        aria-label={
+                          isStudentViewEnabled ? 'Disable student view' : 'Enable student view'
+                        }
+                        title={
+                          isStudentViewEnabled ? 'Disable student view' : 'Enable student view'
+                        }
+                        onClick={() => setIsStudentViewEnabled(!isStudentViewEnabled)}
+                      >
+                        <img
+                          src={isStudentViewEnabled ? untoggleStudentViewIcon : toggleStudentViewIcon}
+                          alt=""
+                          aria-hidden="true"
+                        />
+                      </button>
+                    ) : null}
+                    {canEditSettings ? (
+                      <button
+                        className={styles.settingsButton}
+                        type="button"
+                        aria-label="Module settings"
+                        title="Module settings"
+                        aria-expanded={isSettingsOpen}
+                        onClick={() => setIsSettingsOpen((open) => !open)}
+                      >
+                        <IconContext.Provider value={{ className: styles.settingsIcon }}>
+                          <IoSettingsSharp aria-hidden="true" />
+                        </IconContext.Provider>
+                      </button>
+                    ) : null}
+                  </div>
+                )}
               </div>
-              <div className={styles.metaRow}></div>
             </header>
-            {canManageModuleContent &&
-              moduleUnits.map((unit) => (
-                <ModuleUnitCard key={unit.id} unit={unit} onChangeStatus={handleChangeUnitStatus} />
-              ))}
-            {canManageModuleContent ? (
-              // Only show the creation entry point to roles granted modules.createContent so students stay read-only here.
-              <div className={styles.createUnitCardRow}>
-                <CreateModuleUnitCard
-                  onClick={() => setShowCreateUnit(true)}
-                  isSaving={isCreatingUnit}
-                />
-              </div>
-            ) : null}
-            {user?.globalRole === 'student' && module.userModuleLevel !== undefined ? (
-              <>
+
+            <div className={styles.contentWrapper}>
+              {user?.globalRole === 'student' && module.userModuleLevel !== undefined ? (
                 <div className={styles.progressContainer}>
                   <div className={styles.progressRow} aria-label="Module progress">
-                    {/* Mirrors the badge progress but scoped to this module so students see their progress contextually. */}
-                    <span className={styles.level}>
+                    <div className={styles.levelBadge}>
                       <img src={expIcon} alt="" aria-hidden="true" className={styles.levelIcon} />
-                      Level {module.userModuleLevel}
-                    </span>
+                      <span>Level {module.userModuleLevel}</span>
+                    </div>
                     <div
                       className={styles.barTrack}
                       role="progressbar"
@@ -129,7 +128,7 @@ export default function SingleModulePage() {
                     >
                       <div className={styles.barFill} style={{ width: `${expPercent}%` }} />
                     </div>
-                    <span className={styles.expLabel}>{module.currentExp ?? 0} xp</span>
+                    <span className={styles.expLabel}>{module.currentExp ?? 0} XP</span>
                   </div>
                   <button
                     type="button"
@@ -137,17 +136,31 @@ export default function SingleModulePage() {
                     onClick={() => alert('Daily revision coming soon! 🎯')}
                   >
                     <span className={styles.dailyRevisionIcon}>⚡</span>
-                    <span className={styles.dailyRevisionText}>
-                      <span className={styles.dailyRevisionLabel}>Daily Revision</span>
-                    </span>
+                    <span>Daily Revision</span>
                   </button>
                 </div>
-                {moduleUnits.map((unit) => {
+              ) : null}
+
+              {canManageModuleContent &&
+                moduleUnits.map((unit) => (
+                  <ModuleUnitCard key={unit.id} unit={unit} onChangeStatus={handleChangeUnitStatus} />
+                ))}
+
+              {canManageModuleContent ? (
+                <div className={styles.createUnitCardRow}>
+                  <CreateModuleUnitCard
+                    onClick={() => setShowCreateUnit(true)}
+                    isSaving={isCreatingUnit}
+                  />
+                </div>
+              ) : null}
+
+              {user?.globalRole === 'student' &&
+                moduleUnits.map((unit) => {
                   const canStudentSee = unit.status === 'live' || unit.status === 'locked';
                   return canStudentSee ? <StudentModuleUnitCard key={unit.id} unit={unit} /> : null;
                 })}
-              </>
-            ) : null}
+            </div>
           </>
         ) : null}
       </MainSection>

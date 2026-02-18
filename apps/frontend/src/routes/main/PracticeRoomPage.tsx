@@ -89,7 +89,7 @@ export default function PracticeRoomPage() {
         <div className={styles.headerTop}>
           <div className={styles.titleSection}>
             <Link className={styles.backLink} to={`/main/modules/${moduleId}`}>
-              ← Back
+              ← Back to module
             </Link>
             <h1 className={styles.title}>{room?.moduleUnitTitle ?? 'Loading…'}</h1>
           </div>
