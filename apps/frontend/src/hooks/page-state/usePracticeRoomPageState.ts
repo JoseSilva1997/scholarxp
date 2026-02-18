@@ -67,6 +67,9 @@ export function usePracticeRoomPageState({
   const { applyStudentExpReward } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const searchParamsString = searchParams.toString();
+  const [showLevelUp, setShowLevelUp] = useState(false);
+  const prevLevelRef = useRef<number | undefined>(undefined);
+
   const parsedModuleId = useMemo(() => {
     if (!moduleIdParam) return null;
     const value = Number(moduleIdParam);
@@ -505,6 +508,23 @@ export function usePracticeRoomPageState({
     };
   }, [displayedModuleTotalExp, moduleDetail]);
 
+  useEffect(() => {
+    // Check if level has incremented
+    if (
+      moduleProgress?.level !== undefined &&
+      prevLevelRef.current !== undefined &&
+      moduleProgress.level > prevLevelRef.current
+    ) {
+      setShowLevelUp(true);
+      const timer = setTimeout(() => setShowLevelUp(false), 3000);
+      return () => clearTimeout(timer);
+    }
+    // Update ref regardless
+    if (moduleProgress?.level !== undefined) {
+      prevLevelRef.current = moduleProgress.level;
+    }
+  }, [moduleProgress?.level]);
+
   const selectedOptionIndex = useMemo(() => {
     if (!activeQuestion) {
       return null;
@@ -775,6 +795,7 @@ export function usePracticeRoomPageState({
     room: roomWithLocalAttempts,
     moduleProgress,
     moduleExpGainIndicator,
+    showLevelUp,
     isLoading:
       practiceRoomQuery.isPending ||
       moduleDetailQuery.isPending ||

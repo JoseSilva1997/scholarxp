@@ -1,5 +1,5 @@
 // Module-unit-scoped student practice-room route that renders unit progress, question-unit bars, and a selectable question panel.
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Link, useParams } from 'react-router-dom';
 import { IconContext } from 'react-icons';
 import {
@@ -17,12 +17,14 @@ import { buildPracticeRoomAnswerFeedback } from './practice-room-answer-feedback
 
 export default function PracticeRoomPage() {
   const { moduleId, unitId } = useParams<{ moduleId: string; unitId: string }>();
+
   const {
     parsedModuleId,
     parsedUnitId,
     room,
     moduleProgress,
     moduleExpGainIndicator,
+    showLevelUp,
     isLoading,
     pageError,
     submitErrorMessage,
@@ -65,8 +67,6 @@ export default function PracticeRoomPage() {
         optionCount: activeQuestionOptions.length,
       })
     : [];
-  // Keyed animation remounts when backend level changes without needing effect-driven state updates.
-  const levelAnimationKey = moduleProgress?.level ?? 0;
 
   if (!parsedModuleId || !parsedUnitId) {
     return (
@@ -85,64 +85,93 @@ export default function PracticeRoomPage() {
 
   return (
     <MainSection className={styles.page}>
-      {moduleProgress ? (
-        <div className={styles.progressContainer}>
-          <div className={styles.progressRow} aria-label="Module progress">
-            {/* Keep progress visible inside practice so students can see momentum while answering questions. */}
-            <span className={styles.level}>
-              <img src={expIcon} alt="" aria-hidden="true" className={styles.levelIcon} />
-              Level{' '}<span className={styles.levelValueWrap}>
-                {levelAnimationKey > 0 ? (
-                  <motion.span
-                    key={`level-rays-${levelAnimationKey}`}
-                    aria-hidden="true"
-                    className={styles.levelRays}
-                    initial={{ opacity: 0, scale: 0.6 }}
-                    animate={{
-                      opacity: [0, 1, 0],
-                      scale: [0.6, 1.15, 1.45],
-                      y: [0, -5, 0],
-                    }}
-                    transition={{
-                      duration: 0.7,
-                      ease: 'easeOut',
-                      times: [0, 0.35, 1],
-                    }}
-                  />
-                ) : null}
-                <motion.span
-                  key={`level-value-${levelAnimationKey}`}
-                  className={styles.levelValue}
-                  initial={{ y: 0, scale: 1 }}
-                  animate={{ y: [0, -5, 0], scale: [1, 1.65, 1] }}
-                  transition={{
-                    duration: 0.7,
-                    ease: 'easeOut',
-                    times: [0, 0.4, 1],
-                  }}
-                >
-                  {moduleProgress.level}
-                </motion.span>
-              </span>
-            </span>
-            <div
-              className={styles.barTrack}
-              role="progressbar"
-              aria-valuenow={moduleProgress.expPercent}
-              aria-valuemin={0}
-              aria-valuemax={100}
-            >
-              <div className={styles.barFill} style={{ width: `${moduleProgress.expPercent}%` }} />
-            </div>
-            <div className={styles.expLabelRow}>
-              <span className={styles.expLabel}>{moduleProgress.currentExp} xp</span>
-              {moduleExpGainIndicator ? (
-                <span className={styles.expGain}>+{moduleExpGainIndicator}</span>
-              ) : null}
-            </div>
+      <header className={styles.header}>
+        <div className={styles.headerTop}>
+          <div className={styles.titleSection}>
+            <Link className={styles.backLink} to={`/main/modules/${moduleId}`}>
+              ← Back
+            </Link>
+            <h1 className={styles.title}>{room?.moduleUnitTitle ?? 'Loading…'}</h1>
           </div>
+
+          {moduleProgress && (
+            <div className={styles.headerProgress}>
+              <div className={styles.levelIndicatorMini}>
+                <img src={expIcon} alt="" aria-hidden="true" className={styles.miniLevelIcon} />
+                <div className={styles.levelTextWrapper}>
+                  <span className={styles.levelText}>Lvl {moduleProgress.level}</span>
+                  <AnimatePresence>
+                    {showLevelUp && (
+                      <motion.span
+                        key="level-up-badge"
+                        initial={{ opacity: 0, scale: 0.5, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.5, y: -10 }}
+                        transition={{ duration: 0.5, type: 'spring', bounce: 0.4 }}
+                        className={styles.levelUpBadge}
+                      >
+                        LEVEL UP!
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </div>
+                <div className={styles.miniBarTrack}>
+                  <div
+                    className={`${styles.miniBarFill} ${showLevelUp ? styles.miniBarFillLevelUp : ''}`}
+                    style={{ width: `${moduleProgress.expPercent}%` }}
+                  />
+                </div>
+                <div className={styles.xpValueContainer}>
+                  <span className={styles.miniExpLabel}>{moduleProgress.currentExp} xp</span>
+                  <AnimatePresence>
+                    {moduleExpGainIndicator ? (
+                      <motion.span
+                        key="xp-gain"
+                        initial={{ y: 10, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.4, ease: 'easeOut' }}
+                        className={styles.miniExpGain}
+                      >
+                        +{moduleExpGainIndicator}
+                      </motion.span>
+                    ) : null}
+                  </AnimatePresence>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-      ) : null}
+
+        {room && (
+          <div className={styles.headerBottom}>
+            <div className={styles.progressCounter}>
+              Question {Math.min(selectedQuestionUnitIndex + 1, room.questions.length)} of{' '}
+              {room.questions.length}
+            </div>
+            <nav className={styles.beadRow} aria-label="Question navigation">
+              {room.questions.map((questionUnit, index) => (
+                <button
+                  key={questionUnit.questionUnitId}
+                  type="button"
+                  className={`${styles.navBar} ${getQuestionUnitStatusClass(
+                    {
+                      questionUnit,
+                      isCurrent: index === selectedQuestionUnitIndex,
+                    },
+                    styles,
+                  )}`}
+                  onClick={() => selectQuestionUnit(index)}
+                  aria-label={`Question ${index + 1}`}
+                  aria-current={index === selectedQuestionUnitIndex ? 'true' : undefined}
+                >
+                  <span className={styles.navBarInner} aria-hidden="true" />
+                </button>
+              ))}
+            </nav>
+          </div>
+        )}
+      </header>
 
       {isLoading ? (
         <div className={styles.statusCard}>Loading practice room…</div>
@@ -152,42 +181,38 @@ export default function PracticeRoomPage() {
         </div>
       ) : room ? (
         <>
-          <header className={styles.header}>
-            <div>
-              <h1 className={styles.title}>{room.moduleUnitTitle}</h1>
-            </div>
-            <div className={styles.progressMeta}>
-              <span>
-                Question {Math.min(selectedQuestionUnitIndex + 1, room.questions.length)} of{' '}
-                {room.questions.length}
-              </span>
-            </div>
-          </header>
-
-          <nav className={styles.beadRow} aria-label="Question navigation">
-            {room.questions.map((questionUnit, index) => (
-              <button
-                key={questionUnit.questionUnitId}
-                type="button"
-                className={`${styles.navBar} ${getQuestionUnitStatusClass(
-                  {
-                    questionUnit,
-                    isCurrent: index === selectedQuestionUnitIndex,
-                  },
-                  styles,
-                )}`}
-                onClick={() => selectQuestionUnit(index)}
-                aria-label={`Question ${index + 1}`}
-                aria-current={index === selectedQuestionUnitIndex ? 'true' : undefined}
-              >
-                <span className={styles.navBarInner} aria-hidden="true" />
-              </button>
-            ))}
-          </nav>
-
           {activeQuestionUnit && activeQuestion ? (
             <section className={styles.questionPanel}>
-              <h2 className={styles.questionStem}>{activeQuestion.question.questionStem}</h2>
+              <div className={styles.stemHeader}>
+                <h2 className={styles.questionStem}>{activeQuestion.question.questionStem}</h2>
+                <div className={styles.questionNavButtons}>
+                  <button
+                    type="button"
+                    className={styles.questionUnitNavButton}
+                    onClick={goToPreviousQuestionUnit}
+                    disabled={!questionUnitNav.canGoPrevious}
+                    aria-label="Previous question"
+                  >
+                    <IconContext.Provider value={{ className: styles.navIcon }}>
+                      <FaCircleChevronLeft />
+                    </IconContext.Provider>
+                    <span className={styles.questionUnitNavLabel}>Prev</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.questionUnitNavButton}
+                    onClick={goToNextQuestionUnit}
+                    disabled={!questionUnitNav.canGoNext}
+                    aria-label="Next question"
+                  >
+                    <span className={styles.questionUnitNavLabel}>Next</span>
+                    <IconContext.Provider value={{ className: styles.navIcon }}>
+                      <FaCircleChevronRight />
+                    </IconContext.Provider>
+                  </button>
+                </div>
+              </div>
+
               <div className={styles.questionContent}>
                 <div
                   className={`${styles.optionsList} ${
@@ -215,19 +240,24 @@ export default function PracticeRoomPage() {
                         aria-pressed={isSelected}
                         disabled={hasSubmittedActiveQuestion || isRoomReadOnly}
                       >
-                        <div className={styles.optionTextRow}>
-                          <span>{option.optionText}</span>
-                          {feedback?.statusLabel ? (
-                            <span
-                              className={`${
-                                feedback.statusLabel === 'Correct'
-                                  ? styles.optionStatusCorrect
-                                  : styles.optionStatusIncorrect
-                              }`}
-                            >
-                              {feedback.statusLabel}
-                            </span>
-                          ) : null}
+                        <div className={styles.optionContentWrapper}>
+                          <span className={styles.optionLetter}>
+                            {String.fromCharCode(65 + optionIndex)}
+                          </span>
+                          <div className={styles.optionTextRow}>
+                            <span className={styles.optionText}>{option.optionText}</span>
+                            {feedback?.statusLabel ? (
+                              <span
+                                className={`${
+                                  feedback.statusLabel === 'Correct'
+                                    ? styles.optionStatusCorrect
+                                    : styles.optionStatusIncorrect
+                                }`}
+                              >
+                                {feedback.statusLabel}
+                              </span>
+                            ) : null}
+                          </div>
                         </div>
                         {feedback?.explanation ? (
                           <p className={styles.optionExplanation}>{feedback.explanation}</p>
@@ -311,38 +341,6 @@ export default function PracticeRoomPage() {
                       ? 'Submitted'
                       : 'Submit answer'}
                 </button>
-              </div>
-
-              <div className={styles.questionUnitTrackNav}>
-                <Link className={styles.backLink} to={`/main/modules/${moduleId}`}>
-                  ← Back to module
-                </Link>
-                <div className={styles.questionNavButtons}>
-                  <button
-                    type="button"
-                    className={styles.questionUnitNavButton}
-                    onClick={goToPreviousQuestionUnit}
-                    disabled={!questionUnitNav.canGoPrevious}
-                    aria-label="Previous question"
-                  >
-                    <IconContext.Provider value={{ className: styles.navIcon }}>
-                      <FaCircleChevronLeft />
-                    </IconContext.Provider>
-                    <span className={styles.questionUnitNavLabel}>Previous</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.questionUnitNavButton}
-                    onClick={goToNextQuestionUnit}
-                    disabled={!questionUnitNav.canGoNext}
-                    aria-label="Next question"
-                  >
-                    <span className={styles.questionUnitNavLabel}>Next</span>
-                    <IconContext.Provider value={{ className: styles.navIcon }}>
-                      <FaCircleChevronRight />
-                    </IconContext.Provider>
-                  </button>
-                </div>
               </div>
             </section>
           ) : (
