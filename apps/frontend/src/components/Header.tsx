@@ -10,9 +10,18 @@ type HeaderProps = {
   studentLevel?: number;
   studentExp?: { current: number; max: number };
   onLogout?: () => Promise<void> | void;
+  onToggleSidebar?: () => void;
+  showSidebarToggle?: boolean;
 };
 
-export default function Header({ user, studentLevel, studentExp, onLogout }: HeaderProps) {
+export default function Header({
+  user,
+  studentLevel,
+  studentExp,
+  onLogout,
+  onToggleSidebar,
+  showSidebarToggle = false,
+}: HeaderProps) {
   const isStudent = user?.globalRole === 'student';
   const derivedLevel = isStudent ? user?.avatar?.level : undefined;
   const derivedExp =
@@ -27,16 +36,27 @@ export default function Header({ user, studentLevel, studentExp, onLogout }: Hea
   const expToShow = studentExp ?? derivedExp;
 
   return (
-    <header className={styles.header}>
-      <Link to="/" className={styles.brand} aria-label="Go to landing page">
-        <img src={logo} alt="ScholarXP logo" className={styles.logo} />
-        <span className={styles.wordmark}>ScholarXP</span>
-      </Link>
-
-      <nav className={styles.nav} aria-label="Primary navigation">
-        {/* Navigation links will be added here as pages are introduced. */}
-      </nav>
-
+    <header className={`${styles.header} ${!user ? styles.headerLoggedOut : ''}`}>
+      <div className={styles.brandWrapper}>
+        {showSidebarToggle && (
+          <button
+            type="button"
+            className={styles.toggleButton}
+            onClick={onToggleSidebar}
+            aria-label="Toggle navigation panel"
+          >
+            <span className={styles.toggleIcon} aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </span>
+          </button>
+        )}
+        <Link to="/" className={styles.brand} aria-label="Go to landing page">
+          <img src={logo} alt="ScholarXP logo" className={styles.logo} />
+          <span className={styles.wordmark}>ScholarXP</span>
+        </Link>
+      </div>
       {user ? (
         <UserBadge user={user} level={levelToShow} exp={expToShow} onLogout={onLogout} />
       ) : (

@@ -4,7 +4,16 @@
   box-sizing: border-box;
 }
 
+html,
+body,
+#root {
+  /* Keep the React app constrained to viewport height so document scrolling never clips fixed shell regions. */
+  height: 100%;
+}
+
 body {
   margin: 0;
   font-family: var(--font-family-base, inherit);
+  /* Route vertical scrolling into app-managed containers instead of the window/document. */
+  overflow: hidden;
 }

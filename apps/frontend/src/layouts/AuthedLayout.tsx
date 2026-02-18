@@ -1,4 +1,5 @@
 // Authenticated app shell: keeps Header + Sidebar visible while swapping section content via nested routes.
+import { useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import SidebarNav from '../components/SidebarNav';
@@ -24,11 +25,36 @@ function AuthedLayoutInner() {
     }
   };
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Lock document scroll only for mobile sidebar overlay so header stays anchored during nav interactions.
+    const shouldLockDocumentScroll = isSidebarOpen && window.innerWidth <= 900;
+    if (!shouldLockDocumentScroll) {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+      return;
+    }
+
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, [isSidebarOpen]);
+
   return (
-    <div className={styles.shell}>
-      <Header user={user} onLogout={handleLogout} />
+    <div className={`${styles.shell} ${isSidebarOpen ? styles.shellNavOpen : ''}`}>
+      <Header
+        user={user}
+        onLogout={handleLogout}
+        onToggleSidebar={() => setSidebarOpen(!isSidebarOpen)}
+        showSidebarToggle
+      />
       <div className={`${styles.mainWrapper} ${!isSidebarOpen ? styles.mainWrapperCollapsed : ''}`}>
-        <SidebarNav collapsed={!isSidebarOpen} onNavigate={handleNavigate} />
+        <SidebarNav collapsed={!isSidebarOpen} onNavigate={handleNavigate} showToggle={false} />
         <div className={styles.body}>
           <section className={styles.content} aria-live="polite">
             <Outlet />

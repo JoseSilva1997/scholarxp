@@ -4,12 +4,25 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--header-padding-block) 24px;
+  padding: var(--header-padding-block) 16px var(--header-padding-block) 12px;
   background-color: var(--color-brand-surface-dark);
   color: #ffffff;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   gap: 24px;
   min-height: var(--header-height);
+}
+
+.headerLoggedOut {
+  /* Logged-out pages have no sidebar context, so add symmetric side breathing room. */
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+.brandWrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
 }
 
 .brand {
@@ -97,10 +110,52 @@
   box-shadow: 0 12px 28px rgba(76, 175, 80, 0.45);
 }
 
+.toggleButton {
+  background: transparent;
+  border: transparent;
+  color: #ffffff;
+  border-radius: 50px;
+  padding: 10px;
+  cursor: pointer;
+  transition: background-color 120ms ease, transform 120ms ease, box-shadow 120ms ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+}
+
+.toggleButton:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.toggleButton:focus-visible {
+  outline: 2px solid #f3ce30;
+  outline-offset: 2px;
+}
+
+.toggleIcon {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 20px;
+}
+
+.toggleIcon > span {
+  display: block;
+  height: 2px;
+  width: 100%;
+  background: #ffffff;
+  border-radius: 1px;
+  transition: all 200ms ease;
+}
+
 @media (max-width: 720px) {
   .header {
     gap: 8px;
-    padding: var(--header-padding-block) 16px;
   }
 
   .brand {
@@ -112,7 +167,6 @@
   .logo {
     width: 28px;
     height: 28px;
-    align-self: center;
   }
 
   .wordmark {
@@ -128,5 +182,22 @@
 
   .actions {
     gap: 8px;
+  }
+}
+
+@media (max-width: 640px) {
+  .brand {
+    gap: 0;
+    flex-direction: row;
+  }
+
+  .wordmark {
+    /* On phone-sized layouts, hide the text mark to preserve header space for navigation and profile controls. */
+    display: none;
+  }
+
+  .headerLoggedOut {
+    padding-left: 16px;
+    padding-right: 16px;
   }
 }

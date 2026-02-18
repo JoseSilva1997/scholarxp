@@ -2,141 +2,195 @@
 .sidebar {
   width: var(--sidebar-full-width);
   background: var(--color-surface);
-  padding: 16px 12px;
+  border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
-  gap: 0px;
-  flex-shrink: 0; /* Prevent sidebar from shrinking */
-  align-self: stretch; /* Stretch to fill full height of parent container */
-  transition: width 140ms ease;
+  padding: 16px 12px;
+  gap: 24px;
+  flex-shrink: 0;
+  align-self: stretch;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow-y: auto;
   overflow-x: hidden;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.02);
 }
 
 .toggleButton {
-  align-self: flex-start;
-  background: var(--surface-muted);
-  color: var(--text-primary);
-  border: 1px solid var(--border-subtle);
-  border-radius: 50px;
+  align-self: center;
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
   padding: 10px;
   cursor: pointer;
-  transition: background-color 120ms ease, transform 120ms ease, box-shadow 120ms ease;
-  display: inline-flex;
+  transition: all 0.2s ease;
+  display: flex;
   align-items: center;
   justify-content: center;
-  width: 52px;
-  height: 52px;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 8px;
 }
 
 .toggleButton:hover {
   background: var(--color-surface-alt);
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
-}
-
-.toggleButton:hover .toggleIcon > span {
-  background: var(--color-brand-surface-dark);
-}
-
-.toggleButton:focus-visible {
-  outline: 2px solid var(--brand-400);
-  outline-offset: 2px;
+  border-color: var(--color-accent-primary-soft);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .toggleIcon {
-  display: inline-flex;
+  display: flex;
   flex-direction: column;
-  gap: 5px;
-  width: 22px;
+  gap: 4px;
+  width: 18px;
 }
 
 .toggleIcon > span {
   display: block;
-  height: 2.5px;
+  height: 2px;
   width: 100%;
-  background: var(--color-brand-surface-dark);
-  border-radius: 2px;
-  transition: all 200ms ease;
+  background: currentColor;
+  border-radius: 4px;
+  transition: all 0.2s ease;
 }
 
 .sidebarCollapsed {
-  width: var(--sidebar-collapsed-width)
+  width: var(--sidebar-collapsed-width);
+  padding: 16px 12px;
 }
 
 .section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
+}
+
+.sectionLabel {
+  font-family: var(--font-display);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--color-muted);
+  opacity: 0.5;
+  margin-top: 12px;
+  margin-bottom: 8px;
+  padding-left: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.sidebarCollapsed .sectionLabel {
+  opacity: 0;
 }
 
 .link {
   display: flex;
   align-items: center;
-  gap: 12px;
   text-decoration: none;
-  padding: 12px 12px;
-  border-radius: 10px;
-  color: var(--text-primary);
+  padding: 12px;
+  border-radius: var(--radius-md);
+  color: var(--color-text);
   font-weight: 600;
   background: transparent;
-  transition: background-color 120ms ease, color 120ms ease, transform 120ms ease;
-}
-
-.linkActive {
-  background: var(--brand-50);
-  color: var(--brand-800);
-  box-shadow: inset 0 0 0 1px var(--brand-200);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  border: 1px solid transparent;
+  min-height: 48px;
+  overflow: hidden;
 }
 
 .link:hover {
-  background: var(--surface-muted);
-  transform: translateX(2px);
+  background: var(--color-surface-alt-muted);
+  color: var(--color-accent-primary);
+}
+
+.linkActive {
+  background: var(--color-surface-alt);
+  color: var(--color-accent-primary);
+  border: 1px solid var(--color-accent-primary-soft);
 }
 
 .icon {
-  font-size: 18px;
-  width: 24px;
-  text-align: center;
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  flex-shrink: 0;
+  transition: margin 0.2s ease;
 }
 
 .labelBlock {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .label {
+  font-family: var(--font-display);
   font-size: 15px;
   line-height: 1.2;
 }
 
 .hint {
-  font-size: 12px;
-  color: var(--text-muted);
-  line-height: 1.2;
+  font-size: 11px;
+  color: var(--color-muted);
+  opacity: 0.7;
+  font-weight: 400;
 }
 
-.labelSr {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
+.labelCollapsed {
+  font-family: var(--font-display);
+  font-size: 9px;
+  line-height: 1;
+  text-align: center;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.8;
 }
+
+.linkCollapsed {
+  padding: 8px 4px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.linkCollapsed .icon {
+  margin-right: 0;
+}
+
 
 @media (max-width: 900px) {
+  .sidebar:not(.sidebarCollapsed) {
+    /* Only expanded mobile sidebar should overlay and use viewport-based height. */
+    position: fixed;
+    top: var(--header-height);
+    left: 0;
+    height: calc(100dvh - var(--header-height));
+    height: calc(100vh - var(--header-height));
+    z-index: 999;
+    width: var(--sidebar-full-width);
+  }
+
+  .sidebar.sidebarCollapsed {
+    /* Collapsed mode stays in flow and stretches with the shell down to the footer edge. */
+    position: static;
+    top: auto;
+    left: auto;
+    height: auto;
+    min-height: 0;
+    width: var(--sidebar-collapsed-width);
+    z-index: auto;
+  }
+
   .toggleButton {
     position: sticky;
     top: 12px;
-  }
-
-  .sidebarCollapsed {
-    /* Sidebar remains visible even when collapsed */
-    width: var(--sidebar-collapsed-width);
   }
 }

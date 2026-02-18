@@ -34,6 +34,8 @@ function AppLayout() {
     !isAuthRoute && !isLoading && user?.isVerified && user.globalRole === 'pending';
   // Shell renders its own header; we skip the global one to avoid double bars.
   const shouldShowHeader = !isShellRoute && !shouldShowRoleSelector;
+  // Outside /main there is no sidebar instance, so the toggle acts as a shell shortcut for signed-in users.
+  const shouldShowShellToggleShortcut = !!user && !isAuthRoute && !isShellRoute;
   // Sidebar shell needs the wider canvas so we reuse the auth width treatment.
   const usesFullWidth = isAuthRoute || isShellRoute;
 
@@ -51,13 +53,19 @@ function AppLayout() {
 
   return (
     <div className={`App ${usesFullWidth ? 'App--auth' : ''}`}>
-      {shouldShowHeader ? <Header user={user} onLogout={logout} /> : null}
+      {shouldShowHeader ? (
+        <Header
+          user={user}
+          onLogout={logout}
+          showSidebarToggle={shouldShowShellToggleShortcut}
+          onToggleSidebar={() => navigate('/main/modules')}
+        />
+      ) : null}
       <main className={`App__content ${usesFullWidth ? 'App__content--auth' : ''}`}>
         {shouldShowRoleSelector ? (
           <RoleSelectorOverlay user={user} onRoleSelected={setUser} />
         ) : (
           <Routes>
-            <Route path="/" element={<Landing />} />
             <Route
               path="/login"
               element={
@@ -80,12 +88,24 @@ function AppLayout() {
               path="/register"
               element={user && !isLoading ? <Navigate to="/main" replace /> : <Register />}
             />
+            <Route
+              path="/"
+              element={
+                user && !isLoading ? (
+                  // Signed-in users should land inside the shell so sidebar/navigation remains available.
+                  <Navigate to="/main/landing" replace />
+                ) : (
+                  <Landing />
+                )
+              }
+            />
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route element={<ProtectedRoute isLoading={isLoading} isAuthed={!!user} />}>
               {/* Invite redemption sits outside the shell so it can stay focused and load without sidebar chrome. */}
               <Route path="/invite" element={<AcceptInvite />} />
               <Route element={<AuthedLayout />}>
                 <Route path="/main" element={<Navigate to="/main/modules" replace />} />
+                <Route path="/main/landing" element={<Landing />} />
                 <Route path="/main/modules" element={<ModulesPage />} />
                 <Route path="/main/modules/:moduleId" element={<SingleModulePage />} />
                 <Route path="/main/modules/:moduleId/:unitId/editor" element={<ModuleUnitEditor />} />

@@ -99,11 +99,20 @@ describe('App', () => {
     expect(screen.queryByText('landing-page')).not.toBeInTheDocument();
   });
 
-  it('shows global header on public routes and hides it on shell routes', async () => {
-    authState.user = { globalRole: 'admin', isVerified: true };
-
+  it('shows global header only for unauthenticated public routes and hides it in shell routes', async () => {
+    // Public landing keeps the global header for signed-out users.
+    authState.user = null;
     renderAt('/');
     expect(screen.getByText('header')).toBeInTheDocument();
+
+    // Signed-in users are redirected into the shell, which renders its own header.
+    authState.user = { globalRole: 'admin', isVerified: true };
+    cleanup();
+    renderAt('/');
+    await waitFor(() => {
+      expect(screen.getByText('authed-layout')).toBeInTheDocument();
+      expect(screen.queryByText('header')).not.toBeInTheDocument();
+    });
 
     cleanup();
     renderAt('/main/modules');

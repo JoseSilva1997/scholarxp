@@ -2,11 +2,15 @@
 .shell {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - var(--footer-height));
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 .mainWrapper {
   display: flex;
   flex: 1;
+  min-height: 0;
+  align-items: stretch;
   overflow: hidden;
 }
 
@@ -28,14 +32,66 @@
 
 .overlay {
   display: none;
+  position: fixed;
+  top: var(--header-height);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(2, 12, 39, 0.3);
+  backdrop-filter: blur(4px);
+  z-index: 998; /* Below sidebar, above content */
+  opacity: 0;
+  transition: opacity 200ms ease;
+  pointer-events: none;
 }
 
 .overlayVisible {
-  display: none;
+  display: block;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Prevent scrolling when overlay is visible */
+.shell:has(.overlayVisible) {
+  overflow: hidden;
+}
+
+.shell:has(.overlayVisible) .body {
+  overflow-y: hidden;
 }
 
 @media (max-width: 900px) {
   .content {
     padding: 18px 14px;
+  }
+
+  /* On small screens, overlay the sidebar instead of pushing content */
+  .mainWrapper {
+    position: relative;
+  }
+
+  /* Keep the underlying page fixed while the mobile sidebar overlay is open. */
+  .shellNavOpen,
+  .shellNavOpen .mainWrapper,
+  .shellNavOpen .body,
+  .shellNavOpen .content {
+    overflow: hidden;
+  }
+}
+
+@media (min-width: 901px) {
+  /* On desktop, hide the overlay completely */
+  .overlay,
+  .overlayVisible {
+    display: none !important;
+  }
+
+  /* Allow scrolling on desktop regardless of overlay state */
+  .shell:has(.overlayVisible) {
+    overflow: auto;
+  }
+
+  .shell:has(.overlayVisible) .body {
+    overflow-y: auto;
   }
 }

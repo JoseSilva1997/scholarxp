@@ -1,5 +1,7 @@
 // Sidebar navigation used inside the authenticated shell; highlights active route and supports compact mode for mobile.
 import { NavLink } from 'react-router-dom';
+import { motion } from 'motion/react';
+import { RiBook3Line, RiSwordLine, RiUser3Line } from 'react-icons/ri';
 import { useAuth } from '../context/AuthContext';
 import { useUiLayout } from '../context/UiLayoutContext';
 import { canUserAccess } from '../permissions/permission';
@@ -8,13 +10,14 @@ import styles from './SidebarNav.module.css';
 type SidebarNavProps = {
   collapsed?: boolean;
   onNavigate?: () => void;
+  showToggle?: boolean;
 };
 
 type NavItem = {
   to: string;
   label: string;
   hint: string;
-  icon: string;
+  icon: React.ElementType;
   feature?: 'navigation.modules' | 'navigation.quests' | 'navigation.profile';
 };
 
@@ -22,27 +25,27 @@ const navItems: NavItem[] = [
   {
     to: '/main/modules',
     label: 'Modules',
-    hint: 'Create and manage',
-    icon: '📚',
+    hint: 'Module catalogue',
+    icon: RiBook3Line,
     feature: 'navigation.modules',
   },
   {
     to: '/main/quests',
     label: 'Quests',
-    hint: 'Daily practice',
-    icon: '🎯',
+    hint: 'Quest history',
+    icon: RiSwordLine,
     feature: 'navigation.quests',
   },
   {
     to: '/main/profile',
     label: 'Profile',
-    hint: 'Account and role',
-    icon: '👤',
+    hint: 'My account',
+    icon: RiUser3Line,
     feature: 'navigation.profile',
   },
 ];
 
-export default function SidebarNav({ collapsed = false, onNavigate }: SidebarNavProps) {
+export default function SidebarNav({ collapsed = false, onNavigate, showToggle = true }: SidebarNavProps) {
   const { user } = useAuth();
   const { toggleSidebar } = useUiLayout();
 
@@ -53,38 +56,47 @@ export default function SidebarNav({ collapsed = false, onNavigate }: SidebarNav
 
   return (
     <aside className={`${styles.sidebar} ${collapsed ? styles.sidebarCollapsed : ''}`}>
-      <button
-        type="button"
-        className={styles.toggleButton}
-        onClick={toggleSidebar}
-        aria-label="Toggle navigation panel"
-      >
-        <span className={styles.toggleIcon} aria-hidden="true">
-          <span />
-          <span />
-          <span />
-        </span>
-      </button>
+      {showToggle && (
+        <button
+          type="button"
+          className={styles.toggleButton}
+          onClick={toggleSidebar}
+          aria-label="Toggle navigation panel"
+        >
+          <span className={styles.toggleIcon} aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </span>
+        </button>
+      )}
       <div className={styles.section}>
         {filteredItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
             className={({ isActive }: { isActive: boolean }) =>
-              `${styles.link} ${isActive ? styles.linkActive : ''}`
+              `${styles.link} ${isActive ? styles.linkActive : ''} ${collapsed ? styles.linkCollapsed : ''}`
             }
             onClick={onNavigate}
           >
-            <span className={styles.icon} aria-hidden>
-              {item.icon}
-            </span>
+            <motion.span 
+              className={styles.icon} 
+              aria-hidden
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              style={{ marginRight: collapsed ? 0 : 14 }}
+            >
+              <item.icon />
+            </motion.span>
+            
             {!collapsed ? (
-              <span className={styles.labelBlock}>
+              <div className={styles.labelBlock}>
                 <span className={styles.label}>{item.label}</span>
                 <span className={styles.hint}>{item.hint}</span>
-              </span>
+              </div>
             ) : (
-              <span className={styles.labelSr}>{item.label}</span>
+              <span className={styles.labelCollapsed}>{item.label}</span>
             )}
           </NavLink>
         ))}

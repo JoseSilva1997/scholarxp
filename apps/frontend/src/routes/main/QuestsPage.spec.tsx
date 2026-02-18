@@ -29,7 +29,7 @@ describe('QuestsPage route', () => {
 
     expect(screen.getByRole('heading', { name: 'Quest History' })).toBeInTheDocument();
     expect(screen.getByText('Today')).toBeInTheDocument();
-    const loadMoreButton = screen.getByRole('button', { name: 'Load more' });
+    const loadMoreButton = screen.getByRole('button', { name: 'Load more history' });
     fireEvent.click(loadMoreButton);
     expect(loadMore).toHaveBeenCalledTimes(1);
   });

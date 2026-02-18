@@ -1,23 +1,31 @@
 @import './styles/theme.css';
 .App {
+  /* Use a flex sticky-footer shell so short pages still keep footer flush to viewport bottom. */
+  height: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
   background: radial-gradient(circle at 16% 18%, rgba(59, 130, 246, 0.14), transparent 10%),
     radial-gradient(circle at 82% 8%, rgba(14, 165, 233, 0.12), transparent 8%),
     var(--color-bg);
   display: flex;
   flex-direction: column;
   color: var(--color-text);
+  overflow: hidden;
 }
 
 .App__content {
   padding: 48px 24px 64px;
-  flex: 1;
+  /* Fill remaining vertical space between header and footer without forcing extra scroll area. */
+  flex: 1 1 auto;
+  min-height: 0;
   max-width: 1080px;
   width: 100%;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 32px;
+  /* Public routes can be taller than viewport; keep their scrolling inside the app shell. */
+  overflow-y: auto;
 }
 
 .App__content--auth {
@@ -25,9 +33,17 @@
   width: 100%;
   padding: 0;
   gap: 0;
-  min-height: calc(100vh - var(--header-height) - var(--footer-height));
   display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-x: hidden;
+  overflow-y: hidden;
+}
+
+.App__content--auth > * {
+  /* Routed auth layout must fill the shell height so sidebar can stretch from header to footer. */
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 @media (max-width: 720px) {
