@@ -27,9 +27,9 @@ describe('QuestsPage route', () => {
 
     render(<QuestsPage />);
 
-    expect(screen.getByRole('heading', { name: 'Quest History' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Quest Journey' })).toBeInTheDocument();
     expect(screen.getByText('Today')).toBeInTheDocument();
-    const loadMoreButton = screen.getByRole('button', { name: 'Load more history' });
+    const loadMoreButton = screen.getByRole('button', { name: 'View Older Quests' });
     fireEvent.click(loadMoreButton);
     expect(loadMore).toHaveBeenCalledTimes(1);
   });

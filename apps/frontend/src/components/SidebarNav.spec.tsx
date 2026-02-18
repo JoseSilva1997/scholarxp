@@ -78,22 +78,22 @@ describe('SidebarNav', () => {
 
       // In expanded mode, labelBlock should render with label AND hint
       expect(screen.getByText('Modules')).toBeInTheDocument();
-      expect(screen.getByText('Create and manage')).toBeInTheDocument();
-      expect(screen.getByText('Daily practice')).toBeInTheDocument();
-      expect(screen.getByText('Account and role')).toBeInTheDocument();
+      expect(screen.getByText('Module catalogue')).toBeInTheDocument();
+      expect(screen.getByText('Quest history')).toBeInTheDocument();
+      expect(screen.getByText('My account')).toBeInTheDocument();
     });
 
     it('renders collapsed state with tooltips only (collapsed=true)', () => {
-      const { container } = render(
+      render(
         <MemoryRouter>
           <SidebarNav collapsed={true} />
         </MemoryRouter>,
       );
 
       // In collapsed mode, labelBlock should NOT render (hints should be hidden)
-      expect(screen.queryByText('Create and manage')).not.toBeInTheDocument();
-      expect(screen.queryByText('Daily practice')).not.toBeInTheDocument();
-      expect(screen.queryByText('Account and role')).not.toBeInTheDocument();
+      expect(screen.queryByText('Module catalogue')).not.toBeInTheDocument();
+      expect(screen.queryByText('Quest history')).not.toBeInTheDocument();
+      expect(screen.queryByText('My account')).not.toBeInTheDocument();
 
       // But sr (screen-reader only) labels should still exist
       // Look for span that contains "Modules" and has aria-hidden=false (or no aria-hidden)
@@ -104,14 +104,14 @@ describe('SidebarNav', () => {
     });
 
     it('conditionally renders labelBlock only when not collapsed', () => {
-      const { container, rerender } = render(
+      const { rerender } = render(
         <MemoryRouter>
           <SidebarNav collapsed={false} />
         </MemoryRouter>,
       );
 
       // In expanded mode, hints should be visible (sign of labelBlock rendering)
-      expect(screen.getByText('Create and manage')).toBeInTheDocument();
+      expect(screen.getByText('Module catalogue')).toBeInTheDocument();
 
       rerender(
         <MemoryRouter>
@@ -120,20 +120,19 @@ describe('SidebarNav', () => {
       );
 
       // In collapsed mode, hints should NOT be visible
-      expect(screen.queryByText('Create and manage')).not.toBeInTheDocument();
-      expect(screen.queryByText('Daily practice')).not.toBeInTheDocument();
+      expect(screen.queryByText('Module catalogue')).not.toBeInTheDocument();
+      expect(screen.queryByText('Quest history')).not.toBeInTheDocument();
     });
 
     it('maintains icon visibility in both collapsed and expanded states', () => {
-      const { rerender } = render(
+      const { container, rerender } = render(
         <MemoryRouter>
           <SidebarNav collapsed={false} />
         </MemoryRouter>,
       );
 
-      // Icons should be present in expanded mode
-      expect(screen.getByText('📚')).toBeInTheDocument();
-      expect(screen.getByText('🎯')).toBeInTheDocument();
+      // React-icons render SVGs; asserting icon containers keeps the test resilient.
+      expect(container.querySelectorAll('a span[aria-hidden="true"] svg')).toHaveLength(3);
 
       rerender(
         <MemoryRouter>
@@ -141,9 +140,8 @@ describe('SidebarNav', () => {
         </MemoryRouter>,
       );
 
-      // Icons should still be present in collapsed mode
-      expect(screen.getByText('📚')).toBeInTheDocument();
-      expect(screen.getByText('🎯')).toBeInTheDocument();
+      // Icons should still be present in collapsed mode.
+      expect(container.querySelectorAll('a span[aria-hidden="true"] svg')).toHaveLength(3);
     });
   });
 
@@ -256,7 +254,7 @@ describe('SidebarNav', () => {
         </MemoryRouter>,
       );
 
-      let modulesLink = container1.querySelector('a[href="/main/modules"]');
+      const modulesLink = container1.querySelector('a[href="/main/modules"]');
       let classAttr = modulesLink?.getAttribute('class') || '';
       expect(classAttr).toMatch(/linkActive/);
 
@@ -339,7 +337,7 @@ describe('SidebarNav', () => {
       expect(screen.getByText('Profile')).toBeInTheDocument();
 
       // Should not show hints in collapsed mode
-      expect(screen.queryByText('Create and manage')).not.toBeInTheDocument();
+      expect(screen.queryByText('Module catalogue')).not.toBeInTheDocument();
     });
 
     it('handles expanded state with single authorized item', () => {
@@ -353,7 +351,7 @@ describe('SidebarNav', () => {
 
       // Only Modules should be visible
       expect(screen.getByText('Modules')).toBeInTheDocument();
-      expect(screen.getByText('Create and manage')).toBeInTheDocument();
+      expect(screen.getByText('Module catalogue')).toBeInTheDocument();
       expect(screen.queryByText('Quests')).not.toBeInTheDocument();
     });
 
