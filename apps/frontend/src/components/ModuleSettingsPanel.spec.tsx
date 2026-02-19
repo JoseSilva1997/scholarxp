@@ -270,7 +270,7 @@ describe('ModuleSettingsPanel', () => {
       expect(screen.getByText('Test Module')).toBeInTheDocument();
     });
 
-    it('displays collapse arrow when panel is open', () => {
+    it('displays close button when panel is open', () => {
       render(
         <ModuleSettingsPanel
           module={mockModule}
@@ -282,12 +282,12 @@ describe('ModuleSettingsPanel', () => {
       );
 
       const closeButton = screen.getByRole('button', {
-        name: /Collapse settings panel/i,
+        name: /Close settings panel/i,
       });
-      expect(closeButton).toHaveTextContent('←');
+      expect(closeButton).toBeInTheDocument();
     });
 
-    it('displays expand arrow when panel is closed', () => {
+    it('keeps close button accessible when panel is closed', () => {
       render(
         <ModuleSettingsPanel
           module={mockModule}
@@ -299,10 +299,10 @@ describe('ModuleSettingsPanel', () => {
       );
 
       const closeButton = screen.getByRole('button', {
-        name: /Expand settings panel/i,
+        name: /Close settings panel/i,
         hidden: true,
       });
-      expect(closeButton).toHaveTextContent('→');
+      expect(closeButton).toBeInTheDocument();
     });
 
     it('header button calls onToggle', async () => {
@@ -317,7 +317,7 @@ describe('ModuleSettingsPanel', () => {
       );
 
       const closeButton = screen.getByRole('button', {
-        name: /Collapse settings panel/i,
+        name: /Close settings panel/i,
       });
       await userEvent.click(closeButton);
       expect(mockOnToggle).toHaveBeenCalled();
@@ -526,7 +526,7 @@ describe('ModuleSettingsPanel', () => {
         />
       );
 
-      const createButton = screen.getByRole('button', { name: /Creating…/i });
+      const createButton = screen.getByRole('button', { name: /^\.\.\.$/i });
       expect(createButton).toBeDisabled();
     });
   });
@@ -570,7 +570,7 @@ describe('ModuleSettingsPanel', () => {
         isInvitesLoading: true,
       });
 
-      render(
+      const { container } = render(
         <ModuleSettingsPanel
           module={mockModule}
           isOpen={true}
@@ -580,7 +580,7 @@ describe('ModuleSettingsPanel', () => {
         />
       );
 
-      expect(screen.getByText(/Refreshing…/i)).toBeInTheDocument();
+      expect(container.querySelector('[class*="settingsPlaceholderGroup"]')).toBeInTheDocument();
     });
 
     it('disables refresh button when loading', () => {
@@ -599,7 +599,7 @@ describe('ModuleSettingsPanel', () => {
         />
       );
 
-      const refreshButton = screen.getByRole('button', { name: /Refresh/i });
+      const refreshButton = screen.getByRole('button', { name: /^\.\.\.$/i });
       expect(refreshButton).toBeDisabled();
     });
   });

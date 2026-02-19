@@ -2,7 +2,7 @@
 import { useEffect, useMemo } from 'react';
 import styles from './ModuleSettingsPanel.module.css';
 import type { ModuleInvite, ModuleSummary } from '../types/module';
-import { FaRegCopy } from "react-icons/fa6";
+import { FaRegCopy, FaXmark } from "react-icons/fa6";
 import { IconContext } from 'react-icons';
 import { useModuleInvitesPanelState } from '../hooks/page-state/useModuleInvitesPanelState';
 import { useModuleSettingsForm } from '../hooks/page-state/useModuleSettingsForm';
@@ -151,19 +151,17 @@ export default function ModuleSettingsPanel({
         <button
           className={styles.closeSettingsButton}
           type="button"
-          aria-label={isOpen ? 'Collapse settings panel' : 'Expand settings panel'}
+          aria-label="Close settings panel"
           onClick={onToggle}
         >
-          {isOpen ? '←' : '→'}
+          <FaXmark />
         </button>
       </header>
 
       <div className={styles.settingsPanelBody}>
         <section className={styles.settingsSection}>
           <header className={styles.settingsSectionHeader}>
-            <div>
-              <h3 className={styles.settingsSectionTitle}>Edit</h3>
-            </div>
+            <h3 className={styles.settingsSectionTitle}>General Settings</h3>
           </header>
 
           {!isReady ? (
@@ -247,9 +245,7 @@ export default function ModuleSettingsPanel({
         */}
         <section className={styles.settingsSection}>
           <header className={styles.settingsSectionHeader}>
-            <div>
-              <h3 className={styles.settingsSectionTitle}>Invites & membership</h3>
-            </div>
+            <h3 className={styles.settingsSectionTitle}>Invites & Membership</h3>
           </header>
           {isInviteEnabled ? (
             <>
@@ -260,7 +256,7 @@ export default function ModuleSettingsPanel({
               ) : null}
               <form className={styles.inviteForm} onSubmit={handleCreateInvite}>
                 <label className={styles.field}>
-                  <span className={styles.fieldLabel}>Expiry (hours)</span>
+                  <span className={styles.fieldLabel}>Expiry (h)</span>
                   <input
                     className={styles.input}
                     type="number"
@@ -270,7 +266,7 @@ export default function ModuleSettingsPanel({
                   />
                 </label>
                 <label className={styles.field}>
-                  <span className={styles.fieldLabel}>Max uses</span>
+                  <span className={styles.fieldLabel}>Uses</span>
                   <input
                     className={styles.input}
                     type="number"
@@ -279,26 +275,24 @@ export default function ModuleSettingsPanel({
                     onChange={(e) => setCreateMaxUses(Number(e.target.value))}
                   />
                 </label>
-                <div className={styles.actions}>
-                  <button
-                    className={styles.primaryButton}
-                    type="submit"
-                    disabled={isCreatingInvite || !module}
-                  >
-                    {isCreatingInvite ? 'Creating…' : 'Create invite'}
-                  </button>
-                </div>
+                <button
+                  className={styles.createInviteButton}
+                  type="submit"
+                  disabled={isCreatingInvite || !module}
+                >
+                  {isCreatingInvite ? '...' : 'Create'}
+                </button>
               </form>
 
               <div className={styles.inviteListHeader}>
                 <h4 className={styles.inviteListTitle}>Active invites</h4>
                 <button
                   type="button"
-                  className={styles.secondaryButton}
+                  className={styles.refreshButton}
                   disabled={isInvitesLoading}
                   onClick={refreshInvites}
                 >
-                  {isInvitesLoading ? 'Refreshing…' : 'Refresh'}
+                  {isInvitesLoading ? '...' : 'Refresh'}
                 </button>
               </div>
 

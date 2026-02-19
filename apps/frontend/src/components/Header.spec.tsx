@@ -137,7 +137,7 @@ describe('Header', () => {
       fireEvent.click(screen.getByRole('button', { name: /today's quests/i }));
 
       expect(screen.getByTestId('today-quest-popover')).toBeInTheDocument();
-      expect(screen.getByText("Today's quests")).toBeInTheDocument();
+      expect(screen.getByText('Quests')).toBeInTheDocument();
       expect(screen.getByText('Biology')).toBeInTheDocument();
     });
 

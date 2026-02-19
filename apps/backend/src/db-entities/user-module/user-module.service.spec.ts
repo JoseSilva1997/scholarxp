@@ -57,7 +57,11 @@ describe('UserModuleService', () => {
 
   it('addStudentModuleExp increments module XP for enrolled student', async () => {
     const now = new Date('2026-02-13T12:00:00.000Z');
-    prisma.userModule.findUnique.mockResolvedValue({ id: 11 } as any);
+    prisma.userModule.findUnique.mockResolvedValue({
+      id: 11,
+      currentExp: 0,
+      userModuleLevel: 1,
+    } as any);
     prisma.userModule.update.mockResolvedValue({
       id: 11,
       moduleId: 5,
@@ -78,13 +82,17 @@ describe('UserModuleService', () => {
           userId: 2,
         },
       },
-      select: { id: true },
+      // Service reads currentExp/level to compute progression side effects alongside enrollment lookup.
+      select: { id: true, currentExp: true, userModuleLevel: true },
     });
     expect(prisma.userModule.update).toHaveBeenCalledWith({
       where: { id: 11 },
       data: {
         currentExp: {
-          increment: 50,
+          set: 50,
+        },
+        userModuleLevel: {
+          set: 1,
         },
       },
     });

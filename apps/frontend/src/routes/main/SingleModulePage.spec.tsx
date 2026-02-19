@@ -210,7 +210,9 @@ describe('SingleModulePage route', () => {
     );
 
     expect(screen.getByText('Level 3')).toBeInTheDocument();
-    expect(screen.getByText('120 XP')).toBeInTheDocument();
+    // XP value/label are split across spans; assert against the progress region text content.
+    expect(screen.getByLabelText('Module progress')).toHaveTextContent('120');
+    expect(screen.getByLabelText('Module progress')).toHaveTextContent('XP');
     expect(screen.getByText('student-unit-1')).toBeInTheDocument();
     expect(screen.queryByText('student-unit-2')).not.toBeInTheDocument();
   });

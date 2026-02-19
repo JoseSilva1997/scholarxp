@@ -42,7 +42,7 @@
   width: 100%;
   padding: 12px;
   border-radius: 8px;
-  border: 1px solid var(--color-form-field-border-soft);
+  border: 1px solid var(--color-border);
   font-size: 14px;
 }
 
