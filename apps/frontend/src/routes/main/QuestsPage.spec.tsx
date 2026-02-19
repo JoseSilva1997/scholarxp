@@ -1,5 +1,5 @@
 // Verifies QuestsPage renders grouped day cards and the load-more control from page-state data.
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QuestTypeValues, type QuestView } from '@scholarxp/api-contracts';
 import { describe, expect, it, vi } from 'vitest';
@@ -84,7 +84,9 @@ describe('QuestsPage route', () => {
     await user.click(screen.getByRole('button', { name: 'Biology 101 quest details' }));
     expect(screen.getByText('First quest description')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Chemistry 101 quest details' }));
-    expect(screen.queryByText('First quest description')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText('First quest description')).not.toBeInTheDocument();
+    });
     expect(screen.getByText('Second quest description')).toBeInTheDocument();
   });
 });

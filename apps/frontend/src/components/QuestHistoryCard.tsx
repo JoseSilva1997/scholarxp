@@ -1,17 +1,10 @@
 // Reusable quest history day card that keeps a fixed 3-slot hex layout and only renders quest badges.
-import { QuestTypeValues, type QuestView } from '@scholarxp/api-contracts';
-import { AnimatePresence, motion } from 'motion/react';
-import { useState } from 'react';
-import {
-  BsBoxSeam,
-  BsHexagon,
-  BsInfoCircle,
-  BsJournalText,
-  BsLightningChargeFill,
-  BsStars,
-  BsTrophy,
-} from 'react-icons/bs';
+import type { QuestView } from '@scholarxp/api-contracts';
+import { AnimatePresence } from 'motion/react';
+import { useEffect, useState } from 'react';
+import { BsHexagon } from 'react-icons/bs';
 import { getQuestBadge } from '../constants/quest-constants';
+import QuestBadgeTooltip from './QuestBadgeTooltip';
 import styles from './QuestHistoryCard.module.css';
 
 type QuestHistoryCardProps = {
@@ -24,63 +17,6 @@ type QuestHistoryCardProps = {
 
 const QUEST_SLOT_COUNT = 3;
 
-type QuestBadgeTooltipProps = {
-  quest: QuestView;
-};
-
-function QuestBadgeTooltip({ quest }: QuestBadgeTooltipProps) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10, scale: 0.95, translateX: '-50%' }}
-      animate={{ opacity: 1, y: 0, scale: 1, translateX: '-50%' }}
-      exit={{ opacity: 0, scale: 0.95, translateX: '-50%' }}
-      transition={{ duration: 0.2, ease: 'easeOut' }}
-      className={styles.tooltip}
-      role="tooltip"
-    >
-      <div className={styles.tooltipHeader}>
-        <BsStars className={styles.tooltipIcon} />
-        <span className={styles.tooltipTitle}>Quest Reward</span>
-      </div>
-
-      <div className={styles.tooltipBody}>
-        {/* Keep tooltip fields explicit so quest metadata is quickly scannable. */}
-        <div className={styles.tooltipRow}>
-          <span className={styles.tooltipLabel}>
-            <BsBoxSeam /> Module:
-          </span>{' '}
-          <span className={styles.tooltipValue}>{quest.moduleTitle}</span>
-        </div>
-
-        {quest.type === QuestTypeValues.completeNewUnit && quest.moduleUnitTitle ? (
-          <div className={styles.tooltipRow}>
-            <span className={styles.tooltipLabel}>
-              <BsJournalText /> Lesson:
-            </span>{' '}
-            <span className={styles.tooltipValue}>{quest.moduleUnitTitle}</span>
-          </div>
-        ) : null}
-
-        <div className={styles.tooltipRow}>
-          <span className={styles.tooltipLabel}>
-            <BsInfoCircle aria-hidden="true" /> Info:
-          </span>{' '}
-          <span className={styles.tooltipValue}>{quest.description}</span>
-        </div>
-
-        <div className={styles.tooltipRow}>
-          <span className={styles.tooltipLabel}>
-            <BsTrophy /> Reward:
-          </span>{' '}
-          <span className={styles.expValue}>
-            <BsLightningChargeFill aria-hidden="true" /> +{quest.expGranted} XP
-          </span>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
 export default function QuestHistoryCard({
   quests,
   className,
@@ -90,8 +26,38 @@ export default function QuestHistoryCard({
 }: QuestHistoryCardProps) {
   const [openTooltipSlotIndex, setOpenTooltipSlotIndex] = useState<number | null>(null);
   const isControlledTooltip = typeof onTooltipToggle === 'function';
+  const hasOpenTooltip = isControlledTooltip
+    ? activeTooltipId !== null
+    : openTooltipSlotIndex !== null;
   // Fixed slot count keeps day cards visually consistent during early UI iteration.
   const slots = Array.from({ length: QUEST_SLOT_COUNT }, (_, index) => quests[index] ?? null);
+
+  useEffect(() => {
+    if (!hasOpenTooltip) return;
+
+    const handleDocumentPointerDown = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+
+      // Keep tooltip open while interacting with the badge trigger or tooltip itself.
+      const clickedTooltip = target.closest('[data-quest-tooltip="true"]');
+      const clickedBadgeButton = target.closest(`.${styles.badgeButton}`);
+      if (clickedTooltip || clickedBadgeButton) {
+        return;
+      }
+
+      if (isControlledTooltip) {
+        onTooltipToggle(null);
+      } else {
+        setOpenTooltipSlotIndex(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleDocumentPointerDown);
+    return () => {
+      document.removeEventListener('mousedown', handleDocumentPointerDown);
+    };
+  }, [hasOpenTooltip, isControlledTooltip, onTooltipToggle]);
 
   return (
     <div className={`${styles.card} ${className ?? ''}`.trim()}>

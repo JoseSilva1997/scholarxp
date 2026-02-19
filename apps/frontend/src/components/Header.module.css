@@ -4,7 +4,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
+  padding: 0 24px 0px 16px;
   background-color: var(--color-brand-surface-dark);
   color: #ffffff;
   min-height: var(--header-height);

@@ -1,5 +1,5 @@
 // Validates that quest history cards keep a fixed three-slot layout and render only badge imagery.
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { QuestTypeValues, type QuestView } from '@scholarxp/api-contracts';
@@ -53,8 +53,8 @@ describe('QuestHistoryCard', () => {
     expect(screen.queryByText('Module:')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Biology 101 quest details' }));
     expect(screen.getByText('Module:')).toBeInTheDocument();
-    expect(screen.getByText('Description:')).toBeInTheDocument();
-    expect(screen.getByText('Exp gained:')).toBeInTheDocument();
+    expect(screen.getByText('Info:')).toBeInTheDocument();
+    expect(screen.getByText('Reward:')).toBeInTheDocument();
     expect(screen.queryByText('Lesson:')).not.toBeInTheDocument();
   });
 
@@ -65,5 +65,17 @@ describe('QuestHistoryCard', () => {
     await user.click(screen.getByRole('button', { name: 'Biology 101 quest details' }));
     expect(screen.getByText('Lesson:')).toBeInTheDocument();
     expect(screen.getByText('Cell Structure')).toBeInTheDocument();
+  });
+
+  it('closes tooltip when clicking outside', async () => {
+    const user = userEvent.setup();
+    render(<QuestHistoryCard quests={[baseQuest, null, null]} />);
+
+    await user.click(screen.getByRole('button', { name: 'Biology 101 quest details' }));
+    expect(screen.getByText('Module:')).toBeInTheDocument();
+    await user.click(document.body);
+    await waitFor(() => {
+      expect(screen.queryByText('Module:')).not.toBeInTheDocument();
+    });
   });
 });
