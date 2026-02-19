@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { SocialAuthButtons } from '../components/SocialAuthButtons';
+import { AuthVisual } from '../components/AuthVisual';
 import { useLoginPageState } from '../hooks/page-state/useLoginPageState';
 import styles from './Login.module.css';
 
@@ -9,7 +10,7 @@ export default function Login() {
   return (
     <div className={styles.authShell}>
       <div className={styles.authLayout}>
-        <section className={styles.visual} aria-hidden="true" />
+        <AuthVisual />
 
         <div className={styles.cardColumn}>
           <section className={styles.card}>

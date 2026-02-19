@@ -11,32 +11,6 @@
   min-height: 100%; /* Changed from 100vh to fit within scrollable parent context */
 }
 
-/* Left side visual panel */
-.visual {
-  flex: 1.2;
-  position: relative;
-  background: var(--color-brand-surface-dark);
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.visual::before {
-  content: '';
-  position: absolute;
-  width: 150%;
-  height: 150%;
-  background: radial-gradient(circle at 30% 20%, rgba(59, 130, 246, 0.15), transparent 40%),
-              radial-gradient(circle at 70% 80%, rgba(16, 185, 129, 0.1), transparent 40%);
-  animation: rotate 25s linear infinite;
-}
-
-@keyframes rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
 /* Right side form column */
 .cardColumn {
   flex: 1;
@@ -242,9 +216,6 @@
 }
 
 @media (max-width: 1024px) {
-  .visual {
-    display: none;
-  }
   .cardColumn {
     flex: 1;
     max-width: none;

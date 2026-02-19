@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { SocialAuthButtons } from '../components/SocialAuthButtons';
+import { AuthVisual } from '../components/AuthVisual';
 import styles from './Register.module.css';
 import { useRegisterPageState } from '../hooks/page-state/useRegisterPageState';
 
@@ -22,7 +23,7 @@ export default function Register() {
   return (
     <div className={styles.authShell}>
       <div className={styles.authLayout}>
-        <section className={styles.visual} aria-hidden="true" />
+        <AuthVisual />
 
         <div className={styles.cardColumn}>
           <section className={styles.card}>
