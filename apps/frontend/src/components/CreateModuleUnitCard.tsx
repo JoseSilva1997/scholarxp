@@ -12,25 +12,32 @@ type CreateModuleUnitCardProps = {
 
 export default function CreateModuleUnitCard({ onClick, isSaving }: CreateModuleUnitCardProps) {
   return (
-    <div className={styles.card} role="group" aria-label="Create a module unit">
-      <button
-        type="button"
-        className={styles.createButton}
-        onClick={onClick}
-        disabled={isSaving}
-        aria-label="Start creating a module unit"
-        title="Create module unit"
-      >
-        <IconContext.Provider value={{ className: styles.createIcon }}>
-          <FaCirclePlus aria-hidden="true" />
-        </IconContext.Provider>
-      </button>
-      <div className={styles.copy}>
-        <p className={styles.title}>Create a lesson</p>
-        <p className={styles.subtitle}>
-          {isSaving ? 'Creating…' : 'Add practice sets to this module.'}
-        </p>
-      </div>
+    <div className={styles.wrapper}>
+      <article className={styles.card} role="group" aria-label="Create a module unit">
+        <div className={styles.leftContainer} aria-hidden="true" />
+        <div className={styles.content}>
+          <div className={styles.header}>
+            <button
+              type="button"
+              className={styles.createButton}
+              onClick={onClick}
+              disabled={isSaving}
+              aria-label="Start creating a module unit"
+              title="Create module unit"
+            >
+              <IconContext.Provider value={{ className: styles.createIcon }}>
+                <FaCirclePlus aria-hidden="true" />
+              </IconContext.Provider>
+            </button>
+            <div className={styles.copy}>
+              <h3 className={styles.title}>Create a lesson</h3>
+              <p className={styles.subtitle}>
+                {isSaving ? 'Creating…' : 'Add practice sets to this module.'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </article>
     </div>
   );
 }

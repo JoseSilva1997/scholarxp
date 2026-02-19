@@ -158,6 +158,29 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
+.modalOpen .actions .settingsButton,
+.modalOpen .actions .toggleButton {
+  /* Dim and flatten action controls behind the modal so they don't appear active through the backdrop. */
+  opacity: 0.55;
+  box-shadow: none;
+  border-color: rgba(15, 23, 42, 0.08);
+  transform: none;
+}
+
+.modalOpen .actions .settingsButton:hover,
+.modalOpen .actions .toggleButton:hover,
+.modalOpen .actions .settingsButton:focus-visible,
+.modalOpen .actions .toggleButton:focus-visible,
+.modalOpen .actions .settingsButton:active,
+.modalOpen .actions .toggleButton:active {
+  /* Force-clear interaction affordances while an overlay owns focus and input. */
+  opacity: 0.55;
+  box-shadow: none;
+  border-color: rgba(15, 23, 42, 0.08);
+  transform: none;
+  outline: none;
+}
+
 .panel {
   background: white;
   border: 1px solid rgba(15, 23, 42, 0.08);
@@ -279,4 +302,3 @@
     padding-right: 0;
   }
 }
-

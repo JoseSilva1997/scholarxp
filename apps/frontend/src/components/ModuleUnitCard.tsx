@@ -1,8 +1,6 @@
 // Displays a module unit with status, title, edit, and dropdown for question groups; keeps interactions local for now.
 import { useMemo, useState } from 'react';
-import { RiDraftLine } from "react-icons/ri";
-import { RiLock2Fill } from "react-icons/ri";
-import { RiArchiveFill } from "react-icons/ri";
+import { RiDraftLine, RiLock2Fill, RiArchiveFill } from "react-icons/ri";
 import { FaCheck } from "react-icons/fa6";
 import { IconContext } from 'react-icons';
 import styles from './ModuleUnitCard.module.css';
@@ -46,49 +44,47 @@ export default function ModuleUnitCard({ unit, onChangeStatus }: ModuleUnitCardP
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
   const navigate = useNavigate();
-  const moduleId = window.location.pathname.split('/')[3]; // crude but effective way to get moduleId from URL
-  // Use backend-provided count because group previews may not include question arrays in list endpoints.
   const totalQuestions = unit.questionCount;
 
   const statusIcon = {
     draft: <RiDraftLine/>,
     live: <FaCheck />,
     locked: <RiLock2Fill/>,
-    // Archived units are read-only historical snapshots in the author list.
     archived: <RiArchiveFill />,
   }[unit.status];
 
-  const editWarningCopy = useMemo(() => {
-    // Tailor warning language by lifecycle so instructors understand student impact before entering editor.
-    if (unit.status === 'live') {
-      return {
-        title: 'Edit live lesson?',
-        body: 'This lesson is live. Changes can affect future student practice availability and question scope.',
-        confirmLabel: 'Edit live lesson',
-      };
-    }
-    if (unit.status === 'locked') {
-      return {
-        title: 'Edit locked lesson?',
-        body: 'This lesson is locked. You can still update content before it goes live.',
-        confirmLabel: 'Edit locked lesson',
-      };
-    }
-    return {
-      title: 'Edit draft lesson?',
-      body: 'You are about to edit this draft lesson.',
-      confirmLabel: 'Edit draft lesson',
-    };
-  }, [unit.status]);
+  const statusClass = styles[unit.status] || '';
+  const isOverlayOpen = showPublishModal || showEditWarningModal;
 
-  const openEditorWarning = (questionId: string | null = null) => {
-    // Reuse lifecycle warning before entering editor regardless of whether a specific question was selected.
+  const navigateToEditor = (questionId: string | null = null) => {
+    const moduleId = window.location.pathname.split('/')[3];
+    const path = questionId 
+      ? `/main/modules/${moduleId}/${unit.id}/editor?questionId=${encodeURIComponent(questionId)}`
+      : `/main/modules/${moduleId}/${unit.id}/editor`;
+    navigate(path);
+  };
+
+  const editWarningCopy = useMemo(() => {
+    // Only used for live lessons to warn about student impact.
+    return {
+      title: 'Edit live lesson?',
+      body: 'This lesson is live. Changes can affect future student practice availability and progress tracking.',
+      confirmLabel: 'Edit live lesson',
+    };
+  }, []);
+
+  const onTryEdit = (questionId: string | null = null) => {
+    // Skip warning for drafts and locked units; only live content requires confirmation before editing.
+    if (unit.status !== 'live') {
+      navigateToEditor(questionId);
+      return;
+    }
     setPendingQuestionId(questionId);
     setShowEditWarningModal(true);
   };
 
   return (
-    <div className={styles.wrapper}>
+    <div className={`${styles.wrapper} ${statusClass} ${isOverlayOpen ? styles.modalOpen : ''}`}>
       <article className={styles.card}>
         <div className={styles.leftContainer} aria-hidden="true" />
         <div className={styles.content}>
@@ -109,20 +105,26 @@ export default function ModuleUnitCard({ unit, onChangeStatus }: ModuleUnitCardP
               </IconContext.Provider>
             </button>
             <div className={styles.meta}>
+              <div className={styles.topRow}>
+                <span className={styles.categoryLabel}>Unit</span>
+                <span className={styles.statusTag}>{unit.status}</span>
+              </div>
               <h3 className={styles.title}>{unit.title}</h3>
-              <p className={styles.subtitle}>
-                {totalQuestions} {totalQuestions === 1 ? 'Question' : 'Questions'}
-              </p>
+              <div className={styles.bottomRow}>
+                <span className={styles.engagementStat}>
+                  <FaCheck className={styles.statIcon} />
+                  {totalQuestions} {totalQuestions === 1 ? 'Question' : 'Questions'}
+                </span>
+                <span className={styles.lockedText}>Status: {unit.status.charAt(0).toUpperCase() + unit.status.slice(1)}</span>
+              </div>
             </div>
             <div className={styles.actions}>
               <button 
                 type="button" 
                 className={styles.editButton} 
                 aria-label="Edit module unit"
-                onClick={() => {
-                  openEditorWarning();
-                }}
-                >
+                onClick={() => onTryEdit()}
+              >
                 Edit
               </button>
             </div>
@@ -147,28 +149,32 @@ export default function ModuleUnitCard({ unit, onChangeStatus }: ModuleUnitCardP
         id={`unit-panel-${unit.id}`}
         aria-hidden={!isOpen}
       >
-        {unit.questionGroups.map((group) => (
-          <div key={group.id} className={styles.group}>
-            <p className={styles.groupTitle}>{group.title}</p>
-            <div className={styles.questions}>
-              {group.questions && group.questions.length > 0 ? (
-                group.questions.map((question) => (
-                  <button
-                    key={question.id}
-                    type="button"
-                    className={styles.question}
-                    onClick={() => openEditorWarning(question.id)}
-                    aria-label={`Edit ${question.title}`}
-                  >
-                    {question.title}
-                  </button>
-                ))
-              ) : (
-                <span className={styles.empty}>No questions yet</span>
-              )}
+        {unit.questionGroups.length > 0 ? (
+          unit.questionGroups.map((group) => (
+            <div key={group.id} className={styles.group}>
+              <p className={styles.groupTitle}>{group.title}</p>
+              <div className={styles.questions}>
+                {group.questions && group.questions.length > 0 ? (
+                  group.questions.map((question) => (
+                    <button
+                      key={question.id}
+                      type="button"
+                      className={styles.question}
+                      onClick={() => onTryEdit(question.id)}
+                      aria-label={`Edit ${question.title}`}
+                    >
+                      {question.title}
+                    </button>
+                  ))
+                ) : (
+                  <span className={styles.empty}>No questions yet</span>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        ) : (
+          <div className={styles.empty}>This unit has no question groups.</div>
+        )}
       </div>
 
       <ConfirmPublishModal
@@ -191,36 +197,21 @@ export default function ModuleUnitCard({ unit, onChangeStatus }: ModuleUnitCardP
           }
         }}
         errorMessage={publishError ?? undefined}
-        title={
-          unit.status === 'draft'
-            ? 'Ready to publish lesson?'
-            : 'Go live?'
-        }
-        body={
-          unit.status === 'draft'
-            ? 'You can still edit it. Students will see its title but the contents will be locked until you set it live.'
-            : 'This will make practice available to all students.'
-        }
-        confirmLabel={unit.status === 'draft' ? 'Publish' : 'Go live'}
+        title={unit.status === 'draft' ? 'Ready to publish lesson?' : 'Go live?'}
+        body={unit.status === 'draft' ? 'This moves the unit to a locked state for final review.' : 'Live units are visible to students.'}
+        confirmLabel={unit.status === 'draft' ? 'Publish to Locked' : 'Go Live'}
       />
 
       <ConfirmPublishModal
         isOpen={showEditWarningModal}
-        onCancel={() => {
-          setShowEditWarningModal(false);
-          setPendingQuestionId(null);
-        }}
-        onConfirm={() => {
-          const targetPath = pendingQuestionId
-            ? `/main/modules/${moduleId}/${unit.id}/editor?questionId=${encodeURIComponent(pendingQuestionId)}`
-            : `/main/modules/${moduleId}/${unit.id}/editor`;
-          setShowEditWarningModal(false);
-          setPendingQuestionId(null);
-          navigate(targetPath);
-        }}
         title={editWarningCopy.title}
         body={editWarningCopy.body}
         confirmLabel={editWarningCopy.confirmLabel}
+        onCancel={() => setShowEditWarningModal(false)}
+        onConfirm={() => {
+          setShowEditWarningModal(false);
+          navigateToEditor(pendingQuestionId);
+        }}
       />
     </div>
   );

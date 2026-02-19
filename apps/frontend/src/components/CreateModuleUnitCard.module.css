@@ -1,76 +1,158 @@
+/* Matches ModuleUnitCard layout with wrapper, left/right containers, and consistent styling */
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  background-color: transparent;
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
 .card {
-  /* Full-width call-to-action so creators spot the entry point quickly. */
+  /* Hollow call-to-action - card container starts transparent and interactive. */
   width: 100%;
   display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 18px 16px;
-  border: none;
-  border-radius: 14px;
-  background: 
-    linear-gradient(to right, var(--color-brand-surface-dark) 50%, transparent 50%) top/24px 2px repeat-x,
-    linear-gradient(to right, var(--color-brand-surface-dark) 50%, transparent 50%) bottom/24px 2px repeat-x,
-    linear-gradient(to bottom, var(--color-brand-surface-dark) 50%, transparent 50%) left/2px 24px repeat-y,
-    linear-gradient(to bottom, var(--color-brand-surface-dark) 50%, transparent 50%) right/2px 24px repeat-y;
+  flex-direction: row;
+  overflow: hidden;
+  position: relative;
+  background: transparent;
+  border: 2px dashed var(--color-brand-surface-dark-muted);
+  border-radius: 12px;
   box-sizing: border-box;
-  flex-wrap: nowrap;
-  margin-top: 12px;
+  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 120px;
+}
+
+.wrapper:hover .card {
+  /* Solidifies on hover to match the weight of standard cards. */
+  transform: translateY(-2px);
+  background: #ffffff;
+  border: 2px solid #cbd5e1;
+  box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+}
+
+/* Strip becomes visible only on hover to complete the "flesh out" effect. */
+.leftContainer {
+  width: 12px;
+  flex-shrink: 0;
+  position: relative;
+  background: repeating-linear-gradient(
+    -45deg,
+    #e2e8f0 0,
+    #e2e8f0 4px,
+    transparent 4px,
+    transparent 8px
+  );
+  opacity: 0;
+  transition: opacity 250ms ease;
+}
+
+.wrapper:hover .leftContainer {
+  opacity: 0.6;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  padding: 24px 8px 24px 24px;
+  flex: 1;
+  min-width: 0;
+  justify-content: center;
+}
+
+.header {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 32px;
+  align-items: center;
 }
 
 .createButton {
-  /* Borrow the create-module affordance to keep the UI cohesive. */
-  border-radius: 999px;
-  width: var(--module-unit-round-button-size);
-  height: var(--module-unit-round-button-size);
+  /* Borrow the statusButton affordance to keep the UI cohesive. */
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: #ffffff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
-  line-height: 1;
   flex-shrink: 0;
-  margin-left: 12px;
-  border: none;
-  background: transparent;
+  border: 1px solid #e2e8f0;
+  border-bottom: 4px solid #cbd5e1;
+  position: relative;
+  z-index: 999;
+  cursor: pointer;
   padding: 0;
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 10px -2px rgba(0, 0, 0, 0.08);
+}
+
+.createButton::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 50%);
+  pointer-events: none;
+}
+
+.createButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-bottom-width: 2px;
+  border-color: #cbd5e1;
+  box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.12);
+}
+
+.createButton:active:not(:disabled) {
+  transform: translateY(2px);
+  border-bottom-width: 1px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
 }
 
 .createIcon {
+  font-size: 72px;
+  color: var(--color-brand-surface-dark-muted);
+  transition: color 0.15s ease;
+}
+
+.createButton:hover:not(:disabled) .createIcon {
   color: var(--color-brand-surface-dark);
-  width: var(--module-unit-round-button-size);
-  height: var(--module-unit-round-button-size);
-}
-
-.createButton:hover {
-  transform: translateY(-1px);
-  box-shadow: 2px 2px 2px rgba(48, 49, 70, 0.32);
-}
-
-.createButton:focus-visible {
-  outline-offset: 3px;
 }
 
 .copy {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  color: var(--text-primary);
   min-width: 0;
+  opacity: 1;
+  transition: opacity 250ms ease;
+}
+
+.wrapper:hover .copy {
+  opacity: 1;
 }
 
 .title {
   margin: 0;
-  font-weight: 800;
-  font-size: 18px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-family: var(--font-sans);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-brand-surface-dark);
+  line-height: 1.2;
+  transition: color 250ms ease;
+}
+
+.wrapper:hover .title {
+  color: #1e293b;
 }
 
 .subtitle {
   margin: 0;
-  color: var(--text-secondary);
-  font-size: 14px;
+  color: #94a3b8;
+  font-size: 0.825rem;
+  font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

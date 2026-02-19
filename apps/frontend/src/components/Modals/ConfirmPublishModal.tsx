@@ -1,4 +1,5 @@
 // Modal prompting teachers to change lesson visibility; copy is supplied by caller.
+import { createPortal } from 'react-dom';
 import styles from './ConfirmPublishModal.module.css';
 
 type ConfirmPublishModalProps = {
@@ -24,7 +25,7 @@ export default function ConfirmPublishModal({
 }: ConfirmPublishModalProps) {
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className={styles.backdrop} role="dialog" aria-modal="true" aria-label="Publish lesson">
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <h2 className={styles.title}>{title}</h2>
@@ -35,7 +36,12 @@ export default function ConfirmPublishModal({
           </p>
         ) : null}
         <div className={styles.actions}>
-          <button type="button" className={styles.secondary} onClick={onCancel} disabled={isSubmitting}>
+          <button
+            type="button"
+            className={styles.secondary}
+            onClick={onCancel}
+            disabled={isSubmitting}
+          >
             Cancel
           </button>
           <button
@@ -48,6 +54,7 @@ export default function ConfirmPublishModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -42,7 +42,10 @@ export default function SingleModulePage() {
 
   return (
     <>
-      <MainSection className={styles.container}>
+      {/* Keep underlying action controls visually subdued whenever a foreground overlay is active. */}
+      <MainSection
+        className={`${styles.container} ${showCreateUnit || isSettingsOpen ? styles.modalOpen : ''}`}
+      >
         <div className={styles.topBar}>
           <Link className={styles.backLink} to="/main/modules">
             ← Back to modules
