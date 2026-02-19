@@ -1,5 +1,6 @@
 // Validates that quest history cards keep a fixed three-slot layout and render only badge imagery.
 import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { QuestTypeValues, type QuestView } from '@scholarxp/api-contracts';
 import QuestHistoryCard from './QuestHistoryCard';
@@ -19,6 +20,16 @@ const baseQuest: QuestView = {
   completedAt: null,
 };
 
+const newUnitQuest: QuestView = {
+  ...baseQuest,
+  id: 2,
+  moduleUnitId: 7,
+  moduleUnitTitle: 'Cell Structure',
+  type: QuestTypeValues.completeNewUnit,
+  description:
+    'Complete all questions from the Cell Structure lesson of your Biology 101 module.',
+};
+
 describe('QuestHistoryCard', () => {
   it('always renders exactly three slots', () => {
     render(<QuestHistoryCard quests={[null, null, null]} />);
@@ -33,5 +44,26 @@ describe('QuestHistoryCard', () => {
     expect(within(slots[0]).getByRole('img')).toBeInTheDocument();
     expect(within(slots[1]).queryByRole('img')).not.toBeInTheDocument();
     expect(within(slots[2]).queryByRole('img')).not.toBeInTheDocument();
+  });
+
+  it('shows tooltip details only after clicking a quest medal', async () => {
+    const user = userEvent.setup();
+    render(<QuestHistoryCard quests={[baseQuest, null, null]} />);
+
+    expect(screen.queryByText('Module:')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Biology 101 quest details' }));
+    expect(screen.getByText('Module:')).toBeInTheDocument();
+    expect(screen.getByText('Description:')).toBeInTheDocument();
+    expect(screen.getByText('Exp gained:')).toBeInTheDocument();
+    expect(screen.queryByText('Lesson:')).not.toBeInTheDocument();
+  });
+
+  it('renders lesson in tooltip for complete_new_unit quests', async () => {
+    const user = userEvent.setup();
+    render(<QuestHistoryCard quests={[newUnitQuest, null, null]} />);
+
+    await user.click(screen.getByRole('button', { name: 'Biology 101 quest details' }));
+    expect(screen.getByText('Lesson:')).toBeInTheDocument();
+    expect(screen.getByText('Cell Structure')).toBeInTheDocument();
   });
 });

@@ -1,5 +1,5 @@
 // Quest history route with polished UI, strategic layout, and excellent user experience.
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { BsCheckCircleFill, BsFire, BsStarFill, BsTrophy, BsHexagon } from 'react-icons/bs';
 import MainSection from '../../components/MainSection';
 import QuestHistoryCard from '../../components/QuestHistoryCard';
@@ -9,6 +9,7 @@ import styles from './QuestsPage.module.css';
 export default function QuestsPage() {
   const { daySections, isLoading, isLoadingMore, pageError, canLoadMore, loadMore } =
     useQuestPageState();
+  const [activeTooltipId, setActiveTooltipId] = useState<string | null>(null);
 
   // Calculate session stats for the header summary.
   const historyStats = useMemo(() => {
@@ -137,7 +138,12 @@ export default function QuestsPage() {
                         {completedQuestsCount}/{daySection.quests.length} Quests Completed
                       </p>
                     </div>
-                    <QuestHistoryCard quests={daySection.quests} />
+                    <QuestHistoryCard
+                      quests={daySection.quests}
+                      activeTooltipId={activeTooltipId}
+                      onTooltipToggle={setActiveTooltipId}
+                      tooltipIdPrefix={daySection.questDayUtc}
+                    />
                   </section>
                 </div>
               );
