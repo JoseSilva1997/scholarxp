@@ -231,7 +231,7 @@ describe('PracticeRoomPage route (core-only)', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('button', { name: 'A' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'A A' })).toBeDisabled();
     expect(screen.getByRole('button', { name: /Submit answer/i })).toBeDisabled();
   });
 

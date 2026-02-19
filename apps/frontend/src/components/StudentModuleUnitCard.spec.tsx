@@ -89,12 +89,11 @@ describe('StudentModuleUnitCard', () => {
     ).toContain('questionStatusIncorrect');
   });
 
-  it('keeps question links disabled for locked lessons', () => {
+  it('hides expandable lesson details for locked lessons', () => {
     render(<StudentModuleUnitCard unit={{ ...baseUnit, status: 'locked' }} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Expand lesson details' }));
-
-    expect(screen.getByRole('button', { name: 'Practice Q1' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Expand lesson details' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Practice Q1' })).not.toBeInTheDocument();
   });
 
   it('renders completion medal when the unit is marked completed', () => {

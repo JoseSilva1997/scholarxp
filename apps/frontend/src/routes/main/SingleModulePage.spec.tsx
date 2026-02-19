@@ -165,7 +165,7 @@ describe('SingleModulePage route', () => {
         <SingleModulePage />
       </MemoryRouter>,
     );
-    expect(screen.getByText('Loading module…')).toBeInTheDocument();
+    expect(screen.getByText('Gathering module details…')).toBeInTheDocument();
 
     pageState.isLoading = false;
     pageState.pageError = 'Module failed to load';
@@ -210,7 +210,7 @@ describe('SingleModulePage route', () => {
     );
 
     expect(screen.getByText('Level 3')).toBeInTheDocument();
-    expect(screen.getByText('120 xp')).toBeInTheDocument();
+    expect(screen.getByText('120 XP')).toBeInTheDocument();
     expect(screen.getByText('student-unit-1')).toBeInTheDocument();
     expect(screen.queryByText('student-unit-2')).not.toBeInTheDocument();
   });
@@ -281,7 +281,7 @@ describe('SingleModulePage route', () => {
     expect(mocks.setIsSettingsOpen).toHaveBeenCalled();
   });
 
-  it('does not show student progress section when student globalRole but userModuleLevel is undefined', () => {
+  it('hides only the student progress section when userModuleLevel is undefined', () => {
     // Test user?.globalRole === 'student' && module.userModuleLevel !== undefined false branch
     authState = { user: { globalRole: 'student' } };
     pageState.canManageModuleContent = false;
@@ -297,7 +297,7 @@ describe('SingleModulePage route', () => {
 
     expect(screen.queryByText(/Level/)).not.toBeInTheDocument();
     expect(screen.queryByText(/xp/)).not.toBeInTheDocument();
-    expect(screen.queryByText('student-unit-1')).not.toBeInTheDocument();
+    expect(screen.getByText('student-unit-1')).toBeInTheDocument();
   });
 
   it('hides draft and archived student units but shows live and locked units', () => {

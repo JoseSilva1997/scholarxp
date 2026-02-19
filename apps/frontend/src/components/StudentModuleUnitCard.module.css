@@ -19,11 +19,6 @@
   z-index: 2; /* Layered above the dropdown panel */
   transition: all 200ms ease;
   min-height: 120px;
-  /* Blueprint texture */
-  background-image: 
-    linear-gradient(rgba(226, 232, 240, 0.4) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(226, 232, 240, 0.4) 1px, transparent 1px);
-  background-size: 24px 24px;
 }
 
 .wrapper:hover .card {
@@ -356,15 +351,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   background: #f8fafc;
   border-radius: 6px;
 }
 
 .questionStatusIcon {
-  width: 10px;
-  height: 10px;
+  width: 14px;
+  height: 14px;
 }
 
 .questionStatusCorrect { color: #10b981; }
@@ -402,13 +397,13 @@
   }
 
   .statusButton {
-    width: 64px;
-    height: 64px;
+    width: 48px;
+    height: 48px;
   }
 
   .completionMedal {
-    width: 48px;
-    height: 48px;
+    width: 42px;
+    height: 42px;
   }
 
   .panelOpen {
@@ -425,69 +420,3 @@
   }
 }
 
-.questionStatusIcon {
-  width: 16px;
-  height: 16px;
-}
-
-.questionStatusCorrect {
-  color: #10b981;
-}
-
-.questionStatusIncorrect {
-  color: #ef4444;
-}
-
-.questionStatusUnattempted {
-  color: #94a3b8;
-}
-
-.empty {
-  font-size: 0.8125rem;
-  color: #94a3b8;
-  font-style: italic;
-  padding: 8px 4px;
-}
-
-@media (max-width: 768px) {
-  .question {
-    flex: 0 1 calc(50% - 5px); /* 2 per row on smaller screens */
-    min-width: 0;
-  }
-}
-
-@media (max-width: 640px) {
-  .header {
-    grid-template-columns: auto 1fr;
-    gap: 16px;
-  }
-
-  .actions {
-    grid-column: 1 / -1;
-    margin-top: 12px;
-    padding-right: 0;
-    justify-content: stretch;
-  }
-
-  .practiceButton {
-    width: 100%;
-  }
-
-  .statusButton {
-    width: 48px;
-    height: 48px;
-  }
-
-  .completionMedal {
-    width: 36px;
-    height: 36px;
-  }
-
-  .panelOpen {
-    padding: 16px;
-  }
-
-  .question {
-    flex: 0 1 100%; /* Back to 1 per row for mobile for clarity */
-  }
-}
