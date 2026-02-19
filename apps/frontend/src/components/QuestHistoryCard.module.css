@@ -56,7 +56,7 @@
 
 .slot:hover {
   transform: translateY(-5px) scale(1.02);
-  border-color: var(--color-accent-primary-soft);
+  border-color: var(--color-accent-soft);
   background: var(--color-surface);
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
 }
@@ -111,7 +111,7 @@
 }
 
 .slot:hover .emptyIcon {
-  color: var(--color-accent-primary-soft);
+  color: var(--color-accent-soft);
   transform: scale(1.2);
   opacity: 1;
 }

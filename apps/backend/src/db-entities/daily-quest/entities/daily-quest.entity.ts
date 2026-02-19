@@ -1,6 +1,8 @@
 export class DailyQuest {
   id: number;
   moduleId: number;
+  // Null when this quest targets a module as a whole instead of a single lesson.
+  moduleUnitId: number | null;
   userId: number;
   type: string;
   expGranted: number;

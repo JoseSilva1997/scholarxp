@@ -13,6 +13,10 @@ export class CreateDailyQuestDto {
   moduleId: number;
 
   @IsInt()
+  @IsOptional()
+  moduleUnitId?: number;
+
+  @IsInt()
   @IsNotEmpty()
   userId: number;
 

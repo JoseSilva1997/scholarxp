@@ -1,6 +1,6 @@
 // Quests page-state orchestrates paged quest-history fetching, UTC day grouping, and load-more actions.
 import { useEffect, useMemo } from 'react';
-import type { Quest } from '@scholarxp/api-contracts';
+import type { QuestView } from '@scholarxp/api-contracts';
 import {
   getDisplayErrorMessage,
   shouldLogApiError,
@@ -15,7 +15,7 @@ const DAY_PAGE_SIZE = 14;
 export type QuestDaySection = {
   questDayUtc: string;
   dayLabel: string;
-  quests: Array<Quest | null>;
+  quests: Array<QuestView | null>;
 };
 
 type UseQuestPageStateResult = {
@@ -43,7 +43,7 @@ export function useQuestPageState(): UseQuestPageStateResult {
   }, [questHistoryQuery.error]);
 
   const groupedQuestDays = useMemo(() => {
-    const groupedByDay = new Map<string, Quest[]>();
+    const groupedByDay = new Map<string, QuestView[]>();
     const pages = questHistoryQuery.data?.pages ?? [];
     const flatQuests = pages.flatMap((page) => page.quests);
 

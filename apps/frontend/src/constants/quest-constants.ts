@@ -1,5 +1,5 @@
 import { QuestTypeValues } from '@scholarxp/api-contracts'
-import type { Quest } from '@scholarxp/api-contracts'
+import type { QuestView } from '@scholarxp/api-contracts'
 import completeDailyPracticeBadge from '../assets/quest-badges/daily-practice-complete.png';
 import incompleteDailyPracticeBadge from '../assets/quest-badges/daily-practice-incomplete.png';
 import completeNewUnitBadge from '../assets/quest-badges/new-unit-complete.png';
@@ -18,7 +18,7 @@ export const QUEST_IMAGE = {
 } as const;
 
 
-export function getQuestBadge(quest: Quest): string {
+export function getQuestBadge(quest: QuestView): string {
     if (quest.type === QuestTypeValues.completeDailyPractice) {
         return quest.isCompleted ? QUEST_IMAGE[QuestTypeValues.completeDailyPractice].complete : QUEST_IMAGE[QuestTypeValues.completeDailyPractice].incomplete;
     } else if (quest.type === QuestTypeValues.completeNewUnit) {

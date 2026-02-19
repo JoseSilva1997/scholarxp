@@ -25,6 +25,8 @@ export const QUEST_TYPE_LABELS = {
 export interface Quest {
   id: number;
   moduleId: number;
+  // Null for module-level quests that are not tied to a specific lesson.
+  moduleUnitId: number | null;
   moduleTitle: string;
   type: QuestType;
   expGranted: number;
@@ -37,6 +39,14 @@ export interface Quest {
   completedAt: string | null; // ISO date-time string (UTC)
 }
 
+// API view model for quests consumed by frontend screens.
+// Backend resolves this so UI rendering does not need duplicated description logic.
+export interface QuestView extends Quest {
+  // Null when the quest is module-scoped or the linked lesson no longer exists.
+  moduleUnitTitle: string | null;
+  description: string;
+}
+
 // Query params for paged quest-history retrieval by UTC day windows.
 export interface QuestHistoryQuery {
   dayLimit?: number;
@@ -45,7 +55,7 @@ export interface QuestHistoryQuery {
 
 // Base response for quest collection reads.
 export interface QuestResponse {
-  quests: Quest[];
+  quests: QuestView[];
 }
 
 // Paged history response includes pagination metadata for "load more" workflows.

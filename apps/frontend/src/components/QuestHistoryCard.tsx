@@ -1,11 +1,11 @@
 // Reusable quest history day card that keeps a fixed 3-slot hex layout and only renders quest badges.
-import type { Quest } from '@scholarxp/api-contracts';
+import type { QuestView } from '@scholarxp/api-contracts';
 import { BsHexagon } from 'react-icons/bs';
 import { getQuestBadge } from '../constants/quest-constants';
 import styles from './QuestHistoryCard.module.css';
 
 type QuestHistoryCardProps = {
-  quests: Array<Quest | null>;
+  quests: Array<QuestView | null>;
   className?: string;
 };
 

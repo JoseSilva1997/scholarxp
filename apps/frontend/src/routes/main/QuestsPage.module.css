@@ -313,7 +313,7 @@
 .dayWrapper:hover .daySection {
   transform: translateX(12px);
   box-shadow: 0 20px 48px rgba(15, 23, 42, 0.08);
-  border-color: var(--color-accent-primary-soft);
+  border-color: var(--color-accent-soft);
 }
 
 .daySection.completed {
