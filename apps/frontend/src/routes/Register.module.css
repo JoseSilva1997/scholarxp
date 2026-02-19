@@ -1,293 +1,313 @@
 .authShell {
   width: 100%;
-  margin: 0;
-  flex: 1;
-  display: grid;
+  height: 100%;
+  display: flex;
+  background: var(--color-bg);
 }
 
 .authLayout {
-  display: grid;
-  grid-template-columns: 1.05fr 1fr;
-  gap: 16px;
-  align-items: stretch;
-  min-height: 100%;
+  display: flex;
+  width: 100%;
+  min-height: 100%; /* Changed from 100vh to fit within scrollable parent context */
 }
 
+/* Left side visual panel */
 .visual {
+  flex: 1.2;
   position: relative;
+  background: var(--color-brand-surface-dark);
   overflow: hidden;
-  border-radius: 0;
-  background: radial-gradient(circle at 20% 18%, rgba(76, 175, 80, 0.18), transparent 30%),
-    radial-gradient(circle at 82% 10%, rgba(243, 206, 48, 0.18), transparent 26%),
-    linear-gradient(145deg, #0f172a, #111827);
-  border: none;
-  box-shadow: none;
-  padding: 0;
-  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.visual::before {
+  content: '';
+  position: absolute;
+  width: 150%;
+  height: 150%;
+  background: radial-gradient(circle at 30% 20%, rgba(59, 130, 246, 0.15), transparent 40%),
+              radial-gradient(circle at 70% 80%, rgba(16, 185, 129, 0.1), transparent 40%);
+  animation: rotate 25s linear infinite;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Right side form column */
+.cardColumn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center; /* Balanced centering */
+  padding: 80px 40px 0;
+  background: var(--color-bg);
+  min-width: 480px;
+  max-width: 600px;
+  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.03);
+  z-index: 10;
+  overflow-y: auto;
 }
 
 .card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: 16px;
-  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 420px;
+  margin-bottom: 24px;
+  transform: translateY(-5%); /* Slight upward shift for optical balance */
 }
 
 .title {
-  margin: 0 0 4px;
   font-family: var(--font-display);
-  font-size: 1.5rem;
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 8px;
+  letter-spacing: -0.015em;
 }
 
 .subtitle {
-  margin: 0 0 12px;
-  color: var(--color-muted);
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  margin-bottom: 32px;
   line-height: 1.5;
-  font-size: 0.85rem;
 }
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 18px;
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-}
-
-.label {
-  font-weight: 600;
-  color: var(--color-text);
-  font-size: 0.9rem;
+  gap: 8px;
 }
 
 .row {
   display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  width: 100%;
 }
 
-.input {
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-  padding: 10px 10px;
-  font-size: 0.8rem;
-  font-family: var(--font-sans);
-  background: #f8fafc;
-}
-
-.input:focus {
-  outline: 2px solid var(--color-accent-primary);
-  outline-offset: 1px;
-  background: #fff;
-}
-
-.meterRow {
-  margin-top: 8px;
-  display: grid;
-  gap: 6px;
-}
-
-.meterLabel {
-  font-size: 0.95rem;
-  color: var(--color-muted);
-}
-
-.meter {
-  position: relative;
-  height: 10px;
-  border-radius: 12px;
-  background: #e2e8f0;
-  overflow: hidden;
-}
-
-.meterFill {
-  height: 100%;
-  width: 0%;
-  transition: width 160ms ease, background-color 160ms ease;
-}
-
-.meterWeak {
-  background: linear-gradient(90deg, #ef4444, #f97316);
-}
-
-.meterOkay {
-  background: linear-gradient(90deg, #f59e0b, #84cc16);
-}
-
-.meterStrong {
-  background: linear-gradient(90deg, #22c55e, #16a34a);
-}
-
-.requirements {
-  display: grid;
-  gap: 4px;
-  margin: 0;
-  padding-left: 18px;
-  color: var(--color-muted);
-  font-size: 0.9rem;
-}
-
-.reqPass {
-  color: #15803d;
-}
-
-.reqFail {
-  color: #b91c1c;
-}
-
-.meterPanel {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: 12px 14px;
-  box-shadow: var(--shadow-md);
-  display: grid;
-  gap: 10px;
-  animation: fadeIn 120ms ease;
-  font-size: 0.95rem;
-}
-
-.meterPanelHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.label {
+  font-weight: 600;
+  font-size: 0.875rem;
   color: var(--color-text);
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.input {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  transition: all var(--transition-fast);
+  color: var(--color-text);
+  box-sizing: border-box;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--color-primary-soft);
+}
+
+/* Password Strength Meter */
+.meterRow {
+  background: var(--color-surface);
+  padding: 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  margin-top: 4px;
+}
+
+.meterLabel {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-bottom: 12px;
+  display: block;
+}
+
+.strengthBar {
+  height: 6px;
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.strengthProgress {
+  height: 100%;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.checks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.check {
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-muted);
+  transition: color 0.2s ease;
+}
+
+.checkPassed {
+  color: var(--color-secondary);
+  font-weight: 600;
+}
+
+.error {
+  padding: 12px 16px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: var(--radius-md);
+  color: #ef4444;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-top: 8px;
 }
 
 .actions {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 16px;
   margin-top: 8px;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.error {
-  color: #dc2626;
-  background: rgba(220, 38, 38, 0.08);
-  border: 1px solid rgba(220, 38, 38, 0.3);
-  padding: 8px 10px;
-  border-radius: 10px;
-  font-weight: 600;
-  font-size: 0.95rem;
-}
-
-.errorTitle {
-  margin: 0 0 6px;
-  font-size: 0.95rem;
-}
-
-.errorList {
-  margin: 0;
-  padding-left: 18px;
-  display: grid;
-  gap: 4px;
-  font-weight: 500;
 }
 
 .primaryBtn {
-  border: none;
-  background: var(--btn-primary-gradient);
-  color: #0d2619;
-  padding: 9px 12px;
-  font-weight: 700;
-  border-radius: 12px;
-  cursor: pointer;
-  box-shadow: var(--btn-primary-shadow);
-  transition: transform 120ms ease, box-shadow 120ms ease;
-  font-size: 0.85rem;
-}
-
-.primaryBtn:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--btn-primary-shadow-hover);
-}
-
-.linkBtn {
-  background: none;
-  border: none;
-  color: var(--color-muted);
-  font-weight: 600;
-  cursor: pointer;
-  text-decoration: underline;
-}
-
-.helper {
-  display: grid;
-  gap: 12px;
-  color: var(--color-muted);
-}
-
-.helperCard {
-  padding: 12px;
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface-alt);
-  font-size: 0.85rem;
-}
-
-.list {
-  margin: 0;
-  padding-left: 18px;
-  color: var(--color-text);
-  line-height: 1.5;
-}
-
-.cardColumn {
-  display: grid;
-  gap: 14px;
-  align-content: center;
-  max-width: 400px;
   width: 100%;
-  margin: 0 auto;
+  padding: 14px;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
 }
 
+.primaryBtn:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
+}
+
+.primaryBtn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.primaryBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 
 .inlineHelper {
-  display: inline-flex;
-  font-size: 0.85rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  display: flex;
+  justify-content: center;
   gap: 6px;
-  align-items: center;
-  color: var(--color-muted);
+  margin-top: 4px;
 }
 
 .helperLink {
-  color: var(--color-accent-primary);
-  font-weight: 700;
+  color: var(--color-primary);
+  font-weight: 600;
+  text-decoration: none;
 }
 
-.form + .section {
-  margin-top: 18px;
+.helperLink:hover {
+  text-decoration: underline;
 }
 
-@media (max-width: 640px) {
-  .authShell {
-    margin: 0;
-    width: 100%;
-  }
+.socialWrapper {
+  margin-top: 32px;
+}
 
-  .authLayout {
-    grid-template-columns: 1fr;
-  }
-
+@media (max-width: 1024px) {
   .visual {
-    min-height: 260px;
+    display: none;
+  }
+  .cardColumn {
+    flex: 1;
+    max-width: none;
+    min-width: 0;
+    width: 100%;
+    box-shadow: none;
+    padding: 40px 24px;
+    justify-content: center;
+  }
+  .card {
+    transform: none; /* Reset vertical shift for mobile */
+    margin: 0 auto;
   }
 }
+
+@media (max-width: 768px) {
+  .authShell {
+    background: var(--color-surface); /* Pure white to match footer on mobile */
+  }
+  .authLayout {
+    min-height: auto;
+  }
+  .cardColumn {
+    padding: 0;
+    min-height: auto;
+    background: var(--color-surface); /* Pure white on mobile */
+    justify-content: flex-start; /* Start from top on mobile for better scrolling */
+  }
+  .card {
+    padding: 32px 24px 24px;
+    margin-bottom: 0;
+    max-width: none;
+  }
+  .title {
+    font-size: 1.625rem;
+  }
+  .subtitle {
+    margin-bottom: 24px;
+    font-size: 0.9375rem;
+  }
+  .form {
+    gap: 16px;
+  }
+  .row {
+    grid-template-columns: 1fr; /* Stack inputs on mobile */
+    gap: 16px;
+  }
+  .checks {
+    grid-template-columns: 1fr; /* Stack password requirements */
+    gap: 8px;
+  }
+  .meterRow {
+    padding: 12px;
+  }
+}
+
+@media (max-height: 800px) and (min-width: 1025px) {
+  .cardColumn {
+    padding: 24px 40px;
+  }
+  .card {
+    transform: translateY(0); /* Remove shift if screen is vertically cramped */
+    margin-bottom: 12px;
+  }
+}
+

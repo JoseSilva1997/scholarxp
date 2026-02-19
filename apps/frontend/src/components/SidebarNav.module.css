@@ -1,103 +1,111 @@
 /* Styles for the persistent sidebar used inside the authenticated shell. */
 .sidebar {
-  width: var(--sidebar-full-width);
+  width: var(--sidebar-width);
   background: var(--color-surface);
   border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
-  padding: 16px 12px;
-  gap: 24px;
+  padding: 24px 16px;
+  gap: 32px;
   flex-shrink: 0;
   align-self: stretch;
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--transition-base);
   overflow-y: auto;
   overflow-x: hidden;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.02);
-}
-
-.toggleButton {
-  align-self: center;
-  background: var(--color-bg);
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  padding: 10px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  margin-bottom: 8px;
-}
-
-.toggleButton:hover {
-  background: var(--color-surface-alt);
-  border-color: var(--color-accent-primary-soft);
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-
-.toggleIcon {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  width: 18px;
-}
-
-.toggleIcon > span {
-  display: block;
-  height: 2px;
-  width: 100%;
-  background: currentColor;
-  border-radius: 4px;
-  transition: all 0.2s ease;
+  z-index: 40;
 }
 
 .sidebarCollapsed {
   width: var(--sidebar-collapsed-width);
-  padding: 16px 12px;
+  padding: 24px 12px;
 }
 
 .section {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 
 .sectionLabel {
-  font-family: var(--font-display);
-  font-size: 11px;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--color-muted);
-  opacity: 0.5;
-  margin-top: 12px;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
   margin-bottom: 8px;
-  padding-left: 14px;
-  white-space: nowrap;
-  overflow: hidden;
+  padding-left: 12px;
+  opacity: 0.8;
 }
 
 .sidebarCollapsed .sectionLabel {
-  opacity: 0;
+  display: none;
 }
 
 .link {
   display: flex;
   align-items: center;
-  text-decoration: none;
+  gap: 12px;
   padding: 12px;
   border-radius: var(--radius-md);
-  color: var(--color-text);
+  color: var(--color-text-muted);
   font-weight: 600;
-  background: transparent;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
+  font-size: 0.9375rem;
+  text-decoration: none;
+  transition: all var(--transition-fast);
   border: 1px solid transparent;
-  min-height: 48px;
-  overflow: hidden;
+}
+
+.link:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-primary);
+  transform: translateX(4px);
+}
+
+.linkActive {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  border-color: rgba(59, 130, 246, 0.1);
+}
+
+.linkActive:hover {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  transform: none;
+}
+
+.icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+}
+
+.label {
+  white-space: nowrap;
+  transition: opacity var(--transition-fast);
+}
+
+.sidebarCollapsed .label {
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+}
+
+.badge {
+  margin-left: auto;
+  background: var(--color-accent);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.sidebarCollapsed .badge {
+  display: none;
 }
 
 .link:hover {

@@ -1,20 +1,79 @@
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
-  border-radius: 999px;
-  color: #fff; /* responsive width that stays stable */
-  max-width: 340px;
+  gap: 16px;
+  border-radius: var(--radius-full);
+  padding: 6px 6px 6px 18px;
+  background: rgba(30, 41, 59, 0.4);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -2px rgba(0, 0, 0, 0.1),
+    inset 0 1px 1px rgba(255, 255, 255, 0.05);
+  transition: all var(--transition-base);
   position: relative;
+  /* overflow: hidden is removed to allow the absolute menu to be visible. */
+  /* We use clip-path to keep the shimmer contained within the badge. */
+}
+
+/* Shimmer layer moved to a separate pseudo-element that doesn't conflict with layout */
+.badge::before {
+  display: none;
+}
+
+.badge:hover {
+  background: rgba(30, 41, 59, 0.6);
+  border-color: var(--color-primary-light);
+  transform: translateY(-1px);
+  box-shadow: 
+    0 10px 15px -3px rgba(0, 0, 0, 0.2),
+    0 4px 6px -4px rgba(0, 0, 0, 0.1),
+    inset 0 1px 1px rgba(255, 255, 255, 0.1);
+}
+
+/* We create a nested element for the shimmer effect to keep the main badge container overflow: visible */
+.shimmerEffect {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.shimmerEffect::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.15),
+    transparent
+  );
+  transform: skewX(-20deg);
+  transition: none;
+}
+
+.badge:hover .shimmerEffect::after {
+  left: 150%;
+  transition: left 0.8s ease-in-out;
 }
 
 .avatar {
-  width: var(--avatar-size);
-  height: var(--avatar-size);
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid rgba(255, 255, 255, 0.18);
-  background: #111827;
+  border: 2px solid var(--color-primary);
+  background: #0f172a;
+  transition: all var(--transition-fast);
+  display: block;
+  box-shadow: 0 0 10px var(--color-primary-soft);
 }
 
 .avatarButton {
@@ -23,44 +82,54 @@
   padding: 0;
   display: inline-flex;
   cursor: pointer;
+  border-radius: 50%; /* Match avatar shape */
+  overflow: hidden; /* Clip any bleeding edges */
+}
+
+.avatarButton:hover .avatar {
+  transform: scale(1.1);
 }
 
 .meta {
-  display: grid;
-  gap: 4px;
-  min-width: 0; /* allow ellipsis to work */
-  width: 100%;
-  justify-items: end;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  min-width: 0;
   text-align: right;
 }
 
 .name {
   font-weight: 700;
-  letter-spacing: 0.01em;
+  font-size: 0.9375rem;
+  color: #ffffff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.progress {
-  display: inline-grid;
-  grid-template-columns: auto auto auto;
-  gap: 8px;
-  align-items: center;
-  min-width: 0;
-  justify-content: end;
-  justify-items: end;
-  width: fit-content;
-  max-width: 100%;
+  line-height: 1.2;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  background: linear-gradient(to bottom, #fff, #e2e8f0);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .level {
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.85);
-  display: inline-flex;
+  font-size: 0.75rem;
+  color: var(--color-accent-light);
+  font-weight: 800;
+  display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+}
+
+.progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 1px;
   white-space: nowrap;
+  flex-wrap: nowrap;
 }
 
 .levelValue {
@@ -114,19 +183,26 @@
 }
 
 .levelIcon {
-  width: 12px;
-  height: 12px;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+  width: 14px;
+  height: 14px;
+  filter: drop-shadow(0 0 6px var(--color-accent));
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
 }
 
 .barTrack {
   position: relative;
-  height: 8px;
-  width: 80px;
-  min-width: 60px;
-  background: rgba(255, 255, 255, 0.14);
-  border-radius: 999px;
+  height: 6px;
+  width: 70px;
+  background: rgba(15, 23, 42, 0.4);
+  border-radius: var(--radius-full);
   overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .barFill {
@@ -134,14 +210,29 @@
   top: 0;
   left: 0;
   bottom: 0;
-  background: linear-gradient(135deg, #4caf50, #32a86f);
-  transition: width 0.1s ease;
+  background: linear-gradient(
+    90deg, 
+    var(--color-secondary-light), 
+    var(--color-secondary), 
+    var(--color-secondary-light)
+  );
+  background-size: 200% 100%;
+  border-radius: var(--radius-full);
+  transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: shine 2s linear infinite;
+}
+
+@keyframes shine {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 .expLabel {
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
   white-space: nowrap;
+  letter-spacing: 0.01em;
 }
 
 .menu {
@@ -152,11 +243,14 @@
   border: 1px solid rgba(255, 255, 255, 0.15);
   box-shadow: 0 20px 48px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.3);
   width: 280px;
-  margin-top: calc((var(--header-height) - var(--avatar-size) )/ 2);
-  z-index: 10;
+  /* Align menu to the bottom of the header */
+  /* Formula: (HeaderHeight - BadgeHeight) / 2 */
+  margin-top: calc((var(--header-height) - 54px) / 2 + 1px);
+  z-index: 100;
   overflow: hidden;
   animation: slideDown 0.2s ease-out;
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(24px);
+  border-radius: var(--radius-lg);
 }
 
 @keyframes slideDown {
@@ -181,7 +275,7 @@
 .menuHeaderAvatar {
   width: 48px;
   height: 48px;
-  border-radius: 50px;
+  border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.2);
   object-fit: cover;
   background: rgba(255, 255, 255, 0.05);
@@ -294,8 +388,10 @@
   }
 
   .progress {
+    display: grid;
     grid-template-columns: auto auto;
     grid-template-rows: auto auto;
+    gap: 4px;
     min-width: 0;
     grid-template-areas:
       "level exp"
@@ -305,6 +401,7 @@
   .avatar {
     width: 40px;
     height: 40px;
+    border-radius: 50%;
   }
 
   .name {

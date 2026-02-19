@@ -1,5 +1,6 @@
 // Screen that lists modules for the logged-in user and manages module creation from one query-backed flow.
 import { type CSSProperties } from 'react';
+import { FaCirclePlus } from 'react-icons/fa6';
 import ModuleCreateModal from '../../components/Modals/ModuleCreateModal';
 import MainSection from '../../components/MainSection';
 import { useModulesPageState } from '../../hooks/page-state/useModulesPageState';
@@ -41,7 +42,7 @@ export default function ModulesPage() {
               onClick={openCreateModal}
               aria-label="Open create module form"
             >
-              +
+              <FaCirclePlus className={styles.createIcon} />
             </button>
           </div>
         ) : null}
@@ -64,33 +65,14 @@ export default function ModulesPage() {
           {modules.map((moduleSummary) => {
             // Expanded array of module card colors from theme for more visual variety.
             const moduleCardColors = [
-              'var(--module-card-green-dark)',
-              'var(--module-card-green-medium)',
-              'var(--module-card-green-light)',
-              'var(--module-card-yellow-dark)',
-              'var(--module-card-yellow-medium)',
-              'var(--module-card-yellow-light)',
-              'var(--module-card-blue-dark)',
-              'var(--module-card-blue-medium)',
-              'var(--module-card-blue-light)',
-              'var(--module-card-purple-dark)',
-              'var(--module-card-purple-medium)',
-              'var(--module-card-purple-light)',
-              'var(--module-card-orange-dark)',
-              'var(--module-card-orange-medium)',
-              'var(--module-card-orange-light)',
-              'var(--module-card-teal-dark)',
-              'var(--module-card-teal-medium)',
-              'var(--module-card-teal-light)',
-              'var(--module-card-red-dark)',
-              'var(--module-card-red-medium)',
-              'var(--module-card-red-light)',
-              'var(--module-card-pink-dark)',
-              'var(--module-card-pink-medium)',
-              'var(--module-card-pink-light)',
-              'var(--module-card-dark-dark)',
-              'var(--module-card-dark-medium)',
-              'var(--module-card-dark-light)',
+              'var(--module-card-blue)',
+              'var(--module-card-green)',
+              'var(--module-card-purple)',
+              'var(--module-card-orange)',
+              'var(--module-card-pink)',
+              'var(--module-card-indigo)',
+              'var(--module-card-teal)',
+              'var(--module-card-red)',
             ];
             const cardColor = moduleCardColors[moduleSummary.id % moduleCardColors.length];
             const handleOpen = () => openModule(moduleSummary.id);

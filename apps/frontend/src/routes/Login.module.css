@@ -1,241 +1,246 @@
 .authShell {
   width: 100%;
-  margin: 0;
-  flex: 1;
-  display: grid;
+  height: 100%;
+  display: flex;
+  background: var(--color-bg);
 }
 
 .authLayout {
-  display: grid;
-  grid-template-columns: 1.05fr 1fr;
-  gap: 16px;
-  align-items: stretch;
-  min-height: 100%;
+  display: flex;
+  width: 100%;
+  min-height: 100%; /* Changed from 100vh to ensure it fits within parent and doesn't clip */
 }
 
+/* Left side visual panel */
 .visual {
+  flex: 1.2;
   position: relative;
+  background: var(--color-brand-surface-dark);
   overflow: hidden;
-  border-radius: 0;
-  background: radial-gradient(circle at 20% 18%, rgba(76, 175, 80, 0.18), transparent 30%),
-    radial-gradient(circle at 82% 10%, rgba(243, 206, 48, 0.18), transparent 26%),
-    linear-gradient(145deg, #0f172a, #111827);
-  border: none;
-  box-shadow: none;
-  padding: 0;
-  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.visual::before {
+  content: '';
+  position: absolute;
+  width: 150%;
+  height: 150%;
+  background: radial-gradient(circle at 30% 20%, rgba(59, 130, 246, 0.15), transparent 40%),
+              radial-gradient(circle at 70% 80%, rgba(16, 185, 129, 0.1), transparent 40%);
+  animation: rotate 25s linear infinite;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Right side form column */
+.cardColumn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center; /* Back to center */
+  padding: 40px;
+  background: var(--color-bg);
+  min-width: 440px;
+  max-width: 560px;
+  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.03);
+  z-index: 10;
+  overflow-y: auto;
 }
 
 .card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: 16px;
-  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 360px;
+  margin-bottom: 32px;
+  transform: translateY(-10%); /* Shift slightly up from center */
 }
 
 .title {
-  margin: 0 0 4px;
   font-family: var(--font-display);
-  font-size: 1.5rem;
-  margin-bottom: 4px;
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 8px;
+  letter-spacing: -0.015em;
 }
 
 .subtitle {
-  margin: 0 0 18px;
-  color: var(--color-muted);
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  margin-bottom: 32px;
   line-height: 1.5;
-  font-size: 0.95rem;
 }
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 20px;
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  font-size: 0.8rem;
+  gap: 8px;
 }
 
 .label {
   font-weight: 600;
+  font-size: 0.875rem;
   color: var(--color-text);
-  font-size: 0.9rem;
 }
 
 .input {
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
-  border-radius: 10px;
-  padding: 9px 11px;
-  font-size: 0.8rem;
+  background: var(--color-surface);
   font-family: var(--font-sans);
-  background: #f8fafc;
+  font-size: 1rem;
+  transition: all var(--transition-fast);
+  color: var(--color-text);
 }
 
 .input:focus {
-  outline: 2px solid var(--color-accent-primary);
-  outline-offset: 1px;
-  background: #fff;
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--color-primary-soft);
+}
+
+.error {
+  padding: 12px 16px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: var(--radius-md);
+  color: #ef4444;
+  font-size: 0.875rem;
+  font-weight: 500;
 }
 
 .actions {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-top: 12px;
-}
-
-.error {
-  color: #dc2626;
-  background: rgba(220, 38, 38, 0.08);
-  border: 1px solid rgba(220, 38, 38, 0.3);
-  padding: 8px 10px;
-  border-radius: 10px;
-  font-weight: 600;
-  font-size: 0.95rem;
-}
-
-.infoLink {
-  color: var(--color-accent-primary);
-  font-weight: 700;
-  text-decoration: underline;
-}
-
-.inlineHelper {
-  display: inline-flex;
-  gap: 6px;
-  align-items: center;
-  color: var(--color-muted);
-  font-size: 0.85rem;
-}
-
-.helperLink {
-  color: var(--color-accent-primary);
-  font-weight: 700;
-  font-size: 0.85rem;
-}
-
-.form + .section {
+  flex-direction: column;
+  gap: 16px;
   margin-top: 12px;
 }
 
 .primaryBtn {
+  width: 100%;
+  padding: 14px;
+  background: var(--color-primary);
+  color: white;
   border: none;
-  background: var(--btn-primary-gradient);
-  color: #0d2619;
-  min-width: 86px;
-  padding: 9px 12px;
-  font-weight: 700;
-  border-radius: 12px;
-  cursor: pointer;
-  box-shadow: var(--btn-primary-shadow);
-  transition: transform 120ms ease, box-shadow 120ms ease;
-  font-size: 0.85rem;
-}
-
-.primaryBtn:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--btn-primary-shadow-hover);
-}
-
-.secondaryBtn {
-  border: 1px solid var(--color-border);
-  background: var(--color-surface-alt);
-  color: var(--color-text);
-  padding: 9px 12px;
-  font-weight: 700;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: transform 120ms ease, box-shadow 120ms ease;
-  box-shadow: var(--shadow-sm);
-  font-size: 0.95rem;
-}
-
-.secondaryBtn:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
-}
-
-.linkBtn {
-  background: none;
-  border: none;
-  color: var(--color-muted);
+  border-radius: var(--radius-md);
   font-weight: 600;
+  font-size: 1rem;
   cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
+.primaryBtn:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
+}
+
+.primaryBtn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.primaryBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.inlineHelper {
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.helperLink {
+  color: var(--color-primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.helperLink:hover {
   text-decoration: underline;
 }
 
-.helper {
-  display: grid;
-  gap: 12px;
-  color: var(--color-muted);
+.socialWrapper {
+  margin-top: 32px;
 }
 
-.helperCard {
-  padding: 12px;
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface-alt);
-}
-
-.list {
-  margin: 0;
-  padding-left: 18px;
-  color: var(--color-text);
-  line-height: 1.5;
-}
-
-.cardColumn {
-  display: grid;
-  gap: 12px;
-  align-content: center;
-  max-width: 400px;
-  width: 100%;
-  margin: 0 auto;
-}
-
-.roleCard {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: 14px;
-  box-shadow: var(--shadow-lg);
-}
-
-.roleTitle {
-  margin: 0 0 6px;
-  font-size: 1rem;
-  font-family: var(--font-display);
-}
-
-.roleSubtitle {
-  margin: 0 0 12px;
-  color: var(--color-muted);
-  font-size: 0.95rem;
-}
-
-.roleButtons {
-  display: grid;
-  gap: 8px;
-}
-
-@media (max-width: 640px) {
-  .authShell {
-    margin: 0;
-    width: 100%;
-  }
-
-  .authLayout {
-    grid-template-columns: 1fr;
-  }
-
+@media (max-width: 1024px) {
   .visual {
-    min-height: 260px;
+    display: none;
+  }
+  .cardColumn {
+    flex: 1;
+    max-width: none;
+    min-width: 0;
+    width: 100%;
+    box-shadow: none;
+    padding: 40px 24px;
+    justify-content: center;
+  }
+  .card {
+    transform: none; /* Reset transform for better scrolling on mobile */
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .authShell {
+    background: var(--color-surface); /* Pure white to match footer on mobile */
+  }
+  .authLayout {
+    min-height: auto;
+  }
+  .cardColumn {
+    padding: 0;
+    min-height: auto;
+    background: var(--color-surface);
+    justify-content: flex-start;
+  }
+  .card {
+    padding: 32px 24px 24px; /* Sufficient padding for the form */
+    margin-bottom: 0;
+    max-width: none;
+  }
+  .title {
+    font-size: 1.75rem;
+    margin-top: 0;
+  }
+  .subtitle {
+    font-size: 0.9375rem;
+    margin-bottom: 24px;
+  }
+}
+  .subtitle {
+    font-size: 0.9375rem;
+    margin-bottom: 24px;
+  }
+  .form {
+    gap: 16px;
+  }
+
+@media (max-height: 700px) and (min-width: 1025px) {
+  .cardColumn {
+    padding: 0px;
+  }
+  .card {
+    transform: translateY(-2%);
+    margin-bottom: 20px;
   }
 }

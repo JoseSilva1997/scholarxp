@@ -65,9 +65,11 @@ export default function Login() {
                 </span>
               </div>
             </form>
-          </section>
 
-          <SocialAuthButtons context="login" />
+            <div className={styles.socialWrapper}>
+              <SocialAuthButtons context="login" />
+            </div>
+          </section>
         </div>
       </div>
     </div>

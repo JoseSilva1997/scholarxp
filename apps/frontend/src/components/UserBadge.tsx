@@ -127,6 +127,7 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
 
   return (
     <div className={styles.badge} aria-label={`${formatName(user)} profile`} ref={menuRef}>
+      <div className={styles.shimmerEffect} aria-hidden="true" />
       <div className={styles.meta}>
         <div className={styles.name} title={formatName(user) || ''}>
           {formatName(user) || ''}

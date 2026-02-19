@@ -1,66 +1,59 @@
 .footer {
-  /* Keep the footer visually stable at a predictable baseline height on wider layouts. */
   box-sizing: border-box;
   height: var(--footer-height);
-  padding: 0 24px;
-  background: var(--color-surface-alt);
-  color: var(--color-text);
+  padding: 0 40px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
   border-top: 1px solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.04);
-  overflow: hidden;
+  gap: 32px;
+  font-family: var(--font-sans);
+  font-size: 0.9375rem; /* Increased font size for better presence */
+  z-index: 10;
+  position: relative;
+  box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.02);
 }
 
 .brand {
   font-weight: 700;
-  letter-spacing: 0.01em;
+  font-family: var(--font-display);
+  color: var(--color-text);
+  letter-spacing: -0.01em;
+  font-size: 1.0625rem;
 }
 
 .meta {
   display: flex;
-  gap: 14px;
-  font-size: 0.95rem;
-  color: var(--color-muted);
+  align-items: center;
+  gap: 24px;
 }
 
 .link {
-  color: var(--color-accent-primary);
+  color: var(--color-text-muted);
   text-decoration: none;
-  font-weight: 600;
+  font-weight: 500;
+  transition: color var(--transition-fast);
 }
 
 .link:hover {
-  text-decoration: underline;
+  color: var(--color-primary);
+  text-decoration: none;
 }
 
 @media (max-width: 640px) {
   .footer {
-    /* Mobile keeps wrap behavior but uses denser spacing so the footer does not dominate short viewports. */
     height: auto;
-    min-height: 48px;
-    padding: 12px 12px;
+    padding: 16px;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
-    overflow: visible;
-  }
-
-  .brand {
-    font-size: 0.95rem;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
   }
 
   .meta {
-    flex-wrap: wrap;
-    column-gap: 8px;
-    row-gap: 4px;
-    font-size: 0.82rem;
-    line-height: 1.2;
-  }
-
-  .link {
-    font-size: 0.82rem;
+    flex-direction: column;
+    gap: 8px;
   }
 }

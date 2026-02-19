@@ -4,98 +4,138 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--header-padding-block) 16px var(--header-padding-block) 12px;
+  padding: 0 24px;
   background-color: var(--color-brand-surface-dark);
   color: #ffffff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  gap: 24px;
   min-height: var(--header-height);
-}
-
-.headerLoggedOut {
-  /* Logged-out pages have no sidebar context, so add symmetric side breathing room. */
-  padding-left: 24px;
-  padding-right: 24px;
+  box-shadow: var(--shadow-md);
+  z-index: 50;
+  position: relative;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .brandWrapper {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 10px;
-  min-width: 0;
+  gap: 16px;
 }
 
 .brand {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 10px;
-  min-width: 0;
+  gap: 12px;
   text-decoration: none;
+  transition: transform var(--transition-fast);
+}
+
+.brand:hover {
+  transform: scale(1.02);
 }
 
 .logo {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   flex-shrink: 0;
+  filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.4));
 }
 
 .wordmark {
-  font-size: 1.15rem;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
   font-weight: 700;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-  text-transform: uppercase;
-  font-family: 'Space Grotesk', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  background: linear-gradient(120deg, var(--color-accent-secondary), var(--color-accent-primary));
-  background-clip: text;
+  letter-spacing: -0.01em;
+  background: linear-gradient(135deg, #fbcd2a 0%, #10b981 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   color: transparent;
-}
-
-.nav {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  gap: 18px;
+  text-transform: none; /* Modern professional look prefers natural case or lowercase logo types */
 }
 
 .actions {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 12px;
 }
 
 .btn {
-  border: 1px solid transparent;
-  border-radius: 999px;
-  padding: 10px 18px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  cursor: pointer;
-  transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  padding: 10px 20px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
   text-decoration: none;
+  border: 1px solid transparent;
 }
 
-.btn:focus-visible {
-  outline: 2px solid #f3ce30;
-  outline-offset: 2px;
+.btnPrimary {
+  background-color: var(--color-secondary);
+  color: #ffffff;
+}
+
+.btnPrimary:hover {
+  background-color: var(--color-secondary-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 .btnGhost {
-  background: rgba(255, 255, 255, 0.08);
-  color: #f7f8ff;
-  border-color: rgba(255, 255, 255, 0.2);
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
-  backdrop-filter: blur(6px);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.9);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .btnGhost:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.32);
-  border-color: rgba(255, 255, 255, 0.32);
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.toggleButton {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.toggleButton:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.toggleIcon {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 18px;
+}
+
+.toggleIcon span {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background-color: #ffffff;
+  border-radius: 2px;
+  transition: all var(--transition-fast);
+}
+
+@media (max-width: 640px) {
+  .header {
+    padding: 0 16px;
+  }
+  .wordmark {
+    display: none; /* Hide wordmark on small screens to save space */
+  }
 }
 
 .btnPrimary {

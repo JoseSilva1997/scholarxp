@@ -153,9 +153,11 @@ export default function Register() {
                 </span>
               </div>
             </form>
-          </section>
 
-          <SocialAuthButtons context="register" />
+            <div className={styles.socialWrapper}>
+              <SocialAuthButtons context="register" />
+            </div>
+          </section>
 
           {showMeter ? (
             <section className={styles.meterPanel} aria-live="polite">
@@ -192,9 +194,6 @@ export default function Register() {
           ) : null}
 
           <aside className={styles.helper}>
-            <div className={styles.helperCard}>
-              Have an invite code? You can enter it after creating your account.
-            </div>
           </aside>
         </div>
       </div>

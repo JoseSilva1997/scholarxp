@@ -1,105 +1,143 @@
 .hero {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
-  align-items: center;
-  margin-bottom: 24px;
-}
-
-.eyebrow {
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 12px;
-  color: var(--text-muted);
-  margin: 0 0 4px;
+  align-items: flex-end;
+  gap: 24px;
+  margin-bottom: 32px;
 }
 
 .title {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--color-text);
   margin: 0;
-  font-size: 28px;
-  color: var(--text-primary);
+  letter-spacing: -0.02em;
 }
 
 .subtitle {
-  margin: 6px 0 0;
-  color: var(--text-secondary);
+  font-size: 1.125rem;
+  color: var(--color-text-muted);
+  margin: 8px 0 0;
 }
 
 .createAction {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
 .createLabel {
-  font-weight: 700;
-  color: var(--text-primary);
+  font-weight: 600;
+  color: var(--color-text);
+  font-size: 1rem;
 }
 
 .createButton {
-  background: var(--color-brand-surface-dark);
-  color: #ffffff;
-  border: 1px solid var(--color-brand-surface-dark);
-  border-radius: 999px;
-  width: 36px;
-  height: 36px;
+  background: transparent;
+  color: var(--color-brand-surface-dark);
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
-  line-height: 1;
   padding: 0;
+  border-radius: var(--radius-full);
 }
 
 .createButton:hover {
-  transform: translateY(-1px);
-  box-shadow: 2px 2px 2px rgba(48, 49, 70, 0.32);
-  /* background: #3b3c52; */
+  color: var(--color-primary);
+  transform: scale(1.1);
 }
 
-.createButton:focus-visible {
-  outline: 2px solid var(--color-accent-secondary);
-  outline-offset: 3px;
-}
-
-.panel {
-  background: white;
-  border: 1px solid var(--border-subtle);
-  border-radius: 12px;
-  padding: 18px;
-  color: var(--text-secondary);
+.createIcon {
+  font-size: 40px;
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
 }
 
 .card {
-  background: white;
-  border: 1px solid var(--border-subtle);
-  border-radius: 12px;
-  padding: 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  /* Ensures all cards stretch to same height and content is distributed properly. */
-  justify-content: space-between;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
-  min-height: 20px;
-  /* Add smooth transitions for hover effects. */
-  transition: transform 150ms ease, box-shadow 150ms ease;
+  gap: 16px;
+  position: relative;
+  overflow: hidden;
+  transition: all var(--transition-base);
   cursor: pointer;
-  /* Add colored left and right borders using CSS variable set by component. */
-  border-left: 8px solid var(--card-color, var(--border-subtle));
-  border-right: 8px solid var(--card-color, var(--border-subtle));
-  /* Adjust padding to account for thick borders. */
-  padding-left: 12px;
-  padding-right: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background-color: var(--card-color, var(--color-primary));
+}
+
+.card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-xl);
+  border-color: var(--color-primary-soft);
+}
+
+.cardTitle {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.cardDescription {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 4.8em;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.metaItem {
+  background: var(--color-surface-hover);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+}
+
+.panel {
+  padding: 64px;
+  background: var(--color-surface);
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-xl);
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 1.125rem;
 }
 
 .card:hover {
