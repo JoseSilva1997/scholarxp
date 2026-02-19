@@ -1,9 +1,9 @@
 // Student-facing module unit card; shows neutral badge and start practice CTA without edit or authoring controls.
 import { useState } from 'react';
 import styles from './StudentModuleUnitCard.module.css';
-import lockIcon from '../assets/module-unit/student-module-unit-padlock.svg';
 import completionMedalIcon from '../assets/module-unit/module-unit-completed-medal.png';
 import { FaCheck, FaMinus, FaXmark } from 'react-icons/fa6';
+import { IoMdLock } from "react-icons/io"
 import type { QuestionAttemptResult } from '@scholarxp/api-contracts';
 
 import type { ModuleUnit } from './ModuleUnitCard';
@@ -29,6 +29,16 @@ export default function StudentModuleUnitCard({ unit }: StudentModuleUnitCardPro
     return count + (group.questions?.filter(q => q.lastAttemptResult === 'correct').length ?? 0);
   }, 0);
 
+  const isFullyMastered = initialIsCompleted && completedQuestionsCount === unit.questionCount;
+
+  const statusClass = isLocked 
+    ? styles.locked 
+    : isFullyMastered 
+      ? styles.mastered 
+      : initialIsCompleted 
+        ? styles.completed 
+        : styles.available;
+
   const renderQuestionStatusIcon = (lastAttemptResult: QuestionAttemptResult) => {
     if (lastAttemptResult === 'correct') {
       return <FaCheck className={`${styles.questionStatusIcon} ${styles.questionStatusCorrect}`} aria-hidden="true" />;
@@ -40,7 +50,7 @@ export default function StudentModuleUnitCard({ unit }: StudentModuleUnitCardPro
   };
 
   return (
-    <div className={styles.wrapper}>
+    <div className={`${styles.wrapper} ${statusClass}`}>
       <article className={styles.card}>
         <div className={styles.leftContainer} aria-hidden="true" />
         <div className={styles.content}>
@@ -55,22 +65,34 @@ export default function StudentModuleUnitCard({ unit }: StudentModuleUnitCardPro
                   className={`${styles.statusIconImage} ${styles.completionMedal}`}
                 />
               ) : isLocked ? (
-                <img
-                  src={lockIcon}
-                  alt=""
-                  aria-hidden="true"
-                  className={styles.statusIconImage}
-                />
-              ) : null}
+                <IoMdLock className={styles.lockedPadlockIcon} aria-hidden="true" />
+              ) : null
+              }
             </div>
             <div className={styles.meta}>
+              <div className={styles.topRow}>
+                <span className={styles.categoryLabel}>Practice</span>
+                <span className={styles.statusTag}>
+                  {isLocked ? 'Locked' : (isFullyMastered ? 'Complete' : (initialIsCompleted ? 'Resume' : 'Available'))}
+                </span>
+              </div>
               <h3 className={styles.title}>{unit.title}</h3>
-              {/* Only live units expose question totals; locked units stay title-only until practice is available. */}
-              {unit.status === 'live' ? (
-                <p className={styles.subtitle}>
-                  {completedQuestionsCount}/{unit.questionCount} {unit.questionCount === 1 ? 'Question' : 'Questions'}
-                </p>
-              ) : null}
+              <div className={styles.bottomRow}>
+                {unit.status === 'live' ? (
+                   <span className={styles.engagementStat}>
+                     <FaCheck className={styles.statIcon} />
+                     {completedQuestionsCount}/{unit.questionCount} Questions
+                   </span>
+                ) : null}
+                {!isLocked ? (
+                   <span className={styles.xpReward}>
+                     <span className={styles.xpSymbol}>⚡</span>
+                     +2000 XP Possible
+                   </span>
+                ) : (
+                   <span className={styles.lockedText}>Unlocks soon...</span>
+                )}
+              </div>
             </div>
             <div className={styles.actions}>
               <button 
@@ -88,60 +110,68 @@ export default function StudentModuleUnitCard({ unit }: StudentModuleUnitCardPro
             </div>
           </div>
         </div>
-        <div className={styles.rightContainer}>
-          <button
-            type="button"
-            className={styles.dropdownButton}
-            aria-expanded={isOpen}
-            aria-controls={`student-unit-panel-${unit.id}`}
-            aria-label={isOpen ? 'Collapse lesson details' : 'Expand lesson details'}
-            onClick={() => setIsOpen((open) => !open)}
-          >
-            <span className={`${styles.chevron} ${isOpen ? styles.chevronOpen : ''}`} aria-hidden="true" />
-          </button>
-        </div>
-      </article>
-      <div
-        className={`${styles.panel} ${isOpen ? styles.panelOpen : ''}`}
-        id={`student-unit-panel-${unit.id}`}
-        aria-hidden={!isOpen}
-      >
-        {unit.questionGroups.map((group) => (
-          <div key={group.id} className={styles.group}>
-            <p className={styles.groupTitle}>{group.title}</p>
-            <div className={styles.questions}>
-              {group.questions && group.questions.length > 0 ? (
-                group.questions.map((question) => (
-                  <button
-                    key={question.id}
-                    type="button"
-                    className={styles.question}
-                    disabled={isLocked}
-                    aria-label={`Practice ${question.title}`}
-                    onClick={() => {
-                      // Deep-link to a question unit so students can resume from the entry they selected in the card.
-                      window.location.assign(
-                        `${basePracticeRoomPath}?questionId=${encodeURIComponent(question.id)}`,
-                      );
-                    }}
-                  >
-                    <span className={styles.questionTitle}>{question.title}</span>
-                    {/* Status icon mirrors latest attempt state so students can scan completion quickly. */}
-                    <span
-                      className={styles.questionStatus}
-                      data-testid={`question-status-${question.id}`}
-                    >
-                      {renderQuestionStatusIcon(question.lastAttemptResult ?? null)}
-                    </span>
-                  </button>
-                ))
-              ) : (
-                <span className={styles.empty}>No questions yet</span>
-              )}
-            </div>
+        {!isLocked && (
+          <div className={styles.rightContainer}>
+            <button
+              type="button"
+              className={styles.dropdownButton}
+              aria-expanded={isOpen}
+              aria-controls={`student-unit-panel-${unit.id}`}
+              aria-label={isOpen ? 'Collapse lesson details' : 'Expand lesson details'}
+              onClick={() => setIsOpen((open) => !open)}
+            >
+              <span className={`${styles.chevron} ${isOpen ? styles.chevronOpen : ''}`} aria-hidden="true" />
+            </button>
           </div>
-        ))}
-      </div>
+        )}
+      </article>
+      {!isLocked && (
+        <div
+          className={`${styles.panel} ${isOpen ? styles.panelOpen : ''}`}
+          id={`student-unit-panel-${unit.id}`}
+          aria-hidden={!isOpen}
+        >
+          {unit.questionGroups.length > 0 ? (
+            unit.questionGroups.map((group) => (
+              <div key={group.id} className={styles.group}>
+                <p className={styles.groupTitle}>{group.title}</p>
+                <div className={styles.questions}>
+                  {group.questions && group.questions.length > 0 ? (
+                    group.questions.map((question) => (
+                      <button
+                        key={question.id}
+                        type="button"
+                        className={styles.question}
+                        disabled={isLocked}
+                        aria-label={`Practice ${question.title}`}
+                        onClick={() => {
+                          // Deep-link to a question unit so students can resume from the entry they selected in the card.
+                          window.location.assign(
+                            `${basePracticeRoomPath}?questionId=${encodeURIComponent(question.id)}`,
+                          );
+                        }}
+                      >
+                        <span className={styles.questionTitle}>{question.title}</span>
+                        {/* Status icon mirrors latest attempt state so students can scan completion quickly. */}
+                        <span
+                          className={styles.questionStatus}
+                          data-testid={`question-status-${question.id}`}
+                        >
+                          {renderQuestionStatusIcon(question.lastAttemptResult ?? null)}
+                        </span>
+                      </button>
+                    ))
+                  ) : (
+                    <span className={styles.empty}>No questions available in this group</span>
+                  )}
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className={styles.empty}>This unit doesn't have any question groups yet.</div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
