@@ -108,7 +108,7 @@ describe('ModuleUnitCard', () => {
         expect(screen.getByText('Ready to publish lesson?')).toBeInTheDocument();
       });
       
-      const confirmButton = screen.getAllByText('Publish')[0];
+      const confirmButton = screen.getByText('Publish to Locked', { selector: 'button' });
       fireEvent.click(confirmButton);
 
       await waitFor(() => {
@@ -128,8 +128,8 @@ describe('ModuleUnitCard', () => {
       });
       
       // Check for key text fragments that may be split across elements
-      expect(screen.getByText(/still edit/)).toBeInTheDocument();
-      expect(screen.getByText('Publish')).toBeInTheDocument();
+      expect(screen.getByText(/locked state/)).toBeInTheDocument();
+      expect(screen.getByText('Publish to Locked')).toBeInTheDocument();
     });
   });
 
@@ -157,7 +157,7 @@ describe('ModuleUnitCard', () => {
         expect(screen.getByText('Go live?')).toBeInTheDocument();
       });
 
-      const confirmButton = screen.getAllByText('Go live')[0];
+      const confirmButton = screen.getByText('Go Live', { selector: 'button' });
       fireEvent.click(confirmButton);
 
       await waitFor(() => {
@@ -176,8 +176,8 @@ describe('ModuleUnitCard', () => {
         expect(screen.getByText('Go live?')).toBeInTheDocument();
       });
       
-      expect(screen.getByText(/practice available/)).toBeInTheDocument();
-      expect(screen.getByText('Go live')).toBeInTheDocument();
+      expect(screen.getByText(/able to practice this lesson/)).toBeInTheDocument();
+      expect(screen.getByText('Go Live')).toBeInTheDocument();
     });
   });
 
@@ -223,73 +223,61 @@ describe('ModuleUnitCard', () => {
       expect(screen.getByText(/lesson is live/)).toBeInTheDocument();
     });
 
-    it('shows locked-specific warning when editing locked lesson', async () => {
+    it('navigates directly when editing locked lesson', () => {
       const unit = { ...baseUnit, status: 'locked' as const };
       render(<ModuleUnitCard unit={unit} />);
 
       fireEvent.click(screen.getByRole('button', { name: 'Edit module unit' }));
 
-      await waitFor(() => {
-        expect(screen.getByText('Edit locked lesson?')).toBeInTheDocument();
-      });
-      
-      expect(screen.getByText(/update content/)).toBeInTheDocument();
+      expect(navigateMock).toHaveBeenCalledWith('/main/modules/9/12/editor');
+      expect(screen.queryByText('Edit live lesson?')).not.toBeInTheDocument();
     });
 
-    it('shows draft-specific warning when editing draft lesson', async () => {
+    it('navigates directly when editing draft lesson', () => {
       const unit = { ...baseUnit, status: 'draft' as const };
       render(<ModuleUnitCard unit={unit} />);
 
       fireEvent.click(screen.getByRole('button', { name: 'Edit module unit' }));
 
-      await waitFor(() => {
-        expect(screen.getByText('Edit draft lesson?')).toBeInTheDocument();
-      });
-      
-      expect(screen.getByText(/about to edit/)).toBeInTheDocument();
+      expect(navigateMock).toHaveBeenCalledWith('/main/modules/9/12/editor');
+      expect(screen.queryByText('Edit live lesson?')).not.toBeInTheDocument();
     });
 
-    it('shows archived-specific warning (default case)', async () => {
+    it('navigates directly when editing archived lesson', () => {
       const unit = { ...baseUnit, status: 'archived' as const };
       render(<ModuleUnitCard unit={unit} />);
 
       fireEvent.click(screen.getByRole('button', { name: 'Edit module unit' }));
 
-      await waitFor(() => {
-        expect(screen.getByText('Edit draft lesson?')).toBeInTheDocument();
-      });
+      expect(navigateMock).toHaveBeenCalledWith('/main/modules/9/12/editor');
+      expect(screen.queryByText('Edit live lesson?')).not.toBeInTheDocument();
     });
 
-    it('navigates to editor on edit warning confirm', async () => {
-      const unit = { ...baseUnit, status: 'draft' as const };
+    it('navigates to editor on live-edit warning confirm', async () => {
+      const unit = { ...baseUnit, status: 'live' as const };
       render(<ModuleUnitCard unit={unit} />);
 
       fireEvent.click(screen.getByRole('button', { name: 'Edit module unit' }));
 
       await waitFor(() => {
-        expect(screen.getByText('Edit draft lesson?')).toBeInTheDocument();
+        expect(screen.getByText('Edit live lesson?')).toBeInTheDocument();
       });
 
-      const confirmButton = screen.getByText('Edit draft lesson', { selector: 'button' });
+      const confirmButton = screen.getByText('Edit live lesson', { selector: 'button' });
       fireEvent.click(confirmButton);
 
       expect(navigateMock).toHaveBeenCalledWith('/main/modules/9/12/editor');
     });
 
-    it('opens edit warning and navigates to specific question when question is clicked', async () => {
+    it('navigates directly to specific question for non-live units', () => {
       const unit = { ...baseUnit, status: 'draft' as const };
       render(<ModuleUnitCard unit={unit} />);
 
       fireEvent.click(screen.getByRole('button', { name: 'Expand question groups' }));
       fireEvent.click(screen.getByRole('button', { name: 'Edit Q1' }));
 
-      await waitFor(() => {
-        expect(screen.getByText('Edit draft lesson?')).toBeInTheDocument();
-      });
-
-      fireEvent.click(screen.getByText('Edit draft lesson', { selector: 'button' }));
-
       expect(navigateMock).toHaveBeenCalledWith('/main/modules/9/12/editor?questionId=101');
+      expect(screen.queryByText('Edit live lesson?')).not.toBeInTheDocument();
     });
 
     it('shows live warning when question is clicked for a live lesson', async () => {
@@ -304,21 +292,21 @@ describe('ModuleUnitCard', () => {
       });
     });
 
-    it('closes edit warning modal on cancel', async () => {
-      const unit = { ...baseUnit, status: 'draft' as const };
+    it('closes edit warning modal on cancel for live lessons', async () => {
+      const unit = { ...baseUnit, status: 'live' as const };
       render(<ModuleUnitCard unit={unit} />);
 
       fireEvent.click(screen.getByRole('button', { name: 'Edit module unit' }));
 
       await waitFor(() => {
-        expect(screen.getByText('Edit draft lesson?')).toBeInTheDocument();
+        expect(screen.getByText('Edit live lesson?')).toBeInTheDocument();
       });
 
       const cancelButton = screen.getByText('cancel');
       fireEvent.click(cancelButton);
 
       // Modal should close
-      expect(screen.queryByText('Edit draft lesson?')).not.toBeInTheDocument();
+      expect(screen.queryByText('Edit live lesson?')).not.toBeInTheDocument();
     });
   });
 
@@ -476,36 +464,22 @@ describe('ModuleUnitCard', () => {
   // Module ID extraction from URL
   // ============================================================================
   describe('Module ID extraction', () => {
-    it('extracts moduleId from URL path /main/modules/{id}', async () => {
+    it('extracts moduleId from URL path /main/modules/{id}', () => {
       window.history.pushState({}, '', '/main/modules/42');
       const unit = { ...baseUnit, status: 'draft' as const };
       render(<ModuleUnitCard unit={unit} />);
 
       fireEvent.click(screen.getByRole('button', { name: 'Edit module unit' }));
 
-      await waitFor(() => {
-        expect(screen.getByText('Edit draft lesson?')).toBeInTheDocument();
-      });
-
-      const confirmButton = screen.getByText('Edit draft lesson', { selector: 'button' });
-      fireEvent.click(confirmButton);
-
       expect(navigateMock).toHaveBeenCalledWith('/main/modules/42/12/editor');
     });
 
-    it('extracts moduleId from nested URL path', async () => {
+    it('extracts moduleId from nested URL path', () => {
       window.history.pushState({}, '', '/main/modules/999/some/other/path');
       const unit = { ...baseUnit, status: 'draft' as const };
       render(<ModuleUnitCard unit={unit} />);
 
       fireEvent.click(screen.getByRole('button', { name: 'Edit module unit' }));
-
-      await waitFor(() => {
-        expect(screen.getByText('Edit draft lesson?')).toBeInTheDocument();
-      });
-
-      const confirmButton = screen.getByText('Edit draft lesson', { selector: 'button' });
-      fireEvent.click(confirmButton);
 
       expect(navigateMock).toHaveBeenCalledWith('/main/modules/999/12/editor');
     });

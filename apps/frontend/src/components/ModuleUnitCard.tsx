@@ -198,7 +198,9 @@ export default function ModuleUnitCard({ unit, onChangeStatus }: ModuleUnitCardP
         }}
         errorMessage={publishError ?? undefined}
         title={unit.status === 'draft' ? 'Ready to publish lesson?' : 'Go live?'}
-        body={unit.status === 'draft' ? 'This moves the unit to a locked state for final review.' : 'Live units are visible to students.'}
+        body={unit.status === 'draft' ? 
+            "This moves the lesson to a locked state for final review. Students will be able to see it and its title, but can't see or interact with its the contents." 
+          : "Students will be able to practice this lesson. Only go live when all content is ready."}
         confirmLabel={unit.status === 'draft' ? 'Publish to Locked' : 'Go Live'}
       />
 
