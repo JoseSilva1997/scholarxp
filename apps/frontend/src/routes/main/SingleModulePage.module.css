@@ -193,22 +193,37 @@
 }
 
 .progressContainer {
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  border: 1px solid rgba(15, 23, 42, 0.06);
+  background: white;
+  border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: 24px;
-  padding: 24px;
+  padding: 20px;
   margin-bottom: 40px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  gap: 20px;
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.02),
+    0 4px 12px -2px rgba(15, 23, 42, 0.04);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.progressContainer:hover {
+  border-color: rgba(59, 130, 246, 0.25);
+  transform: translateY(-2px);
+  box-shadow: 
+    0 10px 20px -8px rgba(15, 23, 42, 0.08),
+    0 4px 6px -2px rgba(59, 130, 246, 0.05);
+}
+
+/* Removed extra glows and overlays for maximum clarity */
 @media (min-width: 768px) {
   .progressContainer {
     flex-direction: row;
     align-items: center;
-    padding: 32px;
+    padding: 24px 32px;
+    gap: 32px;
   }
 }
 
@@ -220,71 +235,148 @@
 }
 
 .levelBadge {
-  background: #f1f5f9;
-  padding: 12px 20px;
-  border-radius: 16px;
+  padding: 14px 24px;
+  border-radius: 18px;
   display: flex;
   align-items: center;
   gap: 12px;
-  font-weight: 700;
+  font-weight: 800;
   color: #1e293b;
-  font-size: 1.1rem;
-  border: 1px solid rgba(15, 23, 42, 0.05);
+  font-size: 1.125rem;
 }
 
 .levelIcon {
   width: 28px;
   height: 28px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
 .barTrack {
   flex: 1;
   height: 12px;
-  background: #e2e8f0;
-  border-radius: 10px;
+  background: #f1f5f9;
+  border-radius: 6px;
   overflow: hidden;
   position: relative;
+  box-shadow: inset 0 1.5px 3px rgba(15, 23, 42, 0.08); /* Sharper inner shadow */
+}
+
+/* Subtle tick marks for a precise feel */
+.barTrack::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(148, 163, 184, 0.2) 0px, /* More visible but still subtle */
+    rgba(148, 163, 184, 0.2) 1px,
+    transparent 1px,
+    transparent 20%
+  );
+  z-index: 1;
+  pointer-events: none;
 }
 
 .barFill {
   height: 100%;
-  background: linear-gradient(90deg, var(--color-accent-primary) 0%, #32a86f 100%);
-  border-radius: 10px;
-  transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+  border-radius: 6px;
+  transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
+  /* Removed glow shadow that could look hazy */
+}
+
+/* Shimmer effect for the progress bar - narrowed and reduced opacity */
+.barFill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%; /* Narrower shimmer */
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.15) 50%,
+    transparent 100%
+  );
+  animation: shimmer 2.5s infinite ease-in-out;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translateX(100%); opacity: 0; }
+}
+
+.expGroup {
+  display: flex;
+  flex-direction: column;
+  min-width: 100px;
+  text-align: right;
+  line-height: 1.1;
+  gap: 2px;
 }
 
 .expLabel {
-  font-weight: 600;
+  font-weight: 800;
+  color: #1e293b;
+  font-size: 1.25rem;
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+  /* Removed glow for better clarity */
+}
+
+.expTotal {
+  font-weight: 700;
   color: #64748b;
-  font-size: 1rem;
-  min-width: 80px;
-  text-align: right;
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
 }
 
 .dailyRevisionButton {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
   border: none;
-  padding: 16px 28px;
+  padding: 14px 28px;
   border-radius: 18px;
   display: flex;
   align-items: center;
   gap: 12px;
   color: white;
   font-weight: 700;
-  font-size: 1.1rem;
+  font-size: 1rem;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 2px 8px -2px rgba(234, 88, 12, 0.3),
+    0 4px 12px -1px rgba(245, 158, 11, 0.15);
+  position: relative;
+  white-space: nowrap;
 }
 
 .dailyRevisionButton:hover {
   transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 10px 15px -3px rgba(245, 158, 11, 0.3);
+  box-shadow: 
+    0 8px 16px -4px rgba(234, 88, 12, 0.4),
+    0 4px 6px -2px rgba(234, 88, 12, 0.1);
   background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
 }
 
+.dailyRevisionButton:active {
+  transform: translateY(0) scale(0.98);
+}
+
 .dailyRevisionIcon {
-  font-size: 1.4rem;
+  font-size: 1.25rem;
+  animation: pulse 2.5s infinite ease-in-out;
+  /* Removed white drop-shadow that could look hazy */
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.8; }
 }
 
 .createUnitCardRow {

@@ -42,6 +42,7 @@ type UseSingleModulePageStateResult = {
   isSettingsOpen: boolean;
   setIsSettingsOpen: Dispatch<SetStateAction<boolean>>;
   expPercent: number;
+  expMax: number;
   isCreatingUnit: boolean;
   handleCreateUnit: (title: string) => Promise<void>;
   handleChangeUnitStatus: (unitId: string, status: ModuleUnitStatus) => Promise<void>;
@@ -222,6 +223,7 @@ export function useSingleModulePageState({
     isSettingsOpen,
     setIsSettingsOpen,
     expPercent,
+    expMax,
     isCreatingUnit: createModuleUnitMutation.isPending,
     handleCreateUnit,
     handleChangeUnitStatus,

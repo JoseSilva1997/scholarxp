@@ -34,6 +34,7 @@ export default function SingleModulePage() {
     isSettingsOpen,
     setIsSettingsOpen,
     expPercent,
+    expMax,
     isCreatingUnit,
     handleCreateUnit,
     handleChangeUnitStatus,
@@ -131,7 +132,10 @@ export default function SingleModulePage() {
                     >
                       <div className={styles.barFill} style={{ width: `${expPercent}%` }} />
                     </div>
-                    <span className={styles.expLabel}>{module.currentExp ?? 0} XP</span>
+                    <div className={styles.expGroup}>
+                      <span className={styles.expLabel}>{module.currentExp ?? 0}</span>
+                      <span className={styles.expTotal}>/ {expMax} XP</span>
+                    </div>
                   </div>
                   <button
                     type="button"

@@ -26,7 +26,7 @@ export const AuthVisual: React.FC = () => {
           <h1 className={styles.wordmark}>ScholarXP</h1>
         </header>
 
-        <p className={styles.tagline}>Master your courses with daily small-wins and rewarding challenges.</p>
+        <p className={styles.tagline}>Master your courses with consistent practice and rewarding challenges.</p>
 
         <ul className={styles.stats}>
           <li className={styles.statLine}>
@@ -34,8 +34,8 @@ export const AuthVisual: React.FC = () => {
             <span>Mastery through consistency</span>
           </li>
           <li className={styles.statLine}>
-            <span className={styles.statIcon} aria-hidden="true">🏆</span>
-            <span>Unlock your academic potential</span>
+            <span className={styles.statIcon} aria-hidden="true">🧠</span>
+            <span>Adaptive learning paths</span>
           </li>
           <li className={styles.statLine}>
             <span className={styles.statIcon} aria-hidden="true">💎</span>
