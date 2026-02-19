@@ -20,6 +20,74 @@
   gap: 16px;
 }
 
+.todayChipWrapper {
+  position: relative;
+}
+
+.todayChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(30, 41, 59, 0.4);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+  padding: 6px 14px 6px 10px;
+  border-radius: var(--radius-full);
+  font-weight: 700;
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
+  transition: all var(--transition-base);
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    inset 0 1px 1px rgba(255, 255, 255, 0.05);
+}
+
+.todayChip:hover {
+  background: rgba(30, 41, 59, 0.6);
+  border-color: rgba(251, 191, 36, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 
+    0 10px 15px -3px rgba(0, 0, 0, 0.2),
+    0 0 15px rgba(251, 191, 36, 0.1);
+}
+
+.todayChipActive {
+  background: rgba(251, 191, 36, 0.15);
+  border-color: #fbbf24;
+  box-shadow: 
+    0 0 20px rgba(251, 191, 36, 0.2),
+    inset 0 0 5px rgba(251, 191, 36, 0.2);
+}
+
+.todayChipIcon {
+  font-size: 1.1rem;
+  color: #fbbf24;
+  filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.4));
+}
+
+.todayChipContent {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+}
+
+.todayChipLabel {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #94a3b8;
+  font-weight: 800;
+}
+
+.todayChipValue {
+  font-size: 0.85rem;
+  color: #ffffff;
+  font-weight: 700;
+}
+
 .brand {
   display: flex;
   align-items: center;
@@ -102,9 +170,9 @@
   align-items: center;
   width: 40px;
   height: 40px;
-  background: rgba(255, 255, 255, 0.08);
+  background: transparent;
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: 50%;
   cursor: pointer;
   transition: background var(--transition-fast);
 }
@@ -129,115 +197,39 @@
   transition: all var(--transition-fast);
 }
 
-@media (max-width: 640px) {
+
+@media (max-width: 768px) {
   .header {
     padding: 0 16px;
-  }
-  .wordmark {
-    display: none; /* Hide wordmark on small screens to save space */
-  }
-}
-
-.btnPrimary {
-  background: linear-gradient(135deg, var(--color-accent-primary), #32a86f);
-  color: #0d2619;
-  box-shadow: 0 10px 22px rgba(76, 175, 80, 0.35);
-  border-color: rgba(255, 255, 255, 0.12);
-}
-
-.btnPrimary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 12px 28px rgba(76, 175, 80, 0.45);
-}
-
-.toggleButton {
-  background: transparent;
-  border: transparent;
-  color: #ffffff;
-  border-radius: 50px;
-  padding: 10px;
-  cursor: pointer;
-  transition: background-color 120ms ease, transform 120ms ease, box-shadow 120ms ease;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  flex-shrink: 0;
-}
-
-.toggleButton:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
-}
-
-.toggleButton:focus-visible {
-  outline: 2px solid #f3ce30;
-  outline-offset: 2px;
-}
-
-.toggleIcon {
-  display: inline-flex;
-  flex-direction: column;
-  gap: 5px;
-  width: 20px;
-}
-
-.toggleIcon > span {
-  display: block;
-  height: 2px;
-  width: 100%;
-  background: #ffffff;
-  border-radius: 1px;
-  transition: all 200ms ease;
-}
-
-@media (max-width: 720px) {
-  .header {
-    gap: 8px;
-  }
-
-  .brand {
-    flex-direction: column;
-    align-items: center;
     gap: 4px;
   }
 
-  .logo {
-    width: 28px;
-    height: 28px;
-  }
-
   .wordmark {
-    font-size: 0.9rem;
-    white-space: normal;
-    line-height: 1;
-    text-align: center;
-  }
-
-  .nav {
-    display: none; /* Hide empty nav to save space */
-  }
-
-  .actions {
-    gap: 8px;
-  }
-}
-
-@media (max-width: 640px) {
-  .brand {
-    gap: 0;
-    flex-direction: row;
-  }
-
-  .wordmark {
-    /* On phone-sized layouts, hide the text mark to preserve header space for navigation and profile controls. */
     display: none;
   }
 
-  .headerLoggedOut {
-    padding-left: 16px;
-    padding-right: 16px;
+  .brandWrapper {
+    gap: 12px;
+  }
+
+  .todayChip {
+    padding: 4px 8px;
+  }
+
+  .todayChipLabel {
+    display: none;
+  }
+
+  .todayChipValue {
+    font-size: 0.7rem;
+  }
+
+  .actions {
+    gap: 6px;
+  }
+
+  .btn {
+    padding: 8px 14px;
+    font-size: 0.85rem;
   }
 }

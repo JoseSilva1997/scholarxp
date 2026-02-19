@@ -79,7 +79,7 @@ describe('SidebarNav', () => {
       // In expanded mode, labelBlock should render with label AND hint
       expect(screen.getByText('Modules')).toBeInTheDocument();
       expect(screen.getByText('Module catalogue')).toBeInTheDocument();
-      expect(screen.getByText('Quest history')).toBeInTheDocument();
+      expect(screen.getByText('Quest History')).toBeInTheDocument();
       expect(screen.getByText('My account')).toBeInTheDocument();
     });
 
@@ -92,7 +92,7 @@ describe('SidebarNav', () => {
 
       // In collapsed mode, labelBlock should NOT render (hints should be hidden)
       expect(screen.queryByText('Module catalogue')).not.toBeInTheDocument();
-      expect(screen.queryByText('Quest history')).not.toBeInTheDocument();
+      expect(screen.queryByText('My quest progress')).not.toBeInTheDocument();
       expect(screen.queryByText('My account')).not.toBeInTheDocument();
 
       // But sr (screen-reader only) labels should still exist
@@ -121,7 +121,7 @@ describe('SidebarNav', () => {
 
       // In collapsed mode, hints should NOT be visible
       expect(screen.queryByText('Module catalogue')).not.toBeInTheDocument();
-      expect(screen.queryByText('Quest history')).not.toBeInTheDocument();
+      expect(screen.queryByText('My quest progress')).not.toBeInTheDocument();
     });
 
     it('maintains icon visibility in both collapsed and expanded states', () => {
@@ -156,12 +156,12 @@ describe('SidebarNav', () => {
       );
 
       expect(screen.getByText('Modules')).toBeInTheDocument();
-      expect(screen.getByText('Quests')).toBeInTheDocument();
+      expect(screen.getByText('Quest History')).toBeInTheDocument();
       expect(screen.getByText('Profile')).toBeInTheDocument();
     });
 
     it('filters out unauthorized items (canUserAccess returns false)', () => {
-      // Only Modules and Profile allowed, Quests blocked
+      // Only Modules and Profile allowed, Quest History blocked
       mocks.canUserAccess.mockImplementation((feature: string) => feature !== 'navigation.quests');
 
       render(
@@ -171,7 +171,7 @@ describe('SidebarNav', () => {
       );
 
       expect(screen.getByText('Modules')).toBeInTheDocument();
-      expect(screen.queryByText('Quests')).not.toBeInTheDocument();
+      expect(screen.queryByText('Quest History')).not.toBeInTheDocument();
       expect(screen.getByText('Profile')).toBeInTheDocument();
     });
 
@@ -186,7 +186,7 @@ describe('SidebarNav', () => {
       );
 
       expect(screen.getByText('Modules')).toBeInTheDocument();
-      expect(screen.queryByText('Quests')).not.toBeInTheDocument();
+      expect(screen.queryByText('Quest History')).not.toBeInTheDocument();
       expect(screen.queryByText('Profile')).not.toBeInTheDocument();
     });
 
@@ -202,7 +202,7 @@ describe('SidebarNav', () => {
 
       // All items have features defined, so none should show
       expect(screen.queryByText('Modules')).not.toBeInTheDocument();
-      expect(screen.queryByText('Quests')).not.toBeInTheDocument();
+      expect(screen.queryByText('Quest History')).not.toBeInTheDocument();
       expect(screen.queryByText('Profile')).not.toBeInTheDocument();
     });
 
@@ -315,7 +315,7 @@ describe('SidebarNav', () => {
 
       // In collapsed mode, text should still be in the DOM (for screen readers)
       expect(screen.getByText('Modules')).toBeInTheDocument();
-      expect(screen.getByText('Quests')).toBeInTheDocument();
+      expect(screen.getByText('Quest History')).toBeInTheDocument();
       expect(screen.getByText('Profile')).toBeInTheDocument();
     });
   });
@@ -331,9 +331,9 @@ describe('SidebarNav', () => {
       );
 
       // Should show Modules and Profile (due to permissions)
-      // But not Quests
+      // But not Quest History
       expect(screen.getByText('Modules')).toBeInTheDocument();
-      expect(screen.queryByText('Quests')).not.toBeInTheDocument();
+      expect(screen.queryByText('Quest History')).not.toBeInTheDocument();
       expect(screen.getByText('Profile')).toBeInTheDocument();
 
       // Should not show hints in collapsed mode
@@ -352,7 +352,7 @@ describe('SidebarNav', () => {
       // Only Modules should be visible
       expect(screen.getByText('Modules')).toBeInTheDocument();
       expect(screen.getByText('Module catalogue')).toBeInTheDocument();
-      expect(screen.queryByText('Quests')).not.toBeInTheDocument();
+      expect(screen.queryByText('Quest History')).not.toBeInTheDocument();
     });
 
     it('filters correctly when collapsed with navigationCallback', () => {

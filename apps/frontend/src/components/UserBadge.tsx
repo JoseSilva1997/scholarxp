@@ -219,6 +219,19 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
             </div>
           </div>
 
+          {/* Student Progress (Mobile Fallback) */}
+          {user.globalRole === 'student' && animatedProgress ? (
+            <div className={styles.menuProgress}>
+              <div className={styles.menuProgressHeader}>
+                <span className={styles.menuLevel}>Level {animatedProgress.level}</span>
+                <span className={styles.menuExp}>{animatedProgress.currentExp} / {expMax} XP</span>
+              </div>
+              <div className={styles.menuBarTrack}>
+                <div className={styles.menuBarFill} style={{ width: `${expPercent}%` }} />
+              </div>
+            </div>
+          ) : null}
+
           {/* Panel Content */}
           <div className={styles.menuContent}>
             {/* Main Actions */}

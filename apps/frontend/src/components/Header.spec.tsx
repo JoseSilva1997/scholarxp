@@ -1,10 +1,18 @@
 // Verifies header branch rendering for authenticated and unauthenticated states,
 // including student/non-student roles, avatar presence, and prop overrides.
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import Header from './Header';
 import type { AuthUser } from '../types/auth';
+
+const queryMocks = vi.hoisted(() => ({
+  useTodayQuestListQuery: vi.fn(),
+}));
+
+vi.mock('../hooks/queries/useQuestsQueries', () => ({
+  useTodayQuestListQuery: queryMocks.useTodayQuestListQuery,
+}));
 
 // Mock UserBadge to track props passed to it, allowing assertion on level/exp values
 type MockUserBadgeProps = {
@@ -29,6 +37,10 @@ vi.mock('./UserBadge', () => ({
 describe('Header', () => {
   beforeEach(() => {
     mockUserBadgeProps = {};
+    queryMocks.useTodayQuestListQuery.mockReturnValue({
+      data: { quests: [], completed: 0, max: 3 },
+      isPending: false,
+    });
   });
 
   // ============================================================================
@@ -87,7 +99,60 @@ describe('Header', () => {
       );
 
       expect(screen.getByTestId('user-badge')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /today's quests/i })).toBeInTheDocument();
       expect(screen.queryByRole('link', { name: 'Login' })).not.toBeInTheDocument();
+    });
+
+    it('opens the today quests popover when chip is clicked', () => {
+      queryMocks.useTodayQuestListQuery.mockReturnValue({
+        data: {
+          quests: [
+            {
+              id: 11,
+              moduleId: 4,
+              moduleUnitId: null,
+              moduleTitle: 'Biology',
+              moduleUnitTitle: null,
+              type: 'complete_daily_practice',
+              description: 'Complete your daily practice for Biology.',
+              expGranted: 25,
+              isCompleted: false,
+              questDateUtc: '2026-02-19',
+              generatedAt: '2026-02-19T00:00:00.000Z',
+              completedAt: null,
+            },
+          ],
+          completed: 0,
+          max: 3,
+        },
+        isPending: false,
+      });
+
+      render(
+        <MemoryRouter>
+          <Header user={studentWithAvatar} />
+        </MemoryRouter>,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: /today's quests/i }));
+
+      expect(screen.getByTestId('today-quest-popover')).toBeInTheDocument();
+      expect(screen.getByText("Today's quests")).toBeInTheDocument();
+      expect(screen.getByText('Biology')).toBeInTheDocument();
+    });
+
+    it('closes the today quests popover when clicking outside', () => {
+      render(
+        <MemoryRouter>
+          <Header user={studentWithAvatar} />
+        </MemoryRouter>,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: /today's quests/i }));
+      expect(screen.getByTestId('today-quest-popover')).toBeInTheDocument();
+
+      fireEvent.mouseDown(document.body);
+      expect(screen.queryByTestId('today-quest-popover')).not.toBeInTheDocument();
     });
 
     it('derives level from avatar when no prop override (isStudent=true path)', () => {
@@ -271,6 +336,7 @@ describe('Header', () => {
       );
 
       expect(screen.getByTestId('user-badge')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /today's quests/i })).not.toBeInTheDocument();
     });
 
     it('does not derive level for non-student (isStudent=false path)', () => {
