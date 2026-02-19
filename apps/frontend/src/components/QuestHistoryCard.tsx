@@ -73,7 +73,9 @@ export default function QuestHistoryCard({
           return (
             <div
               key={slotIndex}
-              className={`${styles.slot} ${isIncomplete ? styles.incompleteSlot : ''}`.trim()}
+              className={`${styles.slot} ${isIncomplete ? styles.incompleteSlot : ''} ${
+                isTooltipOpen ? styles.openSlot : ''
+              }`.trim()}
               data-testid="quest-slot"
             >
               {slotQuest ? (

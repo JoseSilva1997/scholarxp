@@ -59,6 +59,11 @@
   border-color: var(--color-accent-soft);
   background: var(--color-surface);
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+  z-index: 5;
+}
+
+.openSlot {
+  z-index: 10;
 }
 
 .badge {

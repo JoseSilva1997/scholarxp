@@ -31,8 +31,8 @@ const navItems: NavItem[] = [
   },
   {
     to: '/main/quests',
-    label: 'Quests',
-    hint: 'Quest history',
+    label: 'Quest History',
+    hint: 'My quest progress',
     icon: RiSwordLine,
     feature: 'navigation.quests',
   },
