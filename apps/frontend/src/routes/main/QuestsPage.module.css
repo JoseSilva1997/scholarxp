@@ -59,7 +59,7 @@
   color: var(--color-text);
   letter-spacing: -0.04em;
   line-height: 1.1;
-  background: linear-gradient(135deg, var(--color-text) 0%, var(--color-brand-surface-dark-muted) 100%);
+  background: linear-gradient(135deg, var(--color-text) 0%, var(--btn-primary-dark-hover) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -81,7 +81,7 @@
 }
 
 .statCard {
-  background: var(--color-surface-alt);
+  background: var(--color-surface-hover);
   padding: 16px 24px;
   border-radius: 20px;
   display: flex;
@@ -194,7 +194,7 @@
   padding: 0;
   margin-left: 26px;
   font-weight: 800;
-  color: var(--color-brand-surface-dark-muted);
+  color: var(--btn-primary-dark-hover);
   text-transform: uppercase;
   letter-spacing: 0.15em;
   font-size: 0.9rem;
@@ -399,7 +399,7 @@
 
 .loadMoreButton:hover:not(:disabled) {
   transform: translateY(-3px);
-  background: var(--color-brand-surface-dark);
+  background: var(--btn-primary-dark);
   box-shadow: var(--shadow-xl);
 }
 

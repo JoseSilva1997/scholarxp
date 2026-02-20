@@ -6,7 +6,7 @@
 .visual {
   flex: 1.2;
   position: relative;
-  background: var(--color-brand-surface-dark);
+  background: var(--btn-primary-dark);
   overflow: hidden;
   display: flex;
   align-items: center;

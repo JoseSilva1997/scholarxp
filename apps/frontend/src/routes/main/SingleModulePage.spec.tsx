@@ -77,6 +77,10 @@ vi.mock('../../context/AuthContext', () => ({
   useAuth: () => authState,
 }));
 
+vi.mock('../../context/ThemeContext', () => ({
+  useTheme: () => ({ theme: 'light' }),
+}));
+
 vi.mock('../../hooks/page-state/useSingleModulePageState', () => ({
   useSingleModulePageState: () => ({
     ...pageState,

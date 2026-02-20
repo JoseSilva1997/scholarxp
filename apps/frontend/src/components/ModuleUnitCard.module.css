@@ -195,7 +195,7 @@
 }
 
 .editButton {
-  background: var(--color-brand-surface-dark);
+  background: var(--btn-primary-dark);
   border: none;
   border-radius: 10px;
   padding: 12px 24px;
@@ -208,7 +208,7 @@
 }
 
 .editButton:hover {
-  background: var(--color-text);
+  background: var(--btn-primary-dark-hover);
   transform: translateY(-1px);
   box-shadow: 0 10px 15px -3px var(--color-shadow-base);
 }
@@ -275,7 +275,7 @@
 }
 
 .panel {
-  background: var(--color-surface-subtle);
+  background: var(--color-bg);
   border-radius: 0 0 12px 12px;
   margin: -12px 12px 0 12px;
   padding-top: 12px;
@@ -343,7 +343,7 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border-subtle);
   border-radius: 12px;
-  color: var(--color-brand-surface-dark-muted);
+  color: var(--color-text);
   font-size: 14px;
   font-weight: 600;
   text-decoration: none;

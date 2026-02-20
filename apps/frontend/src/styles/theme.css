@@ -11,6 +11,7 @@
   --color-primary-light: #60a5fa;
   --color-primary-subtle: #93c5fd;
   --color-primary-soft: rgba(59, 130, 246, 0.1);
+  --color-brand-surface-dark: #1e293b; /* Slate 800 */
 
   --color-secondary: #10b981; /* Growth Green */
   --color-secondary-dark: #059669;
@@ -66,14 +67,6 @@
   --color-shadow-elevated: rgba(0, 0, 0, 0.12); /* For prominent hover states */
   --color-shadow-dark: rgba(0, 0, 0, 0.2);
   --color-highlight-clean: rgba(255, 255, 255, 0.5);
-
-  /* Legacy variable mapping for compatibility */
-  --color-accent-secondary: #fbcd2a;
-  --color-brand-surface-dark: #1e293b; /* Slate 800 */
-  --color-brand-surface-dark-muted: #334155; /* Slate 700 */
-  --color-surface-alt: #f1f5f9;
-  --color-surface-alt-muted: rgba(241, 245, 249, 0.5);
-  --color-surface-subtle: #f8fafc;
 
   /* Overlays for dark surfaces */
   --color-overlay-light-hover: rgba(255, 255, 255, 0.12);
@@ -131,12 +124,12 @@
   --shadow-inner-dark: inset 0 2px 4px rgba(0, 0, 0, 0.2);
   --shadow-floating-dark: 0 20px 48px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.3);
 
-  --shadow-white-sm: 
-
   /* Specialized Shadows */
   --shadow-auth-card: -10px 0 40px rgba(0, 0, 0, 0.03);
 
   /* Button variables for consistency */
+  --btn-primary-dark: #1e293b; /* Slate 800 */
+  --btn-primary-dark-hover: #334155; /* Slate 700 */
   --btn-primary-gradient: linear-gradient(180deg, var(--color-primary-light) 0%, var(--color-primary) 100%);
   --btn-primary-shadow: 0 2px 4px rgb(0 0 0 / 0.1);
   --btn-primary-shadow-hover: 0 4px 8px rgb(0 0 0 / 0.12);
@@ -213,5 +206,64 @@
 @media (max-width: 767px) {
   :root {
     --quest-badge-size: 68px;
+  }
+}
+
+/* Dark Theme overrides */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --color-bg: #121826; /* Deep Slate - Muted */
+    --color-surface: #1c2333; /* Slightly lighter surface */
+    --color-surface-hover: #262f3f; /* Hover state for surfaces */
+    --color-text: #e2e8f0; /* Slate 200 - Less harsh than Slate 100 */
+    --color-text-soft: #94a3b8; /* Slate 400 */
+    --color-text-muted: #64748b; /* Slate 500 */
+    --color-text-dim: #475569; /* Slate 600 */
+    --color-border: #2d3748; /* Muted border */
+    --color-border-hover: #3b4759;
+    --color-border-subtle: rgba(255, 255, 255, 0.05);
+
+    /* Text contrast on dark */
+    --color-text-on-dark-vibrant: rgba(255, 255, 255, 0.9);
+    --color-text-on-dark-muted: rgba(255, 255, 255, 0.7);
+
+    --color-shadow-extra-subtle: rgba(0, 0, 0, 0.25);
+    --color-shadow-subtle: rgba(0, 0, 0, 0.35);
+    --color-shadow-inset: rgba(0, 0, 0, 0.45);
+    --color-shadow-soft: rgba(0, 0, 0, 0.35);
+    --color-shadow-base: rgba(0, 0, 0, 0.45);
+    --color-shadow-elevated: rgba(0, 0, 0, 0.55);
+    --color-shadow-dark: rgba(0, 0, 0, 0.65);
+
+    /* Validation & Errors for Dark Mode */
+    --color-error-soft: rgba(239, 68, 68, 0.15);
+    --color-error-border: rgba(239, 68, 68, 0.3);
+    --color-success-soft: rgba(16, 185, 129, 0.15);
+    --color-success-border: rgba(16, 185, 129, 0.3);
+
+    /* Soft accents for Dark Mode visibility */
+    --color-primary-soft: rgba(59, 130, 246, 0.15);
+    --color-secondary-soft: rgba(16, 185, 129, 0.15);
+    --color-accent-soft: rgba(245, 158, 11, 0.15);
+
+    /* Form Elements for Dark Mode */
+    --input-bg: #1c2333;
+    --input-focus-ring: rgba(59, 130, 246, 0.2);
+    --input-focus-border: var(--color-primary-light);
+
+    /* Specialized Surfaces for Dark Mode */
+    --color-quest-gold-soft: rgba(243, 206, 48, 0.2);
+    --color-quest-gold-glow: rgba(243, 206, 48, 0.4);
+    --color-quest-gold-surface: #262518;
+
+    /* Glassmorphism Overrides */
+    --color-glass-bg: rgba(28, 35, 51, 0.5);
+    --color-glass-bg-hover: rgba(28, 35, 51, 0.7);
+    --color-glass-bg-deep: rgba(18, 24, 38, 0.5);
+    --color-glass-bg-deep-solid: rgba(18, 24, 38, 0.98);
+
+    /* Button Colors - Deep Navy for better presence without being too stark */
+    --btn-primary-dark: #2a4365; /* Deep Navy Blue */
+    --btn-primary-dark-hover: #3182ce; /* Bright Blue for active feel */
   }
 }

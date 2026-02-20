@@ -64,9 +64,9 @@
 }
 
 .primary {
-  background: var(--color-brand-surface-dark);
+  background: var(--btn-primary-dark);
   color: var(--color-text-on-dark); /* Ensure high contrast on dark button background */
-  border: 1px solid var(--color-brand-surface-dark);
+  border: 1px solid var(--btn-primary-dark);
   border-radius: 8px;
   padding: 10px 14px;
   cursor: pointer;
@@ -90,6 +90,6 @@
 
 .primary:focus-visible,
 .secondary:focus-visible {
-  outline: 2px solid var(--color-accent-secondary);
+  outline: 2px solid var(--color-accent-light);
   outline-offset: 2px;
 }

@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App.tsx';
 import { AppQueryProvider } from './context/QueryProvider';
+import { ThemeProvider } from './context/ThemeContext';
 import { initLogger } from './utils/logger';
 
 initLogger({
@@ -15,7 +16,9 @@ initLogger({
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AppQueryProvider>
-      <App />
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>
     </AppQueryProvider>
   </StrictMode>,
 );

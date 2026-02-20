@@ -530,14 +530,6 @@ export default function ModuleUnitEditor() {
                       type="button"
                       className={styles.secondaryButton}
                       onClick={handleGenerateVariant}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        background: 'transparent',
-                        color: 'var(--color-text)',
-                        border: '1px solid var(--local-border)',
-                      }}
                     >
                       Generate Variant
                       <VscSparkleFilled className={styles.aiSparkle} />

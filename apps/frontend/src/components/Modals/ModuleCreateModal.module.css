@@ -84,7 +84,7 @@
 
 .primary {
   border: none;
-  background: var(--color-brand-surface-dark);
+  background: var(--btn-primary-dark);
   color: var(--color-text-on-dark);
   border-radius: 10px;
   padding: 10px 14px;

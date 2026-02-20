@@ -68,7 +68,7 @@
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid var(--color-primary);
-  background: var(--color-brand-surface-dark); /* Slate-800 or deep slate base */
+  background: var(--btn-primary-dark); /* Slate-800 or deep slate base */
   transition: all var(--transition-fast);
   display: block;
   box-shadow: 0 0 10px var(--color-primary-soft);
@@ -106,7 +106,8 @@
   text-overflow: ellipsis;
   line-height: 1.2;
   text-shadow: 0 1px 2px var(--color-overlay-dark);
-  background: linear-gradient(to bottom, var(--color-surface), var(--color-border));
+  /* Use "on dark" variables since the badge lives in a dark header context */
+  background: linear-gradient(to bottom, var(--color-text-on-dark), var(--color-text-on-dark-muted));
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -237,7 +238,7 @@
   position: absolute;
   top: 100%;
   right: 0;
-  background: var(--color-brand-surface-dark);
+  background: var(--btn-primary-dark);
   border: 1px solid var(--color-glass-border-strong); /* Stronger glass border for overlays */
   box-shadow: var(--shadow-floating-dark); /* Heavy shadow for floating menus */
   width: 280px;
@@ -287,7 +288,7 @@
 
 .menuHeaderName {
   font-weight: 700;
-  color: var(--color-surface); /* Pure white text from theme */
+  color: var(--color-text-on-dark-vibrant); /* Pure white text from theme */
   font-size: 0.95rem;
   white-space: nowrap;
   overflow: hidden;
@@ -377,7 +378,7 @@
   width: 100%;
   padding: 10px 16px;
   background: transparent;
-  color: var(--color-border); /* Slate-200 equivalent */
+  color: var(--color-text-on-dark-vibrant); /* Slate-200 equivalent */
   border: none;
   text-align: left;
   cursor: pointer;

@@ -20,6 +20,12 @@
   gap: 16px;
 }
 
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .todayChipWrapper {
   position: relative;
 }
@@ -32,7 +38,7 @@
   backdrop-filter: blur(12px);
   border: 1px solid var(--color-accent-soft);
   color: var(--color-accent-light);
-  padding: 6px 14px 6px 10px;
+  padding: 8px 14px 4px 12px;
   border-radius: var(--radius-full);
   font-weight: 700;
   cursor: pointer;
@@ -71,21 +77,21 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 1px;
+  gap: 4px;
 }
 
 .todayChipLabel {
   font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--color-text-muted);
+  color: var(--color-text-on-dark-vibrant);
   font-weight: 800;
 }
 
 .todayChipValue {
-  font-size: 0.85rem;
-  color: var(--color-surface);
-  font-weight: 700;
+  font-size: 0.70rem;
+  color: var(--color-text-on-dark-vibrant);
+  font-weight: 600;
 }
 
 .brand {
@@ -112,7 +118,7 @@
   font-size: 1.25rem;
   font-weight: 700;
   letter-spacing: -0.01em;
-  background: linear-gradient(135deg, var(--color-accent-secondary) 0%, var(--color-secondary) 100%);
+  background: linear-gradient(135deg, var(--color-accent-light) 0%, var(--color-secondary) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;

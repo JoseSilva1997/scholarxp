@@ -4,7 +4,9 @@ import { useAuth } from '../../context/AuthContext';
 import { IconContext } from 'react-icons';
 import { IoSettingsSharp } from 'react-icons/io5';
 import toggleStudentViewIcon from '../../assets/toggle-student-view.svg';
+import toggleStudentViewDarkIcon from '../../assets/toggle-student-view-dark.svg';
 import untoggleStudentViewIcon from '../../assets/untoggle-student-view.svg';
+import untoggleStudentViewDarkIcon from '../../assets/untoggle-student-view-dark.svg';
 import expIcon from '../../assets/exp_icon.svg';
 import MainSection from '../../components/MainSection';
 import ModuleSettingsPanel from '../../components/ModuleSettingsPanel';
@@ -13,11 +15,13 @@ import CreateModuleUnitModal from '../../components/Modals/CreateModuleUnitModal
 import ModuleUnitCard from '../../components/ModuleUnitCard';
 import StudentModuleUnitCard from '../../components/StudentModuleUnitCard';
 import { useSingleModulePageState } from '../../hooks/page-state/useSingleModulePageState';
+import { useTheme } from '../../context/ThemeContext';
 import styles from './SingleModulePage.module.css';
 
 export default function SingleModulePage() {
   const { moduleId } = useParams<{ moduleId: string }>();
   const { user } = useAuth();
+  const { theme } = useTheme();
   const {
     module,
     moduleUnits,
@@ -90,7 +94,15 @@ export default function SingleModulePage() {
                         onClick={() => setIsStudentViewEnabled(!isStudentViewEnabled)}
                       >
                         <img
-                          src={isStudentViewEnabled ? untoggleStudentViewIcon : toggleStudentViewIcon}
+                          src={
+                            isStudentViewEnabled
+                              ? theme === 'dark'
+                                ? untoggleStudentViewDarkIcon
+                                : untoggleStudentViewIcon
+                              : theme === 'dark'
+                                ? toggleStudentViewDarkIcon
+                                : toggleStudentViewIcon
+                          }
                           alt=""
                           aria-hidden="true"
                         />

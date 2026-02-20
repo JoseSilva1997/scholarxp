@@ -15,7 +15,7 @@
   overflow: hidden;
   position: relative;
   background: transparent;
-  border: 2px dashed var(--color-brand-surface-dark-muted);
+  border: 2px dashed var(--btn-primary-dark-hover);
   border-radius: 12px;
   box-sizing: border-box;
   transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -26,7 +26,7 @@
   /* Solidifies on hover to match the weight of standard cards. */
   transform: translateY(-2px);
   background: var(--color-surface);
-  border: 2px solid var(--color-border-hover);
+  border: 2px solid var(--btn-primary-dark-hover);
   box-shadow: 0 12px 20px -5px var(--color-shadow-inset), 0 8px 10px -6px var(--color-shadow-extra-subtle);
 }
 
@@ -67,7 +67,6 @@
 }
 
 .createButton {
-  /* Borrow the statusButton affordance to keep the UI cohesive. */
   width: 72px;
   height: 72px;
   border-radius: 50%;
@@ -113,12 +112,12 @@
 
 .createIcon {
   font-size: 72px;
-  color: var(--color-brand-surface-dark-muted);
+  color: var(--btn-primary-dark);
   transition: color 0.15s ease;
 }
 
 .createButton:hover:not(:disabled) .createIcon {
-  color: var(--color-brand-surface-dark);
+  color: var(--btn-primary-dark-hover);
 }
 
 .copy {
@@ -139,13 +138,13 @@
   font-family: var(--font-sans);
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--color-brand-surface-dark);
+  color: var(--color-text);
   line-height: 1.2;
   transition: color 250ms ease;
 }
 
 .wrapper:hover .title {
-  color: var(--color-brand-surface-dark);
+  color: var(--color-text);
 }
 
 .subtitle {

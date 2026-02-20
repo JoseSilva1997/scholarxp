@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { AuthUser } from '../types/auth';
 import logo from '../assets/logo.svg';
 import UserBadge from './UserBadge';
+import ThemeToggle from './ThemeToggle';
 import { STUDENT_EXP_MAX } from '@scholarxp/constants';
 import { useTodayQuestListQuery } from '../hooks/queries/useQuestsQueries';
 import { BsTrophyFill } from 'react-icons/bs';
@@ -123,18 +124,21 @@ export default function Header({
           </div>
         ) : null}
       </div>
-      {user ? (
-        <UserBadge user={user} level={levelToShow} exp={expToShow} onLogout={onLogout} />
-      ) : (
-        <div className={styles.actions}>
-          <Link className={`${styles.btn} ${styles.btnGhost}`} to="/login">
-            Login
-          </Link>
-          <Link className={`${styles.btn} ${styles.btnPrimary}`} to="/register">
-            Sign up
-          </Link>
-        </div>
-      )}
+      <div className={styles.headerRight}>
+        <ThemeToggle />
+        {user ? (
+          <UserBadge user={user} level={levelToShow} exp={expToShow} onLogout={onLogout} />
+        ) : (
+          <div className={styles.actions}>
+            <Link className={`${styles.btn} ${styles.btnGhost}`} to="/login">
+              Login
+            </Link>
+            <Link className={`${styles.btn} ${styles.btnPrimary}`} to="/register">
+              Sign up
+            </Link>
+          </div>
+        )}
+      </div>
     </header>
   );
 }

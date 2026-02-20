@@ -109,14 +109,14 @@
   align-items: center;
   gap: 8px;
   font-weight: 600;
-  color: var(--color-text-dim);
+  color: var(--color-text-on-dark-vibrant);
   white-space: nowrap;
   width: 82px;
   flex-shrink: 0;
 }
 
 .tooltipValue {
-  color: var(--color-border);
+  color: var(--color-text-on-dark-muted);
   font-weight: 500;
 }
 

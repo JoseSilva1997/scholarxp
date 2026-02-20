@@ -40,7 +40,7 @@
   align-items: center;
   width: var(--quest-badge-size);
   height: var(--quest-badge-size);
-  background: var(--color-surface-subtle);
+  background: var(--color-bg);
   border-radius: 20px;
   border: 2px dashed var(--color-border-subtle);
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -95,7 +95,7 @@
 
 /* Specific styling for completed slots */
 .slot:not(.incompleteSlot) {
-  background: radial-gradient(circle, var(--color-surface) 0%, var(--color-surface-subtle) 100%);
+  background: radial-gradient(circle, var(--color-surface) 0%, var(--color-bg) 100%);
   border: 2px solid var(--color-secondary-soft);
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }

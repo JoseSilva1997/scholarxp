@@ -44,7 +44,7 @@
   border-radius: var(--radius-md);
   padding: 14px;
   background: var(--color-surface);
-  color: var(--color-text-muted));
+  color: var(--color-text-muted);
   box-shadow: var(--shadow-lg);
 }
 
@@ -114,7 +114,7 @@
 }
 
 .settingsSection {
-  background: var(--color-surface-subtle);
+  background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   overflow: hidden;
@@ -188,7 +188,7 @@
 
 .helper {
   margin: 0;
-  color: var(--color-text-muted));
+  color: var(--color-text-muted);
   font-size: 14px;
 }
 
@@ -196,21 +196,16 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--color-text-muted));
+  color: var(--color-text-muted);
 }
 
 .editingLabel {
-  background: var(--color-accent-secondary);
+  background: var(--color-accent-light);
   color: var(--color-text);
   padding: 4px 10px;
   border-radius: 999px;
   font-weight: 700;
   font-size: 12px;
-}
-
-.navButton:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
 }
 
 /* Icon-only navigation buttons (prev/next) used in the editor header.
@@ -223,9 +218,14 @@
   margin: 0;
   background: transparent;
   border: none;
-  color: var(--color-text-muted));
+  color: var(--color-text-muted);
   border-radius: 999px;
   cursor: pointer;
+}
+
+.navButton:hover:not(:disabled) {
+  box-shadow: var(--shadow-md);
+  transform: scale(1.1);
 }
 
 .navButton:focus-visible {
@@ -240,10 +240,14 @@
 
 /* Slightly larger icon for clarity inside the compact nav button. */
 .navIcon {
-  color: var(--color-brand-surface-dark);
+  color: var(--btn-primary-dark);
   width: 24px;
   height: 24px;
   font-size: 16px;
+}
+
+.navIcon:hover {
+  color: var(--color-primary);
 }
 
 .groupCard {
@@ -257,7 +261,7 @@
 .groupHeader {
   width: 100%;
   display: flex;
-  background: var(--color-brand-surface-dark);
+  background: var(--btn-primary-dark);
   border: none;
 }
 
@@ -325,7 +329,7 @@
 .iconButton {
   border: none;
   background: transparent;
-  color: var(--color-text-muted));
+  color: var(--color-text-muted);
   padding: 6px;
   border-radius: 8px;
   cursor: pointer;
@@ -419,8 +423,8 @@
 .questionType {
   font-size: 9px;
   font-weight: 700;
-  color: var(--color-text-muted));
-  background: var(--color-surface-subtle);
+  color: var(--color-text-muted);
+  background: var(--color-bg);
   padding: 1px 4px;
   border-radius: 4px;
   border: 1px solid var(--color-border);
@@ -432,7 +436,7 @@
   font-size: 9px;
   font-style: italic;
   font-weight: 400;
-  color: var(--color-text-muted));
+  color: var(--color-text-muted);
   margin-left: 4px;
 }
 
@@ -460,6 +464,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
+  color: var(--color-text);
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
@@ -468,8 +473,8 @@
 }
 
 .variantBlock:hover:not(.selectedVariantFull) {
-  border-color: var(--color-accent-secondary);
-  background: var(--color-surface-subtle);
+  border-color: var(--color-accent-light);
+  background: var(--color-bg);
 }
 
 .selectedVariant {
@@ -478,15 +483,15 @@
 }
 
 .selectedVariantFull {
-  background: var(--color-accent-secondary);
-  color: var(--color-brand-surface-dark);
-  border-color: var(--color-accent-secondary);
+  background: var(--color-accent-light);
+  color: var(--color-text);
+  border-color: var(--color-accent-light);
   font-weight: 700;
   box-shadow: var(--shadow-md);
 }
 
 .selectedVariantFull:hover {
-  background: var(--color-accent-secondary); /* Maintain the same solid background */
+  background: var(--color-accent-light); /* Maintain the same solid background */
   cursor: default; /* Optional: indicates it's already selected */
 }
 
@@ -498,7 +503,7 @@
   border: 1px dashed var(--color-border);
   border-radius: var(--radius-md);
   background: transparent;
-  color: var(--color-text-muted));
+  color: var(--color-text);
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
@@ -506,9 +511,9 @@
 }
 
 .addVariantButton:hover {
-  border-color: var(--color-accent-secondary);
-  color: var(--color-accent-secondary);
-  background: var(--color-surface-subtle);
+  border-color: var(--color-accent-light);
+  color: var(--color-accent-light);
+  background: var(--color-bg);
 }
 
 .addVariantButton:disabled {
@@ -526,7 +531,7 @@
   border: 1px dashed var(--color-border);
   border-radius: var(--radius-md);
   background: transparent;
-  color: var(--color-text-muted));
+  color: var(--color-text);
   cursor: pointer;
   font-size: 11px;
   transition: border-color 0.2s, color 0.2s;
@@ -536,13 +541,14 @@
 .addQuestion:hover {
   border-color: var(--color-secondary);
   color: var(--color-secondary);
+  background: var(--color-bg);
 }
 
 .addQuestion:disabled {
   opacity: 0.55;
   cursor: not-allowed;
   border-color: var(--color-border);
-  color: var(--color-text-muted));
+  color: var(--color-text-muted);
 }
 
 .addGroup {
@@ -555,7 +561,7 @@
   border: 1px solid var(--color-border);
   border-radius: 999px;
   background: var(--color-surface);
-  color: var(--color-text-muted));
+  color: var(--color-text);
   cursor: pointer;
   font-size: 11px;
   font-weight: 600;
@@ -571,7 +577,7 @@
   opacity: 0.55;
   cursor: not-allowed;
   border-color: var(--color-border);
-  color: var(--color-text-muted));
+  color: var(--color-text-muted);
 }
 
 .variantInstructions textarea,
@@ -658,7 +664,7 @@
   cursor: pointer;
   font-weight: 600;
   font-size: 10px;
-  color: var(--color-text-muted));
+  color: var(--color-text-muted);
   transition: all 0.2s;
 }
 
@@ -692,7 +698,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background: var(--color-surface-subtle);
+  background: var(--color-bg);
   margin-bottom: 12px;
 }
 
@@ -756,14 +762,24 @@
 }
 
 .secondaryButton {
-  color: var(--color-surface);
-  background: var(--color-brand-surface-dark);
+  background: transparent;
+  color: var(--color-text);
   border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 6px 12px;
   font-weight: 700;
   font-size: 11px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.secondaryButton:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+  border-color: var(--color-border-hover);
+  transform: translateY(-1px);
 }
 
 .saveQuestionButton {
@@ -869,7 +885,7 @@
 
 .aiSparkle {
   margin-left: 4px;
-  color: var(--color-accent-secondary);
+  color: var(--color-accent-light);
 }
 
 .plusVariantIcon {
@@ -879,13 +895,13 @@
 }
 
 .plusQuestionIcon {
-  color: var(--color-brand-surface-dark);
+  color: inherit;
   width: 20px;
   height: 20px;
 }
 
 .plusGroupIcon {
-  color: var(--color-brand-surface-dark);
+  color: inherit;
   width: 22px;
   height: 22px;
 }
