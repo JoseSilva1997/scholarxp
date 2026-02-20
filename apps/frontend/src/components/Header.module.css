@@ -6,12 +6,12 @@
   justify-content: space-between;
   padding: 0 24px 0px 16px;
   background-color: var(--color-brand-surface-dark);
-  color: #ffffff;
+  color: var(--color-surface);
   min-height: var(--header-height);
   box-shadow: var(--shadow-md);
   z-index: 50;
   position: relative;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--color-overlay-light-border);
 }
 
 .brandWrapper {
@@ -28,10 +28,10 @@
   display: inline-flex;
   align-items: center;
   gap: 12px;
-  background: rgba(30, 41, 59, 0.4);
+  background: var(--color-overlay-light-hover);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(251, 191, 36, 0.2);
-  color: #fbbf24;
+  border: 1px solid var(--color-accent-soft);
+  color: var(--color-accent-light);
   padding: 6px 14px 6px 10px;
   border-radius: var(--radius-full);
   font-weight: 700;
@@ -40,31 +40,31 @@
   line-height: 1;
   transition: all var(--transition-base);
   box-shadow: 
-    0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    inset 0 1px 1px rgba(255, 255, 255, 0.05);
+    var(--shadow-sm),
+    inset 0 1px 1px var(--color-overlay-light-border);
 }
 
 .todayChip:hover {
-  background: rgba(30, 41, 59, 0.6);
-  border-color: rgba(251, 191, 36, 0.4);
+  background: var(--color-overlay-light-active);
+  border-color: var(--color-accent);
   transform: translateY(-2px);
   box-shadow: 
-    0 10px 15px -3px rgba(0, 0, 0, 0.2),
-    0 0 15px rgba(251, 191, 36, 0.1);
+    var(--shadow-md),
+    0 0 15px var(--color-accent-soft);
 }
 
 .todayChipActive {
-  background: rgba(251, 191, 36, 0.15);
-  border-color: #fbbf24;
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent-light);
   box-shadow: 
-    0 0 20px rgba(251, 191, 36, 0.2),
-    inset 0 0 5px rgba(251, 191, 36, 0.2);
+    0 0 20px var(--color-accent-soft),
+    inset 0 0 5px var(--color-accent-soft);
 }
 
 .todayChipIcon {
   font-size: 1.1rem;
-  color: #fbbf24;
-  filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.4));
+  color: var(--color-accent-light);
+  filter: drop-shadow(0 0 4px var(--color-accent-soft));
 }
 
 .todayChipContent {
@@ -78,13 +78,13 @@
   font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   font-weight: 800;
 }
 
 .todayChipValue {
   font-size: 0.85rem;
-  color: #ffffff;
+  color: var(--color-surface);
   font-weight: 700;
 }
 
@@ -104,7 +104,7 @@
   width: 40px;
   height: 40px;
   flex-shrink: 0;
-  filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.4));
+  filter: drop-shadow(0 0 8px var(--color-secondary-glow));
 }
 
 .wordmark {
@@ -112,7 +112,7 @@
   font-size: 1.25rem;
   font-weight: 700;
   letter-spacing: -0.01em;
-  background: linear-gradient(135deg, #fbcd2a 0%, #10b981 100%);
+  background: linear-gradient(135deg, var(--color-accent-secondary) 0%, var(--color-secondary) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -142,25 +142,25 @@
 
 .btnPrimary {
   background-color: var(--color-secondary);
-  color: #ffffff;
+  color: var(--color-text-on-secondary);
 }
 
 .btnPrimary:hover {
   background-color: var(--color-secondary-dark);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 4px 12px var(--color-secondary-shadow-hover);
 }
 
 .btnGhost {
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.9);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: var(--color-glass-border-subtle);
+  color: var(--color-text-on-dark);
+  border-color: var(--color-glass-border);
 }
 
 .btnGhost:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.2);
+  background: var(--color-glass-border);
+  color: var(--color-text-on-dark);
+  border-color: var(--color-overlay-light-active);
 }
 
 .toggleButton {
@@ -178,7 +178,7 @@
 }
 
 .toggleButton:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--color-glass-shimmer);
 }
 
 .toggleIcon {
@@ -192,7 +192,7 @@
   display: block;
   width: 100%;
   height: 2px;
-  background-color: #ffffff;
+  background-color: var(--color-text-on-dark);
   border-radius: 2px;
   transition: all var(--transition-fast);
 }

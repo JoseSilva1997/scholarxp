@@ -1,7 +1,7 @@
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(18, 21, 31, 0.35);
+  background: var(--color-overlay-dark);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -9,11 +9,11 @@
 }
 
 .modal {
-  background: white;
+  background: var(--color-surface);
   border-radius: 16px;
   width: min(480px, calc(100vw - 32px));
   padding: 20px 20px 16px;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.14);
+  box-shadow: var(--shadow-xl);
 }
 
 .header {
@@ -26,7 +26,7 @@
 .title {
   margin: 0;
   font-size: 20px;
-  color: var(--text-primary);
+  color: var(--color-text);
 }
 
 .closeBtn {
@@ -34,7 +34,7 @@
   background: transparent;
   font-size: 20px;
   cursor: pointer;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
 }
 
 .form {
@@ -45,7 +45,7 @@
 
 .label {
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--color-text-soft);
   margin-bottom: 4px;
   display: block;
 }
@@ -53,12 +53,12 @@
 .input,
 .textarea {
   width: 100%;
-  border: 1px solid var(--color-muted);
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   padding: 10px 12px;
   font-size: 14px;
-  color: var(--text-primary);
-  background: var(--surface-default);
+  color: var(--color-text);
+  background: var(--input-bg);
 }
 
 .textarea {
@@ -74,9 +74,9 @@
 }
 
 .secondary {
-  border: 1px solid var(--border-default);
-  background: white;
-  color: var(--text-primary);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
   border-radius: 10px;
   padding: 8px 12px;
   cursor: pointer;
@@ -85,7 +85,7 @@
 .primary {
   border: none;
   background: var(--color-brand-surface-dark);
-  color: white;
+  color: var(--color-text-on-dark);
   border-radius: 10px;
   padding: 10px 14px;
   font-weight: 600;
@@ -103,13 +103,13 @@
 
 .primary:not(:disabled):hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-lg);
 }
 
 .error {
-  color: var(--danger-600);
-  background: var(--danger-50);
-  border: 1px solid var(--danger-100);
+  color: var(--color-error);
+  background: var(--color-error-light);
+  border: 1px solid var(--color-error-border);
   padding: 8px 10px;
   border-radius: 10px;
   font-size: 14px;

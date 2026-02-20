@@ -5,8 +5,9 @@
   min-height: 100vh;
   min-height: 100dvh;
   /* Subtler, more modern ambient background */
-  background: radial-gradient(circle at 10% 5%, rgba(59, 130, 246, 0.08), transparent 25%),
-    radial-gradient(circle at 90% 85%, rgba(16, 185, 129, 0.06), transparent 25%),
+  /* Ambient glows provide depth without overwhelming the UI */
+  background: radial-gradient(circle at 10% 5%, var(--color-bg-glow-primary), transparent 25%),
+    radial-gradient(circle at 90% 85%, var(--color-bg-glow-secondary), transparent 25%),
     var(--color-bg);
   display: flex;
   flex-direction: column;
@@ -27,8 +28,9 @@
   overflow-y: auto;
   scroll-behavior: smooth;
   /* Soft fade at the bottom of content for better feel */
-  mask-image: linear-gradient(to bottom, black calc(100% - 40px), transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 40px), transparent 100%);
+  /* Using a mask to create a soft exit for scrolling content */
+  mask-image: linear-gradient(to bottom, var(--color-mask-opaque) calc(100% - 40px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, var(--color-mask-opaque) calc(100% - 40px), transparent 100%);
 }
 
 .App__content--auth {

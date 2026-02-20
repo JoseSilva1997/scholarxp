@@ -9,12 +9,14 @@
   --color-primary: #3b82f6; /* Trustworthy Blue */
   --color-primary-dark: #2563eb;
   --color-primary-light: #60a5fa;
+  --color-primary-subtle: #93c5fd;
   --color-primary-soft: rgba(59, 130, 246, 0.1);
 
   --color-secondary: #10b981; /* Growth Green */
   --color-secondary-dark: #059669;
   --color-secondary-light: #34d399;
   --color-secondary-soft: rgba(16, 185, 129, 0.1);
+  --color-secondary-glow: rgba(16, 185, 129, 0.4);
 
   --color-accent: #f59e0b; /* Gamification Amber/Orange */
   --color-accent-dark: #d97706;
@@ -26,30 +28,144 @@
   --color-surface: #ffffff;
   --color-surface-hover: #f1f5f9;
   --color-text: #0f172a; /* Slate 900 */
+  --color-text-soft: #475569; /* Slate 600 */
   --color-text-muted: #64748b; /* Slate 500 */
+  --color-muted: var(--color-text-muted); /* Compatibility alias */
+  --color-text-dim: #94a3b8; /* Slate 400 */
   --color-border: #e2e8f0; /* Slate 200 */
   --color-border-hover: #cbd5e1; /* Slate 300 */
+  --color-border-subtle: rgba(15, 23, 42, 0.08);
+
+  /* Text on solid backgrounds */
+  --color-text-on-primary: #ffffff;
+  --color-text-on-secondary: #ffffff;
+  --color-text-on-accent: #ffffff;
+
+  /* Validation & Errors */
+  --color-error: #ef4444;
+  --color-danger: #b00020; /* Legacy vivid red for danger states */
+  --color-danger-soft: rgba(176, 0, 32, 0.12); /* Specifically for danger backgrounds */
+  --color-error-dark: #b91c1c; /* Red 700 */
+  --color-error-deep: #7f1d1d; /* Red 900 */
+  --color-error-soft: rgba(239, 68, 68, 0.1);
+  --color-error-border: rgba(239, 68, 68, 0.2);
+  --color-error-light: rgba(239, 68, 68, 0.08);
+
+  /* Success States */
+  --color-success: var(--color-secondary);
+  --color-success-dark: var(--color-secondary-dark);
+  --color-success-soft: var(--color-secondary-soft);
+  --color-success-border: rgba(16, 185, 129, 0.2);
+  --color-success-light: rgba(16, 185, 129, 0.08);
+
+  /* Shadow & Glow Colors */
+  --color-shadow-extra-subtle: rgba(0, 0, 0, 0.03);
+  --color-shadow-subtle: rgba(0, 0, 0, 0.05);
+  --color-shadow-inset: rgba(0, 0, 0, 0.08);
+  --color-shadow-soft: rgba(0, 0, 0, 0.06); /* For subtle card and button states */
+  --color-shadow-base: rgba(0, 0, 0, 0.1);
+  --color-shadow-elevated: rgba(0, 0, 0, 0.12); /* For prominent hover states */
+  --color-shadow-dark: rgba(0, 0, 0, 0.2);
+  --color-highlight-clean: rgba(255, 255, 255, 0.5);
 
   /* Legacy variable mapping for compatibility */
   --color-accent-primary: var(--color-secondary);
+  --color-accent-primary-soft: var(--color-secondary-soft);
   --color-accent-secondary: #fbcd2a;
   --color-accent-secondary-strong: var(--color-accent);
   --color-brand-surface-dark: #1e293b; /* Slate 800 */
   --color-brand-surface-dark-muted: #334155; /* Slate 700 */
   --color-surface-alt: #f1f5f9;
+  --color-surface-alt-muted: rgba(241, 245, 249, 0.5);
   --color-surface-subtle: #f8fafc;
 
+  /* Overlays for dark surfaces */
+  --color-overlay-light-hover: rgba(255, 255, 255, 0.12);
+  --color-overlay-light-active: rgba(255, 255, 255, 0.2);
+  --color-overlay-light-border: rgba(255, 255, 255, 0.3);
+
+  /* Glassmorphism & High-Fidelity Dark UI */
+  --color-glass-bg: rgba(30, 41, 59, 0.4);
+  --color-glass-bg-hover: rgba(30, 41, 59, 0.6);
+  --color-glass-bg-deep: rgba(15, 23, 42, 0.4);
+  --color-glass-bg-deep-solid: rgba(15, 23, 42, 0.95);
+  --color-glass-bg-subtle: rgba(255, 255, 255, 0.03);
+  --color-glass-border: rgba(255, 255, 255, 0.1);
+  --color-glass-border-subtle: rgba(255, 255, 255, 0.05);
+  --color-glass-border-strong: rgba(255, 255, 255, 0.15);
+  --color-glass-shimmer: rgba(255, 255, 255, 0.15);
+  --color-glass-accent-light: rgba(251, 191, 36, 0.2);
+  --color-glass-accent-medium: rgba(251, 191, 36, 0.4);
+  --color-glass-accent-soft: rgba(251, 191, 36, 0.1);
+  --color-glass-secondary-light: rgba(16, 185, 129, 0.2);
+
+  /* Interactive Glass States */
+  --color-primary-glass-bg: rgba(59, 130, 246, 0.15);
+  --color-primary-glass-border: rgba(59, 130, 246, 0.3);
+  --color-secondary-glass-bg: rgba(16, 185, 129, 0.15);
+  --color-secondary-glass-border: rgba(16, 185, 129, 0.3);
+  --color-error-glass-bg: rgba(239, 68, 68, 0.15);
+  --color-error-glass-border: rgba(239, 68, 68, 0.3);
+  --color-primary-glass-hover: rgba(59, 130, 246, 0.18);
+  --color-primary-glass-active: rgba(59, 130, 246, 0.28);
+  --color-error-glass-hover: rgba(239, 68, 68, 0.12);
+  --color-error-on-dark: #ff6b6b;
+
+  /* Text on Dark Backgrounds */
+  --color-text-on-dark: #ffffff;
+  --color-text-on-dark-muted: rgba(255, 255, 255, 0.7);
+  --color-text-on-dark-subtle: rgba(255, 255, 255, 0.5);
+  --color-text-on-dark-dim: rgba(255, 255, 255, 0.4);
+
+  /* Specialty Graphics */
+  --color-success-rays: rgba(76, 175, 80, 0.95);
+
+  /* Page-level Overlays (Modals, etc.) */
+  --color-overlay-dark: rgba(0, 0, 0, 0.45);
+  --color-overlay-dark-blur: rgba(15, 23, 42, 0.6);
+
   /* Shadows - Layered for depth */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-  --shadow-inner: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
+  --shadow-sm: 0 1px 2px 0 var(--color-shadow-subtle);
+  --shadow-md: 0 4px 6px -1px var(--color-shadow-base), 0 2px 4px -2px var(--color-shadow-base);
+  --shadow-lg: 0 10px 15px -3px var(--color-shadow-base), 0 4px 6px -4px var(--color-shadow-base);
+  --shadow-xl: 0 20px 25px -5px var(--color-shadow-base), 0 8px 10px -6px var(--color-shadow-base);
+  --shadow-inner: inset 0 2px 4px 0 var(--color-shadow-subtle);
+  --shadow-inner-dark: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+  --shadow-floating-dark: 0 20px 48px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.3);
+
+  /* Specialized Shadows */
+  --shadow-auth-card: -10px 0 40px rgba(0, 0, 0, 0.03);
 
   /* Button variables for consistency */
   --btn-primary-gradient: linear-gradient(180deg, var(--color-primary-light) 0%, var(--color-primary) 100%);
   --btn-primary-shadow: 0 2px 4px rgb(0 0 0 / 0.1);
   --btn-primary-shadow-hover: 0 4px 8px rgb(0 0 0 / 0.12);
+
+  /* Tinted shadows for primary buttons */
+  --color-primary-shadow: rgba(59, 130, 246, 0.25);
+  --color-primary-shadow-hover: rgba(59, 130, 246, 0.3);
+
+  /* Tinted shadows for secondary buttons/elements */
+  --color-secondary-shadow: rgba(16, 185, 129, 0.25);
+  --color-secondary-shadow-hover: rgba(16, 185, 129, 0.3);
+
+  /* Accent Button Shadows */
+  --color-accent-shadow: rgba(245, 158, 11, 0.25);
+  --color-accent-shadow-hover: rgba(245, 158, 11, 0.3);
+
+  /* Ambient Glows */
+  --color-bg-glow-primary: rgba(59, 130, 246, 0.08);
+  --color-bg-glow-secondary: rgba(16, 185, 129, 0.06);
+  --color-bg-glow-accent: rgba(245, 158, 11, 0.06);
+
+  /* Quest & Achievement Highlights */
+  --color-quest-gold: #f3ce30;
+  --color-quest-gold-soft: rgba(243, 206, 48, 0.3);
+  --color-quest-gold-glow: rgba(243, 206, 48, 0.5);
+  --color-quest-gold-surface: #fffef0;
+
+  /* Visualization Utilities */
+  --color-mask-opaque: #000000;
 
   /* Radius */
   --radius-sm: 0.375rem; /* 6px */

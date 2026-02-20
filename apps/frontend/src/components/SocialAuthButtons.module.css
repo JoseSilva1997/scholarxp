@@ -73,3 +73,10 @@
   object-fit: contain;
 }
 
+.helper {
+  margin-top: 10px;
+  font-size: 0.75rem;
+  color: var(--color-text-dim); /* Use dim text for non-essential helper hints */
+  text-align: center;
+}
+

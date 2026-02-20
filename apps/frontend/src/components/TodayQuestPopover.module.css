@@ -4,13 +4,13 @@
   top: calc(100% + 14px);
   left: 0;
   width: min(380px, 90vw);
-  background: rgba(15, 23, 42, 0.95);
+  background: var(--color-glass-bg-deep-solid);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(251, 191, 36, 0.2);
+  border: 1px solid var(--color-glass-accent-light);
   border-radius: 20px;
   box-shadow: 
-    0 24px 48px rgba(2, 6, 23, 0.5),
-    0 0 20px rgba(251, 191, 36, 0.1);
+    var(--shadow-floating-dark),
+    0 0 20px var(--color-glass-accent-soft);
   padding: 20px;
   z-index: 100;
   display: flex;
@@ -32,16 +32,16 @@
 }
 
 .headerIcon {
-  color: #fbbf24;
+  color: var(--color-accent-light);
   font-size: 1.2rem;
-  filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.4));
+  filter: drop-shadow(0 0 6px var(--color-glass-accent-medium));
 }
 
 .title {
   margin: 0;
   font-size: 1rem;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--color-text-on-dark);
   letter-spacing: 0.01em;
 }
 
@@ -54,14 +54,14 @@
 .progressText {
   font-size: 0.8rem;
   font-weight: 700;
-  color: #94a3b8;
+  color: var(--color-text-on-dark-muted);
   display: flex;
   justify-content: space-between;
 }
 
 .progressBar {
   height: 6px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--color-glass-border-subtle);
   border-radius: 10px;
   overflow: hidden;
   position: relative;
@@ -69,9 +69,9 @@
 
 .progressFill {
   height: 100%;
-  background: linear-gradient(90deg, #fbbf24, #f59e0b);
+  background: linear-gradient(90deg, var(--color-accent-light), var(--color-accent));
   border-radius: 10px;
-  box-shadow: 0 0 10px rgba(251, 191, 36, 0.4);
+  box-shadow: 0 0 10px var(--color-glass-accent-medium);
 }
 
 .content {
@@ -97,8 +97,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(15, 23, 42, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--color-glass-bg-deep);
+  border: 1px solid var(--color-glass-border);
   border-radius: 16px;
   cursor: pointer;
   position: relative;
@@ -107,15 +107,15 @@
 }
 
 .slot:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(251, 191, 36, 0.4);
+  background: var(--color-glass-border-subtle);
+  border-color: var(--color-glass-accent-medium);
   transform: translateY(-4px);
 }
 
 .activeSlot {
-  background: rgba(251, 191, 36, 0.1);
-  border-color: #fbbf24;
-  box-shadow: 0 0 15px rgba(251, 191, 36, 0.2);
+  background: var(--color-glass-accent-soft);
+  border-color: var(--color-accent-light);
+  box-shadow: 0 0 15px var(--color-glass-accent-light);
 }
 
 .badge {
@@ -137,27 +137,27 @@
   position: absolute;
   bottom: -4px;
   right: -4px;
-  background: #0f172a;
-  color: #4ade80;
+  background: var(--color-text);
+  color: var(--color-secondary-light);
   border-radius: 50%;
   font-size: 0.9rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 4px var(--color-overlay-dark);
 }
 
 .emptySlot {
-  border: 1px dashed rgba(255, 255, 255, 0.08);
+  border: 1px dashed var(--color-glass-border-subtle);
   background: transparent;
   cursor: default;
 }
 
 .emptySlotIcon {
-  color: rgba(255, 255, 255, 0.1);
+  color: var(--color-glass-border);
   font-size: 1.2rem;
 }
 
 .selectedQuestCard {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--color-glass-bg-subtle);
+  border: 1px solid var(--color-glass-border-subtle);
   border-radius: 16px;
   padding: 16px;
   display: flex;
@@ -176,7 +176,7 @@
   margin: 0;
   font-size: 0.9rem;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--color-text-on-dark);
 }
 
 .expBadge {
@@ -185,8 +185,8 @@
   gap: 4px;
   font-size: 0.75rem;
   font-weight: 800;
-  color: #fbbf24;
-  background: rgba(251, 191, 36, 0.1);
+  color: var(--color-accent-light);
+  background: var(--color-glass-accent-soft);
   padding: 2px 8px;
   border-radius: 10px;
 }
@@ -209,14 +209,14 @@
   gap: 6px;
   font-size: 0.75rem;
   font-weight: 700;
-  color: #94a3b8;
+  color: var(--color-text-on-dark-muted);
 }
 
 .description {
   margin: 0;
   font-size: 0.8rem;
   line-height: 1.4;
-  color: #cbd5e1;
+  color: var(--color-text-on-dark-subtle);
 }
 
 .completedBanner {
@@ -224,9 +224,9 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: rgba(34, 197, 94, 0.1);
-  border: 1px solid rgba(34, 197, 94, 0.2);
-  color: #4ade80;
+  background: var(--color-secondary-soft);
+  border: 1px solid var(--color-glass-secondary-light);
+  color: var(--color-secondary-light);
   font-size: 0.75rem;
   font-weight: 700;
   padding: 8px;
@@ -240,9 +240,9 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: rgba(251, 191, 36, 0.05);
-  border: 1px solid rgba(251, 191, 36, 0.15);
-  color: #fbbf24;
+  background: var(--color-glass-accent-soft);
+  border: 1px solid var(--color-glass-accent-light);
+  color: var(--color-accent-light);
   font-size: 0.75rem;
   font-weight: 700;
   padding: 8px;
@@ -257,7 +257,7 @@
   gap: 6px;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--color-text-on-dark-muted);
 }
 
 .metaIcon {
@@ -268,13 +268,13 @@
   margin: 0;
   font-size: 0.78rem;
   line-height: 1.4;
-  color: #cbd5e1;
+  color: var(--color-text-on-dark-subtle);
 }
 
 .footer {
   margin-top: 4px;
   padding-top: 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--color-glass-border-subtle);
 }
 
 .historyLink {
@@ -285,15 +285,16 @@
   text-decoration: none;
   font-size: 0.8rem;
   font-weight: 700;
-  color: #60a5fa;
+  color: var(--color-primary-light);
   transition: all 0.2s ease;
 }
 
 .historyLink:hover {
-  color: #93c5fd;
+  color: var(--color-primary-light);
   transform: translateX(2px);
+  filter: brightness(1.1);
 }
 
 .historyLink:hover {
-  border-color: rgba(254, 240, 138, 0.7);
+  border-color: var(--color-glass-accent-medium);
 }

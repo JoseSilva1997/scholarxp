@@ -25,9 +25,9 @@
 .wrapper:hover .card {
   /* Solidifies on hover to match the weight of standard cards. */
   transform: translateY(-2px);
-  background: #ffffff;
-  border: 2px solid #cbd5e1;
-  box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+  background: var(--color-surface);
+  border: 2px solid var(--color-border-hover);
+  box-shadow: 0 12px 20px -5px var(--color-shadow-inset), 0 8px 10px -6px var(--color-shadow-extra-subtle);
 }
 
 /* Strip becomes visible only on hover to complete the "flesh out" effect. */
@@ -37,8 +37,8 @@
   position: relative;
   background: repeating-linear-gradient(
     -45deg,
-    #e2e8f0 0,
-    #e2e8f0 4px,
+    var(--color-border) 0,
+    var(--color-border) 4px,
     transparent 4px,
     transparent 8px
   );
@@ -71,19 +71,19 @@
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  background: #ffffff;
+  background: var(--color-surface);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  border: 1px solid #e2e8f0;
-  border-bottom: 4px solid #cbd5e1;
+  border: 1px solid var(--color-border);
+  border-bottom: 4px solid var(--color-border-hover);
   position: relative;
   z-index: 999;
   cursor: pointer;
   padding: 0;
   transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 10px -2px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 10px -2px var(--color-shadow-inset);
 }
 
 .createButton::before {
@@ -94,21 +94,21 @@
   right: 2px;
   bottom: 2px;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 50%);
+  background: linear-gradient(135deg, var(--color-surface) 0%, transparent 50%);
   pointer-events: none;
 }
 
 .createButton:hover:not(:disabled) {
   transform: translateY(-2px);
   border-bottom-width: 2px;
-  border-color: #cbd5e1;
-  box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.12);
+  border-color: var(--color-border-hover);
+  box-shadow: 0 12px 20px -5px var(--color-shadow-elevated);
 }
 
 .createButton:active:not(:disabled) {
   transform: translateY(2px);
   border-bottom-width: 1px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 4px var(--color-shadow-soft);
 }
 
 .createIcon {
@@ -145,12 +145,12 @@
 }
 
 .wrapper:hover .title {
-  color: #1e293b;
+  color: var(--color-brand-surface-dark);
 }
 
 .subtitle {
   margin: 0;
-  color: #94a3b8;
+  color: var(--color-text-dim);
   font-size: 0.825rem;
   font-weight: 600;
   white-space: nowrap;

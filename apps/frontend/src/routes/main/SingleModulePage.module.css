@@ -22,7 +22,7 @@
 }
 
 .backLink {
-  color: #64748b;
+  color: var(--color-text-muted);
   text-decoration: none;
   font-weight: 600;
   display: inline-flex;
@@ -33,7 +33,7 @@
 }
 
 .backLink:hover {
-  color: var(--color-brand-primary);
+  color: var(--color-primary); /* Changed from --color-brand-primary to match core tokens */
   transform: translateX(-4px);
 }
 
@@ -76,7 +76,7 @@
   color: var(--color-text);
   letter-spacing: -0.04em;
   line-height: 1.1;
-  background: linear-gradient(135deg, #1e293b 0%, #475569 100%);
+  background: linear-gradient(135deg, var(--color-text) 0%, var(--color-text-muted) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -84,7 +84,7 @@
 .subtitle {
   margin: 0;
   font-size: 1.25rem;
-  color: #64748b;
+  color: var(--color-text-muted);
   font-weight: 500;
   max-width: 600px;
   line-height: 1.6;
@@ -115,8 +115,8 @@
 
 .settingsButton,
 .toggleButton {
-  background: white;
-  border: 1px solid rgba(15, 23, 42, 0.1);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   width: 48px;
   height: 48px;
   display: flex;
@@ -125,21 +125,21 @@
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 14px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-sm);
 }
 
 .settingsIcon {
-  color: #475569;
+  color: var(--color-text-muted);
   width: 24px;
   height: 24px;
   transition: transform 0.4s ease;
 }
 
 .settingsButton:hover {
-  background-color: #f8fafc;
-  border-color: rgba(15, 23, 42, 0.2);
+  background-color: var(--color-surface-hover);
+  border-color: var(--color-border-hover);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-md);
 }
 
 .settingsButton:hover .settingsIcon {
@@ -153,10 +153,10 @@
 }
 
 .toggleButton:hover {
-  background-color: #f8fafc;
-  border-color: rgba(15, 23, 42, 0.2);
+  background-color: var(--color-surface-hover);
+  border-color: var(--color-border-hover);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-md);
 }
 
 .modalOpen .actions .settingsButton,
@@ -164,7 +164,7 @@
   /* Dim and flatten action controls behind the modal so they don't appear active through the backdrop. */
   opacity: 0.55;
   box-shadow: none;
-  border-color: rgba(15, 23, 42, 0.08);
+  border-color: var(--color-border);
   transform: none;
 }
 
@@ -177,45 +177,41 @@
   /* Force-clear interaction affordances while an overlay owns focus and input. */
   opacity: 0.55;
   box-shadow: none;
-  border-color: rgba(15, 23, 42, 0.08);
+  border-color: var(--color-border);
   transform: none;
   outline: none;
 }
 
 .panel {
-  background: white;
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 20px;
   padding: 32px;
-  color: #64748b;
+  color: var(--color-text-muted);
   text-align: center;
   font-size: 1.1rem;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  box-shadow: var(--shadow-md);
 }
 
 .progressContainer {
-  background: white;
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 24px;
   padding: 20px;
   margin-bottom: 40px;
   display: flex;
   flex-direction: column;
   gap: 20px;
-  box-shadow: 
-    0 1px 3px rgba(0, 0, 0, 0.02),
-    0 4px 12px -2px rgba(15, 23, 42, 0.04);
+  box-shadow: var(--shadow-md);
   position: relative;
   overflow: hidden;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .progressContainer:hover {
-  border-color: rgba(59, 130, 246, 0.25);
+  border-color: var(--color-primary-shadow);
   transform: translateY(-2px);
-  box-shadow: 
-    0 10px 20px -8px rgba(15, 23, 42, 0.08),
-    0 4px 6px -2px rgba(59, 130, 246, 0.05);
+  box-shadow: var(--shadow-lg);
 }
 
 /* Removed extra glows and overlays for maximum clarity */
@@ -242,24 +238,24 @@
   align-items: center;
   gap: 12px;
   font-weight: 800;
-  color: #1e293b;
+  color: var(--color-text);
   font-size: 1.125rem;
 }
 
 .levelIcon {
   width: 28px;
   height: 28px;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+  filter: drop-shadow(var(--shadow-sm));
 }
 
 .barTrack {
   flex: 1;
   height: 12px;
-  background: #f1f5f9;
+  background: var(--color-bg);
   border-radius: 6px;
   overflow: hidden;
   position: relative;
-  box-shadow: inset 0 1.5px 3px rgba(15, 23, 42, 0.08); /* Sharper inner shadow */
+  box-shadow: var(--shadow-inner);
 }
 
 /* Subtle tick marks for a precise feel */
@@ -280,7 +276,7 @@
 
 .barFill {
   height: 100%;
-  background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+  background: linear-gradient(90deg, var(--color-secondary) 0%, var(--color-secondary-light) 100%);
   border-radius: 6px;
   transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
   position: relative;
@@ -323,7 +319,7 @@
 
 .expLabel {
   font-weight: 800;
-  color: #1e293b;
+  color: var(--color-text);
   font-size: 1.25rem;
   font-family: var(--font-display);
   letter-spacing: -0.01em;
@@ -332,27 +328,27 @@
 
 .expTotal {
   font-weight: 700;
-  color: #64748b;
+  color: var(--color-text-muted);
   font-size: 0.8rem;
   letter-spacing: 0.02em;
 }
 
 .dailyRevisionButton {
-  background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-dark) 100%);
   border: none;
   padding: 14px 28px;
   border-radius: 18px;
   display: flex;
   align-items: center;
   gap: 12px;
-  color: white;
+  color: var(--color-text-on-primary); /* High contrast white */
   font-weight: 700;
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 
-    0 2px 8px -2px rgba(234, 88, 12, 0.3),
-    0 4px 12px -1px rgba(245, 158, 11, 0.15);
+    0 2px 8px -2px var(--color-accent-shadow),
+    0 4px 12px -1px var(--color-accent-soft);
   position: relative;
   white-space: nowrap;
 }
@@ -360,9 +356,9 @@
 .dailyRevisionButton:hover {
   transform: translateY(-2px) scale(1.02);
   box-shadow: 
-    0 8px 16px -4px rgba(234, 88, 12, 0.4),
-    0 4px 6px -2px rgba(234, 88, 12, 0.1);
-  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    0 8px 16px -4px var(--color-accent-shadow-hover),
+    0 4px 6px -2px var(--color-accent-soft);
+  background: linear-gradient(135deg, var(--color-accent-light) 0%, var(--color-accent) 100%);
 }
 
 .dailyRevisionButton:active {

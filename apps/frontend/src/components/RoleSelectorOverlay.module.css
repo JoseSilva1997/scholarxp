@@ -3,7 +3,7 @@
   inset: 0;
   display: grid;
   place-items: center;
-  background: rgba(7, 16, 33, 0.55);
+  background: var(--color-overlay-dark-blur);
   backdrop-filter: blur(4px);
   z-index: 1000;
   padding: 24px;
@@ -11,10 +11,10 @@
 
 .card {
   width: min(480px, 100%);
-  background: #ffffff;
+  background: var(--color-surface);
   border-radius: 18px;
   padding: 28px;
-  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-xl);
   display: grid;
   gap: 14px;
 }
@@ -23,8 +23,8 @@
   justify-self: start;
   padding: 6px 12px;
   border-radius: 999px;
-  background: #eef2ff;
-  color: #1f2a5d;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
   font-weight: 600;
   font-size: 13px;
 }
@@ -32,12 +32,12 @@
 .title {
   margin: 0;
   font-size: 24px;
-  color: #0b1022;
+  color: var(--color-text);
 }
 
 .subtitle {
   margin: 0;
-  color: #435072;
+  color: var(--color-text-muted);
   line-height: 1.5;
 }
 
@@ -51,8 +51,8 @@
   border: none;
   border-radius: 12px;
   padding: 12px 16px;
-  background: linear-gradient(135deg, #2333ff, #6f7cff);
-  color: #ffffff;
+  background: var(--btn-primary-gradient);
+  color: var(--color-text-on-primary);
   font-weight: 700;
   cursor: pointer;
   transition: transform 120ms ease, box-shadow 120ms ease;
@@ -67,15 +67,15 @@
 
 .buttonPrimary:not(:disabled):hover {
   transform: translateY(-1px);
-  box-shadow: 0 12px 30px rgba(35, 51, 255, 0.25);
+  box-shadow: var(--color-primary-shadow-hover);
 }
 
 .buttonGhost {
-  border: 1px solid #d7ddf0;
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 12px 16px;
-  background: #ffffff;
-  color: #0b1022;
+  background: var(--color-surface);
+  color: var(--color-text);
   font-weight: 700;
   cursor: pointer;
   transition: background 120ms ease, border-color 120ms ease;
@@ -87,15 +87,15 @@
 }
 
 .buttonGhost:not(:disabled):hover {
-  background: #f6f8ff;
-  border-color: #bfc8eb;
+  background: var(--color-surface-hover);
+  border-color: var(--color-border-hover);
 }
 
 .error {
   margin: 2px 0 0;
-  color: #b42318;
-  background: #ffe9e5;
-  border: 1px solid #f3b1a3;
+  color: var(--color-error-dark);
+  background: var(--color-error-soft);
+  border: 1px solid var(--color-error-border);
   padding: 8px 10px;
   border-radius: 10px;
   font-size: 14px;

@@ -14,7 +14,7 @@
   font-size: 0.9375rem; /* Increased font size for better presence */
   z-index: 10;
   position: relative;
-  box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 -4px 10px var(--color-shadow-extra-subtle);
 }
 
 .brand {

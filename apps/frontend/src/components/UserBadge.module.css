@@ -4,13 +4,12 @@
   gap: 16px;
   border-radius: var(--radius-full);
   padding: 6px 6px 6px 18px;
-  background: rgba(30, 41, 59, 0.4);
+  background: var(--color-glass-bg); /* Glassy background for dark header context */
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--color-glass-border); /* Subtle translucent border */
   box-shadow: 
-    0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 2px 4px -2px rgba(0, 0, 0, 0.1),
-    inset 0 1px 1px rgba(255, 255, 255, 0.05);
+    var(--shadow-md),
+    inset 0 1px 1px var(--color-glass-border-subtle); /* Inner glow for depth */
   transition: all var(--transition-base);
   position: relative;
   /* overflow: hidden is removed to allow the absolute menu to be visible. */
@@ -23,13 +22,12 @@
 }
 
 .badge:hover {
-  background: rgba(30, 41, 59, 0.6);
+  background: var(--color-glass-bg-hover);
   border-color: var(--color-primary-light);
   transform: translateY(-1px);
   box-shadow: 
-    0 10px 15px -3px rgba(0, 0, 0, 0.2),
-    0 4px 6px -4px rgba(0, 0, 0, 0.1),
-    inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    var(--shadow-lg),
+    inset 0 1px 1px var(--color-glass-border);
 }
 
 /* We create a nested element for the shimmer effect to keep the main badge container overflow: visible */
@@ -52,7 +50,7 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.15),
+    var(--color-glass-shimmer),
     transparent
   );
   transform: skewX(-20deg);
@@ -70,7 +68,7 @@
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid var(--color-primary);
-  background: #0f172a;
+  background: var(--color-brand-surface-dark); /* Slate-800 or deep slate base */
   transition: all var(--transition-fast);
   display: block;
   box-shadow: 0 0 10px var(--color-primary-soft);
@@ -102,13 +100,13 @@
 .name {
   font-weight: 700;
   font-size: 0.9375rem;
-  color: #ffffff;
+  color: var(--color-text-on-dark);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 1.2;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-  background: linear-gradient(to bottom, #fff, #e2e8f0);
+  text-shadow: 0 1px 2px var(--color-overlay-dark);
+  background: linear-gradient(to bottom, var(--color-surface), var(--color-border));
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -161,19 +159,19 @@
   background:
     repeating-conic-gradient(
       from 0deg,
-      rgba(76, 175, 80, 0.95) 0deg 8deg,
+      var(--color-success-rays) 0deg 8deg, /* Success green rays represent progress/levels */
       transparent 8deg 45deg
     );
   -webkit-mask: radial-gradient(
     circle,
     transparent 0 40%,
-    #000 40% 90%,
+    var(--color-mask-opaque) 40% 90%,
     transparent 90% 100%
   );
   mask: radial-gradient(
     circle,
     transparent 0 40%,
-    #000 40% 90%,
+    var(--color-mask-opaque) 40% 90%,
     transparent 90% 100%
   );
 }
@@ -198,11 +196,11 @@
   position: relative;
   height: 6px;
   width: 70px;
-  background: rgba(15, 23, 42, 0.4);
+  background: var(--color-glass-bg-deep); /* Dark background for track elements */
   border-radius: var(--radius-full);
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--color-glass-border-subtle);
+  box-shadow: var(--shadow-inner-dark); /* Deeper inner shadow for depth on dark background */
 }
 
 .barFill {
@@ -230,7 +228,7 @@
 .expLabel {
   font-size: 0.75rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-on-dark-muted); /* Translucent white text on dark */
   white-space: nowrap;
   letter-spacing: 0.01em;
 }
@@ -240,8 +238,8 @@
   top: 100%;
   right: 0;
   background: var(--color-brand-surface-dark);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--color-glass-border-strong); /* Stronger glass border for overlays */
+  box-shadow: var(--shadow-floating-dark); /* Heavy shadow for floating menus */
   width: 280px;
   /* Align menu to the bottom of the header */
   /* Formula: (HeaderHeight - BadgeHeight) / 2 */
@@ -266,7 +264,7 @@
 
 .menuHeader {
   padding: 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--color-glass-border);
   display: flex;
   align-items: center;
   gap: 12px;
@@ -276,9 +274,9 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  border: 2px solid var(--color-glass-border-strong);
   object-fit: cover;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--color-glass-border-subtle);
   flex-shrink: 0;
 }
 
@@ -289,7 +287,7 @@
 
 .menuHeaderName {
   font-weight: 700;
-  color: #fff;
+  color: var(--color-surface); /* Pure white text from theme */
   font-size: 0.95rem;
   white-space: nowrap;
   overflow: hidden;
@@ -298,15 +296,15 @@
 
 .menuHeaderRole {
   font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-on-dark-muted);
   margin-top: 2px;
 }
 
 /* Mobile Progress in Menu */
 .menuProgress {
   padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--color-glass-bg-subtle);
+  border-bottom: 1px solid var(--color-glass-border);
   display: none; /* Only show on mobile */
 }
 
@@ -333,13 +331,13 @@
 
 .menuExp {
   font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-on-dark-subtle);
   font-family: inherit;
 }
 
 .menuBarTrack {
   height: 6px;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--color-overlay-dark);
   border-radius: 3px;
   overflow: hidden;
   position: relative;
@@ -349,7 +347,7 @@
   height: 100%;
   background: linear-gradient(90deg, var(--color-secondary-light), var(--color-secondary));
   border-radius: 3px;
-  box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+  box-shadow: 0 0 10px var(--color-secondary-soft);
   transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -364,7 +362,7 @@
 .menuSectionTitle {
   font-size: 0.75rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-text-on-dark-dim); /* Dimmer text for section headers on dark */
   text-transform: uppercase;
   letter-spacing: 0.05em;
   padding: 8px 16px 4px 16px;
@@ -379,7 +377,7 @@
   width: 100%;
   padding: 10px 16px;
   background: transparent;
-  color: #e2e8f0;
+  color: var(--color-border); /* Slate-200 equivalent */
   border: none;
   text-align: left;
   cursor: pointer;
@@ -407,29 +405,29 @@
 
 .menuItem:hover,
 .menuItem:focus-visible {
-  background: rgba(59, 130, 246, 0.18);
-  color: #fff;
+  background: var(--color-primary-glass-hover); /* Glassy primary hover effect */
+  color: var(--color-surface); /* Pure white text on primary hover */
   outline: none;
   padding-left: 20px;
 }
 
 .menuItem:active {
-  background: rgba(59, 130, 246, 0.28);
+  background: var(--color-primary-glass-active);
 }
 
 .menuFooter {
   padding: 8px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--color-glass-border);
 }
 
 .menuFooter .menuItem {
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--color-text-on-dark-muted);
 }
 
 .menuFooter .menuItem:hover,
 .menuFooter .menuItem:focus-visible {
-  color: #ff6b6b;
-  background: rgba(255, 107, 107, 0.12);
+  color: var(--color-error-on-dark); /* Red highlight on dark background */
+  background: var(--color-error-glass-hover);
 }
 
 @media (max-width: 768px) {

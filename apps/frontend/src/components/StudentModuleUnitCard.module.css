@@ -8,10 +8,10 @@
 }
 
 .card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 4px 6px -1px var(--color-shadow-subtle), 0 2px 4px -1px var(--color-shadow-extra-subtle);
   display: flex;
   flex-direction: row;
   overflow: hidden;
@@ -23,8 +23,8 @@
 
 .wrapper:hover .card {
   transform: translateY(-2px);
-  box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
-  border-color: #cbd5e1;
+  box-shadow: 0 12px 20px -5px var(--color-shadow-base), 0 8px 10px -6px var(--color-shadow-subtle);
+  border-color: var(--color-border-hover);
 }
 
 .leftContainer {
@@ -35,10 +35,10 @@
 }
 
 /* Status variants for left accent */
-.available .leftContainer { background: #64748b; }
-.completed .leftContainer { background: #f59e0b; }
-.mastered .leftContainer { background: #10b981; }
-.locked .leftContainer { background: #e2e8f0; }
+.available .leftContainer { background: var(--color-text-muted); }
+.completed .leftContainer { background: var(--color-accent); }
+.mastered .leftContainer { background: var(--color-secondary); }
+.locked .leftContainer { background: var(--color-border); }
 
 .content {
   display: flex;
@@ -60,15 +60,15 @@
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: #f1f5f9; /* Hollow look background color change from white */
+  background: var(--color-surface-alt); /* Hollow look background color change from white */
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   /* Inset shadows create a concave structure inside the card surface */
   box-shadow: 
-    inset 0 3px 6px rgba(0, 0, 0, 0.08),
-    0 1px 1px rgba(255, 255, 255, 0.5);
+    inset 0 3px 6px var(--color-shadow-inset),
+    0 1px 1px var(--color-highlight-clean);
   position: relative;
   z-index: 1;
 }
@@ -80,17 +80,17 @@
 }
 
 .playIcon {
-  color: #64748b;
+  color: var(--color-text-muted);
   font-size: 20px;
 }
 
 .lockedPadlockIcon {
-  color: #cbd5e1;
+  color: var(--color-border-hover);
   font-size: 36px;
 }
 
 .completionMedal {
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+  filter: drop-shadow(0 2px 4px var(--color-shadow-base));
   opacity: 1;
   width: 72px;
   height: 72px;
@@ -113,7 +113,7 @@
   display: inline-block;
   font-size: 10px;
   font-weight: 800;
-  color: #94a3b8;
+  color: var(--color-text-dim);
   text-transform: uppercase;
   letter-spacing: 0.15em;
 }
@@ -124,19 +124,26 @@
   padding: 2px 8px;
   border-radius: 4px;
   text-transform: capitalize;
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--color-surface-alt);
+  color: var(--color-text-soft);
 }
 
-.mastered .statusTag { background: #ecfdf5; color: #10b981; }
-.completed .statusTag { background: #fffbeb; color: #d97706; }
+.mastered .statusTag { 
+  background: var(--color-secondary-soft); 
+  color: var(--color-secondary); 
+}
+
+.completed .statusTag { 
+  background: var(--color-accent-soft); 
+  color: var(--color-accent-dark); 
+}
 
 .title {
   margin: 0;
   font-family: var(--font-sans);
   font-size: 1.25rem;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--color-brand-surface-dark);
   line-height: 1.2;
 }
 
@@ -153,28 +160,28 @@
   gap: 6px;
   font-size: 0.825rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--color-text-muted);
 }
 
 .statIcon {
   font-size: 12px;
-  color: #10b981;
+  color: var(--color-secondary);
 }
 
 .xpReward {
-  color: #475569;
-  background: #f8fafc;
+  color: var(--color-text-soft);
+  background: var(--color-bg);
   padding: 2px 8px;
   border-radius: 6px;
-  border: 1px solid #f1f5f9;
+  border: 1px solid var(--color-surface-alt);
 }
 
 .xpSymbol {
-  color: #f59e0b;
+  color: var(--color-accent);
 }
 
 .lockedText {
-  color: #94a3b8;
+  color: var(--color-text-dim);
   font-style: italic;
 }
 
@@ -185,22 +192,22 @@
 }
 
 .practiceButton {
-  background: #1e293b; /* Dark, professional button */
+  background: var(--color-brand-surface-dark); /* Dark, professional button */
   border: none;
   border-radius: 10px;
   padding: 12px 24px;
   font-weight: 700;
   font-size: 14px;
-  color: #ffffff;
+  color: var(--color-text-on-dark);
   cursor: pointer;
   transition: all 150ms ease;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px -1px var(--color-shadow-base);
 }
 
 .practiceButton:hover:not(:disabled) {
-  background: #0f172a;
+  background: var(--color-text);
   transform: translateY(-1px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 15px -3px var(--color-shadow-base);
 }
 
 .practiceButton:active:not(:disabled) {
@@ -208,15 +215,15 @@
 }
 
 .practiceButton:disabled {
-  background: #e2e8f0;
-  color: #94a3b8;
+  background: var(--color-border);
+  color: var(--color-text-dim);
   cursor: not-allowed;
   box-shadow: none;
 }
 
 .rightContainer {
-  background: #f8fafc;
-  border-left: 1px solid #e2e8f0;
+  background: var(--color-bg);
+  border-left: 1px solid var(--color-border);
   width: 48px;
   flex-shrink: 0;
   display: flex;
@@ -226,7 +233,7 @@
 }
 
 .rightContainer:hover {
-  background: #f1f5f9;
+  background: var(--color-surface-alt);
 }
 
 .dropdownButton {
@@ -244,8 +251,8 @@
 .chevron {
   width: 10px;
   height: 10px;
-  border-right: 2.5px solid #94a3b8;
-  border-bottom: 2.5px solid #94a3b8;
+  border-right: 2.5px solid var(--color-text-dim);
+  border-bottom: 2.5px solid var(--color-text-dim);
   transform: rotate(45deg);
   transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -255,7 +262,7 @@
 }
 
 .panel {
-  background: #fcfdfe;
+  background: var(--color-surface);
   border-radius: 0 0 12px 12px;
   margin: -12px 12px 0 12px;
   padding-top: 12px;
@@ -266,9 +273,9 @@
   opacity: 0;
   transition: all 400ms cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 
-    inset 0 4px 10px rgba(0, 0, 0, 0.05),
-    0 4px 12px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e2e8f0;
+    inset 0 4px 10px var(--color-shadow-subtle),
+    0 4px 12px var(--color-shadow-subtle);
+  border: 1px solid var(--color-border);
   border-top: none;
 }
 
@@ -290,7 +297,7 @@
 .groupTitle {
   margin: 0 0 16px 0;
   font-weight: 700;
-  color: #64748b;
+  color: var(--color-text-muted);
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.15em;
@@ -303,7 +310,7 @@
   content: '';
   flex: 1;
   height: 1px;
-  background: #f1f5f9;
+  background: var(--color-surface-alt);
 }
 
 .questions {
@@ -320,23 +327,23 @@
   padding: 12px 16px;
   flex: 0 1 calc(33.333% - 8px);
   min-width: 200px;
-  background: white;
-  border: 1px solid #f1f5f9;
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface-alt);
   border-radius: 12px;
-  color: #334155;
+  color: var(--color-brand-surface-dark-muted);
   font-size: 14px;
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
   transition: all 150ms ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 1px 2px var(--color-shadow-subtle);
 }
 
 .question:hover {
-  border-color: #cbd5e1;
-  background: #f8fafc;
+  border-color: var(--color-border-hover);
+  background: var(--color-bg);
   transform: translateY(-2px);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 6px -1px var(--color-shadow-subtle);
 }
 
 .questionTitle {
@@ -353,7 +360,7 @@
   justify-content: center;
   width: 24px;
   height: 24px;
-  background: #f8fafc;
+  background: var(--color-bg);
   border-radius: 6px;
 }
 
@@ -362,13 +369,13 @@
   height: 14px;
 }
 
-.questionStatusCorrect { color: #10b981; }
-.questionStatusIncorrect { color: #ef4444; }
-.questionStatusUnattempted { color: #cbd5e1; }
+.questionStatusCorrect { color: var(--color-secondary); }
+.questionStatusIncorrect { color: var(--color-error); }
+.questionStatusUnattempted { color: var(--color-border-hover); }
 
 .empty {
   font-size: 0.8125rem;
-  color: #94a3b8;
+  color: var(--color-text-dim);
   font-style: italic;
   padding: 12px 8px;
 }

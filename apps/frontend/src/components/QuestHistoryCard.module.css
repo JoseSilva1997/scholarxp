@@ -42,7 +42,7 @@
   height: var(--quest-badge-size);
   background: var(--color-surface-subtle);
   border-radius: 20px;
-  border: 2px dashed rgba(15, 23, 42, 0.08);
+  border: 2px dashed var(--color-border-subtle);
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   position: relative;
   overflow: visible;
@@ -58,7 +58,7 @@
   transform: translateY(-5px) scale(1.02);
   border-color: var(--color-accent-soft);
   background: var(--color-surface);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 10px 20px var(--color-shadow-subtle);
   z-index: 5;
 }
 
@@ -71,7 +71,7 @@
   height: 85%;
   object-fit: contain;
   transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+  filter: drop-shadow(0 4px 8px var(--color-shadow-base));
   position: relative;
   z-index: 2;
 }
@@ -90,24 +90,24 @@
 
 .slot:hover .badge {
   transform: scale(1.15) rotate(5deg);
-  filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.15));
+  filter: drop-shadow(0 12px 24px var(--color-shadow-dark));
 }
 
 /* Specific styling for completed slots */
 .slot:not(.incompleteSlot) {
-  background: radial-gradient(circle, #ffffff 0%, #f8fafc 100%);
-  border: 2px solid rgba(76, 175, 80, 0.1);
+  background: radial-gradient(circle, var(--color-surface) 0%, var(--color-surface-subtle) 100%);
+  border: 2px solid var(--color-secondary-soft);
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .slot:not(.incompleteSlot):hover {
-  border-color: #f3ce30;
-  box-shadow: 0 0 30px rgba(243, 206, 48, 0.3), 0 10px 20px rgba(15, 23, 42, 0.1);
-  background: radial-gradient(circle, #ffffff 30%, #fffef0 100%);
+  border-color: var(--color-quest-gold);
+  box-shadow: 0 0 30px var(--color-quest-gold-soft), 0 10px 20px var(--color-shadow-base);
+  background: radial-gradient(circle, var(--color-surface) 30%, var(--color-quest-gold-surface) 100%);
 }
 
 .slot:not(.incompleteSlot):hover .badge {
-  filter: drop-shadow(0 0 15px rgba(243, 206, 48, 0.5));
+  filter: drop-shadow(0 0 15px var(--color-quest-gold-glow));
   transform: scale(1.2) rotate(8deg);
 }
 
@@ -122,7 +122,7 @@
 .emptyIcon {
   width: 40%;
   height: 40%;
-  color: #cbd5e1;
+  color: var(--color-border-hover);
   transition: all 0.3s ease;
   opacity: 0.5;
 }
@@ -135,6 +135,6 @@
 
 
 .slot:hover .emptyIcon {
-  color: #93c5fd;
+  color: var(--color-primary-subtle);
   opacity: 0.8;
 }
