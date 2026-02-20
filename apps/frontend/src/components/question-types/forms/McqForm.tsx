@@ -19,10 +19,10 @@ export function McqForm({ options, onChangeOption, onChangeExplanation, onSelect
   return (
     <div className={styles.optionsSection}>
       <h3>Answer Options</h3>
-      <div className={styles.optionsGrid}>
+      <div className={styles.optionsList}>
         {options.map((option, index) => (
-          <div key={option.id} className={styles.optionCard}>
-            <div className={styles.optionHeader}>
+          <div key={option.id} className={styles.optionRow}>
+            <div className={styles.optionSidebar}>
               <span className={styles.optionLabel}>Option {index + 1}</span>
               <label className={styles.correctToggle}>
                 <input
@@ -34,22 +34,28 @@ export function McqForm({ options, onChangeOption, onChangeExplanation, onSelect
                 <span>Correct</span>
               </label>
             </div>
-            <input
-              value={option.value}
-              onChange={(e) => onChangeOption(option.id, e.target.value)}
-              placeholder="Enter option text..."
-              className={styles.optionInput}
-              maxLength={100}
-            />
-            <label className={styles.explanationLabel}>
-              Explanation
-              <textarea
-                value={option.explanation}
-                onChange={(e) => onChangeExplanation(option.id, e.target.value)}
-                placeholder="Explain why this option is correct or incorrect..."
-                maxLength={250}
-              />
-            </label>
+            <div className={styles.optionContent}>
+              <div className={styles.fieldGroup}>
+                <label className={styles.compactLabel}>Option Text</label>
+                <textarea
+                  value={option.value}
+                  onChange={(e) => onChangeOption(option.id, e.target.value)}
+                  placeholder="Enter option text..."
+                  className={styles.compactTextarea}
+                  maxLength={100}
+                />
+              </div>
+              <div className={styles.fieldGroup}>
+                <label className={styles.compactLabel}>Explanation</label>
+                <textarea
+                  value={option.explanation}
+                  onChange={(e) => onChangeExplanation(option.id, e.target.value)}
+                  placeholder="Explain why this option is correct or incorrect..."
+                  className={styles.compactTextarea}
+                  maxLength={250}
+                />
+              </div>
+            </div>
           </div>
         ))}
       </div>

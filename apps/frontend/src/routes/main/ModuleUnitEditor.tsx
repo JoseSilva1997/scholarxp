@@ -1,6 +1,13 @@
 // Module unit authoring workspace UI that renders editor state from the page-state hook.
 import { useParams, Link, useSearchParams } from 'react-router-dom';
-import { FiArchive, FiCheck, FiEdit2, FiTrash2, FiX } from 'react-icons/fi';
+import {
+  FiArchive,
+  FiCheck,
+  FiEdit2,
+  FiTrash2,
+  FiX,
+  FiSettings,
+} from 'react-icons/fi';
 import { VscSparkleFilled } from 'react-icons/vsc';
 import {
   FaCirclePlus,
@@ -102,7 +109,7 @@ export default function ModuleUnitEditor() {
     <MainSection className={styles.page}>
       <div className={styles.topBar}>
         <Link className={styles.backLink} to={`/main/modules/${moduleId}`}>
-          ← Back to module
+          ← {unitTitle || 'Back to module'}
         </Link>
       </div>
       {isLoading ? (
@@ -113,238 +120,221 @@ export default function ModuleUnitEditor() {
         </div>
       ) : (
         <>
-          <div className={styles.pageHeader}>
-            <div>
-              <h1 className={styles.pageTitle}>{unitTitle || 'Module unit title'}</h1>
-            </div>
-          </div>
-
           <div className={styles.grid}>
-            <div className={styles.leftColumn}>
+            <aside className={styles.leftColumn}>
               <div className={styles.sectionHeader}>
                 <h2>Questions</h2>
+                <button
+                  type="button"
+                  className={styles.addGroup}
+                  onClick={handleAddGroup}
+                  disabled={isUnitLive}
+                  title="Add new group"
+                >
+                  <IconContext.Provider value={{ className: styles.plusGroupIcon }}>
+                    <FaCirclePlus />
+                  </IconContext.Provider>
+                  Group
+                </button>
               </div>
 
-              {groups.map((group) => (
-                <div key={group.id} className={styles.groupCard}>
-                  <div className={styles.groupHeader}>
-                    <div
-                      role="button"
-                      tabIndex={0}
-                      aria-expanded={expandedGroups.has(group.id)}
-                      className={styles.groupToggle}
-                      onClick={() => {
-                        if (editingGroupId === group.id) return;
-                        handleToggleGroup(group.id);
-                      }}
-                      onKeyDown={(e) => {
-                        if (editingGroupId === group.id) return;
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
+              <div className={styles.settingsSection}>
+                <details>
+                  <summary className={styles.settingsToggle}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <FiSettings /> Variant Generation Settings
+                    </div>
+                  </summary>
+                  <div className={styles.settingsContent}>
+                    <textarea
+                      value={variantInstructions}
+                      onChange={(e) => setVariantInstructions(e.target.value)}
+                      placeholder="Define instructions for AI variant generation (concepts, constraints, etc.)"
+                      rows={3}
+                    />
+                  </div>
+                </details>
+              </div>
+
+              <div className={styles.navigationScrollArea}>
+                {groups.map((group) => (
+                  <div key={group.id} className={styles.groupCard}>
+                    <div className={styles.groupHeader}>
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        aria-expanded={expandedGroups.has(group.id)}
+                        className={styles.groupToggle}
+                        onClick={() => {
+                          if (editingGroupId === group.id) return;
                           handleToggleGroup(group.id);
-                        }
-                      }}
-                    >
-                      {editingGroupId === group.id ? (
-                        <div
-                          className={styles.groupTitleEditRow}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <input
-                            type="text"
-                            ref={editingGroupInputRef}
-                            required
-                            value={editingGroupTitle}
-                            onChange={(e) => {
-                              setEditingGroupTitle(e.target.value);
-                              e.currentTarget.setCustomValidity('');
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                void saveEditingGroupTitle(group.id);
-                              }
-                              if (e.key === 'Escape') {
-                                e.preventDefault();
-                                cancelEditingGroupTitle();
-                              }
-                            }}
-                            className={styles.groupTitleInput}
-                            autoFocus
-                          />
-                          <div className={styles.groupEditControls}>
-                            <button
-                              type="button"
-                              className={styles.iconButton}
-                              aria-label={`Save group name ${group.title}`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                void saveEditingGroupTitle(group.id);
+                        }}
+                        onKeyDown={(e) => {
+                          if (editingGroupId === group.id) return;
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleToggleGroup(group.id);
+                          }
+                        }}
+                      >
+                        {editingGroupId === group.id ? (
+                          <div
+                            className={styles.groupTitleEditRow}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <input
+                              type="text"
+                              ref={editingGroupInputRef}
+                              required
+                              value={editingGroupTitle}
+                              onChange={(e) => {
+                                setEditingGroupTitle(e.target.value);
+                                e.currentTarget.setCustomValidity('');
                               }}
-                              disabled={
-                                !editingGroupTitle.trim() || renamingGroupId === group.id
-                              }
-                            >
-                              <FiCheck aria-hidden />
-                            </button>
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  void saveEditingGroupTitle(group.id);
+                                }
+                                if (e.key === 'Escape') {
+                                  e.preventDefault();
+                                  cancelEditingGroupTitle();
+                                }
+                              }}
+                              className={styles.groupTitleInput}
+                              autoFocus
+                            />
+                            <div className={styles.groupEditControls}>
+                              <button
+                                type="button"
+                                className={styles.iconButton}
+                                aria-label={`Save group name ${group.title}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  void saveEditingGroupTitle(group.id);
+                                }}
+                                disabled={
+                                  !editingGroupTitle.trim() || renamingGroupId === group.id
+                                }
+                              >
+                                <FiCheck aria-hidden />
+                              </button>
+                              <button
+                                type="button"
+                                className={styles.iconButton}
+                                aria-label={`Cancel renaming ${group.title}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  cancelEditingGroupTitle();
+                                }}
+                                disabled={renamingGroupId === group.id}
+                              >
+                                <FiX aria-hidden />
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className={styles.groupTitleRow}>
+                            <h3>{group.title}</h3>
                             <button
                               type="button"
                               className={styles.iconButton}
-                              aria-label={`Cancel renaming ${group.title}`}
+                              aria-label={`Rename group ${group.title}`}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                cancelEditingGroupTitle();
+                                startEditingGroupTitle(group.id, group.title);
                               }}
                               disabled={renamingGroupId === group.id}
                             >
-                              <FiX aria-hidden />
+                              <FiEdit2 aria-hidden />
                             </button>
                           </div>
-                        </div>
-                      ) : (
-                        <div className={styles.groupTitleRow}>
-                          <h3>{group.title}</h3>
+                        )}
+                        <div className={styles.groupHeaderActions}>
                           <button
                             type="button"
                             className={styles.iconButton}
-                            aria-label={`Rename group ${group.title}`}
+                            aria-label={`${isUnitLive ? 'Archive' : 'Delete'} group ${group.title}`}
                             onClick={(e) => {
                               e.stopPropagation();
-                              startEditingGroupTitle(group.id, group.title);
+                              if (editingGroupId === group.id) {
+                                cancelEditingGroupTitle();
+                              }
+                              setDeleteTarget({
+                                type: 'group',
+                                groupId: group.id,
+                                title: group.title,
+                              });
                             }}
-                            disabled={renamingGroupId === group.id}
                           >
-                            <FiEdit2 aria-hidden />
+                            {isUnitLive ? <FiArchive aria-hidden /> : <FiTrash2 aria-hidden />}
                           </button>
+                          <span className={styles.expandIcon}>
+                            {expandedGroups.has(group.id) ? '▼' : '▶'}
+                          </span>
                         </div>
-                      )}
-                      <div className={styles.groupHeaderActions}>
-                        <button
-                          type="button"
-                          className={styles.iconButton}
-                          aria-label={`${isUnitLive ? 'Archive' : 'Delete'} group ${group.title}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (editingGroupId === group.id) {
-                              cancelEditingGroupTitle();
-                            }
-                            setDeleteTarget({
-                              type: 'group',
-                              groupId: group.id,
-                              title: group.title,
-                            });
-                          }}
-                        >
-                          {isUnitLive ? <FiArchive aria-hidden /> : <FiTrash2 aria-hidden />}
-                        </button>
-                        <span className={styles.expandIcon}>
-                          {expandedGroups.has(group.id) ? '▼' : '▶'}
-                        </span>
                       </div>
                     </div>
-                  </div>
-                  {expandedGroups.has(group.id) && (
-                    <div className={styles.questionList}>
-                      {group.questions.map((question, questionIndex) => {
-                        const isSelected =
-                          selected?.groupId === group.id &&
-                          selected?.questionId === question.id;
-                        const isVariantSelected = Boolean(
-                          isSelected && selected?.variantId,
-                        );
-                        const allowNewVariant = canAddVariant(question);
-                        const questionDisplayLabel = formatQuestionLabel(
-                          questionIndex,
-                          question.isDraft,
-                        );
-                        return (
-                          <div key={question.id} className={styles.questionItem}>
-                            <div className={styles.questionRow}>
-                              <div
-                                role="button"
-                                tabIndex={0}
-                                className={`${styles.questionBlock} ${isSelected ? styles.selected : ''} ${isVariantSelected ? styles.variantSelected : ''}`}
-                                onClick={() =>
-                                  setSelected({
-                                    groupId: group.id,
-                                    questionId: question.id,
-                                    variantId: null,
-                                  })
-                                }
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' || e.key === ' ') {
-                                    e.preventDefault();
+                    {expandedGroups.has(group.id) && (
+                      <div className={styles.questionList}>
+                        {group.questions.map((question, questionIndex) => {
+                          const isSelected =
+                            selected?.groupId === group.id &&
+                            selected?.questionId === question.id;
+                          const isVariantSelected = Boolean(
+                            isSelected && selected?.variantId,
+                          );
+                          const allowNewVariant = canAddVariant(question);
+                          const questionDisplayLabel = formatQuestionLabel(
+                            questionIndex,
+                            question.isDraft,
+                          );
+                          return (
+                            <div key={question.id} className={styles.questionItem}>
+                              <div className={styles.questionRow}>
+                                <div
+                                  role="button"
+                                  tabIndex={0}
+                                  className={`${styles.questionBlock} ${isSelected ? styles.selected : ''} ${isVariantSelected ? styles.variantSelected : ''}`}
+                                  onClick={() =>
                                     setSelected({
                                       groupId: group.id,
                                       questionId: question.id,
                                       variantId: null,
-                                    });
+                                    })
                                   }
-                                }}
-                              >
-                                <span className={styles.questionLabel}>
-                                  {questionDisplayLabel}
-                                </span>
-                                <div className={styles.questionMeta}>
-                                  <span className={styles.questionType}>
-                                    {QUESTION_TYPE_CONFIGS[question.type].label}
-                                  </span>
-                                  <button
-                                    type="button"
-                                    className={`${styles.iconButton} ${styles.dangerIcon}`}
-                                    aria-label={`${isUnitLive ? 'Archive' : 'Delete'} question ${questionDisplayLabel}`}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setDeleteTarget({
-                                        type: 'question',
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                      e.preventDefault();
+                                      setSelected({
                                         groupId: group.id,
                                         questionId: question.id,
-                                        title: questionDisplayLabel,
+                                        variantId: null,
                                       });
-                                    }}
-                                  >
-                                    {isUnitLive ? (
-                                      <FiArchive aria-hidden />
-                                    ) : (
-                                      <FiTrash2 aria-hidden />
+                                    }
+                                  }}
+                                >
+                                  <span className={styles.questionLabel}>
+                                    Question {questionIndex + 1}
+                                    {question.isDraft && (
+                                      <span className={styles.draftBadge}>(draft)</span>
                                     )}
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                            <div className={styles.variantList}>
-                              {question.variants.map((variant, variantIndex) => {
-                                const variantDisplayLabel = formatVariantLabel(
-                                  variantIndex,
-                                  variant.isDraft,
-                                );
-                                return (
-                                  <div key={variant.id} className={styles.variantItem}>
-                                    <button
-                                      type="button"
-                                      className={`${styles.variantBlock} ${selected?.questionId === question.id ? styles.selectedVariant : ''} ${selected?.variantId === variant.id ? styles.selectedVariantFull : ''}`}
-                                      onClick={() =>
-                                        setSelected({
-                                          groupId: group.id,
-                                          questionId: question.id,
-                                          variantId: variant.id,
-                                        })
-                                      }
-                                    >
-                                      {variantDisplayLabel}
-                                    </button>
+                                  </span>
+                                  <div className={styles.questionMeta}>
+                                    <span className={styles.questionType}>
+                                      {QUESTION_TYPE_CONFIGS[question.type].label}
+                                    </span>
                                     <button
                                       type="button"
                                       className={`${styles.iconButton} ${styles.dangerIcon}`}
-                                      aria-label={`${isUnitLive ? 'Archive' : 'Delete'} variant ${variantDisplayLabel}`}
+                                      aria-label={`${isUnitLive ? 'Archive' : 'Delete'} question ${questionDisplayLabel}`}
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setDeleteTarget({
-                                          type: 'variant',
+                                          type: 'question',
                                           groupId: group.id,
                                           questionId: question.id,
-                                          variantId: variant.id,
-                                          label: variantDisplayLabel,
+                                          title: questionDisplayLabel,
                                         });
                                       }}
                                     >
@@ -355,203 +345,204 @@ export default function ModuleUnitEditor() {
                                       )}
                                     </button>
                                   </div>
-                                );
-                              })}
-                              <button
-                                type="button"
-                                className={styles.addVariantButton}
-                                onClick={() => handleAddVariant(group.id, question.id)}
-                                aria-label="Add variant"
-                                disabled={
-                                  isUnitLive || isSavingVariant || !allowNewVariant
-                                }
-                              >
-                                <IconContext.Provider
-                                  value={{ className: styles.plusVariantIcon }}
+                                </div>
+                              </div>
+                              <div className={styles.variantList}>
+                                {question.variants.map((variant, variantIndex) => {
+                                  const variantDisplayLabel = formatVariantLabel(
+                                    variantIndex,
+                                    variant.isDraft,
+                                  );
+                                  return (
+                                    <button
+                                      key={variant.id}
+                                      type="button"
+                                      className={`${styles.variantBlock} ${selected?.variantId === variant.id ? styles.selectedVariantFull : styles.selectedVariant}`}
+                                      onClick={() =>
+                                        setSelected({
+                                          groupId: group.id,
+                                          questionId: question.id,
+                                          variantId: variant.id,
+                                        })
+                                      }
+                                      title={variantDisplayLabel}
+                                    >
+                                      Var {variantIndex + 1}
+                                      {variant.isDraft && (
+                                        <span className={styles.draftBadge}>(draft)</span>
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                                <button
+                                  type="button"
+                                  className={styles.addVariantButton}
+                                  onClick={() => handleAddVariant(group.id, question.id)}
+                                  aria-label="Add variant"
+                                  disabled={isUnitLive || isSavingVariant || !allowNewVariant}
                                 >
-                                  <FaCirclePlus />
-                                </IconContext.Provider>
-                                Variant
-                              </button>
+                                  <IconContext.Provider value={{ className: styles.plusVariantIcon }}>
+                                    <FaCirclePlus />
+                                  </IconContext.Provider>
+                                  Variant
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })}
-                      {(() => {
-                        const lastQuestion = group.questions[group.questions.length - 1];
-                        const allowNewQuestion =
-                          !lastQuestion || isQuestionSaved(lastQuestion);
-                        return (
-                          <button
-                            type="button"
-                            className={styles.addQuestion}
-                            onClick={() => handleAddQuestion(group.id)}
-                            disabled={isUnitLive || !allowNewQuestion}
-                          >
-                            <IconContext.Provider
-                              value={{ className: styles.plusQuestionIcon }}
+                          );
+                        })}
+                        {(() => {
+                          const lastQuestion = group.questions[group.questions.length - 1];
+                          const allowNewQuestion = !lastQuestion || isQuestionSaved(lastQuestion);
+                          return (
+                            <button
+                              type="button"
+                              className={styles.addQuestion}
+                              onClick={() => handleAddQuestion(group.id)}
+                              disabled={isUnitLive || !allowNewQuestion}
                             >
-                              <FaCirclePlus />
-                            </IconContext.Provider>
-                            Add Question
-                          </button>
-                        );
-                      })()}
+                              <IconContext.Provider
+                                value={{ className: styles.plusQuestionIcon }}
+                              >
+                                <FaCirclePlus />
+                              </IconContext.Provider>
+                              Question
+                            </button>
+                          );
+                        })()}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </aside>
+
+            <main className={styles.rightColumn}>
+              <div className={styles.editorArea}>
+                <div className={styles.sectionHeader}>
+                  <h2>Question Editor</h2>
+                  {selectedQuestion ? (
+                    <div className={styles.editingMeta}>
+                      <button
+                        type="button"
+                        className={styles.navButton}
+                        onClick={() => handleNavigate(-1)}
+                        disabled={!canGoPrev}
+                        aria-label="Previous question or variant"
+                      >
+                        <FaCircleChevronLeft className={styles.navIcon} />
+                      </button>
+                      <strong style={{ fontSize: '14px', color: 'var(--color-text)' }}>
+                        {activeLabel}
+                      </strong>
+                      <button
+                        type="button"
+                        className={styles.navButton}
+                        onClick={() => handleNavigate(1)}
+                        disabled={!canGoNext}
+                        aria-label="Next question or variant"
+                      >
+                        <FaCircleChevronRight className={styles.navIcon} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className={styles.editingMeta}>
+                      <span className={styles.editingLabel}>Pick a question to edit</span>
                     </div>
                   )}
                 </div>
-              ))}
 
-              <button
-                type="button"
-                className={styles.addGroup}
-                onClick={handleAddGroup}
-                disabled={isUnitLive}
-              >
-                <IconContext.Provider value={{ className: styles.plusGroupIcon }}>
-                  <FaCirclePlus />
-                </IconContext.Provider>
-                Add Group
-              </button>
+                <div className={styles.formSection}>
+                  <label className={styles.label}>Question Type</label>
+                  <div className={styles.typeToggle}>
+                    {(Object.values(QUESTION_TYPE_CONFIGS) as QuestionTypeConfig[]).map(
+                      (config) => (
+                        <button
+                          key={config.type}
+                          type="button"
+                          className={`${styles.typeChip} ${form.type === config.type ? styles.typeChipActive : ''}`}
+                          onClick={() => handleTypeChange(config.type)}
+                        >
+                          {config.label}
+                        </button>
+                      ),
+                    )}
+                  </div>
 
-              <div className={styles.variantInstructions}>
-                <div className={styles.sectionHeader}>
-                  <h2>Variant generation instructions</h2>
-                </div>
-                <textarea
-                  value={variantInstructions}
-                  onChange={(e) => setVariantInstructions(e.target.value)}
-                  placeholder="Describe how variants should change context, numbers, or wording while keeping concepts aligned."
-                />
-              </div>
-            </div>
+                  <label className={styles.label}>
+                    Question Stem
+                    <textarea
+                      value={form.stem}
+                      onChange={(e) => setForm((prev) => ({ ...prev, stem: e.target.value }))}
+                      placeholder="Enter the question text here..."
+                      maxLength={500}
+                    />
+                  </label>
 
-            <div className={styles.rightColumn}>
-              <div className={styles.sectionHeader}>
-                <h2>Question Editor</h2>
-                {selectedQuestion ? (
-                  <div className={styles.editingMeta}>
+                  {(() => {
+                    const Config = QUESTION_TYPE_CONFIGS[form.type];
+                    const FormComponent = Config.component;
+                    return (
+                      <FormComponent
+                        options={form.options.map((option, idx) => ({
+                          ...option,
+                          explanation: form.explanations[idx] ?? '',
+                        }))}
+                        onChangeOption={handleOptionChange}
+                        onChangeExplanation={(id, value) => {
+                          const idx = form.options.findIndex((option) => option.id === id);
+                          if (idx >= 0) handleExplanationChange(idx, value);
+                        }}
+                        onSelectCorrect={setCorrectOption}
+                      />
+                    );
+                  })()}
+
+                  <label className={styles.label}>
+                    💡 Hint (Optional)
+                    <textarea
+                      value={form.hint}
+                      onChange={(e) => setForm((prev) => ({ ...prev, hint: e.target.value }))}
+                      placeholder="Provide a hint to help students..."
+                      maxLength={300}
+                      className={styles.hintTextArea}
+                    />
+                  </label>
+
+                  {saveError ? (
+                    <div className={styles.inlineError} role="alert">
+                      {saveError}
+                    </div>
+                  ) : null}
+
+                  <div className={styles.formActions}>
                     <button
                       type="button"
-                      className={styles.navButton}
-                      onClick={() => handleNavigate(-1)}
-                      disabled={!canGoPrev}
-                      aria-label="Previous question or variant"
-                      id="left-nav-button"
+                      className={styles.secondaryButton}
+                      onClick={handleGenerateVariant}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        background: 'transparent',
+                        color: 'var(--color-text)',
+                        border: '1px solid var(--local-border)',
+                      }}
                     >
-                      <IconContext.Provider value={{ className: styles.navIcon }}>
-                        <FaCircleChevronLeft />
-                      </IconContext.Provider>
+                      Generate Variant
+                      <VscSparkleFilled className={styles.aiSparkle} />
                     </button>
-                    <strong>{activeLabel}</strong>
                     <button
                       type="button"
-                      className={styles.navButton}
-                      onClick={() => handleNavigate(1)}
-                      disabled={!canGoNext}
-                      aria-label="Next question or variant"
-                      id="right-nav-button"
+                      className={styles.saveQuestionButton}
+                      onClick={handleSaveQuestion}
+                      disabled={isSavingQuestion}
                     >
-                      <IconContext.Provider value={{ className: styles.navIcon }}>
-                        <FaCircleChevronRight />
-                      </IconContext.Provider>
+                      {isSavingQuestion ? 'Saving...' : 'Save Question'}
                     </button>
                   </div>
-                ) : (
-                  <div className={styles.editingMeta}>
-                    <span className={styles.editingLabel}>Pick a question to edit</span>
-                  </div>
-                )}
-              </div>
-              <label className={styles.label} id="question-type-label">
-                Question Type (Select one):
-              </label>
-              <div className={styles.typeToggle}>
-                {(Object.values(QUESTION_TYPE_CONFIGS) as QuestionTypeConfig[]).map(
-                  (config) => (
-                    <button
-                      key={config.type}
-                      type="button"
-                      className={`${styles.typeChip} ${form.type === config.type ? styles.typeChipActive : ''}`}
-                      onClick={() => handleTypeChange(config.type)}
-                    >
-                      {config.label}
-                    </button>
-                  ),
-                )}
-              </div>
-
-              <label className={styles.label}>
-                Question Stem
-                <textarea
-                  value={form.stem}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, stem: e.target.value }))
-                  }
-                  placeholder="Enter the question text here..."
-                  maxLength={500}
-                  minLength={1}
-                />
-              </label>
-
-              {(() => {
-                const Config = QUESTION_TYPE_CONFIGS[form.type];
-                const FormComponent = Config.component;
-                return (
-                  <FormComponent
-                    options={form.options.map((option, idx) => ({
-                      ...option,
-                      explanation: form.explanations[idx] ?? '',
-                    }))}
-                    onChangeOption={handleOptionChange}
-                    onChangeExplanation={(id, value) => {
-                      const idx = form.options.findIndex((option) => option.id === id);
-                      if (idx >= 0) handleExplanationChange(idx, value);
-                    }}
-                    onSelectCorrect={setCorrectOption}
-                  />
-                );
-              })()}
-
-              <label className={styles.label}>
-                💡 Hint (Optional)
-                <textarea
-                  value={form.hint}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, hint: e.target.value }))
-                  }
-                  placeholder="Provide a hint to help students..."
-                  maxLength={300}
-                />
-              </label>
-
-              {saveError ? (
-                <div className={styles.inlineError} role="alert">
-                  {saveError}
                 </div>
-              ) : null}
-
-              <div className={styles.formActions}>
-                <div
-                  role="button"
-                  className={styles.secondaryButton}
-                  onClick={handleGenerateVariant}
-                >
-                  Generate Variant
-                  <IconContext.Provider value={{ className: styles.aiSparkle }}>
-                    <VscSparkleFilled />
-                  </IconContext.Provider>
-                </div>
-                <button
-                  type="button"
-                  className={styles.saveQuestionButton}
-                  onClick={handleSaveQuestion}
-                  disabled={isSavingQuestion}
-                >
-                  Save Question
-                </button>
               </div>
-            </div>
+            </main>
           </div>
         </>
       )}
