@@ -93,7 +93,7 @@
   right: 2px;
   bottom: 2px;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 50%);
+  background: linear-gradient(135deg, var(--color-glass-bg) 0%, var(--color-overlay-light-hover) 50%);
   pointer-events: none;
 }
 

@@ -110,13 +110,13 @@
 
 .link:hover {
   background: var(--color-surface-alt-muted);
-  color: var(--color-accent-primary);
+  color: var(--color-secondary);
 }
 
 .linkActive {
   background: var(--color-surface-alt);
-  color: var(--color-accent-primary);
-  border: 1px solid var(--color-accent-primary-soft);
+  color: var(--color-secondary);
+  border: 1px solid var(--color-secondary-soft);
 }
 
 .icon {
@@ -145,7 +145,7 @@
 
 .hint {
   font-size: 11px;
-  color: var(--color-muted);
+  color: var(--color-text-muted);
   opacity: 0.7;
   font-weight: 400;
 }
@@ -183,7 +183,6 @@
     height: calc(100dvh - var(--header-height));
     height: calc(100vh - var(--header-height));
     z-index: 999;
-    width: var(--sidebar-full-width);
   }
 
   .sidebar.sidebarCollapsed {

@@ -263,13 +263,6 @@
   content: '';
   position: absolute;
   inset: 0;
-  background-image: repeating-linear-gradient(
-    90deg,
-    rgba(148, 163, 184, 0.2) 0px, /* More visible but still subtle */
-    rgba(148, 163, 184, 0.2) 1px,
-    transparent 1px,
-    transparent 20%
-  );
   z-index: 1;
   pointer-events: none;
 }

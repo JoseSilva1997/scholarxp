@@ -151,7 +151,7 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.3),
+    var(--color-glass-shimmer),
     transparent
   );
   animation: shimmerAnim 2s infinite;

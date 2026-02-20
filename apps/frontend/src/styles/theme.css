@@ -30,7 +30,6 @@
   --color-text: #0f172a; /* Slate 900 */
   --color-text-soft: #475569; /* Slate 600 */
   --color-text-muted: #64748b; /* Slate 500 */
-  --color-muted: var(--color-text-muted); /* Compatibility alias */
   --color-text-dim: #94a3b8; /* Slate 400 */
   --color-border: #e2e8f0; /* Slate 200 */
   --color-border-hover: #cbd5e1; /* Slate 300 */
@@ -69,10 +68,7 @@
   --color-highlight-clean: rgba(255, 255, 255, 0.5);
 
   /* Legacy variable mapping for compatibility */
-  --color-accent-primary: var(--color-secondary);
-  --color-accent-primary-soft: var(--color-secondary-soft);
   --color-accent-secondary: #fbcd2a;
-  --color-accent-secondary-strong: var(--color-accent);
   --color-brand-surface-dark: #1e293b; /* Slate 800 */
   --color-brand-surface-dark-muted: #334155; /* Slate 700 */
   --color-surface-alt: #f1f5f9;
@@ -113,6 +109,7 @@
 
   /* Text on Dark Backgrounds */
   --color-text-on-dark: #ffffff;
+  --color-text-on-dark-vibrant: rgba(255, 255, 255, 0.85);
   --color-text-on-dark-muted: rgba(255, 255, 255, 0.7);
   --color-text-on-dark-subtle: rgba(255, 255, 255, 0.5);
   --color-text-on-dark-dim: rgba(255, 255, 255, 0.4);
@@ -123,6 +120,7 @@
   /* Page-level Overlays (Modals, etc.) */
   --color-overlay-dark: rgba(0, 0, 0, 0.45);
   --color-overlay-dark-blur: rgba(15, 23, 42, 0.6);
+  --color-overlay-dark-blue: rgba(2, 12, 39, 0.3);
 
   /* Shadows - Layered for depth */
   --shadow-sm: 0 1px 2px 0 var(--color-shadow-subtle);
@@ -132,6 +130,8 @@
   --shadow-inner: inset 0 2px 4px 0 var(--color-shadow-subtle);
   --shadow-inner-dark: inset 0 2px 4px rgba(0, 0, 0, 0.2);
   --shadow-floating-dark: 0 20px 48px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.3);
+
+  --shadow-white-sm: 
 
   /* Specialized Shadows */
   --shadow-auth-card: -10px 0 40px rgba(0, 0, 0, 0.03);

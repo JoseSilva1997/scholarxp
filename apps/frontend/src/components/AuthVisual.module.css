@@ -11,7 +11,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-surface);
+  color: var(--color-text-on-dark);
 }
 
 .backgroundItems {
@@ -87,13 +87,13 @@
 .logo {
   width: 64px;
   height: 64px;
-  filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.2));
+  filter: drop-shadow(0 0 20px var(--color-overlay-light-active));
   animation: pulse 4s infinite ease-in-out;
 }
 
 @keyframes pulse {
-  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.2)); }
-  50% { transform: scale(1.05); filter: drop-shadow(0 0 35px rgba(255, 255, 255, 0.4)); }
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 20px var(--color-overlay-light-active)); }
+  50% { transform: scale(1.05); filter: drop-shadow(0 0 35px var(--color-text-on-dark-dim)); }
 }
 
 .wordmark {
@@ -102,14 +102,15 @@
   font-weight: 800;
   letter-spacing: -0.03em;
   margin: 0;
-  background: linear-gradient(135deg, #ffffff 0%, rgba(255, 255, 255, 0.7) 100%);
+  background: linear-gradient(135deg, var(--color-text-on-dark) 0%, var(--color-text-on-dark-muted) 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .tagline {
   font-size: 1.25rem;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--color-text-on-dark-vibrant);
   margin-bottom: 56px;
   line-height: 1.5;
   font-weight: 500;
@@ -134,7 +135,7 @@
   -webkit-backdrop-filter: blur(12px);
   font-size: 1.0625rem;
   font-weight: 600;
-  color: var(--color-surface);
+  color: var(--color-text-on-dark);
   transition: transform 0.3s ease;
 }
 
