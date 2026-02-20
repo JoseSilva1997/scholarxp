@@ -56,6 +56,7 @@ export default function ModuleUnitEditor() {
     saveError,
     isSavingQuestion,
     isSavingVariant,
+    isSavingVariantInstructions,
     editingGroupId,
     editingGroupTitle,
     setEditingGroupTitle,
@@ -78,6 +79,7 @@ export default function ModuleUnitEditor() {
     setCorrectOption,
     handleTypeChange,
     handleSaveQuestion,
+    handleSaveVariantInstructions,
     handleConfirmDelete,
   } = useModuleUnitEditorPageState({
     moduleIdParam: moduleId,
@@ -149,9 +151,18 @@ export default function ModuleUnitEditor() {
                     <textarea
                       value={variantInstructions}
                       onChange={(e) => setVariantInstructions(e.target.value)}
-                      placeholder="Define instructions for AI variant generation (concepts, constraints, etc.)"
-                      rows={3}
+                      placeholder="Define instructions to aid AI variant generation for this specific lesson. (concepts, constraints, etc.)"
+                      rows={10}
+                      maxLength={500}
                     />
+                    <button
+                      type="button"
+                      className={styles.settingsSaveButton}
+                      onClick={handleSaveVariantInstructions}
+                      disabled={isSavingVariantInstructions}
+                    >
+                      {isSavingVariantInstructions ? 'Saving...' : 'Save Settings'}
+                    </button>
                   </div>
                 </details>
               </div>

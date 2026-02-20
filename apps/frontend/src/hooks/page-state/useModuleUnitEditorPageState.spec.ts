@@ -32,6 +32,7 @@ const mocks = vi.hoisted(() => {
     updateQuestionContentMutateAsync: vi.fn(),
     deleteQuestionMutateAsync: vi.fn(),
     deleteVariantMutateAsync: vi.fn(),
+    updateModuleUnitMutateAsync: vi.fn(),
     ApiError: MockApiError,
   };
 });
@@ -69,6 +70,7 @@ vi.mock('../queries/useModuleUnitEditorQueries', () => ({
   useUpdateQuestionContentMutation: () => ({ mutateAsync: mocks.updateQuestionContentMutateAsync }),
   useDeleteQuestionMutation: () => ({ mutateAsync: mocks.deleteQuestionMutateAsync }),
   useDeleteVariantMutation: () => ({ mutateAsync: mocks.deleteVariantMutateAsync }),
+  useUpdateModuleUnitMutation: () => ({ mutateAsync: mocks.updateModuleUnitMutateAsync }),
 }));
 
 // ===== Helper Functions =====
@@ -2590,6 +2592,79 @@ describe('useModuleUnitEditorPageState', () => {
           unitId: 99,
         })
       );
+    });
+  });
+
+  describe('handleSaveVariantInstructions', () => {
+    beforeEach(() => {
+      editorDataState = {
+        isPending: false,
+        isError: false,
+        error: null,
+        data: buildEditorData({ questionGroups: [], variantContext: 'Initial context' }),
+      };
+      mocks.updateModuleUnitMutateAsync.mockReset();
+    });
+
+    it('successfully updates variant instructions', async () => {
+      const { result } = renderHook(() =>
+        useModuleUnitEditorPageState({ moduleIdParam: '1', unitIdParam: '2' })
+      );
+
+      // Wait for initial data load
+      await waitFor(() => expect(result.current.variantInstructions).toBe('Initial context'));
+
+      act(() => {
+        result.current.setVariantInstructions('Updated context');
+      });
+
+      await act(async () => {
+        await result.current.handleSaveVariantInstructions();
+      });
+
+      expect(mocks.updateModuleUnitMutateAsync).toHaveBeenCalledWith({
+        variantContext: 'Updated context',
+      });
+      expect(result.current.saveError).toBeNull();
+      expect(result.current.isSavingVariantInstructions).toBe(false);
+    });
+
+    it('sets saveError when mutation fails with ApiError', async () => {
+      mocks.updateModuleUnitMutateAsync.mockRejectedValue(
+        new mocks.ApiError('Validation failed', 400)
+      );
+
+      const { result } = renderHook(() =>
+        useModuleUnitEditorPageState({ moduleIdParam: '1', unitIdParam: '2' })
+      );
+
+      act(() => {
+        result.current.setVariantInstructions('Broken context');
+      });
+
+      await act(async () => {
+        await result.current.handleSaveVariantInstructions();
+      });
+
+      expect(result.current.saveError).toBe('Validation failed');
+      expect(result.current.isSavingVariantInstructions).toBe(false);
+    });
+
+    it('sets generic error and logs when unexpected error occurs', async () => {
+      mocks.updateModuleUnitMutateAsync.mockRejectedValue(new Error('Unexpected crash'));
+
+      const { result } = renderHook(() =>
+        useModuleUnitEditorPageState({ moduleIdParam: '1', unitIdParam: '2' })
+      );
+
+      await act(async () => {
+        await result.current.handleSaveVariantInstructions();
+      });
+
+      expect(result.current.saveError).toBe(
+        'Could not save variant generation settings. Please try again.'
+      );
+      expect(mocks.logError).toHaveBeenCalled();
     });
   });
 });

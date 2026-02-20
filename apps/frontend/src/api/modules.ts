@@ -2,6 +2,7 @@ import type {
   CreateModulePayload,
   UpdateModulePayload,
   CreateModuleUnitMinimalPayload,
+  UpdateModuleUnitPayload,
   UpdateModuleUnitStatusPayload,
   CreateModuleUnitQuestionGroupPayload,
   UpdateModuleUnitQuestionGroupNamePayload,
@@ -50,6 +51,16 @@ export async function updateModule(
 export async function createModuleUnit(moduleId: number, payload: CreateModuleUnitMinimalPayload): Promise<ModuleUnitResponse> {
   return apiFetch<ModuleUnitResponse>(`/module/${moduleId}/units`, {
     method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateModuleUnit(
+  moduleUnitId: number,
+  payload: UpdateModuleUnitPayload,
+): Promise<ModuleUnitResponse> {
+  return apiFetch<ModuleUnitResponse>(`/module-unit/${moduleUnitId}`, {
+    method: 'PATCH',
     body: JSON.stringify(payload),
   });
 }

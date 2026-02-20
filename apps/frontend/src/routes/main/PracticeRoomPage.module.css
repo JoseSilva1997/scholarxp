@@ -38,16 +38,17 @@
 .backLink {
   color: #64748b;
   text-decoration: none;
-  font-weight: 700;
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  transition: color 0.2s ease;
-  margin-bottom: 1rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  transition: color 0.2s ease, transform 0.2s ease;
 }
 
 .backLink:hover {
-  color: var(--color-accent-primary);
+  color: var(--color-brand-primary);
+  transform: translateX(-4px);
 }
 
 .title {
@@ -220,7 +221,7 @@
   left: 0.5rem;
   right: 0.5rem;
   height: 3px;
-  background: #e2e8f0;
+  background: #cbd5e1;
   transform: translateY(-50%);
   z-index: 1;
 }
@@ -245,7 +246,7 @@
   height: 0.8rem;
   border-radius: 50%;
   background: white;
-  border: 2px solid #e2e8f0;
+  border: 2px solid #cbd5e1;
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
@@ -533,13 +534,13 @@
   display: inline-flex;
   align-items: center;
   gap: 0.75rem;
-  border: 1px solid #e2e8f0;
-  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  background: white;
   border-radius: 999px;
   padding: 0.6rem 1.4rem;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 700;
-  color: #64748b;
+  color: var(--color-text);
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 2px 4px rgba(15, 23, 42, 0.03);
@@ -547,8 +548,8 @@
 
 .questionUnitNavButton:hover:not(:disabled) {
   background: white;
-  color: var(--color-text);
-  border-color: #cbd5e1;
+  color: var(--color-primary);
+  border-color: var(--color-primary-light);
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
   transform: translateY(-1px);
 }
@@ -558,13 +559,13 @@
 }
 
 .questionUnitNavButton:disabled { 
-  opacity: 0.4; 
+  opacity: 0.35; 
   cursor: not-allowed; 
 }
 
 .navIcon { 
-  width: 16px; 
-  height: 16px; 
+  width: 18px; 
+  height: 18px; 
 }
 
 /* Status Card */

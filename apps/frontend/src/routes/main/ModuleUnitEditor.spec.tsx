@@ -37,6 +37,7 @@ const mocks = vi.hoisted(() => ({
   setCorrectOption: vi.fn(),
   handleTypeChange: vi.fn(),
   handleSaveQuestion: vi.fn(),
+  handleSaveVariantInstructions: vi.fn(),
   handleConfirmDelete: vi.fn(),
 }));
 
@@ -97,6 +98,7 @@ let pageState = {
   saveError: null as string | null,
   isSavingQuestion: false,
   isSavingVariant: false,
+  isSavingVariantInstructions: false,
   editingGroupId: null as number | null,
   editingGroupTitle: '',
   renamingGroupId: null as number | null,
@@ -137,6 +139,7 @@ vi.mock('../../hooks/page-state/useModuleUnitEditorPageState', () => ({
     setCorrectOption: mocks.setCorrectOption,
     handleTypeChange: mocks.handleTypeChange,
     handleSaveQuestion: mocks.handleSaveQuestion,
+    handleSaveVariantInstructions: mocks.handleSaveVariantInstructions,
     handleConfirmDelete: mocks.handleConfirmDelete,
   }),
 }));
@@ -220,6 +223,7 @@ describe('ModuleUnitEditor route', () => {
       saveError: null,
       isSavingQuestion: false,
       isSavingVariant: false,
+      isSavingVariantInstructions: false,
       editingGroupId: null,
       editingGroupTitle: '',
       renamingGroupId: null,
@@ -278,7 +282,7 @@ describe('ModuleUnitEditor route', () => {
     const alertMock = vi.fn();
     vi.stubGlobal('alert', alertMock);
 
-    render(
+    const { rerender } = render(
       <MemoryRouter>
         <ModuleUnitEditor />
       </MemoryRouter>,
@@ -290,10 +294,11 @@ describe('ModuleUnitEditor route', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add variant' }));
     expect(mocks.handleAddVariant).toHaveBeenCalledWith(1, 101);
 
-    fireEvent.click(screen.getByRole('button', { name: /Add Question/i }));
+    // Match the current accessible label so the test tracks the rendered control name.
+    fireEvent.click(screen.getByRole('button', { name: 'Question' }));
     expect(mocks.handleAddQuestion).toHaveBeenCalledWith(1);
 
-    fireEvent.click(screen.getByRole('button', { name: /Add Group/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Group' }));
     expect(mocks.handleAddGroup).toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Previous question or variant' }));
@@ -311,7 +316,7 @@ describe('ModuleUnitEditor route', () => {
 
     fireEvent.change(
       screen.getByPlaceholderText(
-        'Describe how variants should change context, numbers, or wording while keeping concepts aligned.',
+        'Define instructions to aid AI variant generation for this specific lesson. (concepts, constraints, etc.)',
       ),
       { target: { value: 'New instructions' } },
     );
@@ -319,6 +324,24 @@ describe('ModuleUnitEditor route', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Save Question' }));
     expect(mocks.handleSaveQuestion).toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save Settings' }));
+    expect(mocks.handleSaveVariantInstructions).toHaveBeenCalled();
+
+    // Verify saving state in UI
+    pageState.isSavingVariantInstructions = true;
+    rerender(
+      <MemoryRouter>
+        <ModuleUnitEditor />
+      </MemoryRouter>
+    );
+    expect(screen.getByRole('button', { name: 'Saving...' })).toBeDisabled();
+    pageState.isSavingVariantInstructions = false;
+    rerender(
+      <MemoryRouter>
+        <ModuleUnitEditor />
+      </MemoryRouter>
+    );
 
     fireEvent.click(screen.getByRole('button', { name: /Generate Variant/i }));
     expect(alertMock).toHaveBeenCalledWith('Coming Soon! 😎');
@@ -425,7 +448,8 @@ describe('ModuleUnitEditor route', () => {
       </MemoryRouter>,
     );
 
-    const saveButton = screen.getByRole('button', { name: 'Save Question' });
+    // Saving state swaps button text, so the disabled assertion must target "Saving...".
+    const saveButton = screen.getByRole('button', { name: 'Saving...' });
     expect(saveButton).toBeDisabled();
   });
 
@@ -560,7 +584,7 @@ describe('ModuleUnitEditor route', () => {
       </MemoryRouter>,
     );
 
-    const addGroupButton = screen.getByRole('button', { name: /Add Group/i });
+    const addGroupButton = screen.getByRole('button', { name: 'Group' });
     expect(addGroupButton).toBeDisabled();
   });
 
@@ -573,7 +597,7 @@ describe('ModuleUnitEditor route', () => {
       </MemoryRouter>,
     );
 
-    const addQuestionButton = screen.getByRole('button', { name: /Add Question/i });
+    const addQuestionButton = screen.getByRole('button', { name: 'Question' });
     expect(addQuestionButton).toBeDisabled();
   });
 
@@ -752,7 +776,7 @@ describe('ModuleUnitEditor route', () => {
       </MemoryRouter>,
     );
 
-    const addQuestionButton = screen.getByRole('button', { name: /Add Question/i });
+    const addQuestionButton = screen.getByRole('button', { name: 'Question' });
     expect(addQuestionButton).toBeDisabled();
   });
 

@@ -12,6 +12,7 @@
   font-weight: 700;
   color: var(--color-text);
   margin: 0;
+  padding-top: 36px;
   letter-spacing: -0.02em;
 }
 

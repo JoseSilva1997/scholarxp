@@ -6,17 +6,18 @@
   gap: 0;
   position: relative;
   overflow: hidden;
-  min-height: 100vh;
+  /* Ensure page fills at least its shell, but do not override the app layout's constrained height. */
+  min-height: 100%;
 }
 
 .topBar {
-  padding: 16px 20px 0;
+  padding: 0 20px 0;
   z-index: 2;
 }
 
 @media (min-width: 1024px) {
   .topBar {
-    padding: 24px 80px 0;
+    padding: 0 80px 0;
   }
 }
 
@@ -43,7 +44,7 @@
 
 @media (min-width: 1024px) {
   .header {
-    padding: 40px 80px 60px;
+    padding: 32px 80px 60px;
   }
 }
 

@@ -36,6 +36,7 @@ import {
   useDeleteQuestionMutation,
   useDeleteVariantMutation,
   useModuleUnitEditorDataQuery,
+  useUpdateModuleUnitMutation,
   useUpdateQuestionContentMutation,
   useUpdateQuestionGroupNameMutation,
 } from '../queries/useModuleUnitEditorQueries';
@@ -321,6 +322,7 @@ export function useModuleUnitEditorPageState({
   const updateQuestionContentMutation = useUpdateQuestionContentMutation(editorScope);
   const deleteQuestionMutation = useDeleteQuestionMutation(editorScope);
   const deleteVariantMutation = useDeleteVariantMutation(editorScope);
+  const updateModuleUnitMutation = useUpdateModuleUnitMutation(editorScope);
 
   const isLoading =
     parsedModuleId !== null && parsedUnitId !== null && editorDataQuery.isPending;
@@ -344,6 +346,7 @@ export function useModuleUnitEditorPageState({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSavingQuestion, setIsSavingQuestion] = useState(false);
   const [isSavingVariant, setIsSavingVariant] = useState(false);
+  const [isSavingVariantInstructions, setIsSavingVariantInstructions] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -1503,6 +1506,32 @@ export function useModuleUnitEditorPageState({
     }
   };
 
+  const handleSaveVariantInstructions = async () => {
+    if (!parsedUnitId || !editorScope) return;
+
+    setIsSavingVariantInstructions(true);
+    setSaveError(null);
+
+    try {
+      await updateModuleUnitMutation.mutateAsync({
+        variantContext: variantInstructions,
+      });
+    } catch (err) {
+      if (err instanceof ApiError && err.status >= 400 && err.status < 500) {
+        setSaveError(err.message ?? 'Could not save variant generation settings.');
+      } else {
+        setSaveError('Could not save variant generation settings. Please try again.');
+        logError(err, {
+          feature: 'module-unit',
+          action: 'save-variant-context',
+          unitId: parsedUnitId,
+        });
+      }
+    } finally {
+      setIsSavingVariantInstructions(false);
+    }
+  };
+
   // ===== Effects =====
   useEffect(() => {
     // Initial load maps API responses into editor-local state with string ids for draft compatibility.
@@ -1616,6 +1645,7 @@ export function useModuleUnitEditorPageState({
     saveError,
     isSavingQuestion,
     isSavingVariant,
+    isSavingVariantInstructions,
     editingGroupId,
     editingGroupTitle,
     setEditingGroupTitle,
@@ -1638,6 +1668,7 @@ export function useModuleUnitEditorPageState({
     setCorrectOption,
     handleTypeChange,
     handleSaveQuestion,
+    handleSaveVariantInstructions,
     handleConfirmDelete,
   };
 }

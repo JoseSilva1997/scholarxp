@@ -1,6 +1,7 @@
 .footer {
   box-sizing: border-box;
   height: var(--footer-height);
+  flex-shrink: 0; /* Preserve fixed height regardless of content size in other parts of the App shell. */
   padding: 0 40px;
   background: var(--color-surface);
   color: var(--color-text-muted);
