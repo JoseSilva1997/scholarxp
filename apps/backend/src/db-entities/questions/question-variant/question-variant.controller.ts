@@ -6,12 +6,16 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
 import { QuestionVariantService } from './question-variant.service';
 import { CreateQuestionVariantDto } from './dto/create-question-variant.dto';
 import { UpdateQuestionVariantDto } from './dto/update-question-variant.dto';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { SessionAuthGuard } from 'src/auth/guards/session-auth.guard';
 
 @Controller('question-variant')
+@UseGuards(SessionAuthGuard, RolesGuard)
 export class QuestionVariantController {
   constructor(
     private readonly questionVariantService: QuestionVariantService,

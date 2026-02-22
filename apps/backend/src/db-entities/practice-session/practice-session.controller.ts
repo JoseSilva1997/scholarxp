@@ -6,12 +6,16 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
 import { PracticeSessionService } from './practice-session.service';
 import { CreatePracticeSessionDto } from './dto/create-practice-session.dto';
 import { UpdatePracticeSessionDto } from './dto/update-practice-session.dto';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { SessionAuthGuard } from 'src/auth/guards/session-auth.guard';
 
 @Controller('practice-session')
+@UseGuards(SessionAuthGuard, RolesGuard)
 export class PracticeSessionController {
   constructor(
     private readonly practiceSessionService: PracticeSessionService,

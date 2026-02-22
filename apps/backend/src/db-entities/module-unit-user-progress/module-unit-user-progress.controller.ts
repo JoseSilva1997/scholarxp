@@ -6,12 +6,16 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
 import { ModuleUnitUserProgressService } from './module-unit-user-progress.service';
 import { CreateModuleUnitUserProgressDto } from './dto/create-module-unit-user-progress.dto';
 import { UpdateModuleUnitUserProgressDto } from './dto/update-module-unit-user-progress.dto';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { SessionAuthGuard } from 'src/auth/guards/session-auth.guard';
 
 @Controller('module-unit-user-progress')
+@UseGuards(SessionAuthGuard, RolesGuard)
 export class ModuleUnitUserProgressController {
   constructor(
     private readonly moduleUnitUserProgressService: ModuleUnitUserProgressService,

@@ -27,9 +27,11 @@ import { UpdateQuestionContentDto } from '../questions/question-content/dto/upda
 import { ModuleUnitQuestionGroupService } from '../module-unit-question-group/module-unit-question-group.service';
 import { CreateModuleUnitQuestionGroupDto } from '../module-unit-question-group/dto/create-module-unit-question-group.dto';
 import { UpdateModuleUnitQuestionGroupNameDto } from '../module-unit-question-group/dto/update-module-unit-question-group-name.dto';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
 
 // This controller serves both `/module-unit` CRUD endpoints and the module-scoped create route `/module/:moduleId/units`.
 @Controller()
+@UseGuards(SessionAuthGuard, RolesGuard)
 export class ModuleUnitController {
   constructor(
     private readonly moduleUnitService: ModuleUnitService,

@@ -6,12 +6,16 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
 import { ModuleUnitQuestionGroupService } from './module-unit-question-group.service';
 import { CreateModuleUnitQuestionGroupDto } from './dto/create-module-unit-question-group.dto';
 import { UpdateModuleUnitQuestionGroupDto } from './dto/update-module-unit-question-group.dto';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { SessionAuthGuard } from 'src/auth/guards/session-auth.guard';
 
 @Controller('module-unit-question-group')
+@UseGuards(SessionAuthGuard, RolesGuard)
 export class ModuleUnitQuestionGroupController {
   constructor(
     private readonly moduleUnitQuestionGroupService: ModuleUnitQuestionGroupService,

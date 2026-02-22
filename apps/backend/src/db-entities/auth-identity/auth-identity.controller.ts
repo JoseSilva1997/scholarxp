@@ -6,12 +6,16 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
 import { AuthIdentityService } from './auth-identity.service';
 import { CreateAuthIdentityDto } from './dto/create-auth-identity.dto';
 import { UpdateAuthIdentityDto } from './dto/update-auth-identity.dto';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { SessionAuthGuard } from 'src/auth/guards/session-auth.guard';
 
 @Controller('auth-identity')
+@UseGuards(SessionAuthGuard, RolesGuard)
 export class AuthIdentityController {
   constructor(private readonly authIdentityService: AuthIdentityService) {}
 

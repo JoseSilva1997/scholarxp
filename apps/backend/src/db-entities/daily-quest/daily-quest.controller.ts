@@ -17,12 +17,14 @@ import { DailyQuestService } from './daily-quest.service';
 import { CreateDailyQuestDto } from './dto/create-daily-quest.dto';
 import { GetQuestHistoryQueryDto } from './dto/get-quest-history-query.dto';
 import { UpdateDailyQuestDto } from './dto/update-daily-quest.dto';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
 
 type DailyQuestHistoryRequest = Request & {
   user?: AuthUser;
 };
 
 @Controller('daily-quest')
+@UseGuards(SessionAuthGuard, RolesGuard)
 export class DailyQuestController {
   constructor(private readonly dailyQuestService: DailyQuestService) {}
 

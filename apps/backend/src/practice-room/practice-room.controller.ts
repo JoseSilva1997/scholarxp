@@ -17,9 +17,11 @@ import type { AuthUser } from '../types/auth-user.type';
 import { GetPracticeRoomParamsDto } from './dto/get-practice-room-params.dto';
 import { GetPracticeRoomQueryDto } from './dto/get-practice-room-query.dto';
 import { SubmitAttemptDto } from './dto/submit-attempt.dto';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
 
 // PracticeRoomController exposes module-unit-scoped room endpoints used when students start practice from a module unit.
 @Controller('module/:moduleId/unit/:moduleUnitId/practice-room')
+@UseGuards(SessionAuthGuard, RolesGuard)
 export class PracticeRoomController {
   constructor(private readonly practiceRoomService: PracticeRoomService) {}
 

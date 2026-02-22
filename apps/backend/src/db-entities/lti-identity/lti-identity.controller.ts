@@ -6,12 +6,16 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
 import { LtiIdentityService } from './lti-identity.service';
 import { CreateLtiIdentityDto } from './dto/create-lti-identity.dto';
 import { UpdateLtiIdentityDto } from './dto/update-lti-identity.dto';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { SessionAuthGuard } from 'src/auth/guards/session-auth.guard';
 
 @Controller('lti-identity')
+@UseGuards(SessionAuthGuard, RolesGuard)
 export class LtiIdentityController {
   constructor(private readonly ltiIdentityService: LtiIdentityService) {}
 
