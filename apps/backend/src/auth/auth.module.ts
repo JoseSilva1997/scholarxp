@@ -14,6 +14,8 @@ import { SessionSerializer } from './session.serializer';
 import { RolesGuard } from './guards/roles.guard';
 import { ModuleAccessGuard } from './guards/module-access.guard';
 import { SessionAuthGuard } from './guards/session-auth.guard';
+import { AuthorizationService } from './authorization/authorization.service';
+import { AuthorizationGuard } from './guards/authorization.guard';
 
 @Module({
   imports: [
@@ -33,7 +35,16 @@ import { SessionAuthGuard } from './guards/session-auth.guard';
     SessionAuthGuard,
     RolesGuard,
     ModuleAccessGuard,
+    AuthorizationService,
+    AuthorizationGuard,
   ],
-  exports: [AuthService, SessionAuthGuard, RolesGuard, ModuleAccessGuard],
+  exports: [
+    AuthService,
+    SessionAuthGuard,
+    RolesGuard,
+    ModuleAccessGuard,
+    AuthorizationService,
+    AuthorizationGuard,
+  ],
 })
 export class AuthModule {}

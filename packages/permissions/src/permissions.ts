@@ -38,8 +38,8 @@ export const permissionMatrix: PermissionMatrix = {
   [features.modules.create]: [
     'admin', 
     'institution_admin', 
-    'teacher.independent']
-    ,
+    'teacher.independent'
+  ],
   [features.modules.setInstitution]: [
     'admin', 
     'institution_admin'
