@@ -7,6 +7,7 @@ import { ModuleAccessGuard } from '../../auth/guards/module-access.guard';
 import { SessionAuthGuard } from '../../auth/guards/session-auth.guard';
 import { QuestionUnitService } from '../questions/question-unit/question-unit.service';
 import { ModuleUnitQuestionGroupService } from '../module-unit-question-group/module-unit-question-group.service';
+import { features } from '@scholarxp/permissions';
 
 runCrudControllerTests({
   name: 'ModuleUnitController',
@@ -81,7 +82,7 @@ describe('ModuleUnitController.createForModule', () => {
     const result = await controller.createForModule('5', dto, req);
 
     expect(permissions.assertHasAccess).toHaveBeenCalledWith(
-      'modules.manageContent',
+      features.modules.manageContent,
       mockUser,
     );
     expect(service.createForModule).toHaveBeenCalledWith(5, dto);

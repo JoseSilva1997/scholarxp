@@ -6,6 +6,7 @@ import { PiPathDuotone } from "react-icons/pi";
 import { useAuth } from '../context/AuthContext';
 import { useUiLayout } from '../context/UiLayoutContext';
 import { canUserAccess } from '../permissions/permission';
+import { features, type FeatureKey } from '@scholarxp/permissions';
 import styles from './SidebarNav.module.css';
 
 type SidebarNavProps = {
@@ -19,7 +20,7 @@ type NavItem = {
   label: string;
   hint: string;
   icon: React.ElementType;
-  feature?: 'navigation.modules' | 'navigation.quests' | 'navigation.profile';
+  feature?: FeatureKey;
 };
 
 const navItems: NavItem[] = [
@@ -28,21 +29,21 @@ const navItems: NavItem[] = [
     label: 'Modules',
     hint: 'Module catalogue',
     icon: RiBook3Line,
-    feature: 'navigation.modules',
+    feature: features.navigation.modules,
   },
   {
     to: '/main/quests',
     label: 'Quest History',
     hint: 'My quest progress',
     icon: PiPathDuotone,
-    feature: 'navigation.quests',
+    feature: features.navigation.quests,
   },
   {
     to: '/main/profile',
     label: 'Profile',
     hint: 'My account',
     icon: RiUser3Line,
-    feature: 'navigation.profile',
+    feature: features.navigation.profile,
   },
 ];
 

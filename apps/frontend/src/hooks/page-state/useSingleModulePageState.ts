@@ -5,6 +5,7 @@ import type { AuthUser, ModuleUnitStatus } from '@scholarxp/api-contracts';
 import type { ModuleSummary } from '../../types/module';
 import { useNavigate } from 'react-router-dom';
 import { MODULE_EXP_MAX } from '@scholarxp/constants';
+import { features } from '@scholarxp/permissions';
 import type { ModuleUnit } from '../../components/ModuleUnitCard';
 import {
   getDisplayErrorMessage,
@@ -71,16 +72,16 @@ export function useSingleModulePageState({
   const createModuleUnitMutation = useCreateModuleUnitMutation(parsedId);
   const updateModuleUnitStatusMutation = useUpdateModuleUnitStatusMutation(parsedId);
 
-  const canEditSettings = useMemo(() => canUserAccess('modules.settings', user), [user]);
+  const canEditSettings = useMemo(() => canUserAccess(features.modules.settings, user), [user]);
   const canToggleStudentView = useMemo(
-    () => canUserAccess('modules.toggleStudentView', user),
+    () => canUserAccess(features.modules.toggleStudentView, user),
     [user],
   );
   const canManageModuleContent = useMemo(
-    () => canUserAccess('modules.manageContent', user),
+    () => canUserAccess(features.modules.manageContent, user),
     [user],
   );
-  const canManageInvites = useMemo(() => canUserAccess('modules.invitations', user), [user]);
+  const canManageInvites = useMemo(() => canUserAccess(features.modules.invitations, user), [user]);
 
   useEffect(() => {
     if (!moduleQuery.error) return;

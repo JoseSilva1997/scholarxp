@@ -10,6 +10,7 @@ import {
 import { logError } from '../../utils/logger';
 import { canUserAccess } from '../../permissions/permission';
 import { useCreateModuleMutation, useModulesListQuery } from '../queries/useModulesQueries';
+import { features } from '@scholarxp/permissions';
 
 type UseModulesPageStateResult = {
   user: ReturnType<typeof useAuth>['user'];
@@ -39,7 +40,7 @@ export function useModulesPageState(): UseModulesPageStateResult {
   const isModulesQueryEnabled = !isAuthLoading && Boolean(user);
   const modulesQuery = useModulesListQuery(isModulesQueryEnabled);
   const createModuleMutation = useCreateModuleMutation();
-  const canCreateModules = useMemo(() => canUserAccess('modules.create', user), [user]);
+  const canCreateModules = useMemo(() => canUserAccess(features.modules.create, user), [user]);
 
   useEffect(() => {
     if (!modulesQuery.error) return;

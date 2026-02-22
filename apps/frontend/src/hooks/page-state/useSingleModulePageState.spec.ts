@@ -3,6 +3,7 @@ import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AuthUser } from '@scholarxp/api-contracts';
 import { useSingleModulePageState } from './useSingleModulePageState';
+import { features } from '@scholarxp/permissions';
 
 const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
@@ -36,10 +37,10 @@ let moduleUnitsQueryState: {
 };
 
 let permissionByKey: Record<string, boolean> = {
-  'modules.settings': true,
-  'modules.toggleStudentView': true,
-  'modules.manageContent': true,
-  'modules.invitations': true,
+  [features.modules.settings]: true,
+  [features.modules.toggleStudentView]: true,
+  [features.modules.manageContent]: true,
+  [features.modules.invitations]: true,
 };
 
 const mockUser = { id: 7 } as unknown as AuthUser;
@@ -94,10 +95,10 @@ describe('useSingleModulePageState', () => {
     moduleQueryState = { data: null, isPending: false, error: null };
     moduleUnitsQueryState = { data: [], isPending: false, error: null };
     permissionByKey = {
-      'modules.settings': true,
-      'modules.toggleStudentView': true,
-      'modules.manageContent': true,
-      'modules.invitations': true,
+      [features.modules.settings]: true,
+      [features.modules.toggleStudentView]: true,
+      [features.modules.manageContent]: true,
+      [features.modules.invitations]: true,
     };
 
     mocks.navigate.mockReset();
@@ -158,7 +159,7 @@ describe('useSingleModulePageState', () => {
       isPending: false,
       error: null,
     };
-    permissionByKey['modules.invitations'] = false;
+    permissionByKey[features.modules.invitations] = false;
 
     const { result } = renderHook(() =>
       useSingleModulePageState({ moduleIdParam: '22', user: mockUser }),

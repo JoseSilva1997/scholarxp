@@ -11,6 +11,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import type { AuthUser } from '../../types/auth-user.type';
 import { assertHasAccess } from '../../helpers/permissions.helper';
 import { MODULE_EXP_MAX } from '@scholarxp/constants';
+import { features } from '@scholarxp/permissions';
 
 type PrismaClientLike = Prisma.TransactionClient | PrismaService;
 
@@ -21,7 +22,7 @@ export class UserModuleService {
   create(createUserModuleDto: CreateUserModuleDto, user: AuthUser) {
     // Validate permissisons before hitting the database so we fail fast on forbidden requests.
     assertHasAccess(
-      'modules.settings',
+      features.modules.settings,
       user,
       'You do not have permission to manage module rosters.',
     );
@@ -30,7 +31,7 @@ export class UserModuleService {
 
   findAll(moduleId: number | undefined, user: AuthUser) {
     assertHasAccess(
-      'modules.settings',
+      features.modules.settings,
       user,
       'You do not have permission to manage module rosters.',
     );
@@ -51,7 +52,7 @@ export class UserModuleService {
     user: AuthUser,
   ) {
     assertHasAccess(
-      'modules.settings',
+      features.modules.settings,
       user,
       'You do not have permission to manage module rosters.',
     );
@@ -64,7 +65,7 @@ export class UserModuleService {
 
   async remove(id: number, user: AuthUser) {
     assertHasAccess(
-      'modules.settings',
+      features.modules.settings,
       user,
       'You do not have permission to delete module rosters.',
     );

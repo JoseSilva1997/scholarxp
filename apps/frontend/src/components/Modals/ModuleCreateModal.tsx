@@ -4,6 +4,7 @@ import type { CreateModulePayload } from '@scholarxp/api-contracts';
 import styles from './ModuleCreateModal.module.css';
 import { useAuth } from '../../context/AuthContext';
 import { canUserAccess } from '../../permissions/permission';
+import { features } from '@scholarxp/permissions';
 
 type ModuleCreateModalProps = {
   onClose: () => void;
@@ -24,7 +25,7 @@ export default function ModuleCreateModal({
   const [institutionId, setInstitutionId] = useState('');
 
   // Teachers can create modules but only admins/institution admins can bind to an institution.
-  const canSetInstitution = canUserAccess('modules.setInstitution', user);
+  const canSetInstitution = canUserAccess(features.modules.setInstitution, user);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();

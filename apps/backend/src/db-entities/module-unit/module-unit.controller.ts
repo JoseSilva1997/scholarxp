@@ -28,6 +28,7 @@ import { ModuleUnitQuestionGroupService } from '../module-unit-question-group/mo
 import { CreateModuleUnitQuestionGroupDto } from '../module-unit-question-group/dto/create-module-unit-question-group.dto';
 import { UpdateModuleUnitQuestionGroupNameDto } from '../module-unit-question-group/dto/update-module-unit-question-group-name.dto';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { features } from '@scholarxp/permissions';
 
 // This controller serves both `/module-unit` CRUD endpoints and the module-scoped create route `/module/:moduleId/units`.
 @Controller()
@@ -48,7 +49,7 @@ export class ModuleUnitController {
     @Body() createModuleUnitDto: CreateModuleUnitMinimalDto,
     @Req() req: Request,
   ) {
-    assertHasAccess('modules.manageContent', req.user as AuthUser);
+    assertHasAccess(features.modules.manageContent, req.user as AuthUser);
     return this.moduleUnitService.createForModule(
       +moduleId,
       createModuleUnitDto,
@@ -89,7 +90,7 @@ export class ModuleUnitController {
     @Body() body: CreateQuestionWithContentDto,
     @Req() req: Request,
   ) {
-    assertHasAccess('modules.manageContent', req.user as AuthUser);
+    assertHasAccess(features.modules.manageContent, req.user as AuthUser);
     const parsedModuleId = Number(moduleId);
     const parsedUnitId = Number(unitId);
     if (!Number.isFinite(parsedModuleId) || !Number.isFinite(parsedUnitId)) {
@@ -112,7 +113,7 @@ export class ModuleUnitController {
     @Body() body: CreateModuleUnitQuestionGroupDto,
     @Req() req: Request,
   ) {
-    assertHasAccess('modules.manageContent', req.user as AuthUser);
+    assertHasAccess(features.modules.manageContent, req.user as AuthUser);
     // Creating groups lazily avoids front-end race conditions when authors start with a draft group.
     const parsedModuleId = Number(moduleId);
     const parsedUnitId = Number(unitId);
@@ -139,7 +140,7 @@ export class ModuleUnitController {
     @Body() body: CreateVariantWithContentDto,
     @Req() req: Request,
   ) {
-    assertHasAccess('modules.manageContent', req.user as AuthUser);
+    assertHasAccess(features.modules.manageContent, req.user as AuthUser);
     const parsedModuleId = Number(moduleId);
     const parsedUnitId = Number(unitId);
     const parsedQuestionId = Number(questionId);
@@ -172,7 +173,7 @@ export class ModuleUnitController {
     @Body() body: UpdateQuestionContentDto,
     @Req() req: Request,
   ) {
-    assertHasAccess('modules.manageContent', req.user as AuthUser);
+    assertHasAccess(features.modules.manageContent, req.user as AuthUser);
     const parsedModuleId = Number(moduleId);
     const parsedUnitId = Number(unitId);
     const parsedQuestionId = Number(questionId);
@@ -203,7 +204,7 @@ export class ModuleUnitController {
     @Param('questionId') questionId: string,
     @Req() req: Request,
   ) {
-    assertHasAccess('modules.manageContent', req.user as AuthUser);
+    assertHasAccess(features.modules.manageContent, req.user as AuthUser);
     const parsedModuleId = Number(moduleId);
     const parsedUnitId = Number(unitId);
     const parsedQuestionId = Number(questionId);
@@ -233,7 +234,7 @@ export class ModuleUnitController {
     @Param('variantId') variantId: string,
     @Req() req: Request,
   ) {
-    assertHasAccess('modules.manageContent', req.user as AuthUser);
+    assertHasAccess(features.modules.manageContent, req.user as AuthUser);
     const parsedModuleId = Number(moduleId);
     const parsedUnitId = Number(unitId);
     const parsedQuestionId = Number(questionId);
@@ -263,7 +264,7 @@ export class ModuleUnitController {
     @Param('groupId') groupId: string,
     @Req() req: Request,
   ) {
-    assertHasAccess('modules.manageContent', req.user as AuthUser);
+    assertHasAccess(features.modules.manageContent, req.user as AuthUser);
     const parsedModuleId = Number(moduleId);
     const parsedUnitId = Number(unitId);
     const parsedGroupId = Number(groupId);
@@ -291,7 +292,7 @@ export class ModuleUnitController {
     @Body() body: UpdateModuleUnitQuestionGroupNameDto,
     @Req() req: Request,
   ) {
-    assertHasAccess('modules.manageContent', req.user as AuthUser);
+    assertHasAccess(features.modules.manageContent, req.user as AuthUser);
     const parsedModuleId = Number(moduleId);
     const parsedUnitId = Number(unitId);
     const parsedGroupId = Number(groupId);

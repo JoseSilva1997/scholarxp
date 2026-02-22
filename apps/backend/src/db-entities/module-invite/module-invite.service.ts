@@ -24,6 +24,7 @@ import {
   MODULE_INVITE_DEFAULT_EXPIRY_HOURS,
   MODULE_INVITE_DEFAULT_MAX_USES,
 } from '@scholarxp/constants';
+import { features } from '@scholarxp/permissions';
 
 @Injectable()
 export class ModuleInviteService {
@@ -35,7 +36,7 @@ export class ModuleInviteService {
     user: AuthUser,
   ) {
     assertHasAccess(
-      'modules.invitations',
+      features.modules.invitations,
       user,
       'You do not have permission to manage module invites',
     );
@@ -72,7 +73,7 @@ export class ModuleInviteService {
 
   async findAll(moduleId: number, user: AuthUser) {
     assertHasAccess(
-      'modules.invitations',
+      features.modules.invitations,
       user,
       'You do not have permission to view module invites',
     );
@@ -97,7 +98,7 @@ export class ModuleInviteService {
     user: AuthUser,
   ) {
     assertHasAccess(
-      'modules.invitations',
+      features.modules.invitations,
       user,
       'You do not have permission to manage module invites',
     );
@@ -124,7 +125,7 @@ export class ModuleInviteService {
   }
 
   async remove(moduleId: number, id: number, user: AuthUser) {
-    assertHasAccess('modules.invitations', user, {
+    assertHasAccess(features.modules.invitations, user, {
       message: 'You do not have permission to manage module invites',
     });
     await this.assertModuleAllowsInvites(moduleId);
@@ -135,7 +136,7 @@ export class ModuleInviteService {
 
   async redeem(dto: RedeemModuleInviteDto, user: AuthUser) {
     // Use shared capability evaluator so backend and frontend stay aligned on who can redeem links.
-    assertHasAccess('modules.invitations.redemption', user, {
+    assertHasAccess(features.modules.invitationsRedemption, user, {
       message:
         'Only students non-affiliated with an institution can redeem invites.',
     });

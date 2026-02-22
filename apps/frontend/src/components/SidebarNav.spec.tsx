@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SidebarNav from './SidebarNav';
+import { features } from '@scholarxp/permissions';
 
 const mocks = vi.hoisted(() => ({
   toggleSidebar: vi.fn(),
@@ -162,7 +163,7 @@ describe('SidebarNav', () => {
 
     it('filters out unauthorized items (canUserAccess returns false)', () => {
       // Only Modules and Profile allowed, Quest History blocked
-      mocks.canUserAccess.mockImplementation((feature: string) => feature !== 'navigation.quests');
+      mocks.canUserAccess.mockImplementation((feature: string) => feature !== features.navigation.quests);
 
       render(
         <MemoryRouter>
@@ -177,7 +178,7 @@ describe('SidebarNav', () => {
 
     it('handles multiple unauthorized items', () => {
       // Only Modules allowed
-      mocks.canUserAccess.mockImplementation((feature: string) => feature === 'navigation.modules');
+      mocks.canUserAccess.mockImplementation((feature: string) => feature === features.navigation.modules);
 
       render(
         <MemoryRouter>
@@ -214,9 +215,9 @@ describe('SidebarNav', () => {
       );
 
       // Verify canUserAccess was called with each feature
-      expect(mocks.canUserAccess).toHaveBeenCalledWith('navigation.modules', expect.any(Object));
-      expect(mocks.canUserAccess).toHaveBeenCalledWith('navigation.quests', expect.any(Object));
-      expect(mocks.canUserAccess).toHaveBeenCalledWith('navigation.profile', expect.any(Object));
+      expect(mocks.canUserAccess).toHaveBeenCalledWith(features.navigation.modules, expect.any(Object));
+      expect(mocks.canUserAccess).toHaveBeenCalledWith(features.navigation.quests, expect.any(Object));
+      expect(mocks.canUserAccess).toHaveBeenCalledWith(features.navigation.profile, expect.any(Object));
     });
   });
 
@@ -322,7 +323,7 @@ describe('SidebarNav', () => {
 
   describe('Combined Scenarios (Multiple Conditions)', () => {
     it('handles collapsed state with limited permissions', () => {
-      mocks.canUserAccess.mockImplementation((feature: string) => feature !== 'navigation.quests');
+      mocks.canUserAccess.mockImplementation((feature: string) => feature !== features.navigation.quests);
 
       render(
         <MemoryRouter>
@@ -341,7 +342,7 @@ describe('SidebarNav', () => {
     });
 
     it('handles expanded state with single authorized item', () => {
-      mocks.canUserAccess.mockImplementation((feature: string) => feature === 'navigation.modules');
+      mocks.canUserAccess.mockImplementation((feature: string) => feature === features.navigation.modules);
 
       render(
         <MemoryRouter initialEntries={['/main/modules']}>
@@ -357,7 +358,7 @@ describe('SidebarNav', () => {
 
     it('filters correctly when collapsed with navigationCallback', () => {
       const onNavigate = vi.fn();
-      mocks.canUserAccess.mockImplementation((feature: string) => feature === 'navigation.profile');
+      mocks.canUserAccess.mockImplementation((feature: string) => feature === features.navigation.profile);
 
       render(
         <MemoryRouter>

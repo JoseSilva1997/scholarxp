@@ -10,6 +10,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import type { AuthUser } from '../../types/auth-user.type';
 import { GlobalRole } from '@prisma/client';
 import { assertHasAccess } from '../../helpers/permissions.helper';
+import { features } from '@scholarxp/permissions';
 
 @Injectable()
 export class ModuleService {
@@ -18,7 +19,7 @@ export class ModuleService {
   async create(createModuleDto: CreateModuleDto, user: AuthUser) {
     // Enforce shared permission matrix first so backend and frontend rules stay aligned.
     assertHasAccess(
-      'modules.create',
+      features.modules.create,
       user,
       'You do not have permission to create modules',
     );
@@ -83,7 +84,7 @@ export class ModuleService {
   }
 
   async update(id: number, updateModuleDto: UpdateModuleDto, user: AuthUser) {
-    assertHasAccess('modules.settings', user);
+    assertHasAccess(features.modules.settings, user);
 
     await this.getOrThrow(id);
 
@@ -99,7 +100,7 @@ export class ModuleService {
   }
 
   async remove(id: number, user: AuthUser) {
-    assertHasAccess('modules.settings', user);
+    assertHasAccess(features.modules.settings, user);
 
     await this.getOrThrow(id);
     return this.prisma.module.delete({ where: { id } });

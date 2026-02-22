@@ -22,6 +22,7 @@ import { ModuleAccess } from '../../auth/decorators/module-access.decorator';
 import { ModuleAccessGuard } from '../../auth/guards/module-access.guard';
 import type { AuthUser } from '../../types/auth-user.type';
 import { assertHasAccess } from '../../helpers/permissions.helper';
+import { features } from '@scholarxp/permissions';
 
 @Controller('module')
 @UseGuards(SessionAuthGuard, RolesGuard)
@@ -33,7 +34,7 @@ export class ModuleController {
   create(@Body() createModuleDto: CreateModuleDto, @Req() req: Request) {
     // Record creator and enforce institution scoping where applicable.
     assertHasAccess(
-      'modules.create',
+      features.modules.create,
       req.user as AuthUser,
       'You do not have permission to create modules.',
     );
