@@ -8,6 +8,7 @@ import {
   Res,
   UseGuards,
   Logger,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import type { Request, Response } from 'express';
@@ -21,6 +22,7 @@ import { ResendVerificationDto } from './dto/resend-verification.dto';
 import type { AuthUser } from '../types/auth-user.type';
 import { CaptureRedirectGuard } from './guards/capture-redirect.guard';
 import { generateToken } from '../common/security/csrf';
+import type { GoogleProfile } from './strategies/google.strategy';
 
 @Controller('auth')
 @UseGuards(ThrottlerGuard) // coarse guard; per-route limits below fine-tune if needed
@@ -160,6 +162,10 @@ export class AuthController {
         ? session.postAuthRedirect
         : null;
 
+    // Passport's Request typing is broad; narrow before passing to strict service contract.
+    if (!this.isGoogleProfile(req.user)) {
+      throw new UnauthorizedException('Google authentication failed');
+    }
     const user = await this.authService.loginWithGoogle(req.user);
     await this.authService.loginUser(req, user, {
       persistSession: sessionRedirect
@@ -202,5 +208,17 @@ export class AuthController {
       }
       return base;
     }
+  }
+
+  // Keep runtime validation local so AuthService can accept a strongly-typed profile.
+  private isGoogleProfile(value: unknown): value is GoogleProfile {
+    if (!value || typeof value !== 'object') {
+      return false;
+    }
+    const candidate = value as Partial<GoogleProfile>;
+    return (
+      candidate.provider === 'google' &&
+      typeof candidate.providerUserId === 'string'
+    );
   }
 }

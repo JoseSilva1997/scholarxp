@@ -288,7 +288,16 @@ describe('ModuleUnitService.findEditorPayload', () => {
           id: 101,
           title: 'Q1',
           questionGroupId: 1,
-          contents: [{ id: 55, isCore: true, type: 'mcq', questionStem: '...', questionData: {}, isArchived: false }],
+          contents: [
+            {
+              id: 55,
+              isCore: true,
+              type: 'mcq',
+              questionStem: '...',
+              questionData: {},
+              isArchived: false,
+            },
+          ],
           variants: [],
           isArchived: false,
         },

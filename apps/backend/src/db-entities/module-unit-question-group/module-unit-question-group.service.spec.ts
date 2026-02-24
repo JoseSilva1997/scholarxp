@@ -225,7 +225,9 @@ describe('ModuleUnitQuestionGroupService.createScoped', () => {
       id: 3,
       moduleId: 2,
     } as any);
-    prisma.moduleUnitQuestionGroup.findFirst.mockResolvedValue({ id: 8 } as any);
+    prisma.moduleUnitQuestionGroup.findFirst.mockResolvedValue({
+      id: 8,
+    } as any);
 
     const dto = { moduleUnitId: 3, name: 'Existing Group', sortOrder: 1 };
     await expect(service.createScoped(2, 3, dto)).rejects.toThrow(

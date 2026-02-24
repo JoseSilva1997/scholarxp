@@ -98,8 +98,6 @@ describe('ModuleInviteController', () => {
   it('propagates service errors', async () => {
     service.create.mockRejectedValue(new Error('boom'));
 
-    await expect(controller.create(1, {} as any, req)).rejects.toThrow(
-      'boom',
-    );
+    await expect(controller.create(1, {} as any, req)).rejects.toThrow('boom');
   });
 });

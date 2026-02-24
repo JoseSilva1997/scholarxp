@@ -14,6 +14,7 @@ import { GlobalRole } from '@prisma/client';
 import type { FeatureKey } from '@scholarxp/permissions';
 import { FRONTEND_URL } from '@scholarxp/constants';
 import { generateToken } from '../common/security/csrf';
+import type { GoogleProfile } from './strategies/google.strategy';
 
 jest.mock('../common/security/csrf', () => ({
   generateToken: jest.fn(),
@@ -39,6 +40,16 @@ describe('AuthController', () => {
     hasInstitutionMembership: true,
     ltiIdentities: [{ institutionId: 1, ltiUserId: 'lti-user-1' }],
     hasLtiIdentity: true,
+  };
+
+  // Keep a dedicated OAuth profile mock so callback tests reflect passport-google payload shape.
+  const mockGoogleProfile: GoogleProfile = {
+    provider: 'google',
+    providerUserId: 'google-user-1',
+    email: 'john@example.com',
+    firstName: 'John',
+    lastName: 'Doe',
+    picture: 'https://example.com/google-pic.jpg',
   };
 
   // attachCapabilities returns the same user object with computed capabilities array
@@ -493,7 +504,7 @@ describe('AuthController', () => {
   describe('googleCallback', () => {
     // ===== HAPPY PATH =====
     it('should login user and redirect to frontend on successful Google auth', async () => {
-      const mockReq = { user: mockAuthUser } as unknown as Request;
+      const mockReq = { user: mockGoogleProfile } as unknown as Request;
       const mockRes = { redirect: jest.fn() } as unknown as Response;
 
       authService.loginWithGoogle.mockResolvedValue(mockAuthUser);
@@ -503,7 +514,7 @@ describe('AuthController', () => {
 
       await controller.googleCallback(mockReq, mockRes);
 
-      expect(authService.loginWithGoogle).toHaveBeenCalledWith(mockAuthUser);
+      expect(authService.loginWithGoogle).toHaveBeenCalledWith(mockGoogleProfile);
       // loginUser is called with req, user, and options object for session persistence.
       expect(authService.loginUser).toHaveBeenCalledWith(
         mockReq,
@@ -517,22 +528,33 @@ describe('AuthController', () => {
 
     // ===== UNHAPPY PATH =====
     it('should not redirect if loginWithGoogle fails', async () => {
-      const mockReq = { user: mockAuthUser } as unknown as Request;
+      const mockReq = { user: mockGoogleProfile } as unknown as Request;
       const mockRes = { redirect: jest.fn() } as unknown as Response;
 
       authService.loginWithGoogle.mockRejectedValue(
-        new UnauthorizedException('Invalid Google user'),
+        new Error('Google authentication failed'),
       );
 
       await expect(controller.googleCallback(mockReq, mockRes)).rejects.toThrow(
-        'Invalid Google user',
+        'Google authentication failed',
       );
+      expect(mockRes.redirect).not.toHaveBeenCalled();
+    });
+
+    it('should throw unauthorized when req.user is not a Google profile', async () => {
+      const mockReq = { user: mockAuthUser } as unknown as Request;
+      const mockRes = { redirect: jest.fn() } as unknown as Response;
+
+      await expect(controller.googleCallback(mockReq, mockRes)).rejects.toThrow(
+        UnauthorizedException,
+      );
+      expect(authService.loginWithGoogle).not.toHaveBeenCalled();
       expect(mockRes.redirect).not.toHaveBeenCalled();
     });
 
     // ===== BASIS PATH =====
     it('should redirect to default FRONTEND_URL when CORS_ORIGIN is not set', async () => {
-      const mockReq = { user: mockAuthUser } as unknown as Request;
+      const mockReq = { user: mockGoogleProfile } as unknown as Request;
       const mockRes = { redirect: jest.fn() } as unknown as Response;
 
       authService.loginWithGoogle.mockResolvedValue(mockAuthUser);
@@ -549,16 +571,16 @@ describe('AuthController', () => {
     });
 
     it('should handle loginUser error and not redirect', async () => {
-      const mockReq = { user: mockAuthUser } as unknown as Request;
+      const mockReq = { user: mockGoogleProfile } as unknown as Request;
       const mockRes = { redirect: jest.fn() } as unknown as Response;
 
       authService.loginWithGoogle.mockResolvedValue(mockAuthUser);
       authService.loginUser.mockRejectedValue(
-        new Error('Session setup failed'),
+        new Error('Google authentication failed'),
       );
 
       await expect(controller.googleCallback(mockReq, mockRes)).rejects.toThrow(
-        'Session setup failed',
+        'Google authentication failed',
       );
       expect(mockRes.redirect).not.toHaveBeenCalled();
     });

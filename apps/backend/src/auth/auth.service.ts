@@ -208,8 +208,8 @@ export class AuthService {
   }
 
   // --- Google OAuth ---
-  async loginWithGoogle(profile: any): Promise<AuthUser> {
-    const payload = profile as GoogleProfile;
+  async loginWithGoogle(profile: GoogleProfile): Promise<AuthUser> {
+    const payload = profile;
 
     const email = payload.email?.trim().toLowerCase() ?? null;
     if (!email) {

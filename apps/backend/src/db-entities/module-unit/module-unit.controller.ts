@@ -55,8 +55,8 @@ export class ModuleUnitController {
   @Authorize({ capability: features.navigation.modules, scope: 'module' })
   findByModule(
     @Param('moduleId', ParseIntPipe) moduleId: number,
-     @Req() req: Request
-    ) {
+    @Req() req: Request,
+  ) {
     const user = req.user as AuthUser;
     // Student readers receive latest-attempt status in grouped question previews.
     const studentId = user.globalRole === 'student' ? user.id : undefined;
@@ -135,11 +135,7 @@ export class ModuleUnitController {
     @Param('unitId', ParseIntPipe) unitId: number,
     @Param('questionId', ParseIntPipe) questionId: number,
   ) {
-    return this.questionUnitService.removeScoped(
-      moduleId,
-      unitId,
-      questionId,
-    );
+    return this.questionUnitService.removeScoped(moduleId, unitId, questionId);
   }
 
   @Delete(

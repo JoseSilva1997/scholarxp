@@ -47,7 +47,7 @@ export class CreateQuestionAttemptDto {
 
   @IsObject()
   @IsNotEmpty()
-  studentAnswer: Record<string, any>;
+  studentAnswer: Record<string, unknown>;
 
   @IsDateString()
   @IsNotEmpty()
