@@ -8,7 +8,6 @@ import {
   Delete,
   Req,
   UseGuards,
-  NotFoundException,
   ParseIntPipe,
 } from '@nestjs/common';
 import type { Request } from 'express';
