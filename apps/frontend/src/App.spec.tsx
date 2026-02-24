@@ -10,7 +10,7 @@ type MockUser = {
   isVerified: boolean;
 };
 
-const authState = {
+const mockAuthState = {
   user: null as MockUser | null,
   isLoading: false,
   logout: vi.fn(),
@@ -19,7 +19,7 @@ const authState = {
 
 vi.mock('./context/AuthContext', () => ({
   AuthProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
-  useAuth: () => authState,
+  useAuth: () => mockAuthState,
 }));
 
 vi.mock('./components/Header', () => ({
@@ -61,10 +61,10 @@ function renderAt(pathname: string) {
 
 describe('App', () => {
   beforeEach(() => {
-    authState.user = null;
-    authState.isLoading = false;
-    authState.logout.mockReset();
-    authState.setUser.mockReset();
+    mockAuthState.user = null;
+    mockAuthState.isLoading = false;
+    mockAuthState.logout.mockReset();
+    mockAuthState.setUser.mockReset();
     sessionStorage.clear();
   });
 
@@ -81,7 +81,7 @@ describe('App', () => {
   });
 
   it('redirects authenticated users away from /login to modules', async () => {
-    authState.user = { globalRole: 'admin', isVerified: true };
+    mockAuthState.user = { globalRole: 'admin', isVerified: true };
 
     renderAt('/login');
 
@@ -91,7 +91,7 @@ describe('App', () => {
   });
 
   it('shows role selector overlay for verified pending users on non-auth routes', () => {
-    authState.user = { globalRole: 'pending', isVerified: true };
+    mockAuthState.user = { globalRole: 'pending', isVerified: true };
 
     renderAt('/');
 
@@ -101,12 +101,12 @@ describe('App', () => {
 
   it('shows global header only for unauthenticated public routes and hides it in shell routes', async () => {
     // Public landing keeps the global header for signed-out users.
-    authState.user = null;
+    mockAuthState.user = null;
     renderAt('/');
     expect(screen.getByText('header')).toBeInTheDocument();
 
     // Signed-in users are redirected into the shell, which renders its own header.
-    authState.user = { globalRole: 'admin', isVerified: true };
+    mockAuthState.user = { globalRole: 'admin', isVerified: true };
     cleanup();
     renderAt('/');
     await waitFor(() => {

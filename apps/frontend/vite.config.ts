@@ -10,5 +10,8 @@ export default defineConfig({
     setupFiles: './src/test/setup.ts',
     clearMocks: true,
     restoreMocks: true,
+    // Using ‘forks’ pool instead of default ‘threads’ because MSW 2+ patching global fetch
+    // in multiple shared-worker threads can lead to worker deadlocks during startup.
+    pool: 'forks',
   },
 })

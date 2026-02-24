@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
   handleCreateModule: vi.fn(),
 }));
 
-let state = {
+let mockState = {
   user: { globalRole: 'admin' },
   modules: [] as Array<{ id: number; title: string; description: string | null; institutionId?: number | null }>,
   isLoading: false,
@@ -23,7 +23,7 @@ let state = {
 
 vi.mock('../../hooks/page-state/useModulesPageState', () => ({
   useModulesPageState: () => ({
-    ...state,
+    ...mockState,
     openCreateModal: mocks.openCreateModal,
     closeCreateModal: mocks.closeCreateModal,
     openModule: mocks.openModule,
@@ -50,7 +50,7 @@ describe('ModulesPage route', () => {
   });
 
   beforeEach(() => {
-    state = {
+    mockState = {
       user: { globalRole: 'admin' },
       modules: [],
       isLoading: false,
@@ -68,18 +68,18 @@ describe('ModulesPage route', () => {
   });
 
   it('renders loading and error branches from hook state', () => {
-    state.isLoading = true;
+    mockState.isLoading = true;
     const { rerender } = render(<ModulesPage />);
     expect(screen.getByText('Loading your modules…')).toBeInTheDocument();
 
-    state.isLoading = false;
-    state.listErrorMessage = 'Failed to load modules';
+    mockState.isLoading = false;
+    mockState.listErrorMessage = 'Failed to load modules';
     rerender(<ModulesPage />);
     expect(screen.getByText('Failed to load modules')).toBeInTheDocument();
   });
 
   it('renders module cards and delegates open action', () => {
-    state.modules = [
+    mockState.modules = [
       { id: 10, title: 'Biology', description: 'Intro', institutionId: 1 },
       { id: 11, title: 'Chemistry', description: null, institutionId: null },
     ];
@@ -91,7 +91,7 @@ describe('ModulesPage route', () => {
   });
 
   it('opens and wires create modal actions', () => {
-    state.showCreate = true;
+    mockState.showCreate = true;
 
     render(<ModulesPage />);
 
