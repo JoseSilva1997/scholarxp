@@ -15,7 +15,7 @@ import CreateModuleUnitModal from '../../components/Modals/CreateModuleUnitModal
 import ModuleUnitCard from '../../components/ModuleUnitCard';
 import StudentModuleUnitCard from '../../components/StudentModuleUnitCard';
 import { useSingleModulePageState } from '../../hooks/page-state/useSingleModulePageState';
-import { useTheme } from '../../context/ThemeContext';
+import { useTheme } from '../../context/useTheme';
 import styles from './SingleModulePage.module.css';
 
 export default function SingleModulePage() {

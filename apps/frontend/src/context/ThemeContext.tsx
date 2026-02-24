@@ -3,26 +3,17 @@
  * Persists user preference to localStorage and updates the document's data-theme attribute.
  */
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react';
-
-type Theme = 'light' | 'dark';
-
-type ThemeContextValue = {
-  theme: Theme;
-  resolvedTheme: 'light' | 'dark';
-  setTheme: (theme: Theme) => void;
-  toggleTheme: () => void;
-};
-
-const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
-const THEME_STORAGE_KEY = 'scholarxp:theme';
+import {
+  ThemeContext,
+  THEME_STORAGE_KEY,
+  type Theme,
+} from './theme-context';
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
@@ -74,12 +65,4 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
-}
-
-export function useTheme(): ThemeContextValue {
-  const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error('useTheme must be used within a ThemeProvider');
-  }
-  return context;
 }

@@ -4,6 +4,21 @@ import { cleanup } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll } from 'vitest';
 import { server } from './server';
 
+// Provide matchMedia in jsdom so ThemeProvider can subscribe to system color-scheme changes.
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addEventListener: () => undefined,
+    removeEventListener: () => undefined,
+    dispatchEvent: () => false,
+    addListener: () => undefined,
+    removeListener: () => undefined,
+  }),
+});
+
 // Start once so tests can opt into request mocks while still failing fast on unhandled calls.
 beforeAll(() => {
   server.listen({ onUnhandledRequest: 'error' });

@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, type RenderOptions } from '@testing-library/react';
 import type { ReactElement, ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
+import { ThemeProvider } from '../context/ThemeContext';
 
 function createTestQueryClient() {
   return new QueryClient({
@@ -28,7 +29,10 @@ function createProviders({ route = '/' }: ProvidersOptions = {}) {
   function Providers({ children }: { children: ReactNode }) {
     return (
       <MemoryRouter initialEntries={[route]}>
-        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        {/* Keep theme-dependent components stable in tests without repeating provider setup. */}
+        <ThemeProvider>
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        </ThemeProvider>
       </MemoryRouter>
     );
   }

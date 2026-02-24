@@ -1,7 +1,7 @@
 // Verifies header branch rendering for authenticated and unauthenticated states,
 // including student/non-student roles, avatar presence, and prop overrides.
-import { fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { fireEvent, screen } from '@testing-library/react';
+import { renderWithProviders } from '../test/utils';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import Header from './Header';
 import type { AuthUser } from '../types/auth';
@@ -48,11 +48,9 @@ describe('Header', () => {
   // ============================================================================
   describe('Unauthenticated (no user)', () => {
     it('shows login and signup links when user is not present (null)', () => {
-      render(
-        <MemoryRouter>
-          <Header user={null} />
-        </MemoryRouter>,
-      );
+      renderWithProviders(
+  <Header user={null} />,
+);
 
       expect(screen.getByRole('link', { name: 'Login' })).toBeInTheDocument();
       expect(screen.getByRole('link', { name: 'Sign up' })).toBeInTheDocument();
@@ -60,11 +58,9 @@ describe('Header', () => {
     });
 
     it('shows login and signup links when user is undefined', () => {
-      render(
-        <MemoryRouter>
-          <Header />
-        </MemoryRouter>,
-      );
+      renderWithProviders(
+  <Header />,
+);
 
       expect(screen.getByRole('link', { name: 'Login' })).toBeInTheDocument();
       expect(screen.getByRole('link', { name: 'Sign up' })).toBeInTheDocument();
@@ -92,11 +88,9 @@ describe('Header', () => {
     };
 
     it('shows user badge when student user is present', () => {
-      render(
-        <MemoryRouter>
-          <Header user={studentWithAvatar} />
-        </MemoryRouter>,
-      );
+      renderWithProviders(
+  <Header user={studentWithAvatar} />,
+);
 
       expect(screen.getByTestId('user-badge')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /today's quests/i })).toBeInTheDocument();
@@ -128,11 +122,9 @@ describe('Header', () => {
         isPending: false,
       });
 
-      render(
-        <MemoryRouter>
-          <Header user={studentWithAvatar} />
-        </MemoryRouter>,
-      );
+      renderWithProviders(
+  <Header user={studentWithAvatar} />,
+);
 
       fireEvent.click(screen.getByRole('button', { name: /today's quests/i }));
 
@@ -142,11 +134,9 @@ describe('Header', () => {
     });
 
     it('closes the today quests popover when clicking outside', () => {
-      render(
-        <MemoryRouter>
-          <Header user={studentWithAvatar} />
-        </MemoryRouter>,
-      );
+      renderWithProviders(
+  <Header user={studentWithAvatar} />,
+);
 
       fireEvent.click(screen.getByRole('button', { name: /today's quests/i }));
       expect(screen.getByTestId('today-quest-popover')).toBeInTheDocument();
@@ -156,22 +146,18 @@ describe('Header', () => {
     });
 
     it('derives level from avatar when no prop override (isStudent=true path)', () => {
-      render(
-        <MemoryRouter>
-          <Header user={studentWithAvatar} />
-        </MemoryRouter>,
-      );
+      renderWithProviders(
+  <Header user={studentWithAvatar} />,
+);
 
       // derivedLevel = 5 (from avatar), levelToShow uses nullish coalescing: studentLevel ?? derivedLevel
       expect(mockUserBadgeProps.level).toBe(5);
     });
 
     it('derives exp from avatar when no prop override (isStudent=true with avatar path)', () => {
-      render(
-        <MemoryRouter>
-          <Header user={studentWithAvatar} />
-        </MemoryRouter>,
-      );
+      renderWithProviders(
+  <Header user={studentWithAvatar} />,
+);
 
       // derivedExp = { current: 500, max: Math.max(500, 1000) = 1000 }
       expect(mockUserBadgeProps.exp).toEqual({
@@ -189,11 +175,9 @@ describe('Header', () => {
         },
       };
 
-      render(
-        <MemoryRouter>
-          <Header user={highExpStudent} />
-        </MemoryRouter>,
-      );
+      renderWithProviders(
+  <Header user={highExpStudent} />,
+);
 
       // max = Math.max(2000, 1000) = 2000
       expect(mockUserBadgeProps.exp).toEqual({
@@ -203,11 +187,9 @@ describe('Header', () => {
     });
 
     it('overrides derived level with studentLevel prop (nullish coalescing)', () => {
-      render(
-        <MemoryRouter>
-          <Header user={studentWithAvatar} studentLevel={8} />
-        </MemoryRouter>,
-      );
+      renderWithProviders(
+  <Header user={studentWithAvatar} studentLevel={8} />,
+);
 
       // studentLevel (8) ?? derivedLevel (5) = 8
       expect(mockUserBadgeProps.level).toBe(8);
@@ -215,11 +197,9 @@ describe('Header', () => {
 
     it('overrides derived exp with studentExp prop (nullish coalescing)', () => {
       const customExp = { current: 300, max: 500 };
-      render(
-        <MemoryRouter>
-          <Header user={studentWithAvatar} studentExp={customExp} />
-        </MemoryRouter>,
-      );
+      renderWithProviders(
+  <Header user={studentWithAvatar} studentExp={customExp} />,
+);
 
       // studentExp ?? derivedExp
       expect(mockUserBadgeProps.exp).toEqual(customExp);
@@ -227,11 +207,9 @@ describe('Header', () => {
 
     it('overrides both level and exp with prop values', () => {
       const customExp = { current: 100, max: 200 };
-      render(
-        <MemoryRouter>
-          <Header user={studentWithAvatar} studentLevel={12} studentExp={customExp} />
-        </MemoryRouter>,
-      );
+      renderWithProviders(
+  <Header user={studentWithAvatar} studentLevel={12} studentExp={customExp} />,
+);
 
       expect(mockUserBadgeProps.level).toBe(12);
       expect(mockUserBadgeProps.exp).toEqual(customExp);
@@ -254,21 +232,17 @@ describe('Header', () => {
     };
 
     it('shows user badge for student without avatar', () => {
-      render(
-        <MemoryRouter>
-          <Header user={studentNoAvatar} />
-        </MemoryRouter>,
-      );
+      renderWithProviders(
+  <Header user={studentNoAvatar} />,
+);
 
       expect(screen.getByTestId('user-badge')).toBeInTheDocument();
     });
 
     it('passes undefined level when student has no avatar (isStudent=true but !avatar path)', () => {
-      render(
-        <MemoryRouter>
-          <Header user={studentNoAvatar} />
-        </MemoryRouter>,
-      );
+      renderWithProviders(
+  <Header user={studentNoAvatar} />,
+);
 
       // derivedLevel = undefined (isStudent but no avatar)
       // levelToShow = undefined ?? undefined = undefined
@@ -276,22 +250,18 @@ describe('Header', () => {
     });
 
     it('passes undefined exp when student has no avatar', () => {
-      render(
-        <MemoryRouter>
-          <Header user={studentNoAvatar} />
-        </MemoryRouter>,
-      );
+      renderWithProviders(
+  <Header user={studentNoAvatar} />,
+);
 
       // derivedExp = undefined (isStudent but !avatar)
       expect(mockUserBadgeProps.exp).toBeUndefined();
     });
 
     it('uses studentLevel prop even when student has no avatar', () => {
-      render(
-        <MemoryRouter>
-          <Header user={studentNoAvatar} studentLevel={3} />
-        </MemoryRouter>,
-      );
+      renderWithProviders(
+  <Header user={studentNoAvatar} studentLevel={3} />,
+);
 
       // studentLevel (3) ?? undefined = 3
       expect(mockUserBadgeProps.level).toBe(3);
@@ -299,11 +269,9 @@ describe('Header', () => {
 
     it('uses studentExp prop even when student has no avatar', () => {
       const customExp = { current: 50, max: 150 };
-      render(
-        <MemoryRouter>
-          <Header user={studentNoAvatar} studentExp={customExp} />
-        </MemoryRouter>,
-      );
+      renderWithProviders(
+  <Header user={studentNoAvatar} studentExp={customExp} />,
+);
 
       expect(mockUserBadgeProps.exp).toEqual(customExp);
     });
@@ -329,22 +297,18 @@ describe('Header', () => {
     };
 
     it('shows user badge for non-student user', () => {
-      render(
-        <MemoryRouter>
-          <Header user={teacherUser} />
-        </MemoryRouter>,
-      );
+      renderWithProviders(
+  <Header user={teacherUser} />,
+);
 
       expect(screen.getByTestId('user-badge')).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /today's quests/i })).not.toBeInTheDocument();
     });
 
     it('does not derive level for non-student (isStudent=false path)', () => {
-      render(
-        <MemoryRouter>
-          <Header user={teacherUser} />
-        </MemoryRouter>,
-      );
+      renderWithProviders(
+  <Header user={teacherUser} />,
+);
 
       // isStudent = false, so derivedLevel = undefined (ternary false branch)
       // levelToShow = undefined ?? undefined = undefined
@@ -352,22 +316,18 @@ describe('Header', () => {
     });
 
     it('does not derive exp for non-student', () => {
-      render(
-        <MemoryRouter>
-          <Header user={teacherUser} />
-        </MemoryRouter>,
-      );
+      renderWithProviders(
+  <Header user={teacherUser} />,
+);
 
       // isStudent = false, so derivedExp = undefined
       expect(mockUserBadgeProps.exp).toBeUndefined();
     });
 
     it('uses studentLevel prop override for non-student user', () => {
-      render(
-        <MemoryRouter>
-          <Header user={teacherUser} studentLevel={7} />
-        </MemoryRouter>,
-      );
+      renderWithProviders(
+  <Header user={teacherUser} studentLevel={7} />,
+);
 
       // studentLevel (7) ?? undefined = 7
       expect(mockUserBadgeProps.level).toBe(7);
@@ -375,11 +335,9 @@ describe('Header', () => {
 
     it('uses studentExp prop override for non-student user', () => {
       const customExp = { current: 250, max: 750 };
-      render(
-        <MemoryRouter>
-          <Header user={teacherUser} studentExp={customExp} />
-        </MemoryRouter>,
-      );
+      renderWithProviders(
+  <Header user={teacherUser} studentExp={customExp} />,
+);
 
       expect(mockUserBadgeProps.exp).toEqual(customExp);
     });
@@ -396,11 +354,9 @@ describe('Header', () => {
       };
 
       const customExp = { current: 0, max: 500 };
-      render(
-        <MemoryRouter>
-          <Header user={adminUser} studentLevel={1} studentExp={customExp} />
-        </MemoryRouter>,
-      );
+      renderWithProviders(
+  <Header user={adminUser} studentLevel={1} studentExp={customExp} />,
+);
 
       expect(mockUserBadgeProps.level).toBe(1);
       expect(mockUserBadgeProps.exp).toEqual(customExp);
@@ -427,11 +383,9 @@ describe('Header', () => {
     };
 
     it('studentLevel=0 overrides derived level (falsy but defined value)', () => {
-      render(
-        <MemoryRouter>
-          <Header user={studentWithAvatar} studentLevel={0} />
-        </MemoryRouter>,
-      );
+      renderWithProviders(
+  <Header user={studentWithAvatar} studentLevel={0} />,
+);
 
       // studentLevel (0) is falsy but defined, nullish coalescing passes it through
       // 0 ?? 5 = 0
@@ -440,21 +394,17 @@ describe('Header', () => {
 
     it('passes onLogout to UserBadge', () => {
       const mockLogout = vi.fn();
-      render(
-        <MemoryRouter>
-          <Header user={studentWithAvatar} onLogout={mockLogout} />
-        </MemoryRouter>,
-      );
+      renderWithProviders(
+  <Header user={studentWithAvatar} onLogout={mockLogout} />,
+);
 
       expect(mockUserBadgeProps.onLogout).toBe(mockLogout);
     });
 
     it('passes user to UserBadge', () => {
-      render(
-        <MemoryRouter>
-          <Header user={studentWithAvatar} />
-        </MemoryRouter>,
-      );
+      renderWithProviders(
+  <Header user={studentWithAvatar} />,
+);
 
       expect(mockUserBadgeProps.user).toEqual(studentWithAvatar);
     });
@@ -465,11 +415,9 @@ describe('Header', () => {
   // ============================================================================
   describe('Header structure and branding', () => {
     it('renders the logo', () => {
-      render(
-        <MemoryRouter>
-          <Header />
-        </MemoryRouter>,
-      );
+      renderWithProviders(
+  <Header />,
+);
 
       const logo = screen.getByRole('link', { name: 'Go to landing page' });
       expect(logo).toBeInTheDocument();
@@ -478,43 +426,35 @@ describe('Header', () => {
     });
 
     it('renders the wordmark', () => {
-      render(
-        <MemoryRouter>
-          <Header />
-        </MemoryRouter>,
-      );
+      renderWithProviders(
+  <Header />,
+);
 
       expect(screen.getByText('ScholarXP')).toBeInTheDocument();
     });
 
     it('logo links to home page', () => {
-      render(
-        <MemoryRouter>
-          <Header />
-        </MemoryRouter>,
-      );
+      renderWithProviders(
+  <Header />,
+);
 
       const homeLink = screen.getByRole('link', { name: 'Go to landing page' });
       expect(homeLink).toHaveAttribute('href', '/');
     });
 
     it('login button links to /login', () => {
-      render(
-        <MemoryRouter>
-          <Header />
-        </MemoryRouter>,
-      );
+      renderWithProviders(
+  <Header />,
+);
 
       const loginLink = screen.getByRole('link', { name: 'Login' });
       expect(loginLink).toHaveAttribute('href', '/login');
     });
 
     it('signup button links to /register', () => {
-      render(
-        <MemoryRouter>
-          <Header />
-        </MemoryRouter>,
-      );
+      renderWithProviders(
+  <Header />,
+);
 
       const signupLink = screen.getByRole('link', { name: 'Sign up' });
       expect(signupLink).toHaveAttribute('href', '/register');

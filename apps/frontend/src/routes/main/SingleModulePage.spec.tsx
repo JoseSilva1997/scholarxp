@@ -1,6 +1,6 @@
 // Verifies SingleModulePage route branches and action wiring using mocked page-state and child components.
-import { fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { fireEvent, screen } from '@testing-library/react';
+import { renderWithProviders } from '../../test/utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SingleModulePage from './SingleModulePage';
 
@@ -75,10 +75,6 @@ vi.mock('react-router-dom', async () => {
 
 vi.mock('../../context/AuthContext', () => ({
   useAuth: () => authState,
-}));
-
-vi.mock('../../context/ThemeContext', () => ({
-  useTheme: () => ({ theme: 'light' }),
 }));
 
 vi.mock('../../hooks/page-state/useSingleModulePageState', () => ({
@@ -164,29 +160,23 @@ describe('SingleModulePage route', () => {
 
   it('renders loading and error branches', () => {
     pageState.isLoading = true;
-    const { rerender } = render(
-      <MemoryRouter>
-        <SingleModulePage />
-      </MemoryRouter>,
-    );
+    const { rerender } = renderWithProviders(
+  <SingleModulePage />,
+);
     expect(screen.getByText('Gathering module details…')).toBeInTheDocument();
 
     pageState.isLoading = false;
     pageState.pageError = 'Module failed to load';
     rerender(
-      <MemoryRouter>
-        <SingleModulePage />
-      </MemoryRouter>,
-    );
+  <SingleModulePage />,
+);
     expect(screen.getByRole('alert')).toHaveTextContent('Module failed to load');
   });
 
   it('renders module content cards and delegates manage-content actions', () => {
-    render(
-      <MemoryRouter>
-        <SingleModulePage />
-      </MemoryRouter>,
-    );
+    renderWithProviders(
+  <SingleModulePage />,
+);
 
     expect(screen.getByRole('heading', { name: 'Biology' })).toBeInTheDocument();
 
@@ -207,11 +197,9 @@ describe('SingleModulePage route', () => {
     authState = { user: { globalRole: 'student' } };
     pageState.canManageModuleContent = false;
 
-    render(
-      <MemoryRouter>
-        <SingleModulePage />
-      </MemoryRouter>,
-    );
+    renderWithProviders(
+  <SingleModulePage />,
+);
 
     expect(screen.getByText('Level 3')).toBeInTheDocument();
     // XP value/label are split across spans; assert against the progress region text content.
@@ -225,11 +213,9 @@ describe('SingleModulePage route', () => {
     // Test user === null branch: (user && (...)) prevents button rendering when user is falsy
     authState = { user: null };
 
-    render(
-      <MemoryRouter>
-        <SingleModulePage />
-      </MemoryRouter>,
-    );
+    renderWithProviders(
+  <SingleModulePage />,
+);
 
     expect(screen.queryByLabelText('Enable student view')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Module settings')).not.toBeInTheDocument();
@@ -239,11 +225,9 @@ describe('SingleModulePage route', () => {
     // Test canManageModuleContent false branch: ternary prevents card rendering
     pageState.canManageModuleContent = false;
 
-    render(
-      <MemoryRouter>
-        <SingleModulePage />
-      </MemoryRouter>,
-    );
+    renderWithProviders(
+  <SingleModulePage />,
+);
 
     expect(screen.queryByText('open-create-unit')).not.toBeInTheDocument();
   });
@@ -252,11 +236,9 @@ describe('SingleModulePage route', () => {
     // Test canEditSettings false branch: ternary prevents settings panel rendering
     pageState.canEditSettings = false;
 
-    render(
-      <MemoryRouter>
-        <SingleModulePage />
-      </MemoryRouter>,
-    );
+    renderWithProviders(
+  <SingleModulePage />,
+);
 
     expect(screen.queryByText(/settings-open/)).not.toBeInTheDocument();
   });
@@ -265,11 +247,9 @@ describe('SingleModulePage route', () => {
     // Test canEditSettings true branch
     pageState.canEditSettings = true;
 
-    render(
-      <MemoryRouter>
-        <SingleModulePage />
-      </MemoryRouter>,
-    );
+    renderWithProviders(
+  <SingleModulePage />,
+);
 
     expect(screen.getByText('settings-open:false')).toBeInTheDocument();
   });
@@ -277,11 +257,9 @@ describe('SingleModulePage route', () => {
   it('toggles settings panel open state when settings button is clicked', () => {
     pageState.canEditSettings = true;
 
-    render(
-      <MemoryRouter>
-        <SingleModulePage />
-      </MemoryRouter>,
-    );
+    renderWithProviders(
+  <SingleModulePage />,
+);
 
     fireEvent.click(screen.getByLabelText('Module settings'));
     expect(mocks.setIsSettingsOpen).toHaveBeenCalled();
@@ -295,11 +273,9 @@ describe('SingleModulePage route', () => {
       pageState.module.userModuleLevel = undefined;
     }
 
-    render(
-      <MemoryRouter>
-        <SingleModulePage />
-      </MemoryRouter>,
-    );
+    renderWithProviders(
+  <SingleModulePage />,
+);
 
     expect(screen.queryByText(/Level/)).not.toBeInTheDocument();
     expect(screen.queryByText(/xp/)).not.toBeInTheDocument();
@@ -317,11 +293,9 @@ describe('SingleModulePage route', () => {
       { id: 4, status: 'archived', isCompleted: false },
     ];
 
-    render(
-      <MemoryRouter>
-        <SingleModulePage />
-      </MemoryRouter>,
-    );
+    renderWithProviders(
+  <SingleModulePage />,
+);
 
     expect(screen.getByText('student-unit-1')).toBeInTheDocument();
     expect(screen.queryByText('student-unit-2')).not.toBeInTheDocument();
@@ -333,11 +307,9 @@ describe('SingleModulePage route', () => {
     // Test canToggleStudentView false branch. User exists but lacks permission
     pageState.canToggleStudentView = false;
 
-    render(
-      <MemoryRouter>
-        <SingleModulePage />
-      </MemoryRouter>,
-    );
+    renderWithProviders(
+  <SingleModulePage />,
+);
 
     expect(screen.queryByLabelText('Enable student view')).not.toBeInTheDocument();
   });
@@ -346,21 +318,17 @@ describe('SingleModulePage route', () => {
     // Test isStudentViewEnabled ternary: selects between untoggle and toggle icons
     pageState.isStudentViewEnabled = false;
 
-    const { rerender } = render(
-      <MemoryRouter>
-        <SingleModulePage />
-      </MemoryRouter>,
-    );
+    const { rerender } = renderWithProviders(
+  <SingleModulePage />,
+);
 
     let button = screen.getByLabelText('Enable student view');
     expect(button).toBeInTheDocument();
 
     pageState.isStudentViewEnabled = true;
     rerender(
-      <MemoryRouter>
-        <SingleModulePage />
-      </MemoryRouter>,
-    );
+  <SingleModulePage />,
+);
 
     button = screen.getByLabelText('Disable student view');
     expect(button).toBeInTheDocument();
