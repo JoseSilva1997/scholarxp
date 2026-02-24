@@ -190,6 +190,7 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
           alt=""
           className={styles.avatar}
           crossOrigin="anonymous"
+          referrerPolicy="no-referrer"
           // Defensive fallback so any bad/expired remote image swaps to our bundled default.
           onError={(event) => {
             event.currentTarget.onerror = null;
@@ -206,6 +207,7 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
               alt=""
               className={styles.menuHeaderAvatar}
               crossOrigin="anonymous"
+              referrerPolicy="no-referrer"
               onError={(event) => {
                 event.currentTarget.onerror = null;
                 event.currentTarget.src = defaultAvatar;
