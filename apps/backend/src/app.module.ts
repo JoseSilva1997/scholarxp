@@ -23,6 +23,10 @@ import { EmailVerificationTokenModule } from './db-entities/email-verification-t
 import { MailerModule } from './mailer/mailer.module';
 import { PracticeRoomModule } from './practice-room/practice-room.module';
 
+// Keep internal diagnostics routes out of production to reduce attack surface.
+const appControllers =
+  process.env.NODE_ENV === 'production' ? [] : [TestController];
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -52,6 +56,6 @@ import { PracticeRoomModule } from './practice-room/practice-room.module';
     MailerModule,
     PracticeRoomModule,
   ],
-  controllers: [TestController],
+  controllers: appControllers,
 })
 export class AppModule {}
