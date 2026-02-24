@@ -1,6 +1,6 @@
 // Displays a module unit with status, title, edit, and dropdown for question groups; keeps interactions local for now.
-import { useMemo, useState } from 'react';
-import { RiDraftLine, RiLock2Fill, RiArchiveFill } from "react-icons/ri";
+import { useMemo, useState, useEffect } from 'react';
+import { RiDraftLine, RiLock2Fill, RiArchiveFill, RiEditLine, RiCheckLine, RiCloseLine } from "react-icons/ri";
 import { FaCheck } from "react-icons/fa6";
 import { IconContext } from 'react-icons';
 import styles from './ModuleUnitCard.module.css';
@@ -34,11 +34,23 @@ export type ModuleUnit = {
 type ModuleUnitCardProps = {
   unit: ModuleUnit;
   onChangeStatus?: (unitId: string, status: ModuleUnitStatus) => Promise<void>;
+  onUpdateTitle?: (unitId: string, title: string) => Promise<void>;
 };
 
-export default function ModuleUnitCard({ unit, onChangeStatus }: ModuleUnitCardProps) {
+export default function ModuleUnitCard({ unit, onChangeStatus, onUpdateTitle }: ModuleUnitCardProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editedTitle, setEditedTitle] = useState(unit.title);
+  const [isSavingTitle, setIsSavingTitle] = useState(false);
   const [showPublishModal, setShowPublishModal] = useState(false);
+
+  useEffect(() => {
+    // Sync local draft with server title whenever the unit prop updates and we are not actively editing.
+    if (!isEditingTitle) {
+      setEditedTitle(unit.title);
+    }
+  }, [unit.title, isEditingTitle]);
+
   const [showEditWarningModal, setShowEditWarningModal] = useState(false);
   const [pendingQuestionId, setPendingQuestionId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -83,6 +95,38 @@ export default function ModuleUnitCard({ unit, onChangeStatus }: ModuleUnitCardP
     setShowEditWarningModal(true);
   };
 
+  /**
+   * Persists the title change to the server and exits edit mode.
+   * If the title is empty or unchanged, it reverts to the original title.
+   */
+  const handleSaveTitle = async () => {
+    if (!onUpdateTitle || !editedTitle.trim() || editedTitle === unit.title) {
+      setIsEditingTitle(false);
+      setEditedTitle(unit.title);
+      return;
+    }
+
+    setIsSavingTitle(true);
+    try {
+      await onUpdateTitle(unit.id, editedTitle.trim());
+      setIsEditingTitle(false);
+    } catch (err) {
+      // Re-throw or handle error so UI can reflect failure if needed, 
+      // though parent mutation handler usually logs this.
+      console.error('Failed to update title', err);
+    } finally {
+      setIsSavingTitle(false);
+    }
+  };
+
+  /**
+   * Discards title changes and exits edit mode.
+   */
+  const handleCancelTitle = () => {
+    setIsEditingTitle(false);
+    setEditedTitle(unit.title);
+  };
+
   return (
     <div className={`${styles.wrapper} ${statusClass} ${isOverlayOpen ? styles.modalOpen : ''}`}>
       <article className={styles.card}>
@@ -109,7 +153,54 @@ export default function ModuleUnitCard({ unit, onChangeStatus }: ModuleUnitCardP
                 <span className={styles.categoryLabel}>Unit</span>
                 <span className={styles.statusTag}>{unit.status}</span>
               </div>
-              <h3 className={styles.title}>{unit.title}</h3>
+              {isEditingTitle ? (
+                <div className={styles.titleContainer}>
+                  <input
+                    type="text"
+                    className={styles.titleInput}
+                    value={editedTitle}
+                    onChange={(e) => setEditedTitle(e.target.value)}
+                    disabled={isSavingTitle}
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSaveTitle();
+                      if (e.key === 'Escape') handleCancelTitle();
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className={styles.saveTitleButton}
+                    onClick={handleSaveTitle}
+                    disabled={isSavingTitle || !editedTitle.trim()}
+                    aria-label="Save title"
+                  >
+                    <RiCheckLine className={styles.titleIcon} />
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.cancelTitleButton}
+                    onClick={handleCancelTitle}
+                    disabled={isSavingTitle}
+                    aria-label="Cancel editing"
+                  >
+                    <RiCloseLine className={styles.titleIcon} />
+                  </button>
+                </div>
+              ) : (
+                <div className={styles.titleContainer}>
+                  <h3 className={styles.title}>{unit.title}</h3>
+                  {onUpdateTitle && (
+                    <button
+                      type="button"
+                      className={styles.editTitleButton}
+                      onClick={() => setIsEditingTitle(true)}
+                      aria-label="Edit title"
+                    >
+                      <RiEditLine className={styles.titleIcon} />
+                    </button>
+                  )}
+                </div>
+              )}
               <div className={styles.bottomRow}>
                 <span className={styles.engagementStat}>
                   <FaCheck className={styles.statIcon} />

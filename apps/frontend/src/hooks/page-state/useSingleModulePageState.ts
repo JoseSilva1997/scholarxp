@@ -16,6 +16,7 @@ import {
   useCreateModuleUnitMutation,
   useModuleDetailQuery,
   useModuleUnitsQuery,
+  useUpdateModuleUnitMutation,
   useUpdateModuleUnitStatusMutation,
 } from '../queries/useModulesQueries';
 import { queryKeys } from '../query-keys';
@@ -46,6 +47,7 @@ type UseSingleModulePageStateResult = {
   isCreatingUnit: boolean;
   handleCreateUnit: (title: string) => Promise<void>;
   handleChangeUnitStatus: (unitId: string, status: ModuleUnitStatus) => Promise<void>;
+  handleUpdateUnitTitle: (unitId: string, title: string) => Promise<void>;
   handleModuleSaved: (updated: ModuleSummary) => void;
 };
 
@@ -68,6 +70,7 @@ export function useSingleModulePageState({
   const moduleQuery = useModuleDetailQuery(parsedId);
   const moduleUnitsQuery = useModuleUnitsQuery(parsedId);
   const createModuleUnitMutation = useCreateModuleUnitMutation(parsedId);
+  const updateModuleUnitMutation = useUpdateModuleUnitMutation(parsedId);
   const updateModuleUnitStatusMutation = useUpdateModuleUnitStatusMutation(parsedId);
 
   const canEditSettings = useMemo(() => canUserAccess(features.modules.settings, user), [user]);
@@ -198,6 +201,23 @@ export function useSingleModulePageState({
     }
   };
 
+  /**
+   * Updates a module unit's title via mutation and handles error logging.
+   */
+  const handleUpdateUnitTitle = async (unitId: string, title: string) => {
+    try {
+      await updateModuleUnitMutation.mutateAsync({
+        moduleUnitId: Number(unitId),
+        payload: { title },
+      });
+    } catch (err) {
+      if (shouldLogApiError(err)) {
+        logError(err, { feature: 'module-unit', action: 'update-title', unitId });
+      }
+      throw err;
+    }
+  };
+
   const handleModuleSaved = (updated: ModuleSummary) => {
     if (!parsedId) return;
     // Keep detail cache in sync so settings panel saves are immediately visible in the page header.
@@ -225,6 +245,7 @@ export function useSingleModulePageState({
     isCreatingUnit: createModuleUnitMutation.isPending,
     handleCreateUnit,
     handleChangeUnitStatus,
+    handleUpdateUnitTitle,
     handleModuleSaved,
   };
 }

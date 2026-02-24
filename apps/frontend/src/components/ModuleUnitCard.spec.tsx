@@ -95,7 +95,54 @@ describe('ModuleUnitCard', () => {
       // Modal should not open if no onChangeStatus callback
       expect(screen.queryByText('Ready to publish lesson?')).not.toBeInTheDocument();
     });
+  });
 
+  describe('Title editing', () => {
+    it('shows edit icon when onUpdateTitle is provided', () => {
+      const onUpdateTitle = vi.fn();
+      render(<ModuleUnitCard unit={baseUnit} onUpdateTitle={onUpdateTitle} />);
+      expect(screen.getByLabelText('Edit title')).toBeInTheDocument();
+    });
+
+    it('enters edit mode when clicking edit icon', async () => {
+      const onUpdateTitle = vi.fn();
+      render(<ModuleUnitCard unit={baseUnit} onUpdateTitle={onUpdateTitle} />);
+
+      fireEvent.click(screen.getByLabelText('Edit title'));
+
+      expect(screen.getByDisplayValue('Unit A')).toBeInTheDocument();
+      expect(screen.getByLabelText('Save title')).toBeInTheDocument();
+      expect(screen.getByLabelText('Cancel editing')).toBeInTheDocument();
+    });
+
+    it('cancels editing when clicking cancel icon', () => {
+      const onUpdateTitle = vi.fn();
+      render(<ModuleUnitCard unit={baseUnit} onUpdateTitle={onUpdateTitle} />);
+
+      fireEvent.click(screen.getByLabelText('Edit title'));
+      fireEvent.change(screen.getByDisplayValue('Unit A'), { target: { value: 'New Title' } });
+      fireEvent.click(screen.getByLabelText('Cancel editing'));
+
+      expect(screen.getByText('Unit A')).toBeInTheDocument();
+      expect(screen.queryByDisplayValue('New Title')).not.toBeInTheDocument();
+    });
+
+    it('saves title when clicking save icon', async () => {
+      const onUpdateTitle = vi.fn().mockResolvedValue(undefined);
+      render(<ModuleUnitCard unit={baseUnit} onUpdateTitle={onUpdateTitle} />);
+
+      fireEvent.click(screen.getByLabelText('Edit title'));
+      fireEvent.change(screen.getByDisplayValue('Unit A'), { target: { value: 'Updated Title' } });
+      fireEvent.click(screen.getByLabelText('Save title'));
+
+      await waitFor(() => {
+        expect(onUpdateTitle).toHaveBeenCalledWith('12', 'Updated Title');
+      });
+      expect(screen.queryByLabelText('Save title')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Status button - draft status', () => {
     it('publishes draft to locked status on confirm (draft -> locked transition)', async () => {
       const onChangeStatus = vi.fn().mockResolvedValue(undefined);
       const unit = { ...baseUnit, status: 'draft' as const };

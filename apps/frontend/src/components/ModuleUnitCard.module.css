@@ -213,6 +213,65 @@
   box-shadow: 0 10px 15px -3px var(--color-shadow-base);
 }
 
+.titleContainer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.titleInput {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-family: inherit;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.2;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.titleInput:focus {
+  border-color: var(--color-primary-subtle);
+  box-shadow: 0 0 0 1px var(--color-primary-subtle);
+}
+
+.editTitleButton, .saveTitleButton, .cancelTitleButton {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-dim);
+  transition: all 0.2s ease;
+  border-radius: 4px;
+}
+
+.editTitleButton:hover {
+  color: var(--color-secondary);
+  background: var(--color-secondary-soft);
+}
+
+.saveTitleButton:hover {
+  color: var(--color-secondary);
+  background: var(--color-secondary-soft);
+}
+
+.cancelTitleButton:hover {
+  color: var(--color-error);
+  background: var(--color-error-soft);
+}
+
+.titleIcon {
+  font-size: 1.25rem;
+}
+
 .modalOpen .editButton,
 .modalOpen .statusButton,
 .modalOpen .dropdownButton {
