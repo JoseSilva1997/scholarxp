@@ -172,6 +172,7 @@ export function usePracticeRoomPageState({
   const moduleProgressAnimationFrameRef = useRef<number | null>(null);
   const moduleProgressSyncFrameRef = useRef<number | null>(null);
   const moduleExpGainIndicatorTimeoutRef = useRef<number | null>(null);
+  const levelUpVisibilityTimeoutRef = useRef<number | null>(null);
   const moduleProgressScopeRef = useRef<string | null>(null);
   const activeContentIdRef = useRef<number | null>(null);
   const activeContentViewStartMsRef = useRef<number | null>(null);
@@ -209,6 +210,9 @@ export function usePracticeRoomPageState({
       }
       if (moduleExpGainIndicatorTimeoutRef.current !== null) {
         clearTimeout(moduleExpGainIndicatorTimeoutRef.current);
+      }
+      if (levelUpVisibilityTimeoutRef.current !== null) {
+        clearTimeout(levelUpVisibilityTimeoutRef.current);
       }
     },
     [],
@@ -509,20 +513,11 @@ export function usePracticeRoomPageState({
   }, [displayedModuleTotalExp, moduleDetail]);
 
   useEffect(() => {
-    // Check if level has incremented
-    if (
-      moduleProgress?.level !== undefined &&
-      prevLevelRef.current !== undefined &&
-      moduleProgress.level > prevLevelRef.current
-    ) {
-      setShowLevelUp(true);
-      const timer = setTimeout(() => setShowLevelUp(false), 3000);
-      return () => clearTimeout(timer);
+    if (moduleProgress?.level === undefined) {
+      return;
     }
-    // Update ref regardless
-    if (moduleProgress?.level !== undefined) {
-      prevLevelRef.current = moduleProgress.level;
-    }
+    // Ref-only sync keeps event-path comparisons correct after room reloads/refetches.
+    prevLevelRef.current = moduleProgress.level;
   }, [moduleProgress?.level]);
 
   const selectedOptionIndex = useMemo(() => {
@@ -716,8 +711,26 @@ export function usePracticeRoomPageState({
             return previousValue;
           }
 
+          const previousLevel =
+            prevLevelRef.current ?? fromModuleTotalExp(currentTotalExp, expMax).level;
+          const nextTotalExp = currentTotalExp + submitResponse.moduleExpAwarded;
+          const nextLevel = fromModuleTotalExp(nextTotalExp, expMax).level;
+          // Trigger level-up feedback from the submit event to avoid effect-driven render cascades.
+          if (nextLevel > previousLevel) {
+            setShowLevelUp(true);
+            if (levelUpVisibilityTimeoutRef.current !== null) {
+              clearTimeout(levelUpVisibilityTimeoutRef.current);
+            }
+            levelUpVisibilityTimeoutRef.current = window.setTimeout(() => {
+              setShowLevelUp(false);
+              levelUpVisibilityTimeoutRef.current = null;
+            }, 3000);
+          }
+          // Keep the previous-level baseline aligned with the latest animated progress.
+          prevLevelRef.current = nextLevel;
+
           return {
-            totalExp: currentTotalExp + submitResponse.moduleExpAwarded,
+            totalExp: nextTotalExp,
             expMax,
           };
         });
