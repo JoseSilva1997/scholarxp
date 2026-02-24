@@ -156,8 +156,11 @@ async function bootstrap() {
     .setDescription('ScholarXP backend API')
     .setVersion('0.1.0')
     .build();
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('docs', app, document);
+
+  if (!isProd) {
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup('docs', app, document);
+  }
 
   app.enableShutdownHooks();
   await app.listen(3000);

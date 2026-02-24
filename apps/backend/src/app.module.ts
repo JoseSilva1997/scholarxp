@@ -31,7 +31,11 @@ const appControllers =
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: process.env.NODE_ENV === 'test' ? '.env.test' : '.env',
+      // Resolve per-environment config first, then fall back to development for local/test workflows.
+      envFilePath: [
+        `.env.${process.env.NODE_ENV ?? 'development'}`,
+        '.env.development',
+      ],
     }),
     PrismaModule,
     InstitutionModule,

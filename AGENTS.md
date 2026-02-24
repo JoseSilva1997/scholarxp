@@ -94,5 +94,4 @@ ScholarXP is an LMS-launched study companion that helps students practice course
 
 
 ## Configuration & Secrets
-- Runtime config expects `.env` (and `.env.test` for tests) in `apps/backend`.
-- At minimum, set `DATABASE_URL`. Tests use `SKIP_PRISMA_TX` to control transactional behavior.
+- Runtime config expects `.env` in `apps/backend`.
