@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from
 import { useQueryClient } from '@tanstack/react-query';
 import type { AuthUser, ModuleUnitStatus } from '@scholarxp/api-contracts';
 import type { ModuleSummary } from '../../types/module';
-import { useNavigate } from 'react-router-dom';
 import { MODULE_EXP_MAX } from '@scholarxp/constants';
 import { features } from '@scholarxp/permissions';
 import type { ModuleUnit } from '../../components/ModuleUnitCard';
@@ -54,7 +53,6 @@ export function useSingleModulePageState({
   moduleIdParam,
   user,
 }: UseSingleModulePageStateParams): UseSingleModulePageStateResult {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [actionError, setActionError] = useState<string | null>(null);
   const [isStudentViewEnabled, setIsStudentViewEnabled] = useState(false);
@@ -159,10 +157,9 @@ export function useSingleModulePageState({
     if (!module) return;
     setActionError(null);
     try {
-      const created = await createModuleUnitMutation.mutateAsync({ title });
+      await createModuleUnitMutation.mutateAsync({ title });
       // Close modal and navigate to the newly created unit's editor.
       setShowCreateUnit(false);
-      navigate(`/main/modules/${module.id}/${created.id}/editor`);
     } catch (error) {
       setActionError(
         getDisplayErrorMessage(error, {

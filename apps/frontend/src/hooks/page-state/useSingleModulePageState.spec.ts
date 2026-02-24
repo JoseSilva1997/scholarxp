@@ -188,7 +188,7 @@ describe('useSingleModulePageState', () => {
     expect(result.current.expPercent).toBe(50);
   });
 
-  it('creates a unit and navigates to the unit editor', async () => {
+  it('creates a unit', async () => {
     moduleQueryState = {
       data: {
         id: 9,
@@ -208,7 +208,6 @@ describe('useSingleModulePageState', () => {
     });
 
     expect(mocks.createMutateAsync).toHaveBeenCalledWith({ title: 'Chapter 1' });
-    expect(mocks.navigate).toHaveBeenCalledWith('/main/modules/9/123/editor');
     expect(result.current.showCreateUnit).toBe(false);
   });
 
