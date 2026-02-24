@@ -15,49 +15,37 @@ import { ModuleService } from './module.service';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
 import { SessionAuthGuard } from '../../auth/guards/session-auth.guard';
-import { RolesGuard } from '../../auth/guards/roles.guard';
-import { Roles } from '../../auth/decorators/roles.decorator';
-import { GlobalRole } from '@prisma/client';
-import { ModuleAccess } from '../../auth/decorators/module-access.decorator';
-import { ModuleAccessGuard } from '../../auth/guards/module-access.guard';
+import { AuthorizationGuard } from '../../auth/guards/authorization.guard';
+import { Authorize } from '../../auth/decorators/authorize.decorator';
 import type { AuthUser } from '../../types/auth-user.type';
-import { assertHasAccess } from '../../helpers/permissions.helper';
 import { features } from '@scholarxp/permissions';
 
 @Controller('module')
-@UseGuards(SessionAuthGuard, RolesGuard)
+@UseGuards(SessionAuthGuard, AuthorizationGuard)
 export class ModuleController {
   constructor(private readonly moduleService: ModuleService) {}
 
   @Post()
-  @Roles(GlobalRole.teacher, GlobalRole.institution_admin, GlobalRole.admin)
+  @Authorize({ capability: features.modules.create, scope: 'global' })
   create(@Body() createModuleDto: CreateModuleDto, @Req() req: Request) {
-    // Record creator and enforce institution scoping where applicable.
-    assertHasAccess(
-      features.modules.create,
-      req.user as AuthUser,
-      'You do not have permission to create modules.',
-    );
     return this.moduleService.create(createModuleDto, req.user as AuthUser);
   }
 
   @Get()
+  @Authorize({ capability: features.navigation.modules, scope: 'global' })
   findAll(@Req() req: Request) {
     // Return only modules within the caller's scope.
     return this.moduleService.findAll(req.user as AuthUser);
   }
 
   @Get(':id')
-  @ModuleAccess({ paramKey: 'id', allowStudentRead: true })
-  @UseGuards(ModuleAccessGuard)
+  @Authorize({ capability: features.navigation.modules, scope: 'module' })
   findOne(@Param('id') id: string, @Req() req: Request) {
     return this.moduleService.findOne(+id, req.user as AuthUser);
   }
 
   @Patch(':id')
-  @Roles(GlobalRole.teacher, GlobalRole.institution_admin, GlobalRole.admin)
-  @ModuleAccess({ paramKey: 'id' })
-  @UseGuards(ModuleAccessGuard)
+  @Authorize({ capability: features.modules.settings, scope: 'module' })
   update(
     @Param('id') id: string,
     @Body() updateModuleDto: UpdateModuleDto,
@@ -71,9 +59,7 @@ export class ModuleController {
   }
 
   @Delete(':id')
-  @Roles(GlobalRole.teacher, GlobalRole.institution_admin, GlobalRole.admin)
-  @ModuleAccess({ paramKey: 'id' })
-  @UseGuards(ModuleAccessGuard)
+  @Authorize({ capability: features.modules.settings, scope: 'module' })
   remove(@Param('id') id: string, @Req() req: Request) {
     return this.moduleService.remove(+id, req.user as AuthUser);
   }

@@ -9,21 +9,12 @@ import { UpdateModuleDto } from './dto/update-module.dto';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { AuthUser } from '../../types/auth-user.type';
 import { GlobalRole } from '@prisma/client';
-import { assertHasAccess } from '../../helpers/permissions.helper';
-import { features } from '@scholarxp/permissions';
 
 @Injectable()
 export class ModuleService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createModuleDto: CreateModuleDto, user: AuthUser) {
-    // Enforce shared permission matrix first so backend and frontend rules stay aligned.
-    assertHasAccess(
-      features.modules.create,
-      user,
-      'You do not have permission to create modules',
-    );
-
     // Validate institution scoping. Throws if institution_admins try to create
     // modules outside their institution, or if teachers try to create modules
     // for institutions they don't belong to.
@@ -84,8 +75,6 @@ export class ModuleService {
   }
 
   async update(id: number, updateModuleDto: UpdateModuleDto, user: AuthUser) {
-    assertHasAccess(features.modules.settings, user);
-
     await this.getOrThrow(id);
 
     await this.validateInstitutionScope(
@@ -100,8 +89,8 @@ export class ModuleService {
   }
 
   async remove(id: number, user: AuthUser) {
-    assertHasAccess(features.modules.settings, user);
-
+    // Keep user in the signature for consistency with other service methods and future audit hooks.
+    void user;
     await this.getOrThrow(id);
     return this.prisma.module.delete({ where: { id } });
   }

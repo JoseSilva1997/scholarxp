@@ -1,9 +1,5 @@
 // Targeted tests for ModuleInviteService enforcing capability checks and CRUD behavior.
-import {
-  BadRequestException,
-  ForbiddenException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { GlobalRole, InviteType, Prisma } from '@prisma/client';
 import { createHash } from 'crypto';
 import { ModuleInviteService } from './module-invite.service';
@@ -81,13 +77,6 @@ describe('ModuleInviteService', () => {
     expect(result.url).toContain(result.token);
   });
 
-  it('blocks create when capability missing', async () => {
-    const student = { ...teacher, globalRole: GlobalRole.student };
-    await expect(service.create(module.id, {} as any, student)).rejects.toThrow(
-      UnauthorizedException,
-    );
-  });
-
   it('rejects create when module is institution linked', async () => {
     prisma.module.findUnique.mockResolvedValue({
       ...module,
@@ -117,7 +106,7 @@ describe('ModuleInviteService', () => {
       },
     ] as any);
 
-    const result = await service.findAll(module.id, teacher);
+    const result = await service.findAll(module.id);
 
     expect(prisma.moduleInvite.findMany).toHaveBeenCalledWith({
       where: { moduleId: module.id },
@@ -248,57 +237,21 @@ describe('ModuleInviteService', () => {
     expect(prisma.moduleInvite.updateMany).not.toHaveBeenCalled();
   });
 
-  it('blocks instructors from redeeming invite links', async () => {
-    const token = 'teach';
+  it('rejects redeem when module is institution linked', async () => {
+    const token = 'inst-redeem';
     const tokenHash = createHash('sha256').update(token).digest('hex');
     prisma.moduleInvite.findFirst.mockResolvedValue({
-      id: 7,
+      id: 11,
       moduleId: module.id,
-      createdByUserId: teacher.id,
-      type: InviteType.link,
       tokenHash,
-      maxUses: 5,
-      uses: 0,
-      expiresAt: new Date(Date.now() + 1000 * 60),
-      revokedAt: null,
-      createdAt: new Date(),
-      emailLock: null,
-      module,
+      module: {
+        ...module,
+        institutionId: 100,
+      },
     } as any);
 
-    await expect(service.redeem({ token }, teacher)).rejects.toThrow(
-      UnauthorizedException,
+    await expect(service.redeem({ token }, student)).rejects.toThrow(
+      ForbiddenException,
     );
-    expect(prisma.userModule.create).not.toHaveBeenCalled();
-  });
-
-  it('blocks institution students from redeeming invite links', async () => {
-    const token = 'instudent';
-    const tokenHash = createHash('sha256').update(token).digest('hex');
-    prisma.moduleInvite.findFirst.mockResolvedValue({
-      id: 8,
-      moduleId: module.id,
-      createdByUserId: teacher.id,
-      type: InviteType.link,
-      tokenHash,
-      maxUses: 5,
-      uses: 0,
-      expiresAt: new Date(Date.now() + 1000 * 60),
-      revokedAt: null,
-      createdAt: new Date(),
-      emailLock: null,
-      module,
-    } as any);
-
-    await expect(
-      service.redeem(
-        { token },
-        {
-          ...student,
-          hasInstitutionMembership: true,
-        },
-      ),
-    ).rejects.toThrow(UnauthorizedException);
-    expect(prisma.userModule.create).not.toHaveBeenCalled();
   });
 });

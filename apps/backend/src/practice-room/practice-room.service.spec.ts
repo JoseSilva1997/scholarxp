@@ -480,7 +480,7 @@ describe('PracticeRoomService', () => {
     // ===== BRANCH: Empty contentIds =====
     it('should return empty array when no contents exist (all questions have no core)', async () => {
       // Core-only mode still short-circuits when no draft questions are provided.
-      const questionUnitDrafts = [
+      const _questionUnitDrafts = [
         buildQuestionUnitDraft({
           coreContentId: 11,
         }),
@@ -685,7 +685,7 @@ describe('PracticeRoomService', () => {
       } as any);
       prisma.questionAttempt.findMany.mockResolvedValue([]);
 
-      const result = await service.getPracticeRoom(1, 10, 100);
+      const _result = await service.getPracticeRoom(1, 10, 100);
 
       // Mapper filters out questions without core content, so only unit 1 is queried
       expect(prisma.questionAttempt.findMany).toHaveBeenCalledWith(

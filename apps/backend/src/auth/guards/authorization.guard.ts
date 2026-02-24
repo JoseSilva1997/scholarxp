@@ -19,7 +19,6 @@ import type {
   ModuleAuthorizationContext,
 } from '../authorization/authorization.types';
 import { AuthorizationService } from '../authorization/authorization.service';
-import { Role } from '@scholarxp/permissions';
 
 @Injectable()
 export class AuthorizationGuard implements CanActivate {
@@ -28,8 +27,6 @@ export class AuthorizationGuard implements CanActivate {
     private readonly prisma: PrismaService,
     private readonly authorizationService: AuthorizationService,
   ) {}
-
-  
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const rule =
       this.reflector.getAllAndOverride<AuthorizationRule>(AUTHORIZATION_KEY, [
@@ -49,13 +46,18 @@ export class AuthorizationGuard implements CanActivate {
 
     const moduleContext =
       rule.scope === 'module'
-        ? await this.loadModuleContext(req, user)
+        ? await this.loadModuleContext(req, user, rule.moduleContextSource)
+        : undefined;
+    const selfTargetUserId =
+      rule.scope === 'self'
+        ? this.extractSelfTargetUserId(req, rule.selfUserIdParam ?? 'id')
         : undefined;
 
     const allowed = this.authorizationService.canActivate({
       user,
       rule,
       moduleContext,
+      selfTargetUserId,
     });
 
     if (!allowed) {
@@ -69,10 +71,16 @@ export class AuthorizationGuard implements CanActivate {
   private async loadModuleContext(
     req: Request,
     user: AuthUser,
+    source: AuthorizationRule['moduleContextSource'] = 'module',
   ): Promise<ModuleAuthorizationContext> {
-    const moduleId = this.extractModuleId(req);
+    const moduleId =
+      source === 'user_module'
+        ? await this.resolveModuleIdFromUserModule(req)
+        : source === 'module_unit'
+          ? await this.resolveModuleIdFromModuleUnit(req)
+          : this.extractModuleId(req);
     if (!moduleId) {
-      throw new BadRequestException('Module id is required for this action');
+      throw new BadRequestException('Module not specified');
     }
 
     const module = await this.prisma.module.findUnique({
@@ -108,7 +116,7 @@ export class AuthorizationGuard implements CanActivate {
     }
 
     const membership = module.userModules[0];
-    
+
     // membership.roleInModule comes from the DB as a plain string. Narrow it
     // to the specific union expected by ModuleAuthorizationContext to keep
     // the authorization service typesafe and avoid leaking arbitrary strings.
@@ -125,6 +133,46 @@ export class AuthorizationGuard implements CanActivate {
     };
   }
 
+  // Routes keyed by user-module id still authorize against parent module ownership/membership.
+  private async resolveModuleIdFromUserModule(
+    req: Request,
+  ): Promise<number | null> {
+    const rawId = req.params?.id;
+    const userModuleId = Number(rawId);
+    if (!Number.isFinite(userModuleId) || userModuleId <= 0) {
+      return null;
+    }
+
+    const userModule = await this.prisma.userModule.findUnique({
+      where: { id: userModuleId },
+      select: { moduleId: true },
+    });
+    if (!userModule) {
+      throw new NotFoundException('UserModule not found');
+    }
+    return userModule.moduleId;
+  }
+
+  // Module-unit routes still authorize at module scope, so resolve parent module id first.
+  private async resolveModuleIdFromModuleUnit(
+    req: Request,
+  ): Promise<number | null> {
+    const rawId = req.params?.id;
+    const moduleUnitId = Number(rawId);
+    if (!Number.isFinite(moduleUnitId) || moduleUnitId <= 0) {
+      return null;
+    }
+
+    const moduleUnit = await this.prisma.moduleUnit.findUnique({
+      where: { id: moduleUnitId },
+      select: { moduleId: true },
+    });
+    if (!moduleUnit) {
+      throw new NotFoundException('ModuleUnit not found');
+    }
+    return moduleUnit.moduleId;
+  }
+
   // Supported lookups mirror existing module guards so migration is non-breaking for current route shapes.
   private extractModuleId(req: Request): number | null {
     const value =
@@ -136,6 +184,23 @@ export class AuthorizationGuard implements CanActivate {
     const asNumber = Number(value);
     if (!Number.isFinite(asNumber) || asNumber <= 0) {
       return null;
+    }
+    return asNumber;
+  }
+
+  // Self scope resolves a target user id from route/body/query so policy checks can compare against req.user.id.
+  private extractSelfTargetUserId(
+    req: Request,
+    targetUserIdParam: 'id' | 'userId',
+  ): number {
+    const value =
+      req.params?.[targetUserIdParam] ??
+      (req.body as Record<string, unknown>)?.[targetUserIdParam] ??
+      (req.query as Record<string, unknown>)?.[targetUserIdParam];
+
+    const asNumber = Number(value);
+    if (!Number.isFinite(asNumber) || asNumber <= 0) {
+      throw new BadRequestException('User not specified');
     }
     return asNumber;
   }

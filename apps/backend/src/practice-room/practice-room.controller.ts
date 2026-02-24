@@ -11,24 +11,23 @@ import {
 import type { Request } from 'express';
 import { PracticeRoomService } from './practice-room.service';
 import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
-import { ModuleAccessGuard } from '../auth/guards/module-access.guard';
-import { ModuleAccess } from '../auth/decorators/module-access.decorator';
+import { AuthorizationGuard } from '../auth/guards/authorization.guard';
+import { Authorize } from '../auth/decorators/authorize.decorator';
 import type { AuthUser } from '../types/auth-user.type';
 import { GetPracticeRoomParamsDto } from './dto/get-practice-room-params.dto';
 import { GetPracticeRoomQueryDto } from './dto/get-practice-room-query.dto';
 import { SubmitAttemptDto } from './dto/submit-attempt.dto';
-import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { features } from '@scholarxp/permissions';
 
 // PracticeRoomController exposes module-unit-scoped room endpoints used when students start practice from a module unit.
 @Controller('module/:moduleId/unit/:moduleUnitId/practice-room')
-@UseGuards(SessionAuthGuard, RolesGuard)
+@UseGuards(SessionAuthGuard, AuthorizationGuard)
 export class PracticeRoomController {
   constructor(private readonly practiceRoomService: PracticeRoomService) {}
 
-  // Guarding by module keeps module-unit practice-room reads consistent with module-scoped permission rules.
+  // Room access uses module scope so membership/ownership checks run in the shared authorization evaluator.
   @Get()
-  @UseGuards(SessionAuthGuard, ModuleAccessGuard)
-  @ModuleAccess({ paramKey: 'moduleId', allowStudentRead: true })
+  @Authorize({ capability: features.navigation.modules, scope: 'module' })
   getPracticeRoom(
     @Param() params: GetPracticeRoomParamsDto,
     @Query() query: GetPracticeRoomQueryDto,
@@ -43,10 +42,9 @@ export class PracticeRoomController {
     );
   }
 
-  // Module-unit attempt submission reuses the same guard chain as room load to keep permission checks consistent.
+  // Attempt submissions share the same policy to keep read/answer flows aligned for authorized module users.
   @Post('attempts')
-  @UseGuards(SessionAuthGuard, ModuleAccessGuard)
-  @ModuleAccess({ paramKey: 'moduleId', allowStudentRead: true })
+  @Authorize({ capability: features.navigation.modules, scope: 'module' })
   submitAttempt(
     @Param() params: GetPracticeRoomParamsDto,
     @Body() payload: SubmitAttemptDto,

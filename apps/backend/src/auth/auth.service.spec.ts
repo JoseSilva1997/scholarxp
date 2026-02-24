@@ -16,7 +16,6 @@ describe('AuthService', () => {
   let prisma: DeepMockProxy<PrismaService>;
   let emailTokens: jest.Mocked<EmailVerificationTokenService>;
   let mailer: jest.Mocked<MailerService>;
-  let config: jest.Mocked<ConfigService>;
 
   const mockUser = {
     id: 1,
@@ -76,7 +75,6 @@ describe('AuthService', () => {
     service = module.get<AuthService>(AuthService);
     emailTokens = module.get(EmailVerificationTokenService);
     mailer = module.get(MailerService);
-    config = module.get(ConfigService);
   });
 
   describe('regenerateSession', () => {

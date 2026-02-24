@@ -73,4 +73,32 @@ describe('AuthorizationService', () => {
 
     expect(allowed).toBe(true);
   });
+
+  it('allows self scope when user id matches target id', () => {
+    const allowed = service.canActivate({
+      user: {
+        id: 21,
+        globalRole: GlobalRole.pending,
+        hasInstitutionMembership: false,
+      } as any,
+      rule: { capability: features.users.selectOwnRole, scope: 'self' },
+      selfTargetUserId: 21,
+    });
+
+    expect(allowed).toBe(true);
+  });
+
+  it('denies self scope when user id does not match target id', () => {
+    const allowed = service.canActivate({
+      user: {
+        id: 21,
+        globalRole: GlobalRole.pending,
+        hasInstitutionMembership: false,
+      } as any,
+      rule: { capability: features.users.selectOwnRole, scope: 'self' },
+      selfTargetUserId: 99,
+    });
+
+    expect(allowed).toBe(false);
+  });
 });

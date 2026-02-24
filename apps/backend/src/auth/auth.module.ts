@@ -11,8 +11,6 @@ import { AuthService } from './auth.service';
 import { LocalStrategy } from './strategies/local.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { SessionSerializer } from './session.serializer';
-import { RolesGuard } from './guards/roles.guard';
-import { ModuleAccessGuard } from './guards/module-access.guard';
 import { SessionAuthGuard } from './guards/session-auth.guard';
 import { AuthorizationService } from './authorization/authorization.service';
 import { AuthorizationGuard } from './guards/authorization.guard';
@@ -33,16 +31,12 @@ import { AuthorizationGuard } from './guards/authorization.guard';
     GoogleStrategy,
     SessionSerializer,
     SessionAuthGuard,
-    RolesGuard,
-    ModuleAccessGuard,
     AuthorizationService,
     AuthorizationGuard,
   ],
   exports: [
     AuthService,
     SessionAuthGuard,
-    RolesGuard,
-    ModuleAccessGuard,
     AuthorizationService,
     AuthorizationGuard,
   ],

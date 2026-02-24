@@ -301,7 +301,7 @@ export class ModuleUnitService {
   private async getOrThrow(id: number) {
     const record = await this.prisma.moduleUnit.findUnique({ where: { id } });
     if (!record) {
-      throw new NotFoundException(`ModuleUnit ${id} not found`);
+      throw new NotFoundException(`ModuleUnit not found`);
     }
     return record;
   }

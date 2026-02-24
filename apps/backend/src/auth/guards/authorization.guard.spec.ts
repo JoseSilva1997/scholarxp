@@ -20,6 +20,8 @@ describe('AuthorizationGuard', () => {
 
   const prisma = {
     module: { findUnique: jest.fn() },
+    userModule: { findUnique: jest.fn() },
+    moduleUnit: { findUnique: jest.fn() },
     ltiIdentity: { findFirst: jest.fn() },
   } as unknown as PrismaService;
 
@@ -117,5 +119,236 @@ describe('AuthorizationGuard', () => {
         }),
       ),
     ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('resolves module context from user-module id when requested', async () => {
+    (reflector.getAllAndOverride as jest.Mock).mockReturnValue({
+      capability: features.modules.settings,
+      scope: 'module',
+      moduleContextSource: 'user_module',
+    } as AuthorizationRule);
+    (prisma.userModule.findUnique as jest.Mock).mockResolvedValue({
+      moduleId: 55,
+    });
+    (prisma.module.findUnique as jest.Mock).mockResolvedValue({
+      id: 55,
+      institutionId: null,
+      createdByUserId: 1,
+      userModules: [{ roleInModule: 'teacher' }],
+    });
+    (authorizationService.canActivate as jest.Mock).mockReturnValue(true);
+
+    await expect(
+      guard.canActivate(
+        contextFor({
+          user: {
+            id: 1,
+            globalRole: GlobalRole.teacher,
+            hasInstitutionMembership: false,
+          } as any,
+          params: { id: '9' },
+        }),
+      ),
+    ).resolves.toBe(true);
+
+    expect(prisma.userModule.findUnique).toHaveBeenCalledWith({
+      where: { id: 9 },
+      select: { moduleId: true },
+    });
+    expect(prisma.module.findUnique).toHaveBeenCalledWith({
+      where: { id: 55 },
+      select: {
+        id: true,
+        institutionId: true,
+        createdByUserId: true,
+        userModules: {
+          where: { userId: 1 },
+          select: { roleInModule: true },
+        },
+      },
+    });
+  });
+
+  it('throws bad request when user-module source id is invalid', async () => {
+    (reflector.getAllAndOverride as jest.Mock).mockReturnValue({
+      capability: features.modules.settings,
+      scope: 'module',
+      moduleContextSource: 'user_module',
+    } as AuthorizationRule);
+
+    await expect(
+      guard.canActivate(
+        contextFor({
+          user: {
+            id: 1,
+            globalRole: GlobalRole.teacher,
+            hasInstitutionMembership: false,
+          } as any,
+          params: { id: 'abc' },
+        }),
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('throws not found when user-module record is missing', async () => {
+    (reflector.getAllAndOverride as jest.Mock).mockReturnValue({
+      capability: features.modules.settings,
+      scope: 'module',
+      moduleContextSource: 'user_module',
+    } as AuthorizationRule);
+    (prisma.userModule.findUnique as jest.Mock).mockResolvedValue(null);
+
+    await expect(
+      guard.canActivate(
+        contextFor({
+          user: {
+            id: 1,
+            globalRole: GlobalRole.teacher,
+            hasInstitutionMembership: false,
+          } as any,
+          params: { id: '9' },
+        }),
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('resolves module context from module-unit id when requested', async () => {
+    (reflector.getAllAndOverride as jest.Mock).mockReturnValue({
+      capability: features.modules.manageContent,
+      scope: 'module',
+      moduleContextSource: 'module_unit',
+    } as AuthorizationRule);
+    (prisma.moduleUnit.findUnique as jest.Mock).mockResolvedValue({
+      moduleId: 44,
+    });
+    (prisma.module.findUnique as jest.Mock).mockResolvedValue({
+      id: 44,
+      institutionId: null,
+      createdByUserId: 1,
+      userModules: [{ roleInModule: 'teacher' }],
+    });
+    (authorizationService.canActivate as jest.Mock).mockReturnValue(true);
+
+    await expect(
+      guard.canActivate(
+        contextFor({
+          user: {
+            id: 1,
+            globalRole: GlobalRole.teacher,
+            hasInstitutionMembership: false,
+          } as any,
+          params: { id: '12' },
+        }),
+      ),
+    ).resolves.toBe(true);
+
+    expect(prisma.moduleUnit.findUnique).toHaveBeenCalledWith({
+      where: { id: 12 },
+      select: { moduleId: true },
+    });
+    expect(prisma.module.findUnique).toHaveBeenCalledWith({
+      where: { id: 44 },
+      select: {
+        id: true,
+        institutionId: true,
+        createdByUserId: true,
+        userModules: {
+          where: { userId: 1 },
+          select: { roleInModule: true },
+        },
+      },
+    });
+  });
+
+  it('throws bad request when module-unit source id is invalid', async () => {
+    (reflector.getAllAndOverride as jest.Mock).mockReturnValue({
+      capability: features.modules.manageContent,
+      scope: 'module',
+      moduleContextSource: 'module_unit',
+    } as AuthorizationRule);
+
+    await expect(
+      guard.canActivate(
+        contextFor({
+          user: {
+            id: 1,
+            globalRole: GlobalRole.teacher,
+            hasInstitutionMembership: false,
+          } as any,
+          params: { id: 'abc' },
+        }),
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('throws not found when module-unit record is missing', async () => {
+    (reflector.getAllAndOverride as jest.Mock).mockReturnValue({
+      capability: features.modules.manageContent,
+      scope: 'module',
+      moduleContextSource: 'module_unit',
+    } as AuthorizationRule);
+    (prisma.moduleUnit.findUnique as jest.Mock).mockResolvedValue(null);
+
+    await expect(
+      guard.canActivate(
+        contextFor({
+          user: {
+            id: 1,
+            globalRole: GlobalRole.teacher,
+            hasInstitutionMembership: false,
+          } as any,
+          params: { id: '12' },
+        }),
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('passes self target id to authorization service for self scope', async () => {
+    (reflector.getAllAndOverride as jest.Mock).mockReturnValue({
+      capability: features.users.selectOwnRole,
+      scope: 'self',
+      selfUserIdParam: 'id',
+    } as AuthorizationRule);
+    (authorizationService.canActivate as jest.Mock).mockReturnValue(true);
+
+    await expect(
+      guard.canActivate(
+        contextFor({
+          user: {
+            id: 1,
+            globalRole: GlobalRole.pending,
+            hasInstitutionMembership: false,
+          } as any,
+          params: { id: '1' },
+        }),
+      ),
+    ).resolves.toBe(true);
+
+    expect(authorizationService.canActivate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        selfTargetUserId: 1,
+      }),
+    );
+  });
+
+  it('throws bad request when self scope target id is invalid', async () => {
+    (reflector.getAllAndOverride as jest.Mock).mockReturnValue({
+      capability: features.users.selectOwnRole,
+      scope: 'self',
+      selfUserIdParam: 'id',
+    } as AuthorizationRule);
+
+    await expect(
+      guard.canActivate(
+        contextFor({
+          user: {
+            id: 1,
+            globalRole: GlobalRole.pending,
+            hasInstitutionMembership: false,
+          } as any,
+          params: { id: 'not-a-number' },
+        }),
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 });

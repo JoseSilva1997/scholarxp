@@ -18,13 +18,11 @@ import { UpdateModuleInviteDto } from './dto/update-module-invite.dto';
 import { RedeemModuleInviteDto } from './dto/redeem-module-invite.dto';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { AuthUser } from '../../types/auth-user.type';
-import { assertHasAccess } from '../../helpers/permissions.helper';
 import {
   FRONTEND_URL,
   MODULE_INVITE_DEFAULT_EXPIRY_HOURS,
   MODULE_INVITE_DEFAULT_MAX_USES,
 } from '@scholarxp/constants';
-import { features } from '@scholarxp/permissions';
 
 @Injectable()
 export class ModuleInviteService {
@@ -35,11 +33,6 @@ export class ModuleInviteService {
     createModuleInviteDto: CreateModuleInviteDto,
     user: AuthUser,
   ) {
-    assertHasAccess(
-      features.modules.invitations,
-      user,
-      'You do not have permission to manage module invites',
-    );
     await this.assertModuleAllowsInvites(moduleId);
 
     const expiryHours =
@@ -71,12 +64,7 @@ export class ModuleInviteService {
     };
   }
 
-  async findAll(moduleId: number, user: AuthUser) {
-    assertHasAccess(
-      features.modules.invitations,
-      user,
-      'You do not have permission to view module invites',
-    );
+  async findAll(moduleId: number) {
     await this.assertModuleAllowsInvites(moduleId);
 
     const invites = await this.prisma.moduleInvite.findMany({
@@ -95,13 +83,7 @@ export class ModuleInviteService {
     moduleId: number,
     id: number,
     updateModuleInviteDto: UpdateModuleInviteDto,
-    user: AuthUser,
   ) {
-    assertHasAccess(
-      features.modules.invitations,
-      user,
-      'You do not have permission to manage module invites',
-    );
     await this.assertModuleAllowsInvites(moduleId);
     await this.getOrThrow(id, moduleId);
 
@@ -124,10 +106,7 @@ export class ModuleInviteService {
     return this.sanitizeInvite(updated);
   }
 
-  async remove(moduleId: number, id: number, user: AuthUser) {
-    assertHasAccess(features.modules.invitations, user, {
-      message: 'You do not have permission to manage module invites',
-    });
+  async remove(moduleId: number, id: number) {
     await this.assertModuleAllowsInvites(moduleId);
     await this.getOrThrow(id, moduleId);
     const deleted = await this.prisma.moduleInvite.delete({ where: { id } });
@@ -136,10 +115,6 @@ export class ModuleInviteService {
 
   async redeem(dto: RedeemModuleInviteDto, user: AuthUser) {
     // Use shared capability evaluator so backend and frontend stay aligned on who can redeem links.
-    assertHasAccess(features.modules.invitationsRedemption, user, {
-      message:
-        'Only students non-affiliated with an institution can redeem invites.',
-    });
     const tokenHash = this.hashToken(dto.token);
     const invite = await this.findAndValidateInvite(tokenHash);
     const enrollment = await this.createEnrollmentWithIncrementedUsage(

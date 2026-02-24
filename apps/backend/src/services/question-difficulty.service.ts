@@ -20,4 +20,7 @@ Anti-gaming: only first scored attempt per student per session, or weight retrie
 Recency: optionally weight recent attempts a bit higher so content can “recalibrate.”
 */
 
-class QuestionDifficultyService {}
+import { Injectable } from '@nestjs/common';
+
+@Injectable()
+export class QuestionDifficultyService {}

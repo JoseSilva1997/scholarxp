@@ -1,9 +1,5 @@
 // Tests for ModuleService enforcing scoped creation and filtered reads.
-import {
-  ForbiddenException,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { GlobalRole } from '@prisma/client';
 import { ModuleService } from './module.service';
 import { createPrismaMock, type PrismaMock } from '../../test/test-helpers';
@@ -67,13 +63,27 @@ describe('ModuleService', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
-  it('rejects teacher with institution membership creating any module', async () => {
+  it('allows teacher with institution membership creating non-institution module', async () => {
     const dto = { title: 'Nope' };
+    prisma.module.create.mockResolvedValue({
+      id: 77,
+      ...dto,
+      createdByUserId: teacherWithInstitution.id,
+    } as any);
 
-    await expect(
-      service.create(dto as any, teacherWithInstitution as any),
-    ).rejects.toBeInstanceOf(UnauthorizedException);
-    expect(prisma.module.create).not.toHaveBeenCalled();
+    const result = await service.create(
+      dto as any,
+      teacherWithInstitution as any,
+    );
+
+    expect(prisma.module.create).toHaveBeenCalledWith({
+      data: { ...dto, createdByUserId: teacherWithInstitution.id },
+    });
+    expect(result).toEqual({
+      id: 77,
+      ...dto,
+      createdByUserId: teacherWithInstitution.id,
+    });
   });
 
   it('findAll returns all for admin', async () => {

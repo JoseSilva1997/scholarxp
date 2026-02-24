@@ -1,9 +1,8 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
-import { Reflector } from '@nestjs/core';
 import { PrismaService } from '../prisma/prisma.service';
-import { ModuleAccessGuard } from '../auth/guards/module-access.guard';
+import { AuthorizationGuard } from '../auth/guards/authorization.guard';
 
 export type PrismaMock = DeepMockProxy<PrismaService>;
 
@@ -184,7 +183,7 @@ export function runCrudControllerTests<TCreate, TUpdate>(
       };
 
       // Create a testing module with guard overrides to prevent dependency resolution issues.
-      // Guards like ModuleAccessGuard have dependencies (PrismaService, Reflector) that aren't needed for controller unit tests.
+      // Controller unit tests isolate parameter forwarding and should not instantiate auth guard dependencies.
       const moduleRef = await Test.createTestingModule({
         controllers: [config.controller],
         providers: [
@@ -192,7 +191,7 @@ export function runCrudControllerTests<TCreate, TUpdate>(
           ...(config.extraProviders ?? []),
         ],
       })
-        .overrideGuard(ModuleAccessGuard)
+        .overrideGuard(AuthorizationGuard)
         .useValue({ canActivate: jest.fn().mockReturnValue(true) })
         .compile();
 

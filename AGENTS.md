@@ -11,6 +11,7 @@ ScholarXP is an LMS-launched study companion that helps students practice course
 - Use a **domain-module** layout in NestJS: keep controllers thin, put business rules in services, and keep recommendation/selection logic (daily sets, quests, XP rules) isolated in dedicated services so it can be unit-tested easily.
 - Data access via Prisma only (no raw SQL unless unavoidable). Treat Prisma models as persistence, not your domain API—use DTOs/entities where it keeps boundaries clean.
 - Permissions: use the shared matrix in `packages/permissions` as the single source of truth. Backend must enforce with the shared evaluator and return capabilities to the frontend; frontend should gate UI using server-provided capabilities or the shared evaluator as fallback.
+- Authorization: protect backend routes with `SessionAuthGuard` + `AuthorizationGuard` and declare intent with `@Authorize(...)`. Keep capability checks in the shared permissions matrix, keep policy evaluation in `AuthorizationService`, and keep controllers/services responsible for business validation and domain workflows.
 
 ## API Contracts & Shared Types
 - Use the **Shared Contract** pattern to sync Frontend and Backend.

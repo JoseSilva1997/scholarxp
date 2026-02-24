@@ -34,6 +34,11 @@ export type PermissionMatrix = Record<FeatureKey, RoleKey[]>;
 // Single source of truth for feature permissions across the application.
 export const permissionMatrix: PermissionMatrix = {
 
+  // ====USERS====
+  [features.users.selectOwnRole]: [
+    'pending'
+  ],
+
   // ====MODULES====
   [features.modules.create]: [
     'admin', 

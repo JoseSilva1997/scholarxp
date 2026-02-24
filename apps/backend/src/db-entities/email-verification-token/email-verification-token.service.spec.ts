@@ -1,4 +1,4 @@
-import { EmailVerificationToken, Prisma } from '@prisma/client';
+import { EmailVerificationToken } from '@prisma/client';
 import { Test, TestingModule } from '@nestjs/testing';
 import { EmailVerificationTokenService } from './email-verification-token.service';
 import { PrismaService } from '../../prisma/prisma.service';

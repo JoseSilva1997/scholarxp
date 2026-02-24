@@ -10,7 +10,7 @@ export class PrismaService
 {
   private pool: Pool;
 
-  /* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment */
+  /* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
   constructor() {
     const url = process.env.DATABASE_URL;
     if (!url) {
@@ -24,7 +24,7 @@ export class PrismaService
 
     this.pool = pool;
   }
-  /* eslint-enable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment */
+  /* eslint-enable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
 
   async onModuleInit() {
     await this.$connect();

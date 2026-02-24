@@ -402,7 +402,7 @@
 
 .optionText { 
   font-weight: 600;
-  color: var(--color-text-on-dark-vibrant); 
+  color: var(--color-text); 
   }
 
 .optionStatusCorrect {

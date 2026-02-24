@@ -43,7 +43,7 @@ describe('AuthController', () => {
 
   // attachCapabilities returns the same user object with computed capabilities array
   const mockCapabilities: FeatureKey[] = [];
-  const mockUserWithCapabilities = {
+  const _mockUserWithCapabilities = {
     ...mockAuthUser,
     capabilities: mockCapabilities,
   };

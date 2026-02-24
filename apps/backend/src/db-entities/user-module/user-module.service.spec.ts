@@ -1,9 +1,5 @@
 // Tests for UserModuleService ensuring module-scoped listing.
-import {
-  BadRequestException,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { UserModuleService } from './user-module.service';
 import { createPrismaMock, type PrismaMock } from '../../test/test-helpers';
 import { GlobalRole } from '@prisma/client';
@@ -11,7 +7,7 @@ import { GlobalRole } from '@prisma/client';
 describe('UserModuleService', () => {
   let prisma: PrismaMock;
   let service: UserModuleService;
-  const teacher = {
+  const _teacher = {
     id: 1,
     globalRole: GlobalRole.teacher,
     hasInstitutionMembership: false,
@@ -27,7 +23,7 @@ describe('UserModuleService', () => {
   it('findAll filters by moduleId when provided', async () => {
     prisma.userModule.findMany.mockResolvedValue([]);
 
-    await service.findAll(5, teacher);
+    await service.findAll(5);
 
     expect(prisma.userModule.findMany).toHaveBeenCalledWith({
       where: { moduleId: 5 },
@@ -37,7 +33,7 @@ describe('UserModuleService', () => {
   it('findAll returns all when moduleId omitted', async () => {
     prisma.userModule.findMany.mockResolvedValue([]);
 
-    await service.findAll(undefined, teacher);
+    await service.findAll(undefined);
 
     expect(prisma.userModule.findMany).toHaveBeenCalledWith();
   });
@@ -46,13 +42,6 @@ describe('UserModuleService', () => {
     prisma.userModule.findUnique.mockResolvedValue(null);
 
     await expect(service.findOne(1)).rejects.toBeInstanceOf(NotFoundException);
-  });
-
-  it('blocks roster actions when permission denied', () => {
-    const noAccess = { ...teacher, globalRole: GlobalRole.student };
-    expect(() =>
-      service.create({ moduleId: 1, userId: 2 } as any, noAccess),
-    ).toThrow(UnauthorizedException);
   });
 
   it('addStudentModuleExp increments module XP for enrolled student', async () => {

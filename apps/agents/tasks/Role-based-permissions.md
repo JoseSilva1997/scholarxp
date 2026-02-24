@@ -11,13 +11,17 @@ Central source of truth for role-based access and rendering so both backend guar
 - `admin`: superuser across all institutions; full CRUD.
 
 ## Backend contract
-- Session: `SessionAuthGuard` loads `AuthUser` from session; `RolesGuard` enforces handler roles; `ModuleAccessGuard` enforces per-module scope (admin always; institution_admin only same institution; teacher if creator or instructor; optional student read).
-- Permissions: use the shared matrix in `packages/permissions` (`@scholarxp/permissions`) for feature-level checks; evaluate with authenticated user context and combine with domain/ownership/institution checks. Compute and return `capabilities` in auth responses; never rely on frontend-only maps for enforcement.
+- Session: `SessionAuthGuard` loads `AuthUser` from session; `AuthorizationGuard` enforces route policy metadata from `@Authorize(...)`.
+- Policy: `AuthorizationGuard` resolves route context (for example module id from route params or related entities) and delegates evaluation to `AuthorizationService`.
+- Permissions: use the shared matrix in `packages/permissions` (`@scholarxp/permissions`) for capability checks. Compute and return `capabilities` in auth responses; never rely on frontend-only maps for enforcement.
+- Scope model:
+  - `global`: capability check only.
+  - `module`: capability + module-scoped access checks (creator/membership/institution match based on role).
+  - `self`: capability + target user id must match authenticated user id.
 - Endpoints:
   - `GET /auth/me`: returns `AuthUser` (with `globalRole`) for UI gating.
-  - `GET /module`: returns modules already scoped to caller role (admin=all; institution_admin=institution; teacher=created/assigned; student=enrolled). Do not further filter on the server per caller.
-  - `GET /module/:id`: guarded by ModuleAccessGuard; 401 → re-auth; 403 → not allowed; 404 → missing.
-  - Roster/Invites (user-module/module-invite): teacher+/institution_admin/admin only; module-scoped via ModuleAccessGuard.
+  - `GET /module`: returns modules already scoped to caller role (admin=all; institution_admin=institution; teacher=created/assigned; student=enrolled).
+  - Module-scoped endpoints use `@Authorize({ scope: 'module' })`; 401 → re-auth; 403 → not allowed; 404 → missing.
 - Error hygiene: never leak raw errors; return specific 401/403/404 messages, generic for 500.
 
 ## Frontend contract

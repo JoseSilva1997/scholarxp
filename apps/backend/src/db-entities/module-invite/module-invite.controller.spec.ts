@@ -4,8 +4,7 @@ import type { Request } from 'express';
 import { ModuleInviteController } from './module-invite.controller';
 import { ModuleInviteService } from './module-invite.service';
 import { SessionAuthGuard } from '../../auth/guards/session-auth.guard';
-import { RolesGuard } from '../../auth/guards/roles.guard';
-import { ModuleAccessGuard } from '../../auth/guards/module-access.guard';
+import { AuthorizationGuard } from '../../auth/guards/authorization.guard';
 import { GlobalRole } from '@prisma/client';
 import { CreateModuleInviteDto } from './dto/create-module-invite.dto';
 import { UpdateModuleInviteDto } from './dto/update-module-invite.dto';
@@ -39,9 +38,7 @@ describe('ModuleInviteController', () => {
     })
       .overrideGuard(SessionAuthGuard)
       .useValue({ canActivate: jest.fn().mockReturnValue(true) })
-      .overrideGuard(RolesGuard)
-      .useValue({ canActivate: jest.fn().mockReturnValue(true) })
-      .overrideGuard(ModuleAccessGuard)
+      .overrideGuard(AuthorizationGuard)
       .useValue({ canActivate: jest.fn().mockReturnValue(true) })
       .compile();
 
@@ -63,9 +60,9 @@ describe('ModuleInviteController', () => {
   it('findAll delegates to the service', async () => {
     service.findAll.mockResolvedValue([{ id: 2 }]);
 
-    const result = await controller.findAll('3', req);
+    const result = await controller.findAll('3');
 
-    expect(service.findAll).toHaveBeenCalledWith(3, req.user);
+    expect(service.findAll).toHaveBeenCalledWith(3);
     expect(result).toEqual([{ id: 2 }]);
   });
 
@@ -73,18 +70,18 @@ describe('ModuleInviteController', () => {
     const dto: UpdateModuleInviteDto = { maxUses: 5 };
     service.update.mockResolvedValue({ id: 4 });
 
-    const result = await controller.update('7', '4', dto, req);
+    const result = await controller.update('7', '4', dto);
 
-    expect(service.update).toHaveBeenCalledWith(7, 4, dto, req.user);
+    expect(service.update).toHaveBeenCalledWith(7, 4, dto);
     expect(result).toEqual({ id: 4 });
   });
 
   it('remove parses id to number and delegates', async () => {
     service.remove.mockResolvedValue({ id: 5 });
 
-    const result = await controller.remove('11', '5', req);
+    const result = await controller.remove('11', '5');
 
-    expect(service.remove).toHaveBeenCalledWith(11, 5, req.user);
+    expect(service.remove).toHaveBeenCalledWith(11, 5);
     expect(result).toEqual({ id: 5 });
   });
 

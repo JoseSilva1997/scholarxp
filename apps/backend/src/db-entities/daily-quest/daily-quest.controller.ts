@@ -1,40 +1,24 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  Req,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Req, Query, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 import type { AuthUser } from '../../types/auth-user.type';
 import { SessionAuthGuard } from '../../auth/guards/session-auth.guard';
 import { DailyQuestService } from './daily-quest.service';
-import { CreateDailyQuestDto } from './dto/create-daily-quest.dto';
 import { GetQuestHistoryQueryDto } from './dto/get-quest-history-query.dto';
-import { UpdateDailyQuestDto } from './dto/update-daily-quest.dto';
-import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { AuthorizationGuard } from '../../auth/guards/authorization.guard';
+import { Authorize } from '../../auth/decorators/authorize.decorator';
+import { features } from '@scholarxp/permissions';
 
 type DailyQuestHistoryRequest = Request & {
   user?: AuthUser;
 };
 
 @Controller('daily-quest')
-@UseGuards(SessionAuthGuard, RolesGuard)
 export class DailyQuestController {
   constructor(private readonly dailyQuestService: DailyQuestService) {}
 
-  @Post()
-  create(@Body() createDailyQuestDto: CreateDailyQuestDto) {
-    return this.dailyQuestService.create(createDailyQuestDto);
-  }
-
   @Get('history')
-  @UseGuards(SessionAuthGuard)
+  @UseGuards(SessionAuthGuard, AuthorizationGuard)
+  @Authorize({ capability: features.navigation.quests, scope: 'global' })
   getMyQuestHistory(
     @Req() request: DailyQuestHistoryRequest,
     @Query() query: GetQuestHistoryQueryDto,
@@ -44,23 +28,5 @@ export class DailyQuestController {
       (request.user as AuthUser).id,
       query,
     );
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.dailyQuestService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(
-    @Param('id') id: string,
-    @Body() updateDailyQuestDto: UpdateDailyQuestDto,
-  ) {
-    return this.dailyQuestService.update(+id, updateDailyQuestDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.dailyQuestService.remove(+id);
   }
 }

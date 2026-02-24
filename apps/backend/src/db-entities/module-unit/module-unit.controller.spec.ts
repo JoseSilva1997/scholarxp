@@ -1,36 +1,53 @@
 import { Test } from '@nestjs/testing';
-import { runCrudControllerTests } from '../../test/test-helpers';
 import { ModuleUnitController } from './module-unit.controller';
 import { ModuleUnitService } from './module-unit.service';
-import * as permissions from '../../helpers/permissions.helper';
-import { ModuleAccessGuard } from '../../auth/guards/module-access.guard';
 import { SessionAuthGuard } from '../../auth/guards/session-auth.guard';
+import { AuthorizationGuard } from '../../auth/guards/authorization.guard';
 import { QuestionUnitService } from '../questions/question-unit/question-unit.service';
 import { ModuleUnitQuestionGroupService } from '../module-unit-question-group/module-unit-question-group.service';
-import { features } from '@scholarxp/permissions';
+import type { UpdateModuleUnitDto } from './dto/update-module-unit.dto';
 
-runCrudControllerTests({
-  name: 'ModuleUnitController',
-  controller: ModuleUnitController,
-  service: ModuleUnitService,
-  extraProviders: [
-    { provide: QuestionUnitService, useValue: { findOne: jest.fn() } },
-    {
-      provide: ModuleUnitQuestionGroupService,
-      useValue: { findOne: jest.fn() },
-    },
-  ],
-  createDto: {
-    moduleId: 1,
-    variantContext: 'ctx',
-    title: 'Unit 1',
-    questionCount: 3,
-    status: 'draft' as any,
-    sortOrder: 1,
-  },
-  updateDto: {
-    title: 'Updated Unit',
-  },
+// Unit tests focus on route-to-service forwarding for module-unit controller's exposed routes.
+describe('ModuleUnitController.update', () => {
+  let controller: ModuleUnitController;
+  const service = {
+    update: jest.fn(),
+  } as unknown as ModuleUnitService;
+
+  beforeEach(async () => {
+    const moduleRef = await Test.createTestingModule({
+      controllers: [ModuleUnitController],
+      providers: [
+        { provide: ModuleUnitService, useValue: service },
+        { provide: QuestionUnitService, useValue: { findOne: jest.fn() } },
+        {
+          provide: ModuleUnitQuestionGroupService,
+          useValue: { findOne: jest.fn() },
+        },
+      ],
+    })
+      .overrideGuard(SessionAuthGuard)
+      .useValue({ canActivate: jest.fn().mockReturnValue(true) })
+      .overrideGuard(AuthorizationGuard)
+      .useValue({ canActivate: jest.fn().mockReturnValue(true) })
+      .compile();
+    controller = moduleRef.get(ModuleUnitController);
+  });
+
+  afterEach(() => {
+    jest.resetAllMocks();
+  });
+
+  it('forwards id and dto', async () => {
+    const dto: UpdateModuleUnitDto = { title: 'Updated Unit' };
+    const updated = { id: 77, title: 'Updated Unit' };
+    (service.update as any).mockResolvedValue(updated);
+
+    const result = await controller.update('77', dto);
+
+    expect(service.update).toHaveBeenCalledWith(77, dto);
+    expect(result).toEqual(updated);
+  });
 });
 
 describe('ModuleUnitController.createForModule', () => {
@@ -46,9 +63,7 @@ describe('ModuleUnitController.createForModule', () => {
   } as unknown as ModuleUnitQuestionGroupService;
 
   beforeEach(async () => {
-    jest.spyOn(permissions, 'assertHasAccess').mockReturnValue(undefined);
-    // Override guards to prevent dependency resolution issues in unit tests.
-    // SessionAuthGuard and ModuleAccessGuard have external dependencies we don't need to test here.
+    // Controller unit tests focus on parameter forwarding, not guard internals.
     const moduleRef = await Test.createTestingModule({
       controllers: [ModuleUnitController],
       providers: [
@@ -62,7 +77,7 @@ describe('ModuleUnitController.createForModule', () => {
     })
       .overrideGuard(SessionAuthGuard)
       .useValue({ canActivate: jest.fn().mockReturnValue(true) })
-      .overrideGuard(ModuleAccessGuard)
+      .overrideGuard(AuthorizationGuard)
       .useValue({ canActivate: jest.fn().mockReturnValue(true) })
       .compile();
     controller = moduleRef.get(ModuleUnitController);
@@ -72,19 +87,13 @@ describe('ModuleUnitController.createForModule', () => {
     jest.resetAllMocks();
   });
 
-  it('forwards module id, dto, and enforces permissions', async () => {
-    const mockUser = { id: 1 } as any;
-    const req: any = { user: mockUser };
+  it('forwards module id and dto', async () => {
     const dto = { title: 'Algebra' };
     const created = { id: 11, title: 'Algebra' };
     (service.createForModule as any).mockResolvedValue(created);
 
-    const result = await controller.createForModule('5', dto, req);
+    const result = await controller.createForModule('5', dto);
 
-    expect(permissions.assertHasAccess).toHaveBeenCalledWith(
-      features.modules.manageContent,
-      mockUser,
-    );
     expect(service.createForModule).toHaveBeenCalledWith(5, dto);
     expect(result).toEqual(created);
   });
@@ -110,7 +119,7 @@ describe('ModuleUnitController.findByModule', () => {
     })
       .overrideGuard(SessionAuthGuard)
       .useValue({ canActivate: jest.fn().mockReturnValue(true) })
-      .overrideGuard(ModuleAccessGuard)
+      .overrideGuard(AuthorizationGuard)
       .useValue({ canActivate: jest.fn().mockReturnValue(true) })
       .compile();
     controller = moduleRef.get(ModuleUnitController);

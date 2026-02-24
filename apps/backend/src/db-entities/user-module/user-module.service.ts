@@ -8,10 +8,7 @@ import type { Prisma } from '@prisma/client';
 import { CreateUserModuleDto } from './dto/create-user-module.dto';
 import { UpdateUserModuleDto } from './dto/update-user-module.dto';
 import { PrismaService } from '../../prisma/prisma.service';
-import type { AuthUser } from '../../types/auth-user.type';
-import { assertHasAccess } from '../../helpers/permissions.helper';
 import { MODULE_EXP_MAX } from '@scholarxp/constants';
-import { features } from '@scholarxp/permissions';
 
 type PrismaClientLike = Prisma.TransactionClient | PrismaService;
 
@@ -19,22 +16,11 @@ type PrismaClientLike = Prisma.TransactionClient | PrismaService;
 export class UserModuleService {
   constructor(private readonly prisma: PrismaService) {}
 
-  create(createUserModuleDto: CreateUserModuleDto, user: AuthUser) {
-    // Validate permissisons before hitting the database so we fail fast on forbidden requests.
-    assertHasAccess(
-      features.modules.settings,
-      user,
-      'You do not have permission to manage module rosters.',
-    );
+  create(createUserModuleDto: CreateUserModuleDto) {
     return this.prisma.userModule.create({ data: createUserModuleDto });
   }
 
-  findAll(moduleId: number | undefined, user: AuthUser) {
-    assertHasAccess(
-      features.modules.settings,
-      user,
-      'You do not have permission to manage module rosters.',
-    );
+  findAll(moduleId: number | undefined) {
     // Constrain roster queries to a specific module when provided.
     if (moduleId) {
       return this.prisma.userModule.findMany({ where: { moduleId } });
@@ -46,16 +32,7 @@ export class UserModuleService {
     return this.getOrThrow(id);
   }
 
-  async update(
-    id: number,
-    updateUserModuleDto: UpdateUserModuleDto,
-    user: AuthUser,
-  ) {
-    assertHasAccess(
-      features.modules.settings,
-      user,
-      'You do not have permission to manage module rosters.',
-    );
+  async update(id: number, updateUserModuleDto: UpdateUserModuleDto) {
     await this.getOrThrow(id);
     return this.prisma.userModule.update({
       where: { id },
@@ -63,12 +40,7 @@ export class UserModuleService {
     });
   }
 
-  async remove(id: number, user: AuthUser) {
-    assertHasAccess(
-      features.modules.settings,
-      user,
-      'You do not have permission to delete module rosters.',
-    );
+  async remove(id: number) {
     await this.getOrThrow(id);
     return this.prisma.userModule.delete({ where: { id } });
   }
@@ -103,7 +75,7 @@ export class UserModuleService {
 
     if (!membership) {
       throw new NotFoundException(
-        `Student ${studentId} is not enrolled in module ${moduleId}.`,
+        `The student is not enrolled in this module.`,
       );
     }
 
@@ -127,7 +99,7 @@ export class UserModuleService {
   private async getOrThrow(id: number) {
     const record = await this.prisma.userModule.findUnique({ where: { id } });
     if (!record) {
-      throw new NotFoundException(`UserModule ${id} not found`);
+      throw new NotFoundException(`UserModule not found`);
     }
     return record;
   }

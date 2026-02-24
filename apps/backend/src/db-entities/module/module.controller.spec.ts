@@ -4,8 +4,7 @@ import { ModuleController } from './module.controller';
 import { ModuleService } from './module.service';
 import { GlobalRole } from '@prisma/client';
 import { SessionAuthGuard } from '../../auth/guards/session-auth.guard';
-import { RolesGuard } from '../../auth/guards/roles.guard';
-import { ModuleAccessGuard } from '../../auth/guards/module-access.guard';
+import { AuthorizationGuard } from '../../auth/guards/authorization.guard';
 
 describe('ModuleController', () => {
   let controller: ModuleController;
@@ -36,9 +35,7 @@ describe('ModuleController', () => {
     })
       .overrideGuard(SessionAuthGuard)
       .useValue({ canActivate: jest.fn().mockReturnValue(true) })
-      .overrideGuard(RolesGuard)
-      .useValue({ canActivate: jest.fn().mockReturnValue(true) })
-      .overrideGuard(ModuleAccessGuard)
+      .overrideGuard(AuthorizationGuard)
       .useValue({ canActivate: jest.fn().mockReturnValue(true) })
       .compile();
 

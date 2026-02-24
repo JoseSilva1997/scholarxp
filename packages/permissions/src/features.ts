@@ -1,5 +1,8 @@
 // Capability catalog centralizes feature identifiers so backend/frontend share one typed vocabulary.
 export const features = {
+  users: {
+    selectOwnRole: 'users_select_own_role',
+  },
   modules: {
     create: 'modules_create',
     setInstitution: 'modules_set_institution',

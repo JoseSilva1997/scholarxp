@@ -10,12 +10,10 @@ import { AvatarModule } from './db-entities/avatar/avatar.module';
 import { ModuleModule } from './db-entities/module/module.module';
 import { UserModuleModule } from './db-entities/user-module/user-module.module';
 import { ModuleInviteModule } from './db-entities/module-invite/module-invite.module';
-import { UserPasswordModule } from './db-entities/user-password/user-password.module';
 import { DailyQuestModule } from './db-entities/daily-quest/daily-quest.module';
 import { ModuleUnitModule } from './db-entities/module-unit/module-unit.module';
 import { PracticeSessionModule } from './db-entities/practice-session/practice-session.module';
 import { ModuleUnitQuestionGroupModule } from './db-entities/module-unit-question-group/module-unit-question-group.module';
-import { ModuleUnitUserProgressModule } from './db-entities/module-unit-user-progress/module-unit-user-progress.module';
 import { QuestionUnitModule } from './db-entities/questions/question-unit/question-unit.module';
 import { QuestionContentModule } from './db-entities/questions/question-content/question-content.module';
 import { QuestionVariantModule } from './db-entities/questions/question-variant/question-variant.module';
@@ -40,12 +38,11 @@ import { PracticeRoomModule } from './practice-room/practice-room.module';
     ModuleModule,
     UserModuleModule,
     ModuleInviteModule,
-    UserPasswordModule,
     DailyQuestModule,
     ModuleUnitModule,
     PracticeSessionModule,
     ModuleUnitQuestionGroupModule,
-    ModuleUnitUserProgressModule,
+
     QuestionUnitModule,
     QuestionContentModule,
     QuestionVariantModule,

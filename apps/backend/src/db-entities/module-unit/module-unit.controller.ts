@@ -12,13 +12,11 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { ModuleUnitService } from './module-unit.service';
-import { CreateModuleUnitDto } from './dto/create-module-unit.dto';
 import { UpdateModuleUnitDto } from './dto/update-module-unit.dto';
 import { CreateModuleUnitMinimalDto } from './dto/create-module-unit-minimal.dto';
 import { SessionAuthGuard } from '../../auth/guards/session-auth.guard';
-import { ModuleAccessGuard } from '../../auth/guards/module-access.guard';
-import { ModuleAccess } from '../../auth/decorators/module-access.decorator';
-import { assertHasAccess } from '../../helpers/permissions.helper';
+import { AuthorizationGuard } from '../../auth/guards/authorization.guard';
+import { Authorize } from '../../auth/decorators/authorize.decorator';
 import type { AuthUser } from '../../types/auth-user.type';
 import { QuestionUnitService } from '../questions/question-unit/question-unit.service';
 import { CreateQuestionWithContentDto } from '../questions/question-unit/dto/create-question-with-content.dto';
@@ -27,12 +25,11 @@ import { UpdateQuestionContentDto } from '../questions/question-content/dto/upda
 import { ModuleUnitQuestionGroupService } from '../module-unit-question-group/module-unit-question-group.service';
 import { CreateModuleUnitQuestionGroupDto } from '../module-unit-question-group/dto/create-module-unit-question-group.dto';
 import { UpdateModuleUnitQuestionGroupNameDto } from '../module-unit-question-group/dto/update-module-unit-question-group-name.dto';
-import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { features } from '@scholarxp/permissions';
 
-// This controller serves both `/module-unit` CRUD endpoints and the module-scoped create route `/module/:moduleId/units`.
+// This controller serves module-scoped authoring/practice routes and unit-status updates.
 @Controller()
-@UseGuards(SessionAuthGuard, RolesGuard)
+@UseGuards(SessionAuthGuard, AuthorizationGuard)
 export class ModuleUnitController {
   constructor(
     private readonly moduleUnitService: ModuleUnitService,
@@ -42,33 +39,19 @@ export class ModuleUnitController {
 
   // Module-scoped creation aligned with frontend call: POST /module/:moduleId/units
   @Post('module/:moduleId/units')
-  @UseGuards(SessionAuthGuard, ModuleAccessGuard)
-  @ModuleAccess({ paramKey: 'moduleId' })
+  @Authorize({ capability: features.modules.manageContent, scope: 'module' })
   createForModule(
     @Param('moduleId') moduleId: string,
     @Body() createModuleUnitDto: CreateModuleUnitMinimalDto,
-    @Req() req: Request,
   ) {
-    assertHasAccess(features.modules.manageContent, req.user as AuthUser);
     return this.moduleUnitService.createForModule(
       +moduleId,
       createModuleUnitDto,
     );
   }
 
-  @Post('module-unit')
-  create(@Body() createModuleUnitDto: CreateModuleUnitDto) {
-    return this.moduleUnitService.create(createModuleUnitDto);
-  }
-
-  @Get('module-unit')
-  findAll() {
-    return this.moduleUnitService.findAll();
-  }
-
   @Get('module/:moduleId/units')
-  @UseGuards(SessionAuthGuard, ModuleAccessGuard)
-  @ModuleAccess({ paramKey: 'moduleId', allowStudentRead: true })
+  @Authorize({ capability: features.navigation.modules, scope: 'module' })
   findByModule(@Param('moduleId') moduleId: string, @Req() req: Request) {
     const user = req.user as AuthUser;
     // Student readers receive latest-attempt status in grouped question previews.
@@ -76,21 +59,13 @@ export class ModuleUnitController {
     return this.moduleUnitService.findByModule(+moduleId, studentId);
   }
 
-  @Get('module-unit/:id')
-  findOne(@Param('id') id: string) {
-    return this.moduleUnitService.findOne(+id);
-  }
-
   @Post('module/:moduleId/unit/:unitId/questions')
-  @UseGuards(SessionAuthGuard, ModuleAccessGuard)
-  @ModuleAccess({ paramKey: 'moduleId' })
+  @Authorize({ capability: features.modules.manageContent, scope: 'module' })
   async createQuestionForUnit(
     @Param('moduleId') moduleId: string,
     @Param('unitId') unitId: string,
     @Body() body: CreateQuestionWithContentDto,
-    @Req() req: Request,
   ) {
-    assertHasAccess(features.modules.manageContent, req.user as AuthUser);
     const parsedModuleId = Number(moduleId);
     const parsedUnitId = Number(unitId);
     if (!Number.isFinite(parsedModuleId) || !Number.isFinite(parsedUnitId)) {
@@ -105,15 +80,12 @@ export class ModuleUnitController {
   }
 
   @Post('module/:moduleId/unit/:unitId/question-groups')
-  @UseGuards(SessionAuthGuard, ModuleAccessGuard)
-  @ModuleAccess({ paramKey: 'moduleId' })
+  @Authorize({ capability: features.modules.manageContent, scope: 'module' })
   async createQuestionGroupForUnit(
     @Param('moduleId') moduleId: string,
     @Param('unitId') unitId: string,
     @Body() body: CreateModuleUnitQuestionGroupDto,
-    @Req() req: Request,
   ) {
-    assertHasAccess(features.modules.manageContent, req.user as AuthUser);
     // Creating groups lazily avoids front-end race conditions when authors start with a draft group.
     const parsedModuleId = Number(moduleId);
     const parsedUnitId = Number(unitId);
@@ -131,16 +103,13 @@ export class ModuleUnitController {
   }
 
   @Post('module/:moduleId/unit/:unitId/questions/:questionId/variants')
-  @UseGuards(SessionAuthGuard, ModuleAccessGuard)
-  @ModuleAccess({ paramKey: 'moduleId' })
+  @Authorize({ capability: features.modules.manageContent, scope: 'module' })
   async createVariantForQuestion(
     @Param('moduleId') moduleId: string,
     @Param('unitId') unitId: string,
     @Param('questionId') questionId: string,
     @Body() body: CreateVariantWithContentDto,
-    @Req() req: Request,
   ) {
-    assertHasAccess(features.modules.manageContent, req.user as AuthUser);
     const parsedModuleId = Number(moduleId);
     const parsedUnitId = Number(unitId);
     const parsedQuestionId = Number(questionId);
@@ -163,17 +132,14 @@ export class ModuleUnitController {
   @Patch(
     'module/:moduleId/unit/:unitId/questions/:questionId/content/:contentId',
   )
-  @UseGuards(SessionAuthGuard, ModuleAccessGuard)
-  @ModuleAccess({ paramKey: 'moduleId' })
+  @Authorize({ capability: features.modules.manageContent, scope: 'module' })
   async updateQuestionContent(
     @Param('moduleId') moduleId: string,
     @Param('unitId') unitId: string,
     @Param('questionId') questionId: string,
     @Param('contentId') contentId: string,
     @Body() body: UpdateQuestionContentDto,
-    @Req() req: Request,
   ) {
-    assertHasAccess(features.modules.manageContent, req.user as AuthUser);
     const parsedModuleId = Number(moduleId);
     const parsedUnitId = Number(unitId);
     const parsedQuestionId = Number(questionId);
@@ -196,15 +162,12 @@ export class ModuleUnitController {
   }
 
   @Delete('module/:moduleId/unit/:unitId/questions/:questionId')
-  @UseGuards(SessionAuthGuard, ModuleAccessGuard)
-  @ModuleAccess({ paramKey: 'moduleId' })
+  @Authorize({ capability: features.modules.manageContent, scope: 'module' })
   async deleteQuestion(
     @Param('moduleId') moduleId: string,
     @Param('unitId') unitId: string,
     @Param('questionId') questionId: string,
-    @Req() req: Request,
   ) {
-    assertHasAccess(features.modules.manageContent, req.user as AuthUser);
     const parsedModuleId = Number(moduleId);
     const parsedUnitId = Number(unitId);
     const parsedQuestionId = Number(questionId);
@@ -225,16 +188,13 @@ export class ModuleUnitController {
   @Delete(
     'module/:moduleId/unit/:unitId/questions/:questionId/variants/:variantId',
   )
-  @UseGuards(SessionAuthGuard, ModuleAccessGuard)
-  @ModuleAccess({ paramKey: 'moduleId' })
+  @Authorize({ capability: features.modules.manageContent, scope: 'module' })
   async deleteVariant(
     @Param('moduleId') moduleId: string,
     @Param('unitId') unitId: string,
     @Param('questionId') questionId: string,
     @Param('variantId') variantId: string,
-    @Req() req: Request,
   ) {
-    assertHasAccess(features.modules.manageContent, req.user as AuthUser);
     const parsedModuleId = Number(moduleId);
     const parsedUnitId = Number(unitId);
     const parsedQuestionId = Number(questionId);
@@ -256,15 +216,12 @@ export class ModuleUnitController {
   }
 
   @Delete('module/:moduleId/unit/:unitId/question-groups/:groupId')
-  @UseGuards(SessionAuthGuard, ModuleAccessGuard)
-  @ModuleAccess({ paramKey: 'moduleId' })
+  @Authorize({ capability: features.modules.manageContent, scope: 'module' })
   async deleteQuestionGroup(
     @Param('moduleId') moduleId: string,
     @Param('unitId') unitId: string,
     @Param('groupId') groupId: string,
-    @Req() req: Request,
   ) {
-    assertHasAccess(features.modules.manageContent, req.user as AuthUser);
     const parsedModuleId = Number(moduleId);
     const parsedUnitId = Number(unitId);
     const parsedGroupId = Number(groupId);
@@ -283,16 +240,13 @@ export class ModuleUnitController {
   }
 
   @Patch('module/:moduleId/unit/:unitId/question-groups/:groupId')
-  @UseGuards(SessionAuthGuard, ModuleAccessGuard)
-  @ModuleAccess({ paramKey: 'moduleId' })
+  @Authorize({ capability: features.modules.manageContent, scope: 'module' })
   async renameQuestionGroup(
     @Param('moduleId') moduleId: string,
     @Param('unitId') unitId: string,
     @Param('groupId') groupId: string,
     @Body() body: UpdateModuleUnitQuestionGroupNameDto,
-    @Req() req: Request,
   ) {
-    assertHasAccess(features.modules.manageContent, req.user as AuthUser);
     const parsedModuleId = Number(moduleId);
     const parsedUnitId = Number(unitId);
     const parsedGroupId = Number(groupId);
@@ -312,8 +266,7 @@ export class ModuleUnitController {
   }
 
   @Get('module/:moduleId/unit/:unitId/editor')
-  @UseGuards(SessionAuthGuard, ModuleAccessGuard)
-  @ModuleAccess({ paramKey: 'moduleId', allowStudentRead: true })
+  @Authorize({ capability: features.navigation.modules, scope: 'module' })
   async getEditorPayload(
     @Param('moduleId') moduleId: string,
     @Param('unitId') unitId: string,
@@ -326,15 +279,15 @@ export class ModuleUnitController {
   }
 
   @Patch('module-unit/:id')
+  @Authorize({
+    capability: features.modules.manageContent,
+    scope: 'module',
+    moduleContextSource: 'module_unit',
+  })
   update(
     @Param('id') id: string,
     @Body() updateModuleUnitDto: UpdateModuleUnitDto,
   ) {
     return this.moduleUnitService.update(+id, updateModuleUnitDto);
-  }
-
-  @Delete('module-unit/:id')
-  remove(@Param('id') id: string) {
-    return this.moduleUnitService.remove(+id);
   }
 }

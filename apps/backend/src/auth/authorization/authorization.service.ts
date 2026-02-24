@@ -32,6 +32,10 @@ export class AuthorizationService {
       );
     }
 
+    if (rule.scope === 'self') {
+      return this.canSelfScope(user.id, input.selfTargetUserId);
+    }
+
     return false;
   }
 
@@ -68,5 +72,13 @@ export class AuthorizationService {
     }
 
     return false;
+  }
+
+  // Self scope rules enforce that users can only access their own resources.
+  private canSelfScope(userId: number, selfTargetUserId: number | undefined) {
+    if (!selfTargetUserId) {
+      return false;
+    }
+    return userId === selfTargetUserId;
   }
 }
