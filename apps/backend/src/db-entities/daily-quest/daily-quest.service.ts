@@ -28,19 +28,18 @@ export class DailyQuestService {
     const dayLimit = normalizeDayLimit(query.dayLimit);
     const dayOffset = normalizeDayOffset(query.dayOffset);
 
-    // First fetch unique quest days so pagination remains day-based instead of row-based.
-    const questDays = await this.prisma.dailyQuest.findMany({
+    // ASk the database for only the requested page of distinct quest days (+1 to detect hasMore)
+    const questDayGroups = await this.prisma.dailyQuest.groupBy({
       where: { userId },
-      select: {
-        questDateUtc: true,
-      },
-      distinct: ['questDateUtc'],
-      orderBy: {
-        questDateUtc: 'desc',
-      },
+      by: ['questDateUtc'],
+      orderBy: { questDateUtc: 'desc' },
+      skip: dayOffset,
+      take: dayLimit + 1,
     });
-    const pagedQuestDays = questDays
-      .slice(dayOffset, dayOffset + dayLimit)
+
+    const hasMore = questDayGroups.length > dayLimit;
+    const pagedQuestDays = questDayGroups
+      .slice(0, dayLimit)
       .map((entry) => entry.questDateUtc);
     if (pagedQuestDays.length === 0) {
       return {
@@ -73,7 +72,6 @@ export class DailyQuestService {
     });
 
     const nextOffset = dayOffset + dayLimit;
-    const hasMore = nextOffset < questDays.length;
 
     return {
       quests: rows.map((row): QuestHistoryItemDto => {
