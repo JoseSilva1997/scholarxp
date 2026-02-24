@@ -20,7 +20,8 @@ function buildBaseForm(overrides: Partial<QuestionForm> = {}): QuestionForm {
       value: option.optionText,
       isCorrect: index === 0,
     })),
-    explanations: template.options.map((option) => option.explanation),
+    // Normalize optional explanations to string because the form model expects concrete text values.
+    explanations: template.options.map((option) => option.explanation ?? ''),
     hint: 'hint',
     ...overrides,
   };
@@ -44,6 +45,10 @@ describe('QuestionTypeRegistry', () => {
     });
 
     const payload = QUESTION_TYPE_CONFIGS.mcq.buildQuestionData(form);
+
+    if (!('correctOptionIndex' in payload) || !('options' in payload)) {
+      throw new Error('Expected MCQ payload shape');
+    }
 
     expect(payload.correctOptionIndex).toBe(1);
     expect(payload.options).toEqual([
@@ -81,6 +86,10 @@ describe('QuestionTypeRegistry', () => {
     });
 
     const payload = QUESTION_TYPE_CONFIGS['true-false'].buildQuestionData(form);
+
+    if (!('trueOption' in payload) || !('falseOption' in payload)) {
+      throw new Error('Expected true/false payload shape');
+    }
 
     expect(payload.trueOption).toEqual({ isCorrect: false, explanation: 'ET' });
     expect(payload.falseOption).toEqual({ isCorrect: true, explanation: 'EF' });

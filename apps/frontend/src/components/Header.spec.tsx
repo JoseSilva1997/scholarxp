@@ -16,11 +16,13 @@ vi.mock('../hooks/queries/useQuestsQueries', () => ({
 
 // Mock UserBadge to track props passed to it, allowing assertion on level/exp values
 type MockUserBadgeProps = {
+  user?: AuthUser;
   level?: number;
   exp?: {
     current: number;
     max: number;
   };
+  onLogout?: () => Promise<void> | void;
 };
 
 let mockUserBadgeProps: Partial<MockUserBadgeProps> = {};

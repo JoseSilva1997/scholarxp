@@ -2,6 +2,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import UserBadge from './UserBadge';
+import type { AuthUser } from '../types/auth';
 
 const navigateMock = vi.fn();
 
@@ -14,14 +15,15 @@ vi.mock('react-router-dom', async () => {
 });
 
 describe('UserBadge', () => {
-  const user = {
+  const user: AuthUser = {
     id: 1,
     firstName: 'Jane',
     lastName: 'Doe',
     email: 'jane@x.com',
     globalRole: 'student' as const,
     isVerified: true,
-    avatar: { level: 2, currentExp: 30 },
+    // Keep fixture aligned with shared AuthUser contract so tests also validate real prop expectations.
+    avatar: { id: 101, level: 2, currentExp: 30 },
     profilePictureUrl: '',
   };
 
