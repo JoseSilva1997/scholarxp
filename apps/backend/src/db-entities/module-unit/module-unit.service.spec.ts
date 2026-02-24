@@ -252,3 +252,51 @@ describe('ModuleUnitService.findByModule', () => {
     expect(result[0]?.isCompleted).toBe(true);
   });
 });
+
+describe('ModuleUnitService.findEditorPayload', () => {
+  let service: ModuleUnitService;
+  let prisma: ReturnType<typeof createPrismaMock>;
+
+  beforeEach(() => {
+    prisma = createPrismaMock();
+    service = new ModuleUnitService(prisma as unknown as PrismaService);
+  });
+
+  it('throws NotFoundException when module unit is outside scope', async () => {
+    prisma.moduleUnit.findUnique.mockResolvedValue({
+      id: 3,
+      moduleId: 1,
+      title: 'Unit',
+      questionGroups: [],
+      questionUnits: [],
+    } as any);
+
+    await expect(service.findEditorPayload(2, 3)).rejects.toThrow(
+      'Module unit not found',
+    );
+  });
+
+  it('returns unit payload when scope matches', async () => {
+    prisma.moduleUnit.findUnique.mockResolvedValue({
+      id: 3,
+      moduleId: 2,
+      title: 'Unit',
+      variantContext: '',
+      questionGroups: [{ id: 1, name: 'G1', sortOrder: 1, moduleUnitId: 3 }],
+      questionUnits: [
+        {
+          id: 101,
+          title: 'Q1',
+          questionGroupId: 1,
+          contents: [{ id: 55, isCore: true, type: 'mcq', questionStem: '...', questionData: {}, isArchived: false }],
+          variants: [],
+          isArchived: false,
+        },
+      ],
+    } as any);
+
+    const result = await service.findEditorPayload(2, 3);
+    expect(result.id).toBe(3);
+    expect(result.moduleId).toBe(2);
+  });
+});

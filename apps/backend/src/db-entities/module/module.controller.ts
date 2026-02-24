@@ -5,6 +5,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
   Req,
@@ -40,27 +41,23 @@ export class ModuleController {
 
   @Get(':id')
   @Authorize({ capability: features.navigation.modules, scope: 'module' })
-  findOne(@Param('id') id: string, @Req() req: Request) {
-    return this.moduleService.findOne(+id, req.user as AuthUser);
+  findOne(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
+    return this.moduleService.findOne(id, req.user as AuthUser);
   }
 
   @Patch(':id')
   @Authorize({ capability: features.modules.settings, scope: 'module' })
   update(
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateModuleDto: UpdateModuleDto,
     @Req() req: Request,
   ) {
-    return this.moduleService.update(
-      +id,
-      updateModuleDto,
-      req.user as AuthUser,
-    );
+    return this.moduleService.update(id, updateModuleDto, req.user as AuthUser);
   }
 
   @Delete(':id')
   @Authorize({ capability: features.modules.settings, scope: 'module' })
-  remove(@Param('id') id: string, @Req() req: Request) {
-    return this.moduleService.remove(+id, req.user as AuthUser);
+  remove(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
+    return this.moduleService.remove(id, req.user as AuthUser);
   }
 }

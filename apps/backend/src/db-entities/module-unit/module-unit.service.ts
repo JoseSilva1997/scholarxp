@@ -121,7 +121,11 @@ export class ModuleUnitService {
   }
 
   // Read payload tailored for the module-unit editor; now includes groups, questions, and variants.
-  async findEditorPayload(id: number): Promise<ModuleUnitEditorDto> {
+  // Scope check ensures unit belongs to current module context.
+  async findEditorPayload(
+    moduleId: number,
+    id: number,
+  ): Promise<ModuleUnitEditorDto> {
     const record = (await this.prisma.moduleUnit.findUnique({
       where: { id },
       include: {
@@ -158,9 +162,11 @@ export class ModuleUnitService {
         };
       };
     }> | null;
-    if (!record) {
-      throw new NotFoundException(`ModuleUnit ${id} not found`);
+
+    if (!record || record.moduleId !== moduleId) {
+      throw new NotFoundException(`Module unit not found`);
     }
+
     const groupedQuestions = record.questionGroups.map((group) => {
       const questions = record.questionUnits
         .filter((q) => q.questionGroupId === group.id)
@@ -301,7 +307,7 @@ export class ModuleUnitService {
   private async getOrThrow(id: number) {
     const record = await this.prisma.moduleUnit.findUnique({ where: { id } });
     if (!record) {
-      throw new NotFoundException(`ModuleUnit not found`);
+      throw new NotFoundException(`Not found`);
     }
     return record;
   }

@@ -9,6 +9,7 @@ import {
   Req,
   UseGuards,
   NotFoundException,
+  ParseIntPipe,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { ModuleUnitService } from './module-unit.service';
@@ -41,39 +42,37 @@ export class ModuleUnitController {
   @Post('module/:moduleId/units')
   @Authorize({ capability: features.modules.manageContent, scope: 'module' })
   createForModule(
-    @Param('moduleId') moduleId: string,
+    @Param('moduleId', ParseIntPipe) moduleId: number,
     @Body() createModuleUnitDto: CreateModuleUnitMinimalDto,
   ) {
     return this.moduleUnitService.createForModule(
-      +moduleId,
+      moduleId,
       createModuleUnitDto,
     );
   }
 
   @Get('module/:moduleId/units')
   @Authorize({ capability: features.navigation.modules, scope: 'module' })
-  findByModule(@Param('moduleId') moduleId: string, @Req() req: Request) {
+  findByModule(
+    @Param('moduleId', ParseIntPipe) moduleId: number,
+     @Req() req: Request
+    ) {
     const user = req.user as AuthUser;
     // Student readers receive latest-attempt status in grouped question previews.
     const studentId = user.globalRole === 'student' ? user.id : undefined;
-    return this.moduleUnitService.findByModule(+moduleId, studentId);
+    return this.moduleUnitService.findByModule(moduleId, studentId);
   }
 
   @Post('module/:moduleId/unit/:unitId/questions')
   @Authorize({ capability: features.modules.manageContent, scope: 'module' })
   async createQuestionForUnit(
-    @Param('moduleId') moduleId: string,
-    @Param('unitId') unitId: string,
+    @Param('moduleId', ParseIntPipe) moduleId: number,
+    @Param('unitId', ParseIntPipe) unitId: number,
     @Body() body: CreateQuestionWithContentDto,
   ) {
-    const parsedModuleId = Number(moduleId);
-    const parsedUnitId = Number(unitId);
-    if (!Number.isFinite(parsedModuleId) || !Number.isFinite(parsedUnitId)) {
-      throw new NotFoundException('Module unit not found');
-    }
     const result = await this.questionUnitService.createQuestionWithContent(
-      parsedModuleId,
-      parsedUnitId,
+      moduleId,
+      unitId,
       body,
     );
     return result;
@@ -82,51 +81,31 @@ export class ModuleUnitController {
   @Post('module/:moduleId/unit/:unitId/question-groups')
   @Authorize({ capability: features.modules.manageContent, scope: 'module' })
   async createQuestionGroupForUnit(
-    @Param('moduleId') moduleId: string,
-    @Param('unitId') unitId: string,
+    @Param('moduleId', ParseIntPipe) moduleId: number,
+    @Param('unitId', ParseIntPipe) unitId: number,
     @Body() body: CreateModuleUnitQuestionGroupDto,
   ) {
-    // Creating groups lazily avoids front-end race conditions when authors start with a draft group.
-    const parsedModuleId = Number(moduleId);
-    const parsedUnitId = Number(unitId);
-    if (!Number.isFinite(parsedModuleId) || !Number.isFinite(parsedUnitId)) {
-      throw new NotFoundException('Module unit not found');
-    }
-    if (body.moduleUnitId !== parsedUnitId) {
-      throw new NotFoundException('Module unit not found');
-    }
-    const unit = await this.moduleUnitService.findOne(parsedUnitId);
-    if (!unit || unit.moduleId !== parsedModuleId) {
-      throw new NotFoundException('Module unit not found');
-    }
-    return this.moduleUnitQuestionGroupService.create(body);
+    return this.moduleUnitQuestionGroupService.createScoped(
+      moduleId,
+      unitId,
+      body,
+    );
   }
 
   @Post('module/:moduleId/unit/:unitId/questions/:questionId/variants')
   @Authorize({ capability: features.modules.manageContent, scope: 'module' })
   async createVariantForQuestion(
-    @Param('moduleId') moduleId: string,
-    @Param('unitId') unitId: string,
-    @Param('questionId') questionId: string,
+    @Param('moduleId', ParseIntPipe) moduleId: number,
+    @Param('unitId', ParseIntPipe) unitId: number,
+    @Param('questionId', ParseIntPipe) questionId: number,
     @Body() body: CreateVariantWithContentDto,
   ) {
-    const parsedModuleId = Number(moduleId);
-    const parsedUnitId = Number(unitId);
-    const parsedQuestionId = Number(questionId);
-    if (
-      !Number.isFinite(parsedModuleId) ||
-      !Number.isFinite(parsedUnitId) ||
-      !Number.isFinite(parsedQuestionId)
-    ) {
-      throw new NotFoundException('Module unit not found');
-    }
-    const result = await this.questionUnitService.createVariantWithContent(
-      parsedModuleId,
-      parsedUnitId,
-      parsedQuestionId,
+    return await this.questionUnitService.createVariantWithContent(
+      moduleId,
+      unitId,
+      questionId,
       body,
     );
-    return result;
   }
 
   @Patch(
@@ -134,29 +113,17 @@ export class ModuleUnitController {
   )
   @Authorize({ capability: features.modules.manageContent, scope: 'module' })
   async updateQuestionContent(
-    @Param('moduleId') moduleId: string,
-    @Param('unitId') unitId: string,
-    @Param('questionId') questionId: string,
-    @Param('contentId') contentId: string,
+    @Param('moduleId', ParseIntPipe) moduleId: number,
+    @Param('unitId', ParseIntPipe) unitId: number,
+    @Param('questionId', ParseIntPipe) questionId: number,
+    @Param('contentId', ParseIntPipe) contentId: number,
     @Body() body: UpdateQuestionContentDto,
   ) {
-    const parsedModuleId = Number(moduleId);
-    const parsedUnitId = Number(unitId);
-    const parsedQuestionId = Number(questionId);
-    const parsedContentId = Number(contentId);
-    if (
-      !Number.isFinite(parsedModuleId) ||
-      !Number.isFinite(parsedUnitId) ||
-      !Number.isFinite(parsedQuestionId) ||
-      !Number.isFinite(parsedContentId)
-    ) {
-      throw new NotFoundException('Module unit not found');
-    }
     return this.questionUnitService.updateContentScoped(
-      parsedModuleId,
-      parsedUnitId,
-      parsedQuestionId,
-      parsedContentId,
+      moduleId,
+      unitId,
+      questionId,
+      contentId,
       body,
     );
   }
@@ -164,24 +131,14 @@ export class ModuleUnitController {
   @Delete('module/:moduleId/unit/:unitId/questions/:questionId')
   @Authorize({ capability: features.modules.manageContent, scope: 'module' })
   async deleteQuestion(
-    @Param('moduleId') moduleId: string,
-    @Param('unitId') unitId: string,
-    @Param('questionId') questionId: string,
+    @Param('moduleId', ParseIntPipe) moduleId: number,
+    @Param('unitId', ParseIntPipe) unitId: number,
+    @Param('questionId', ParseIntPipe) questionId: number,
   ) {
-    const parsedModuleId = Number(moduleId);
-    const parsedUnitId = Number(unitId);
-    const parsedQuestionId = Number(questionId);
-    if (
-      !Number.isFinite(parsedModuleId) ||
-      !Number.isFinite(parsedUnitId) ||
-      !Number.isFinite(parsedQuestionId)
-    ) {
-      throw new NotFoundException('Question not found');
-    }
     return this.questionUnitService.removeScoped(
-      parsedModuleId,
-      parsedUnitId,
-      parsedQuestionId,
+      moduleId,
+      unitId,
+      questionId,
     );
   }
 
@@ -190,77 +147,45 @@ export class ModuleUnitController {
   )
   @Authorize({ capability: features.modules.manageContent, scope: 'module' })
   async deleteVariant(
-    @Param('moduleId') moduleId: string,
-    @Param('unitId') unitId: string,
-    @Param('questionId') questionId: string,
-    @Param('variantId') variantId: string,
+    @Param('moduleId', ParseIntPipe) moduleId: number,
+    @Param('unitId', ParseIntPipe) unitId: number,
+    @Param('questionId', ParseIntPipe) questionId: number,
+    @Param('variantId', ParseIntPipe) variantId: number,
   ) {
-    const parsedModuleId = Number(moduleId);
-    const parsedUnitId = Number(unitId);
-    const parsedQuestionId = Number(questionId);
-    const parsedVariantId = Number(variantId);
-    if (
-      !Number.isFinite(parsedModuleId) ||
-      !Number.isFinite(parsedUnitId) ||
-      !Number.isFinite(parsedQuestionId) ||
-      !Number.isFinite(parsedVariantId)
-    ) {
-      throw new NotFoundException('Variant not found');
-    }
     return this.questionUnitService.removeVariantScoped(
-      parsedModuleId,
-      parsedUnitId,
-      parsedQuestionId,
-      parsedVariantId,
+      moduleId,
+      unitId,
+      questionId,
+      variantId,
     );
   }
 
   @Delete('module/:moduleId/unit/:unitId/question-groups/:groupId')
   @Authorize({ capability: features.modules.manageContent, scope: 'module' })
   async deleteQuestionGroup(
-    @Param('moduleId') moduleId: string,
-    @Param('unitId') unitId: string,
-    @Param('groupId') groupId: string,
+    @Param('moduleId', ParseIntPipe) moduleId: number,
+    @Param('unitId', ParseIntPipe) unitId: number,
+    @Param('groupId', ParseIntPipe) groupId: number,
   ) {
-    const parsedModuleId = Number(moduleId);
-    const parsedUnitId = Number(unitId);
-    const parsedGroupId = Number(groupId);
-    if (
-      !Number.isFinite(parsedModuleId) ||
-      !Number.isFinite(parsedUnitId) ||
-      !Number.isFinite(parsedGroupId)
-    ) {
-      throw new NotFoundException('Question group not found');
-    }
     return this.moduleUnitQuestionGroupService.removeScoped(
-      parsedModuleId,
-      parsedUnitId,
-      parsedGroupId,
+      moduleId,
+      unitId,
+      groupId,
     );
   }
 
   @Patch('module/:moduleId/unit/:unitId/question-groups/:groupId')
   @Authorize({ capability: features.modules.manageContent, scope: 'module' })
   async renameQuestionGroup(
-    @Param('moduleId') moduleId: string,
-    @Param('unitId') unitId: string,
-    @Param('groupId') groupId: string,
+    @Param('moduleId', ParseIntPipe) moduleId: number,
+    @Param('unitId', ParseIntPipe) unitId: number,
+    @Param('groupId', ParseIntPipe) groupId: number,
     @Body() body: UpdateModuleUnitQuestionGroupNameDto,
   ) {
-    const parsedModuleId = Number(moduleId);
-    const parsedUnitId = Number(unitId);
-    const parsedGroupId = Number(groupId);
-    if (
-      !Number.isFinite(parsedModuleId) ||
-      !Number.isFinite(parsedUnitId) ||
-      !Number.isFinite(parsedGroupId)
-    ) {
-      throw new NotFoundException('Question group not found');
-    }
     return this.moduleUnitQuestionGroupService.renameScoped(
-      parsedModuleId,
-      parsedUnitId,
-      parsedGroupId,
+      moduleId,
+      unitId,
+      groupId,
       body.name,
     );
   }
@@ -268,14 +193,10 @@ export class ModuleUnitController {
   @Get('module/:moduleId/unit/:unitId/editor')
   @Authorize({ capability: features.navigation.modules, scope: 'module' })
   async getEditorPayload(
-    @Param('moduleId') moduleId: string,
-    @Param('unitId') unitId: string,
+    @Param('moduleId', ParseIntPipe) moduleId: number,
+    @Param('unitId', ParseIntPipe) unitId: number,
   ) {
-    const unit = await this.moduleUnitService.findEditorPayload(+unitId);
-    if (unit.moduleId !== +moduleId) {
-      throw new NotFoundException('Module unit not found');
-    }
-    return unit;
+    return this.moduleUnitService.findEditorPayload(moduleId, unitId);
   }
 
   @Patch('module-unit/:id')
@@ -285,9 +206,9 @@ export class ModuleUnitController {
     moduleContextSource: 'module_unit',
   })
   update(
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateModuleUnitDto: UpdateModuleUnitDto,
   ) {
-    return this.moduleUnitService.update(+id, updateModuleUnitDto);
+    return this.moduleUnitService.update(id, updateModuleUnitDto);
   }
 }

@@ -5,6 +5,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
   Req,
@@ -30,12 +31,12 @@ export class ModuleInviteController {
   @Post('modules/:moduleId/invites')
   @Authorize({ capability: features.modules.invitations, scope: 'module' })
   create(
-    @Param('moduleId') moduleId: string,
+    @Param('moduleId', ParseIntPipe) moduleId: number,
     @Body() createModuleInviteDto: CreateModuleInviteDto,
     @Req() req: Request,
   ) {
     return this.moduleInviteService.create(
-      Number(moduleId),
+      moduleId,
       createModuleInviteDto,
       req.user as AuthUser,
     );
@@ -43,28 +44,27 @@ export class ModuleInviteController {
 
   @Get('modules/:moduleId/invites')
   @Authorize({ capability: features.modules.invitations, scope: 'module' })
-  findAll(@Param('moduleId') moduleId: string) {
-    return this.moduleInviteService.findAll(Number(moduleId));
+  findAll(@Param('moduleId', ParseIntPipe) moduleId: number) {
+    return this.moduleInviteService.findAll(moduleId);
   }
 
   @Patch('modules/:moduleId/invites/:id')
   @Authorize({ capability: features.modules.invitations, scope: 'module' })
   update(
-    @Param('moduleId') moduleId: string,
-    @Param('id') id: string,
+    @Param('moduleId', ParseIntPipe) moduleId: number,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateModuleInviteDto: UpdateModuleInviteDto,
   ) {
-    return this.moduleInviteService.update(
-      Number(moduleId),
-      +id,
-      updateModuleInviteDto,
-    );
+    return this.moduleInviteService.update(moduleId, id, updateModuleInviteDto);
   }
 
   @Delete('modules/:moduleId/invites/:id')
   @Authorize({ capability: features.modules.invitations, scope: 'module' })
-  remove(@Param('moduleId') moduleId: string, @Param('id') id: string) {
-    return this.moduleInviteService.remove(Number(moduleId), +id);
+  remove(
+    @Param('moduleId', ParseIntPipe) moduleId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.moduleInviteService.remove(moduleId, id);
   }
 
   @Post('invites/redeem')

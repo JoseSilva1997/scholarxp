@@ -39,7 +39,7 @@ describe('UsersController', () => {
     service.updateRole.mockResolvedValue({ id: 1 });
     authService.getUserById.mockResolvedValue(response);
 
-    const result = await controller.updateRole('1', {
+    const result = await controller.updateRole(1, {
       globalRole: GlobalRole.student,
     } as any);
 

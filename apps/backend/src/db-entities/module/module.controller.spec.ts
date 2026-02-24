@@ -67,7 +67,7 @@ describe('ModuleController', () => {
   it('findOne delegates to service', async () => {
     service.findOne.mockResolvedValue({ id: 1 });
 
-    const result = await controller.findOne('1', req);
+    const result = await controller.findOne(1, req);
 
     expect(service.findOne).toHaveBeenCalledWith(1, req.user);
     expect(result).toEqual({ id: 1 });
@@ -77,7 +77,7 @@ describe('ModuleController', () => {
     const dto = { title: 'New' } as any;
     service.update.mockResolvedValue({ id: 2 });
 
-    const result = await controller.update('2', dto, req);
+    const result = await controller.update(2, dto, req);
 
     expect(service.update).toHaveBeenCalledWith(2, dto, req.user);
     expect(result).toEqual({ id: 2 });
@@ -86,7 +86,7 @@ describe('ModuleController', () => {
   it('remove delegates to service', async () => {
     service.remove.mockResolvedValue({ id: 3 });
 
-    const result = await controller.remove('3', req);
+    const result = await controller.remove(3, req);
 
     expect(service.remove).toHaveBeenCalledWith(3, req.user);
     expect(result).toEqual({ id: 3 });

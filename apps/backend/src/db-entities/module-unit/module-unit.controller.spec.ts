@@ -43,7 +43,7 @@ describe('ModuleUnitController.update', () => {
     const updated = { id: 77, title: 'Updated Unit' };
     (service.update as any).mockResolvedValue(updated);
 
-    const result = await controller.update('77', dto);
+    const result = await controller.update(77, dto);
 
     expect(service.update).toHaveBeenCalledWith(77, dto);
     expect(result).toEqual(updated);
@@ -175,5 +175,36 @@ describe('ModuleUnitController.createQuestionGroupForUnit', () => {
     const dto = { moduleUnitId: 3, name: 'Tests', sortOrder: 1 };
     await controller.createQuestionGroupForUnit(2, 3, dto as any);
     expect(groupService.createScoped).toHaveBeenCalledWith(2, 3, dto);
+  });
+});
+
+describe('ModuleUnitController.getEditorPayload', () => {
+  let controller: ModuleUnitController;
+  const service = {
+    findEditorPayload: jest.fn(),
+  };
+
+  beforeEach(async () => {
+    const moduleRef = await Test.createTestingModule({
+      controllers: [ModuleUnitController],
+      providers: [
+        { provide: ModuleUnitService, useValue: service },
+        { provide: QuestionUnitService, useValue: {} },
+        { provide: ModuleUnitQuestionGroupService, useValue: {} },
+      ],
+    })
+      .overrideGuard(SessionAuthGuard)
+      .useValue({ canActivate: jest.fn().mockReturnValue(true) })
+      .overrideGuard(AuthorizationGuard)
+      .useValue({ canActivate: jest.fn().mockReturnValue(true) })
+      .compile();
+    controller = moduleRef.get(ModuleUnitController);
+  });
+
+  it('forwards moduleId and unitId to service', async () => {
+    (service.findEditorPayload as any).mockResolvedValue({ id: 9 });
+    const result = await controller.getEditorPayload(5, 9);
+    expect(service.findEditorPayload).toHaveBeenCalledWith(5, 9);
+    expect(result).toEqual({ id: 9 });
   });
 });

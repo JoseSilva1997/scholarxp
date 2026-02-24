@@ -51,7 +51,7 @@ describe('ModuleInviteController', () => {
     const dto: CreateModuleInviteDto = { maxUses: 50 };
     service.create.mockResolvedValue({ invite: { id: 1 } });
 
-    const result = await controller.create('9', dto, req);
+    const result = await controller.create(9, dto, req);
 
     expect(service.create).toHaveBeenCalledWith(9, dto, req.user);
     expect(result).toEqual({ invite: { id: 1 } });
@@ -60,7 +60,7 @@ describe('ModuleInviteController', () => {
   it('findAll delegates to the service', async () => {
     service.findAll.mockResolvedValue([{ id: 2 }]);
 
-    const result = await controller.findAll('3');
+    const result = await controller.findAll(3);
 
     expect(service.findAll).toHaveBeenCalledWith(3);
     expect(result).toEqual([{ id: 2 }]);
@@ -70,7 +70,7 @@ describe('ModuleInviteController', () => {
     const dto: UpdateModuleInviteDto = { maxUses: 5 };
     service.update.mockResolvedValue({ id: 4 });
 
-    const result = await controller.update('7', '4', dto);
+    const result = await controller.update(7, 4, dto);
 
     expect(service.update).toHaveBeenCalledWith(7, 4, dto);
     expect(result).toEqual({ id: 4 });
@@ -79,7 +79,7 @@ describe('ModuleInviteController', () => {
   it('remove parses id to number and delegates', async () => {
     service.remove.mockResolvedValue({ id: 5 });
 
-    const result = await controller.remove('11', '5');
+    const result = await controller.remove(11, 5);
 
     expect(service.remove).toHaveBeenCalledWith(11, 5);
     expect(result).toEqual({ id: 5 });
@@ -98,7 +98,7 @@ describe('ModuleInviteController', () => {
   it('propagates service errors', async () => {
     service.create.mockRejectedValue(new Error('boom'));
 
-    await expect(controller.create('1', {} as any, req)).rejects.toThrow(
+    await expect(controller.create(1, {} as any, req)).rejects.toThrow(
       'boom',
     );
   });
