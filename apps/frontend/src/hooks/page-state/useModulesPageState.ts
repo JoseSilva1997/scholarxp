@@ -76,9 +76,8 @@ export function useModulesPageState(): UseModulesPageStateResult {
   const handleCreateModule = async (payload: CreateModulePayload) => {
     setCreateError(null);
     try {
-      const created = await createModuleMutation.mutateAsync(payload);
+      await createModuleMutation.mutateAsync(payload);
       setShowCreate(false);
-      navigate(`/main/modules/${created.id}`);
     } catch (error) {
       setCreateError(
         getDisplayErrorMessage(error, {

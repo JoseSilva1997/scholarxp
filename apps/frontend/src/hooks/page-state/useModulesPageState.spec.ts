@@ -124,7 +124,6 @@ describe('useModulesPageState', () => {
     });
 
     expect(mocks.createMutateAsync).toHaveBeenCalledWith({ title: 'New module' });
-    expect(mocks.navigate).toHaveBeenCalledWith('/main/modules/77');
     expect(result.current.showCreate).toBe(false);
   });
 
