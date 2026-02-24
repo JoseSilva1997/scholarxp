@@ -1,4 +1,8 @@
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { ModuleUnitStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { createPrismaMock } from '../../test/test-helpers';
@@ -150,5 +154,82 @@ describe('ModuleUnitQuestionGroupService.renameScoped', () => {
     expect(prisma.moduleUnitQuestionGroup.delete).toHaveBeenCalledWith({
       where: { id: 11 },
     });
+  });
+});
+
+describe('ModuleUnitQuestionGroupService.createScoped', () => {
+  let service: ModuleUnitQuestionGroupService;
+  const prisma = createPrismaMock();
+
+  beforeEach(() => {
+    service = new ModuleUnitQuestionGroupService(
+      prisma as unknown as PrismaService,
+    );
+    jest.resetAllMocks();
+  });
+
+  it('creates a scoped group with trimmed name', async () => {
+    prisma.moduleUnit.findUnique.mockResolvedValue({
+      id: 3,
+      moduleId: 2,
+    } as any);
+    prisma.moduleUnitQuestionGroup.findFirst.mockResolvedValue(null);
+    prisma.moduleUnitQuestionGroup.create.mockResolvedValue({
+      id: 10,
+      moduleUnitId: 3,
+      name: 'Test Group',
+      sortOrder: 1,
+      isArchived: false,
+    } as any);
+
+    const dto = { moduleUnitId: 3, name: '  Test Group  ', sortOrder: 1 };
+    const result = await service.createScoped(2, 3, dto);
+
+    expect(prisma.moduleUnitQuestionGroup.create).toHaveBeenCalledWith({
+      data: {
+        moduleUnitId: 3,
+        name: 'Test Group',
+        sortOrder: 1,
+        isArchived: false,
+      },
+    });
+    expect(result.name).toBe('Test Group');
+  });
+
+  it('throws NotFoundException when module unit is outside scope', async () => {
+    prisma.moduleUnit.findUnique.mockResolvedValue({
+      id: 3,
+      moduleId: 5,
+    } as any);
+
+    const dto = { moduleUnitId: 3, name: 'Group', sortOrder: 1 };
+    await expect(service.createScoped(2, 3, dto)).rejects.toThrow(
+      NotFoundException,
+    );
+  });
+
+  it('throws BadRequestException on moduleUnitId mismatch', async () => {
+    prisma.moduleUnit.findUnique.mockResolvedValue({
+      id: 3,
+      moduleId: 2,
+    } as any);
+
+    const dto = { moduleUnitId: 4, name: 'Group', sortOrder: 1 };
+    await expect(service.createScoped(2, 3, dto)).rejects.toThrow(
+      BadRequestException,
+    );
+  });
+
+  it('throws ConflictException for duplicate name in unit', async () => {
+    prisma.moduleUnit.findUnique.mockResolvedValue({
+      id: 3,
+      moduleId: 2,
+    } as any);
+    prisma.moduleUnitQuestionGroup.findFirst.mockResolvedValue({ id: 8 } as any);
+
+    const dto = { moduleUnitId: 3, name: 'Existing Group', sortOrder: 1 };
+    await expect(service.createScoped(2, 3, dto)).rejects.toThrow(
+      ConflictException,
+    );
   });
 });

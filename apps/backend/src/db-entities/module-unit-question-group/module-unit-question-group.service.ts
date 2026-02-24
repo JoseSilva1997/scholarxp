@@ -23,6 +23,49 @@ export class ModuleUnitQuestionGroupService {
     });
   }
 
+  // Create a new group ensuring the target module-unit belongs to the specified module.
+  async createScoped(
+    moduleId: number,
+    moduleUnitId: number,
+    dto: CreateModuleUnitQuestionGroupDto,
+  ) {
+    const unit = await this.prisma.moduleUnit.findUnique({
+      where: { id: moduleUnitId },
+      select: { id: true, moduleId: true },
+    });
+
+    if (!unit || unit.moduleId !== moduleId) {
+      throw new NotFoundException('Module unit not found');
+    }
+
+    if (dto.moduleUnitId !== moduleUnitId) {
+      throw new BadRequestException('moduleUnitId mismatch');
+    }
+
+    // Verify name uniqueness within the same unit before creation.
+    const duplicate = await this.prisma.moduleUnitQuestionGroup.findFirst({
+      where: {
+        moduleUnitId,
+        isArchived: false,
+        name: dto.name.trim(),
+      },
+      select: { id: true },
+    });
+    if (duplicate) {
+      throw new ConflictException(
+        'A question group with this name already exists in this module unit',
+      );
+    }
+
+    return this.prisma.moduleUnitQuestionGroup.create({
+      data: {
+        ...dto,
+        name: dto.name.trim(),
+        isArchived: false,
+      },
+    });
+  }
+
   findAll() {
     return this.prisma.moduleUnitQuestionGroup.findMany();
   }

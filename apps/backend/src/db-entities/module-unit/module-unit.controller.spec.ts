@@ -92,7 +92,7 @@ describe('ModuleUnitController.createForModule', () => {
     const created = { id: 11, title: 'Algebra' };
     (service.createForModule as any).mockResolvedValue(created);
 
-    const result = await controller.createForModule('5', dto);
+    const result = await controller.createForModule(5, dto);
 
     expect(service.createForModule).toHaveBeenCalledWith(5, dto);
     expect(result).toEqual(created);
@@ -133,7 +133,7 @@ describe('ModuleUnitController.findByModule', () => {
     const req = { user: { id: 8, globalRole: 'student' } } as any;
     (service.findByModule as any).mockResolvedValue([]);
 
-    await controller.findByModule('12', req);
+    await controller.findByModule(12, req);
 
     expect(service.findByModule).toHaveBeenCalledWith(12, 8);
   });
@@ -142,8 +142,38 @@ describe('ModuleUnitController.findByModule', () => {
     const req = { user: { id: 3, globalRole: 'teacher' } } as any;
     (service.findByModule as any).mockResolvedValue([]);
 
-    await controller.findByModule('12', req);
+    await controller.findByModule(12, req);
 
     expect(service.findByModule).toHaveBeenCalledWith(12, undefined);
+  });
+});
+
+describe('ModuleUnitController.createQuestionGroupForUnit', () => {
+  let controller: ModuleUnitController;
+  const groupService = {
+    createScoped: jest.fn(),
+  };
+
+  beforeEach(async () => {
+    const moduleRef = await Test.createTestingModule({
+      controllers: [ModuleUnitController],
+      providers: [
+        { provide: ModuleUnitService, useValue: {} },
+        { provide: QuestionUnitService, useValue: {} },
+        { provide: ModuleUnitQuestionGroupService, useValue: groupService },
+      ],
+    })
+      .overrideGuard(SessionAuthGuard)
+      .useValue({ canActivate: jest.fn().mockReturnValue(true) })
+      .overrideGuard(AuthorizationGuard)
+      .useValue({ canActivate: jest.fn().mockReturnValue(true) })
+      .compile();
+    controller = moduleRef.get(ModuleUnitController);
+  });
+
+  it('forwards parameters to service', async () => {
+    const dto = { moduleUnitId: 3, name: 'Tests', sortOrder: 1 };
+    await controller.createQuestionGroupForUnit(2, 3, dto as any);
+    expect(groupService.createScoped).toHaveBeenCalledWith(2, 3, dto);
   });
 });
