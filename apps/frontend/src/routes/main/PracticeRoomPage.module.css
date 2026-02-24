@@ -334,20 +334,21 @@
 }
 
 .optionButton:hover:not(:disabled) {
-  background: var(--color-bg);
+  background: var(--color-primary-soft);
   transform: translateY(-1px);
-  box-shadow: 0 3px 0 var(--color-border);
+  box-shadow: 0 3px 0 var(--color-primary-light);
+  border-color: var(--color-primary-light);
 }
 
 .optionButtonSelected { 
-  border-color: var(--color-secondary); 
-  background: var(--color-secondary-soft); 
-  box-shadow: 0 2px 0 var(--color-secondary); 
+  border-color: var(--color-primary); 
+  background: var(--color-primary-soft); 
+  box-shadow: 0 2px 0 var(--color-primary); 
 }
 
 .optionButtonSelected .optionLetter { 
-  background: var(--color-secondary); 
-  color: var(--color-text-on-primary); 
+  background: var(--color-primary); 
+  color: var(--color-text-on-primary);
 }
 
 .optionButtonCorrect { 
@@ -386,7 +387,7 @@
   height: 1.85rem;
   min-width: 1.85rem;
   background: var(--color-surface-hover);
-  border-radius: 0.5rem;
+  border-radius: 1rem;
   font-weight: 800;
   color: var(--color-text-muted);
   font-size: 0.85rem;
@@ -398,6 +399,11 @@
   justify-content: space-between;
   gap: 0.4rem;
   flex: 1;
+}
+
+.optionButton:hover:not(:disabled) .optionLetter {
+  background: var(--color-primary-subtle);;
+  color: var(--color-text-on-primary);
 }
 
 .optionText { 
