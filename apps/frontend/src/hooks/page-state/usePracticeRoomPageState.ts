@@ -421,11 +421,34 @@ export function usePracticeRoomPageState({
       cancelAnimationFrame(moduleProgressSyncFrameRef.current);
     }
     moduleProgressSyncFrameRef.current = requestAnimationFrame(() => {
+      const { level: nextLevel } = fromModuleTotalExp(serverTotalExp, expMax);
+      const previousLevel = prevLevelRef.current;
+
+      // Celebrate level-up only on server-driven progress jumps while already active in the room.
+      if (previousLevel !== undefined && nextLevel > previousLevel) {
+        setShowLevelUp(true);
+        if (levelUpVisibilityTimeoutRef.current !== null) {
+          clearTimeout(levelUpVisibilityTimeoutRef.current);
+        }
+        levelUpVisibilityTimeoutRef.current = window.setTimeout(() => {
+          setShowLevelUp(false);
+          levelUpVisibilityTimeoutRef.current = null;
+        }, 3000);
+      }
+      prevLevelRef.current = nextLevel;
+
       setModuleProgressAnimation({
         totalExp: serverTotalExp,
         expMax,
       });
-      setDisplayedModuleTotalExp(serverTotalExp);
+
+      // Snapping is reserved for the initial room load or when switching modules.
+      // For standard progress updates (XP gain), we leave the display value alone
+      // so the animation effect can smoothly bridge the gap.
+      if (isNewScope || hasNoAnimationSnapshot) {
+        setDisplayedModuleTotalExp(serverTotalExp);
+      }
+
       moduleProgressSyncFrameRef.current = null;
     });
   }, [moduleDetail, moduleProgressAnimation, parsedModuleId]);
@@ -686,35 +709,34 @@ export function usePracticeRoomPageState({
     };
 
     setSubmitErrorMessage(null);
+
+    // Capture the server total XP before mutation so we can determine exactly where the animation should end,
+    // avoiding the "double-jump" bug that occurs when the background refetch and local update overlap.
+    const currentExpMax =
+      moduleDetail?.expMax && moduleDetail.expMax > 0 ? moduleDetail.expMax : MODULE_EXP_MAX;
+
+    const baselineTotalExp =
+      moduleDetail && moduleDetail.userModuleLevel !== undefined
+        ? toModuleTotalExp(moduleDetail.userModuleLevel, moduleDetail.currentExp ?? 0, currentExpMax)
+        : moduleProgressAnimation?.totalExp ?? displayedModuleTotalExp ?? 0;
+
     try {
       const submitResponse = await submitAttemptMutation.mutateAsync(payload);
       if (submitResponse.moduleExpAwarded > 0) {
-        setModuleProgressAnimation((previousValue) => {
-          const expMax =
-            moduleDetail?.expMax && moduleDetail.expMax > 0
-              ? moduleDetail.expMax
-              : MODULE_EXP_MAX;
-          const fallbackTotalExp =
-            moduleDetail && moduleDetail.userModuleLevel !== undefined
-              ? toModuleTotalExp(
-                  moduleDetail.userModuleLevel,
-                  moduleDetail.currentExp ?? 0,
-                  expMax,
-                )
-              : null;
-          const currentTotalExp =
-            previousValue?.totalExp ??
-            displayedModuleTotalExp ??
-            fallbackTotalExp;
+        const targetTotalExp = baselineTotalExp + submitResponse.moduleExpAwarded;
 
-          if (currentTotalExp === null) {
+        setModuleProgressAnimation((previousValue) => {
+          // If the animation target is already at or beyond our target (likely from the server refetch sync),
+          // we avoid adding the award a second time to prevent the "double-count" bug.
+          if (previousValue && previousValue.totalExp >= targetTotalExp) {
             return previousValue;
           }
 
           const previousLevel =
-            prevLevelRef.current ?? fromModuleTotalExp(currentTotalExp, expMax).level;
-          const nextTotalExp = currentTotalExp + submitResponse.moduleExpAwarded;
-          const nextLevel = fromModuleTotalExp(nextTotalExp, expMax).level;
+            prevLevelRef.current ??
+            fromModuleTotalExp(previousValue?.totalExp ?? baselineTotalExp, currentExpMax).level;
+          const { level: nextLevel } = fromModuleTotalExp(targetTotalExp, currentExpMax);
+
           // Trigger level-up feedback from the submit event to avoid effect-driven render cascades.
           if (nextLevel > previousLevel) {
             setShowLevelUp(true);
@@ -726,12 +748,12 @@ export function usePracticeRoomPageState({
               levelUpVisibilityTimeoutRef.current = null;
             }, 3000);
           }
-          // Keep the previous-level baseline aligned with the latest animated progress.
+          // Synchronize the transition level so a secondary sync from the background query doesn't trigger a double celebration.
           prevLevelRef.current = nextLevel;
 
           return {
-            totalExp: nextTotalExp,
-            expMax,
+            totalExp: targetTotalExp,
+            expMax: currentExpMax,
           };
         });
         setModuleExpGainIndicator(submitResponse.moduleExpAwarded);
@@ -811,8 +833,7 @@ export function usePracticeRoomPageState({
     showLevelUp,
     isLoading:
       practiceRoomQuery.isPending ||
-      moduleDetailQuery.isPending ||
-      submitAttemptMutation.isPending,
+      (moduleDetailQuery.isPending && moduleProgressAnimation === null),
     pageError,
     submitErrorMessage,
     isSubmittingAttempt: submitAttemptMutation.isPending,

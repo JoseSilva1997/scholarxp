@@ -48,12 +48,26 @@ export function useSubmitModuleUnitPracticeAttemptMutation(
         return;
       }
       // Refetch room data so bars/variant unlocks reflect the newly stored attempt from server truth.
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.modules.moduleUnitPracticeRoomBase(
-          moduleId,
-          moduleUnitId,
-        ),
-      });
+      // We also invalidate module detail/units and the modules list to ensure SingleModulePage
+      // and main dashboard reflect updated progress (XP/levels) and unit completion status.
+      // Quests are also invalidated as practice attempts drive quest progress.
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.modules.moduleUnitPracticeRoomBase(moduleId, moduleUnitId),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.modules.detail(moduleId),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.modules.units(moduleId),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.modules.all,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ['quests'],
+        }),
+      ]);
     },
   });
 }
