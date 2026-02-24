@@ -25,8 +25,8 @@ async function bootstrap() {
   const isProd =
     (config.get<string>('NODE_ENV') ?? 'development') === 'production';
   const corsOrigin = config.get<string>('CORS_ORIGIN') ?? FRONTEND_URL;
-  const sessionSecret =
-    config.get<string>('SESSION_SECRET') ?? 'dev-session-secret';
+  // Fail fast when the signing key is missing so we never run with an insecure default.
+  const sessionSecret = config.getOrThrow<string>('SESSION_SECRET');
   const databaseUrl = config.get<string>('DATABASE_URL');
 
   app.useGlobalPipes(
