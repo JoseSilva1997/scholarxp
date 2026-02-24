@@ -130,6 +130,8 @@ model DailyQuest {
   moduleUnit   ModuleUnit? @relation(fields: [moduleUnitId, moduleId], references: [id, moduleId], onDelete: NoAction)
   user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  // Supports user quest-history reads that page by UTC day and keep row ordering stable.
+  @@index([userId, questDateUtc(sort: Desc), id], map: "daily_quests_user_id_quest_date_utc_id_idx")
   @@unique([userId, moduleId, type, questDateUtc])
   @@map("daily_quests")
 }
