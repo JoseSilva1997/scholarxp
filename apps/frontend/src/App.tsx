@@ -1,23 +1,24 @@
-import { useEffect } from 'react';
+import { Suspense, lazy, useEffect } from 'react';
 import type { Location } from 'react-router-dom';
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import './App.css';
 import Header from './components/Header';
 import Footer from './components/Footer';
-import Landing from './routes/Landing';
-import Login from './routes/Login';
-import Register from './routes/Register';
-import VerifyEmail from './routes/VerifyEmail';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import RoleSelectorOverlay from './components/RoleSelectorOverlay';
 import AuthedLayout from './layouts/AuthedLayout';
-import ModulesPage from './routes/main/ModulesPage';
-import SingleModulePage from './routes/main/SingleModulePage';
-import ModuleUnitEditor from './routes/main/ModuleUnitEditor';
-import PracticeRoomPage from './routes/main/PracticeRoomPage';
-import QuestsPage from './routes/main/QuestsPage';
-import ProfilePage from './routes/main/ProfilePage';
-import AcceptInvite from './routes/main/AcceptInvite';
+
+const Landing = lazy(() => import('./routes/Landing'));
+const Login = lazy(() => import('./routes/Login'));
+const Register = lazy(() => import('./routes/Register'));
+const VerifyEmail = lazy(() => import('./routes/VerifyEmail'));
+const ModulesPage = lazy(() => import('./routes/main/ModulesPage'));
+const SingleModulePage = lazy(() => import('./routes/main/SingleModulePage'));
+const ModuleUnitEditor = lazy(() => import('./routes/main/ModuleUnitEditor'));
+const PracticeRoomPage = lazy(() => import('./routes/main/PracticeRoomPage'));
+const QuestsPage = lazy(() => import('./routes/main/QuestsPage'));
+const ProfilePage = lazy(() => import('./routes/main/ProfilePage'));
+const AcceptInvite = lazy(() => import('./routes/main/AcceptInvite'));
 
 function AppLayout() {
   const location = useLocation();
@@ -65,56 +66,65 @@ function AppLayout() {
         {shouldShowRoleSelector ? (
           <RoleSelectorOverlay user={user} onRoleSelected={setUser} />
         ) : (
-          <Routes>
-            <Route
-              path="/login"
-              element={
-                user && !isLoading ? (
-                  // If user hit login while unauthenticated, send them back to their intended page post-login.
-                  <Navigate
-                    to={
-                      redirectFrom
-                        ? `${redirectFrom.pathname}${redirectFrom.search}${redirectFrom.hash}`
-                        : '/main'
-                    }
-                    replace
+          // Route-level suspense keeps the initial bundle small while showing a stable loading UI for first-visit chunks.
+          <Suspense fallback={<div className="App__loading">Loading...</div>}>
+            <Routes>
+              <Route
+                path="/login"
+                element={
+                  user && !isLoading ? (
+                    // If user hit login while unauthenticated, send them back to their intended page post-login.
+                    <Navigate
+                      to={
+                        redirectFrom
+                          ? `${redirectFrom.pathname}${redirectFrom.search}${redirectFrom.hash}`
+                          : '/main'
+                      }
+                      replace
+                    />
+                  ) : (
+                    <Login />
+                  )
+                }
+              />
+              <Route
+                path="/register"
+                element={user && !isLoading ? <Navigate to="/main" replace /> : <Register />}
+              />
+              <Route
+                path="/"
+                element={
+                  user && !isLoading ? (
+                    // Signed-in users should land inside the shell so sidebar/navigation remains available.
+                    <Navigate to="/main/landing" replace />
+                  ) : (
+                    <Landing />
+                  )
+                }
+              />
+              <Route path="/verify-email" element={<VerifyEmail />} />
+              <Route element={<ProtectedRoute isLoading={isLoading} isAuthed={!!user} />}>
+                {/* Invite redemption sits outside the shell so it can stay focused and load without sidebar chrome. */}
+                <Route path="/invite" element={<AcceptInvite />} />
+                <Route element={<AuthedLayout />}>
+                  <Route path="/main" element={<Navigate to="/main/modules" replace />} />
+                  <Route path="/main/landing" element={<Landing />} />
+                  <Route path="/main/modules" element={<ModulesPage />} />
+                  <Route path="/main/modules/:moduleId" element={<SingleModulePage />} />
+                  <Route
+                    path="/main/modules/:moduleId/:unitId/editor"
+                    element={<ModuleUnitEditor />}
                   />
-                ) : (
-                  <Login />
-                )
-              }
-            />
-            <Route
-              path="/register"
-              element={user && !isLoading ? <Navigate to="/main" replace /> : <Register />}
-            />
-            <Route
-              path="/"
-              element={
-                user && !isLoading ? (
-                  // Signed-in users should land inside the shell so sidebar/navigation remains available.
-                  <Navigate to="/main/landing" replace />
-                ) : (
-                  <Landing />
-                )
-              }
-            />
-            <Route path="/verify-email" element={<VerifyEmail />} />
-            <Route element={<ProtectedRoute isLoading={isLoading} isAuthed={!!user} />}>
-              {/* Invite redemption sits outside the shell so it can stay focused and load without sidebar chrome. */}
-              <Route path="/invite" element={<AcceptInvite />} />
-              <Route element={<AuthedLayout />}>
-                <Route path="/main" element={<Navigate to="/main/modules" replace />} />
-                <Route path="/main/landing" element={<Landing />} />
-                <Route path="/main/modules" element={<ModulesPage />} />
-                <Route path="/main/modules/:moduleId" element={<SingleModulePage />} />
-                <Route path="/main/modules/:moduleId/:unitId/editor" element={<ModuleUnitEditor />} />
-                <Route path="/main/modules/:moduleId/:unitId/practice-room" element={<PracticeRoomPage />} />
-                <Route path="/main/quests" element={<QuestsPage />} />
-                <Route path="/main/profile" element={<ProfilePage />} />
+                  <Route
+                    path="/main/modules/:moduleId/:unitId/practice-room"
+                    element={<PracticeRoomPage />}
+                  />
+                  <Route path="/main/quests" element={<QuestsPage />} />
+                  <Route path="/main/profile" element={<ProfilePage />} />
+                </Route>
               </Route>
-            </Route>
-          </Routes>
+            </Routes>
+          </Suspense>
         )}
       </main>
       <Footer />
