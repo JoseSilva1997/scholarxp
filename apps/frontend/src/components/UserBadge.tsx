@@ -129,28 +129,38 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
     [],
   );
 
+  const targetRef = useRef<number | null>(null);
+
   useEffect(() => {
     if (targetTotalExp === null) {
       return;
     }
 
     if (displayedTotalExp === null) {
+      // First boot: set immediately so the starting UI matches the server state.
+      // We wrap in rAF to ensure we don't conflict with pending render cycles.
       expAnimationFrameRef.current = requestAnimationFrame(() => {
         setDisplayedTotalExp(targetTotalExp);
+        targetRef.current = targetTotalExp;
         expAnimationFrameRef.current = null;
       });
       return;
     }
 
-    const animationStart = displayedTotalExp;
-    if (animationStart === targetTotalExp) {
+    // If the target hasn't changed, we don't need to restart the animation.
+    // This check avoids the "stuttering" effect where animations restart every frame.
+    if (targetRef.current === targetTotalExp) {
       return;
     }
 
+    const animationStart = displayedTotalExp;
     const animationDistance = Math.abs(targetTotalExp - animationStart);
-    const animationDurationMs = Math.max(250, Math.min(900, animationDistance * 12));
+    // Increased duration to make the XP climb more deliberate and satisfying.
+    const animationDurationMs = Math.max(400, Math.min(1600, animationDistance * 18));
     const animationDelta = targetTotalExp - animationStart;
     const startedAt = performance.now();
+
+    targetRef.current = targetTotalExp;
 
     if (expAnimationFrameRef.current !== null) {
       cancelAnimationFrame(expAnimationFrameRef.current);
@@ -162,6 +172,7 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
       const progress = Math.min(1, elapsed / animationDurationMs);
       const easedProgress = easeOutCubic(progress);
       const nextValue = Math.round(animationStart + animationDelta * easedProgress);
+      
       setDisplayedTotalExp(nextValue);
 
       if (progress < 1) {
@@ -179,7 +190,7 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
         cancelAnimationFrame(expAnimationFrameRef.current);
       }
     };
-  }, [displayedTotalExp, targetTotalExp]);
+  }, [targetTotalExp]); // Decoupled from displayedTotalExp to avoid frame-restarts.
 
   const expPercent =
     animatedProgress && expMax > 0

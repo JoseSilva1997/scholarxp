@@ -35,7 +35,7 @@ export default function Header({
     isStudent && user?.avatar
       ? {
           current: user.avatar.currentExp,
-          max: Math.max(user.avatar.currentExp, STUDENT_EXP_MAX),
+          max: STUDENT_EXP_MAX,
         }
       : undefined;
 

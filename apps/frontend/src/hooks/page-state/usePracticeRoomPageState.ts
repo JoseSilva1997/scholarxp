@@ -453,31 +453,40 @@ export function usePracticeRoomPageState({
     });
   }, [moduleDetail, moduleProgressAnimation, parsedModuleId]);
 
+  const moduleProgressAnimationFrameTargetRef = useRef<number | null>(null);
+
   useEffect(() => {
     if (!moduleProgressAnimation) {
       return;
     }
+
     if (displayedModuleTotalExp === null) {
+      // First boot: set immediately so the starting UI matches the server state.
+      // We wrap in rAF to ensure we don't conflict with pending render cycles.
       moduleProgressAnimationFrameRef.current = requestAnimationFrame(() => {
         setDisplayedModuleTotalExp(moduleProgressAnimation.totalExp);
+        moduleProgressAnimationFrameTargetRef.current = moduleProgressAnimation.totalExp;
         moduleProgressAnimationFrameRef.current = null;
       });
       return;
     }
-    if (displayedModuleTotalExp === moduleProgressAnimation.totalExp) {
+
+    // If the target hasn't changed, we don't need to restart the animation.
+    // This check avoids the "stuttering" effect where animations restart every frame.
+    if (moduleProgressAnimationFrameTargetRef.current === moduleProgressAnimation.totalExp) {
       return;
     }
 
-    const animationDistance = Math.abs(
-      moduleProgressAnimation.totalExp - displayedModuleTotalExp,
-    );
-    const animationDurationMs = Math.max(
-      250,
-      Math.min(900, animationDistance * 12),
-    );
     const animationStart = displayedModuleTotalExp;
+    const animationDistance = Math.abs(
+      moduleProgressAnimation.totalExp - animationStart,
+    );
+    // Increased duration values to make the progress bar fill feel more substantial.
+    const animationDurationMs = Math.max(400, Math.min(1600, animationDistance * 18));
     const animationDelta = moduleProgressAnimation.totalExp - animationStart;
     const startedAt = performance.now();
+
+    moduleProgressAnimationFrameTargetRef.current = moduleProgressAnimation.totalExp;
 
     if (moduleProgressAnimationFrameRef.current !== null) {
       cancelAnimationFrame(moduleProgressAnimationFrameRef.current);
@@ -489,6 +498,7 @@ export function usePracticeRoomPageState({
       const progress = Math.min(1, elapsed / animationDurationMs);
       const easedProgress = easeOutCubic(progress);
       const nextValue = Math.round(animationStart + animationDelta * easedProgress);
+      
       setDisplayedModuleTotalExp(nextValue);
 
       if (progress < 1) {
@@ -506,7 +516,7 @@ export function usePracticeRoomPageState({
         cancelAnimationFrame(moduleProgressAnimationFrameRef.current);
       }
     };
-  }, [displayedModuleTotalExp, moduleProgressAnimation]);
+  }, [moduleProgressAnimation]); // Decoupled from displayedModuleTotalExp to avoid frame-restarts.
 
   const moduleProgress = useMemo<ModuleProgress | null>(() => {
     if (!moduleDetail || moduleDetail.userModuleLevel === undefined) {
