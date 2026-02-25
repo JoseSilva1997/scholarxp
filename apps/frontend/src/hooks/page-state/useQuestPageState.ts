@@ -14,6 +14,7 @@ const DAY_PAGE_SIZE = 14;
 export type QuestDaySection = {
   questDayUtc: string;
   dayLabel: string;
+  isToday: boolean;
   quests: Array<QuestView | null>;
 };
 
@@ -61,9 +62,11 @@ export function useQuestPageState(): UseQuestPageStateResult {
   }, [questHistoryQuery.data?.pages]);
 
   const daySections = useMemo(() => {
+    const todayUtc = formatDateToUtcDay(new Date());
     return groupedQuestDays.map(([questDayUtc, dayQuests]) => ({
       questDayUtc,
       dayLabel: formatQuestDayLabel(questDayUtc),
+      isToday: questDayUtc === todayUtc,
       // Use only available quests for the day; no fixed slot count padding.
       quests: dayQuests,
     }));
