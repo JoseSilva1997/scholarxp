@@ -345,6 +345,7 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
         onClick={toggleMenu}
         aria-expanded={isMenuOpen}
         aria-haspopup="menu"
+        aria-label="Toggle user menu"
       >
         <img
           src={avatarSrc}
