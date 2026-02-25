@@ -9,6 +9,7 @@ import type { StudentAnswer } from '@scholarxp/api-contracts';
 import { AvatarService } from '../db-entities/avatar/avatar.service';
 import { UserModuleService } from '../db-entities/user-module/user-module.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { MODULE_EXP_MAX } from '@scholarxp/constants';
 import { ModuleUnitPracticeRoomResponseDto } from './dto/practice-room-response.dto';
 import { SubmitAttemptDto } from './dto/submit-attempt.dto';
 import { SubmitAttemptResponseDto } from './dto/submit-attempt-response.dto';
@@ -69,6 +70,12 @@ export class PracticeRoomService {
     const latestAttemptByKey =
       this.practiceRoomMapper.toLatestAttemptMap(latestAttempts);
 
+    // Fetch student's module progress in the same session to avoid extra round-trips for the frontend progress bar.
+    const membership = await this.prisma.userModule.findUnique({
+      where: { moduleId_userId: { moduleId, userId: studentId } },
+      include: { module: true },
+    });
+
     return this.practiceRoomMapper.buildResponse({
       sessionId: session.id,
       moduleUnitId: moduleUnit.id,
@@ -76,6 +83,16 @@ export class PracticeRoomService {
       isReadOnly,
       questionUnitDrafts,
       latestAttemptByKey,
+      moduleProgress: membership
+        ? {
+            id: membership.moduleId,
+            title: membership.module.title,
+            description: membership.module.description,
+            userModuleLevel: membership.userModuleLevel,
+            currentExp: membership.currentExp,
+            expMax: MODULE_EXP_MAX, // Default module expansion ceiling from global gamification rules.
+          }
+        : undefined,
     });
   }
 
@@ -100,8 +117,8 @@ export class PracticeRoomService {
     );
 
     const attemptedAt = new Date();
-    const alreadyHasCorrectAttempt = await this.prisma.$transaction(
-      async (tx) => {
+    const { alreadyHasCorrectAttempt, updatedMembership } =
+      await this.prisma.$transaction(async (tx) => {
         const hadCorrectAttemptBeforeSubmit = await this.hasAnyCorrectAttempt(
           moduleUnitId,
           studentId,
@@ -125,17 +142,33 @@ export class PracticeRoomService {
           },
           tx,
         );
-        await this.persistAttemptExpRewards(moduleId, studentId, tx);
+        const updatedMembership = await this.persistAttemptExpRewards(
+          moduleId,
+          studentId,
+          tx,
+        );
 
-        return hadCorrectAttemptBeforeSubmit;
-      },
-    );
+        return {
+          alreadyHasCorrectAttempt: hadCorrectAttemptBeforeSubmit,
+          updatedMembership,
+        };
+      });
 
     // Placeholder XP amounts unblock frontend progress until the real XP engine decides dynamic rewards.
     return {
       moduleExpAwarded: MODULE_UNIT_EXP_REWARD,
       studentExpAwarded: STUDENT_EXP_REWARD,
       hasCorrectAttempt: alreadyHasCorrectAttempt || isCorrect,
+      updatedModuleProgress: updatedMembership
+        ? {
+            id: updatedMembership.moduleId,
+            title: updatedMembership.module.title,
+            description: updatedMembership.module.description,
+            userModuleLevel: updatedMembership.userModuleLevel,
+            currentExp: updatedMembership.currentExp,
+            expMax: MODULE_EXP_MAX,
+          }
+        : undefined,
     };
   }
 
@@ -229,13 +262,19 @@ export class PracticeRoomService {
     studentId: number,
     tx: Prisma.TransactionClient,
   ) {
-    await this.userModuleService.addStudentModuleExp(
+    const updatedMembership = await this.userModuleService.addStudentModuleExp(
       moduleId,
       studentId,
       MODULE_UNIT_EXP_REWARD,
       tx,
     );
     await this.avatarService.addStudentExp(studentId, STUDENT_EXP_REWARD, tx);
+
+    // Reload with module include so we have title/description for the response mapper without extra queries.
+    return tx.userModule.findUnique({
+      where: { id: updatedMembership.id },
+      include: { module: true },
+    });
   }
 
   // Route params remain the source of truth, so payload moduleUnitId must match to prevent accidental cross-unit writes.

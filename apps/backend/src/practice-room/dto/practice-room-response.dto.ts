@@ -4,6 +4,7 @@ import type {
   McqAnswer,
   ModuleUnitPracticeRoom,
   ModuleUnitPracticeRoomResponse,
+  ModuleSummaryResponse,
   PracticeAttemptSnapshot,
   PracticeQuestion,
   PracticeQuestionUnit,
@@ -15,6 +16,7 @@ import type { QuestionData, questionType } from '@scholarxp/question-type-dtos';
 
 export class ModuleUnitPracticeRoomResponseDto implements ModuleUnitPracticeRoomResponse {
   practiceRoom!: ModuleUnitPracticeRoomDto;
+  moduleProgress?: ModuleSummaryResponse;
 }
 
 export class ModuleUnitPracticeRoomDto implements ModuleUnitPracticeRoom {

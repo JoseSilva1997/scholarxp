@@ -1,5 +1,6 @@
 import type { QuestionData, questionType } from '@scholarxp/question-type-dtos';
 import type { PracticeMode } from '@scholarxp/constants';
+import type { ModuleSummaryResponse } from '../modules';
 
 // Module-unit-scoped room payload used by the current practice-room flow.
 export interface ModuleUnitPracticeRoom {
@@ -81,6 +82,8 @@ export interface GetModuleUnitPracticeRoomQuery {
 // Top-level response used by the module-unit practice room page on initial load.
 export interface ModuleUnitPracticeRoomResponse {
   practiceRoom: ModuleUnitPracticeRoom;
+  // Included module progress avoids extra round-trips for XP/level display during active practice.
+  moduleProgress?: ModuleSummaryResponse;
 }
 
 // Payload user for submitting an attempt
@@ -100,4 +103,6 @@ export interface SubmitAttemptResponse {
   moduleExpAwarded: number;
   studentExpAwarded: number;
   hasCorrectAttempt: boolean;
+  // Returning the updated progress allows the frontend to synchronize XP bars without a separate refetch.
+  updatedModuleProgress?: ModuleSummaryResponse;
 }
