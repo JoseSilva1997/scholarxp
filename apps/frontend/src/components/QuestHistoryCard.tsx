@@ -1,4 +1,4 @@
-// Reusable quest history day card that keeps a fixed 3-slot hex layout and only renders quest badges.
+// Reusable quest history day card that renders a dynamic hex layout based on available quests.
 import type { QuestView } from '@scholarxp/api-contracts';
 import { AnimatePresence } from 'motion/react';
 import { useEffect, useState } from 'react';
@@ -15,8 +15,6 @@ type QuestHistoryCardProps = {
   tooltipIdPrefix?: string;
 };
 
-const QUEST_SLOT_COUNT = 3;
-
 export default function QuestHistoryCard({
   quests,
   className,
@@ -29,8 +27,9 @@ export default function QuestHistoryCard({
   const hasOpenTooltip = isControlledTooltip
     ? activeTooltipId !== null
     : openTooltipSlotIndex !== null;
-  // Fixed slot count keeps day cards visually consistent during early UI iteration.
-  const slots = Array.from({ length: QUEST_SLOT_COUNT }, (_, index) => quests[index] ?? null);
+
+  // Render exactly the number of quests provided; no hardcoded slot count.
+  const slots = quests;
 
   useEffect(() => {
     if (!hasOpenTooltip) return;

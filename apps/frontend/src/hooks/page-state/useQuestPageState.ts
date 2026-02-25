@@ -9,7 +9,6 @@ import { useAuth } from '../../context/AuthContext';
 import { logError } from '../../utils/logger';
 import { useQuestHistoryInfiniteQuery } from '../queries/useQuestsQueries';
 
-const QUESTS_PER_DAY = 3;
 const DAY_PAGE_SIZE = 14;
 
 export type QuestDaySection = {
@@ -65,8 +64,8 @@ export function useQuestPageState(): UseQuestPageStateResult {
     return groupedQuestDays.map(([questDayUtc, dayQuests]) => ({
       questDayUtc,
       dayLabel: formatQuestDayLabel(questDayUtc),
-      // Fixed 3-slot shape keeps cards consistent even if one day has fewer quests.
-      quests: Array.from({ length: QUESTS_PER_DAY }, (_, index) => dayQuests[index] ?? null),
+      // Use only available quests for the day; no fixed slot count padding.
+      quests: dayQuests,
     }));
   }, [groupedQuestDays]);
 

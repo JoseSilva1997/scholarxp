@@ -31,24 +31,28 @@ const newUnitQuest: QuestView = {
 };
 
 describe('QuestHistoryCard', () => {
-  it('always renders exactly three slots', () => {
-    render(<QuestHistoryCard quests={[null, null, null]} />);
-
+  it('renders exactly the number of quests provided', () => {
+    const { rerender } = render(<QuestHistoryCard quests={[null, null, null]} />);
     expect(screen.getAllByTestId('quest-slot')).toHaveLength(3);
+
+    rerender(<QuestHistoryCard quests={[null, null]} />);
+    expect(screen.getAllByTestId('quest-slot')).toHaveLength(2);
+
+    rerender(<QuestHistoryCard quests={[null]} />);
+    expect(screen.getAllByTestId('quest-slot')).toHaveLength(1);
   });
 
   it('renders quest badges for populated slots and placeholders for empty slots', () => {
-    render(<QuestHistoryCard quests={[baseQuest, null, null]} />);
+    render(<QuestHistoryCard quests={[baseQuest, null]} />);
 
     const slots = screen.getAllByTestId('quest-slot');
     expect(within(slots[0]).getByRole('img')).toBeInTheDocument();
     expect(within(slots[1]).queryByRole('img')).not.toBeInTheDocument();
-    expect(within(slots[2]).queryByRole('img')).not.toBeInTheDocument();
   });
 
   it('shows tooltip details only after clicking a quest medal', async () => {
     const user = userEvent.setup();
-    render(<QuestHistoryCard quests={[baseQuest, null, null]} />);
+    render(<QuestHistoryCard quests={[baseQuest]} />);
 
     expect(screen.queryByText('Module:')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Biology 101 quest details' }));
@@ -60,7 +64,7 @@ describe('QuestHistoryCard', () => {
 
   it('renders lesson in tooltip for complete_new_unit quests', async () => {
     const user = userEvent.setup();
-    render(<QuestHistoryCard quests={[newUnitQuest, null, null]} />);
+    render(<QuestHistoryCard quests={[newUnitQuest]} />);
 
     await user.click(screen.getByRole('button', { name: 'Biology 101 quest details' }));
     expect(screen.getByText('Lesson:')).toBeInTheDocument();
@@ -69,7 +73,7 @@ describe('QuestHistoryCard', () => {
 
   it('closes tooltip when clicking outside', async () => {
     const user = userEvent.setup();
-    render(<QuestHistoryCard quests={[baseQuest, null, null]} />);
+    render(<QuestHistoryCard quests={[baseQuest]} />);
 
     await user.click(screen.getByRole('button', { name: 'Biology 101 quest details' }));
     expect(screen.getByText('Module:')).toBeInTheDocument();
