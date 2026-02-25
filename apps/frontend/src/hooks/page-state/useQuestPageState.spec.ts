@@ -13,6 +13,23 @@ vi.mock('../queries/useQuestsQueries');
 vi.mock('../../api/get-display-error');
 vi.mock('../../utils/logger');
 
+type AuthHookState = ReturnType<typeof useAuth>;
+type QuestHistoryHookState = ReturnType<typeof useQuestHistoryInfiniteQuery>;
+
+function createAuthHookState(
+  value: Partial<AuthHookState>,
+): AuthHookState {
+  // Tests intentionally provide only fields consumed by the hook under test.
+  return value as unknown as AuthHookState;
+}
+
+function createQuestHistoryHookState(
+  value: Partial<QuestHistoryHookState>,
+): QuestHistoryHookState {
+  // Query mocks stay minimal to keep expectations focused on page-state behavior.
+  return value as unknown as QuestHistoryHookState;
+}
+
 describe('useQuestPageState', () => {
   const mockToday = '2024-03-20';
   const mockUser = { id: 1, name: 'Test User' };
@@ -34,11 +51,15 @@ describe('useQuestPageState', () => {
   });
 
   it('should be in loading state when auth is loading', () => {
-    vi.mocked(useAuth).mockReturnValue({ user: null, isLoading: true } as any);
-    vi.mocked(useQuestHistoryInfiniteQuery).mockReturnValue({
-      isPending: true,
-      data: undefined,
-    } as any);
+    vi.mocked(useAuth).mockReturnValue(
+      createAuthHookState({ user: null, isLoading: true }),
+    );
+    vi.mocked(useQuestHistoryInfiniteQuery).mockReturnValue(
+      createQuestHistoryHookState({
+        isPending: true,
+        data: undefined,
+      }),
+    );
 
     const { result } = renderHook(() => useQuestPageState());
 
@@ -47,11 +68,15 @@ describe('useQuestPageState', () => {
   });
 
   it('should be in loading state when history query is pending', () => {
-    vi.mocked(useAuth).mockReturnValue({ user: mockUser, isLoading: false } as any);
-    vi.mocked(useQuestHistoryInfiniteQuery).mockReturnValue({
-      isPending: true,
-      data: undefined,
-    } as any);
+    vi.mocked(useAuth).mockReturnValue(
+      createAuthHookState({ user: mockUser, isLoading: false }),
+    );
+    vi.mocked(useQuestHistoryInfiniteQuery).mockReturnValue(
+      createQuestHistoryHookState({
+        isPending: true,
+        data: undefined,
+      }),
+    );
 
     const { result } = renderHook(() => useQuestPageState());
 
@@ -60,7 +85,9 @@ describe('useQuestPageState', () => {
   });
 
   it('should group quests by day and format labels correctly', () => {
-    vi.mocked(useAuth).mockReturnValue({ user: mockUser, isLoading: false } as any);
+    vi.mocked(useAuth).mockReturnValue(
+      createAuthHookState({ user: mockUser, isLoading: false }),
+    );
     
     const mockQuests = [
       { id: 1, questDateUtc: '2024-03-20', title: 'Quest 1' },
@@ -68,12 +95,14 @@ describe('useQuestPageState', () => {
       { id: 3, questDateUtc: '2024-03-19', title: 'Quest 3' },
     ];
 
-    vi.mocked(useQuestHistoryInfiniteQuery).mockReturnValue({
-      isPending: false,
-      data: {
-        pages: [{ quests: mockQuests }],
-      },
-    } as any);
+    vi.mocked(useQuestHistoryInfiniteQuery).mockReturnValue(
+      createQuestHistoryHookState({
+        isPending: false,
+        data: {
+          pages: [{ quests: mockQuests }],
+        },
+      }),
+    );
 
     const { result } = renderHook(() => useQuestPageState());
 
@@ -97,19 +126,23 @@ describe('useQuestPageState', () => {
   });
 
   it('should sort day sections in descending order', () => {
-    vi.mocked(useAuth).mockReturnValue({ user: mockUser, isLoading: false } as any);
+    vi.mocked(useAuth).mockReturnValue(
+      createAuthHookState({ user: mockUser, isLoading: false }),
+    );
     
     const mockQuests = [
       { id: 1, questDateUtc: '2024-03-18', title: 'Old' },
       { id: 2, questDateUtc: '2024-03-20', title: 'New' },
     ];
 
-    vi.mocked(useQuestHistoryInfiniteQuery).mockReturnValue({
-      isPending: false,
-      data: {
-        pages: [{ quests: mockQuests }],
-      },
-    } as any);
+    vi.mocked(useQuestHistoryInfiniteQuery).mockReturnValue(
+      createQuestHistoryHookState({
+        isPending: false,
+        data: {
+          pages: [{ quests: mockQuests }],
+        },
+      }),
+    );
 
     const { result } = renderHook(() => useQuestPageState());
 
@@ -119,14 +152,18 @@ describe('useQuestPageState', () => {
 
   it('should handle pagination via loadMore', () => {
     const fetchNextPage = vi.fn();
-    vi.mocked(useAuth).mockReturnValue({ user: mockUser, isLoading: false } as any);
-    vi.mocked(useQuestHistoryInfiniteQuery).mockReturnValue({
-      isPending: false,
-      hasNextPage: true,
-      isFetchingNextPage: false,
-      fetchNextPage,
-      data: { pages: [] },
-    } as any);
+    vi.mocked(useAuth).mockReturnValue(
+      createAuthHookState({ user: mockUser, isLoading: false }),
+    );
+    vi.mocked(useQuestHistoryInfiniteQuery).mockReturnValue(
+      createQuestHistoryHookState({
+        isPending: false,
+        hasNextPage: true,
+        isFetchingNextPage: false,
+        fetchNextPage,
+        data: { pages: [] },
+      }),
+    );
 
     const { result } = renderHook(() => useQuestPageState());
 
@@ -141,14 +178,18 @@ describe('useQuestPageState', () => {
 
   it('should not call fetchNextPage if already fetching', () => {
     const fetchNextPage = vi.fn();
-    vi.mocked(useAuth).mockReturnValue({ user: mockUser, isLoading: false } as any);
-    vi.mocked(useQuestHistoryInfiniteQuery).mockReturnValue({
-      isPending: false,
-      hasNextPage: true,
-      isFetchingNextPage: true,
-      fetchNextPage,
-      data: { pages: [] },
-    } as any);
+    vi.mocked(useAuth).mockReturnValue(
+      createAuthHookState({ user: mockUser, isLoading: false }),
+    );
+    vi.mocked(useQuestHistoryInfiniteQuery).mockReturnValue(
+      createQuestHistoryHookState({
+        isPending: false,
+        hasNextPage: true,
+        isFetchingNextPage: true,
+        fetchNextPage,
+        data: { pages: [] },
+      }),
+    );
 
     const { result } = renderHook(() => useQuestPageState());
 
@@ -161,11 +202,15 @@ describe('useQuestPageState', () => {
 
   it('should handle errors and log them', () => {
     const mockError = new Error('API Fail');
-    vi.mocked(useAuth).mockReturnValue({ user: mockUser, isLoading: false } as any);
-    vi.mocked(useQuestHistoryInfiniteQuery).mockReturnValue({
-      error: mockError,
-      data: undefined,
-    } as any);
+    vi.mocked(useAuth).mockReturnValue(
+      createAuthHookState({ user: mockUser, isLoading: false }),
+    );
+    vi.mocked(useQuestHistoryInfiniteQuery).mockReturnValue(
+      createQuestHistoryHookState({
+        error: mockError,
+        data: undefined,
+      }),
+    );
     vi.mocked(getDisplayErrorMessage).mockReturnValue('Friendly Error');
 
     const { result } = renderHook(() => useQuestPageState());
@@ -175,13 +220,17 @@ describe('useQuestPageState', () => {
   });
 
   it('should handle empty data gracefully', () => {
-    vi.mocked(useAuth).mockReturnValue({ user: mockUser, isLoading: false } as any);
-    vi.mocked(useQuestHistoryInfiniteQuery).mockReturnValue({
-      isPending: false,
-      data: {
-        pages: [],
-      },
-    } as any);
+    vi.mocked(useAuth).mockReturnValue(
+      createAuthHookState({ user: mockUser, isLoading: false }),
+    );
+    vi.mocked(useQuestHistoryInfiniteQuery).mockReturnValue(
+      createQuestHistoryHookState({
+        isPending: false,
+        data: {
+          pages: [],
+        },
+      }),
+    );
 
     const { result } = renderHook(() => useQuestPageState());
 

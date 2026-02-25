@@ -119,7 +119,7 @@ describe('TodayQuestPopover', () => {
   });
 
   it('renders correct completion status in the detail card', async () => {
-    const { } = renderWithProviders(
+    renderWithProviders(
       <TodayQuestPopover 
         id="test-popover" 
         quests={mockQuests} 

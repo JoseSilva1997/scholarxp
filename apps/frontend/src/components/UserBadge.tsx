@@ -44,6 +44,7 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
   const uncrashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const levelingUpRafRef = useRef<number | null>(null);
   const expAnimationFrameRef = useRef<number | null>(null);
+  const displayedTotalExpRef = useRef<number | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
 
@@ -132,14 +133,21 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
   const targetRef = useRef<number | null>(null);
 
   useEffect(() => {
+    // Keep the latest displayed total in a ref so the animation effect can stay target-driven.
+    displayedTotalExpRef.current = displayedTotalExp;
+  }, [displayedTotalExp]);
+
+  useEffect(() => {
     if (targetTotalExp === null) {
       return;
     }
 
-    if (displayedTotalExp === null) {
+    const currentDisplayedTotalExp = displayedTotalExpRef.current;
+    if (currentDisplayedTotalExp === null) {
       // First boot: set immediately so the starting UI matches the server state.
       // We wrap in rAF to ensure we don't conflict with pending render cycles.
       expAnimationFrameRef.current = requestAnimationFrame(() => {
+        displayedTotalExpRef.current = targetTotalExp;
         setDisplayedTotalExp(targetTotalExp);
         targetRef.current = targetTotalExp;
         expAnimationFrameRef.current = null;
@@ -153,7 +161,7 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
       return;
     }
 
-    const animationStart = displayedTotalExp;
+    const animationStart = currentDisplayedTotalExp;
     const animationDistance = Math.abs(targetTotalExp - animationStart);
     // Increased duration to make the XP climb more deliberate and satisfying.
     const animationDurationMs = Math.max(400, Math.min(1600, animationDistance * 18));
@@ -173,6 +181,7 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
       const easedProgress = easeOutCubic(progress);
       const nextValue = Math.round(animationStart + animationDelta * easedProgress);
       
+      displayedTotalExpRef.current = nextValue;
       setDisplayedTotalExp(nextValue);
 
       if (progress < 1) {

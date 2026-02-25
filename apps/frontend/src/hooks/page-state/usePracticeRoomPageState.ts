@@ -169,6 +169,7 @@ export function usePracticeRoomPageState({
   const [displayedModuleTotalExp, setDisplayedModuleTotalExp] = useState<
     number | null
   >(null);
+  const displayedModuleTotalExpRef = useRef<number | null>(null);
   const moduleProgressAnimationFrameRef = useRef<number | null>(null);
   const moduleProgressSyncFrameRef = useRef<number | null>(null);
   const moduleExpGainIndicatorTimeoutRef = useRef<number | null>(null);
@@ -456,14 +457,21 @@ export function usePracticeRoomPageState({
   const moduleProgressAnimationFrameTargetRef = useRef<number | null>(null);
 
   useEffect(() => {
+    // Keep animation reads ref-based so the effect can depend on target snapshot only.
+    displayedModuleTotalExpRef.current = displayedModuleTotalExp;
+  }, [displayedModuleTotalExp]);
+
+  useEffect(() => {
     if (!moduleProgressAnimation) {
       return;
     }
 
-    if (displayedModuleTotalExp === null) {
+    const currentDisplayedModuleTotalExp = displayedModuleTotalExpRef.current;
+    if (currentDisplayedModuleTotalExp === null) {
       // First boot: set immediately so the starting UI matches the server state.
       // We wrap in rAF to ensure we don't conflict with pending render cycles.
       moduleProgressAnimationFrameRef.current = requestAnimationFrame(() => {
+        displayedModuleTotalExpRef.current = moduleProgressAnimation.totalExp;
         setDisplayedModuleTotalExp(moduleProgressAnimation.totalExp);
         moduleProgressAnimationFrameTargetRef.current = moduleProgressAnimation.totalExp;
         moduleProgressAnimationFrameRef.current = null;
@@ -477,7 +485,7 @@ export function usePracticeRoomPageState({
       return;
     }
 
-    const animationStart = displayedModuleTotalExp;
+    const animationStart = currentDisplayedModuleTotalExp;
     const animationDistance = Math.abs(
       moduleProgressAnimation.totalExp - animationStart,
     );
@@ -499,6 +507,7 @@ export function usePracticeRoomPageState({
       const easedProgress = easeOutCubic(progress);
       const nextValue = Math.round(animationStart + animationDelta * easedProgress);
       
+      displayedModuleTotalExpRef.current = nextValue;
       setDisplayedModuleTotalExp(nextValue);
 
       if (progress < 1) {

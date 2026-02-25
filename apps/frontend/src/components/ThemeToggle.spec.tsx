@@ -93,7 +93,8 @@ describe('ThemeToggle', () => {
   it('defaults to light theme for unknown or system themes', () => {
     // Stage: theme is unexpected or 'system' (if added in future).
     vi.mocked(useTheme).mockReturnValue({
-      theme: 'system' as any,
+      // Intentionally cast an out-of-contract value to verify fallback behavior.
+      theme: 'system' as unknown as ReturnType<typeof useTheme>['theme'],
       resolvedTheme: 'light',
       setTheme: mockSetTheme,
       toggleTheme: mockToggleTheme,
