@@ -114,7 +114,7 @@ describe('useQuestsQueries', () => {
       expect(result.current.data).toEqual({
         completed: 1,
         total: 2,
-        max: 3,
+        max: 2,
       });
 
       expect(apiMocks.listQuests).toHaveBeenCalledWith({
@@ -160,6 +160,7 @@ describe('useQuestsQueries', () => {
 
       // Should have only 3 quests from today (slice 0, 3)
       expect(result.current.data?.quests).toHaveLength(3);
+      expect(result.current.data?.max).toBe(3);
       expect(result.current.data?.quests.every(q => q.questDateUtc === TODAY_STR)).toBe(true);
       
       // Calculate completed among those 3.
@@ -181,6 +182,7 @@ describe('useQuestsQueries', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(result.current.data?.quests).toHaveLength(0);
+      expect(result.current.data?.max).toBe(3);
       expect(result.current.data?.completed).toBe(0);
     });
   });

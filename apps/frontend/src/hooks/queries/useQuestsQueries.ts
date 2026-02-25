@@ -52,10 +52,12 @@ export function useTodayQuestSummaryQuery(enabled: boolean, userId?: number) {
       const todayUtc = new Date().toISOString().slice(0, 10);
       const todayQuests = response.quests.filter((quest) => quest.questDateUtc === todayUtc);
       const completedCount = todayQuests.filter((quest) => quest.isCompleted).length;
+      const displayQuestsCount = Math.min(todayQuests.length, TODAY_QUEST_MAX);
+
       return {
         completed: completedCount,
         total: todayQuests.length,
-        max: TODAY_QUEST_MAX,
+        max: displayQuestsCount || TODAY_QUEST_MAX,
       };
     },
   });
@@ -74,14 +76,13 @@ export function useTodayQuestListQuery(enabled: boolean, userId?: number) {
     staleTime: 30_000,
     select: (response) => {
       const todayUtc = new Date().toISOString().slice(0, 10);
-      const todayQuests = response.quests
-        .filter((quest) => quest.questDateUtc === todayUtc)
-        .slice(0, TODAY_QUEST_MAX);
+      const allToday = response.quests.filter((quest) => quest.questDateUtc === todayUtc);
+      const todayQuests = allToday.slice(0, TODAY_QUEST_MAX);
 
       return {
         quests: todayQuests,
         completed: todayQuests.filter((quest) => quest.isCompleted).length,
-        max: TODAY_QUEST_MAX,
+        max: todayQuests.length || TODAY_QUEST_MAX,
       };
     },
   });
