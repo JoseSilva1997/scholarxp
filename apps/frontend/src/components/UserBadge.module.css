@@ -6,14 +6,8 @@
   padding: 6px 6px 6px 18px;
   background: var(--color-glass-bg); /* Glassy background for dark header context */
   backdrop-filter: blur(12px);
-  border: 1px solid var(--color-glass-border); /* Subtle translucent border */
-  box-shadow: 
-    var(--shadow-md),
-    inset 0 1px 1px var(--color-glass-border-subtle); /* Inner glow for depth */
   transition: all var(--transition-base);
   position: relative;
-  /* overflow: hidden is removed to allow the absolute menu to be visible. */
-  /* We use clip-path to keep the shimmer contained within the badge. */
 }
 
 /* Shimmer layer moved to a separate pseudo-element that doesn't conflict with layout */
@@ -113,22 +107,32 @@
   -webkit-text-fill-color: transparent;
 }
 
+.progress {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  margin-top: 14px; /* Space for the absolute XP label */
+  white-space: nowrap;
+}
+
+.barRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.trackContainer {
+  position: relative;
+  flex: 1;
+}
+
 .level {
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   color: var(--color-accent-light);
   font-weight: 800;
   display: flex;
   align-items: center;
   gap: 4px;
-}
-
-.progress {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 1px;
-  white-space: nowrap;
-  flex-wrap: nowrap;
 }
 
 .levelValue {
@@ -149,8 +153,9 @@
 }
 
 .levelIcon {
-  width: 14px;
-  height: 14px;
+  width: 10px;
+  height: 10px;
+  margin-right: 2px;
   filter: drop-shadow(0 0 6px var(--color-accent));
   animation: float 3s ease-in-out infinite;
 }
@@ -162,8 +167,9 @@
 
 .barTrack {
   position: relative;
-  height: 6px;
-  width: 70px;
+  height: 10px;
+  width: 100%;
+  min-width: 80px;
   background: var(--color-glass-bg-deep); /* Dark background for track elements */
   border-radius: var(--radius-full);
   overflow: hidden;
@@ -193,14 +199,15 @@
   100% { background-position: -200% 0; }
 }
 
-.expLabel {
-  font-size: 0.75rem;
+.expLabel {  position: absolute;
+  bottom: 100%;
+  right: 0;
+  margin-bottom: 2px;  font-size: 0.6rem;
   font-weight: 600;
   color: var(--color-text-on-dark-muted); /* Translucent white text on dark */
   white-space: nowrap;
   letter-spacing: 0.01em;
   font-variant-numeric: tabular-nums;
-  width: 6ch; /* Prevents badge layout shifting as XP number increments */
   text-align: right;
 }
 

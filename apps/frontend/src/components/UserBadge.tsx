@@ -214,65 +214,69 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
         </div>
         {isStudent && animatedProgress ? (
           <div className={styles.progress}>
-            <span className={styles.level}>
-              <img src={expIcon} alt="" aria-hidden="true" className={styles.levelIcon} />
-              Level{' '}
-              <span className={styles.levelValueWrap}>
-                <AnimatePresence mode="popLayout" initial={false}>
-                  <motion.span
-                    key={animatedProgress.level}
-                    initial={{ y: -14, opacity: 0, rotateY: 1080, scale: 1.1 }}
-                    animate={{ 
-                      y: 0, 
-                      opacity: 1, 
-                      rotateY: 0,
-                      scale: 1,
-                      transition: {
-                        y: { 
-                          type: 'tween', 
-                          duration: 0.12, 
-                          ease: "easeIn", 
-                          delay: 0.8 // Hold during transformation spin, then drop
-                        },
-                        rotateY: { duration: 0.5, delay: 0.3, ease: "easeOut" }, // Spin back faster
-                        opacity: { duration: 0.1, delay: 0.3 },
-                        scale: { duration: 0.15, delay: 0.3 },
-                      }
-                    }}
-                    exit={{ 
-                      y: -14, // No array here, starts from 0 (if reached) and goes to -14
-                      rotateY: 1080, 
-                      opacity: 0,
-                      scale: 1.1,
-                      color: 'var(--color-secondary)',
-                      transition: {
-                        duration: 0.3,
-                        y: { ease: "easeOut" },
-                        rotateY: { ease: "easeInOut" },
-                        opacity: { duration: 0.25 },
-                        scale: { ease: "easeOut" }
-                      }
-                    }}
-                    className={styles.levelValue}
-                    style={{
-                      color: isLevelingUp ? 'var(--color-secondary)' : 'var(--color-accent-light)',
-                      textShadow: isLevelingUp 
-                        ? '0 0 10px var(--color-secondary-soft), 0 0 20px var(--color-secondary-soft)' 
-                        : 'none',
-                      fontWeight: isLevelingUp ? 900 : 800,
-                      transformStyle: 'preserve-3d',
-                      zIndex: isLevelingUp ? 11 : 1,
-                    }}
-                  >
-                    {animatedProgress.level}
-                  </motion.span>
-                </AnimatePresence>
+            <div className={styles.barRow}>
+              <span className={styles.level}>
+                <img src={expIcon} alt="" aria-hidden="true" className={styles.levelIcon} />
+                Level{' '}
+                <span className={styles.levelValueWrap}>
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    <motion.span
+                      key={animatedProgress.level}
+                      initial={{ y: -14, opacity: 0, rotateY: 1080, scale: 1.1 }}
+                      animate={{ 
+                        y: 0, 
+                        opacity: 1, 
+                        rotateY: 0,
+                        scale: 1,
+                        transition: {
+                          y: { 
+                            type: 'tween', 
+                            duration: 0.12, 
+                            ease: "easeIn", 
+                            delay: 0.8 // Hold during transformation spin, then drop
+                          },
+                          rotateY: { duration: 0.5, delay: 0.3, ease: "easeOut" }, // Spin back faster
+                          opacity: { duration: 0.1, delay: 0.3 },
+                          scale: { duration: 0.15, delay: 0.3 },
+                        }
+                      }}
+                      exit={{ 
+                        y: -14, // No array here, starts from 0 (if reached) and goes to -14
+                        rotateY: 1080, 
+                        opacity: 0,
+                        scale: 1.1,
+                        color: 'var(--color-secondary)',
+                        transition: {
+                          duration: 0.3,
+                          y: { ease: "easeOut" },
+                          rotateY: { ease: "easeInOut" },
+                          opacity: { duration: 0.25 },
+                          scale: { ease: "easeOut" }
+                        }
+                      }}
+                      className={styles.levelValue}
+                      style={{
+                        color: isLevelingUp ? 'var(--color-secondary)' : 'var(--color-accent-light)',
+                        textShadow: isLevelingUp 
+                          ? '0 0 10px var(--color-secondary-soft), 0 0 20px var(--color-secondary-soft)' 
+                          : 'none',
+                        fontWeight: isLevelingUp ? 900 : 800,
+                        transformStyle: 'preserve-3d',
+                        zIndex: isLevelingUp ? 11 : 1,
+                      }}
+                    >
+                      {animatedProgress.level}
+                    </motion.span>
+                  </AnimatePresence>
+                </span>
               </span>
-            </span>
-            <div className={styles.barTrack} role="progressbar" aria-valuenow={expPercent} aria-valuemin={0} aria-valuemax={100}>
-              <div className={styles.barFill} style={{ width: `${expPercent}%` }} />
+              <div className={styles.trackContainer}>
+                <span className={styles.expLabel}>{animatedProgress.currentExp} xp</span>
+                <div className={styles.barTrack} role="progressbar" aria-valuenow={expPercent} aria-valuemin={0} aria-valuemax={100}>
+                  <div className={styles.barFill} style={{ width: `${expPercent}%` }} />
+                </div>
+              </div>
             </div>
-            <span className={styles.expLabel}>{animatedProgress.currentExp} xp</span>
           </div>
         ) : null}
       </div>
