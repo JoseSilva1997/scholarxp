@@ -166,7 +166,12 @@ describe('useSubmitModuleUnitPracticeAttemptMutation', () => {
     useSubmitModuleUnitPracticeAttemptMutation(5, 2);
 
     const opts = useMutationMock.mock.calls[0][0];
-    await opts.onSuccess();
+    const mockResponse = {
+      moduleExpAwarded: 10,
+      studentExpAwarded: 5,
+      hasCorrectAttempt: true,
+    };
+    await opts.onSuccess(mockResponse);
 
     expect(invalidateQueriesMock).toHaveBeenCalledWith({
       queryKey: queryKeys.modules.moduleUnitPracticeRoomBase(5, 2),

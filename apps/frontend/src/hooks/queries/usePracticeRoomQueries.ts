@@ -58,7 +58,7 @@ export function useSubmitModuleUnitPracticeAttemptMutation(
       return submitPracticeRoomAttempt(moduleId, moduleUnitId, payload);
     },
     onSuccess: async (data: SubmitAttemptResponse) => {
-      if (moduleId === null || moduleUnitId === null) {
+      if (moduleId === null || moduleUnitId === null || !data) {
         return;
       }
 
