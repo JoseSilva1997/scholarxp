@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
 import type { AuthUser } from '../types/auth';
 import defaultAvatar from '../assets/default-profile-pic.png';
 import { STUDENT_EXP_MAX } from '@scholarxp/constants';
@@ -24,6 +24,9 @@ function formatName(user: AuthUser) {
 export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [displayedTotalExp, setDisplayedTotalExp] = useState<number | null>(null);
+  const [isLevelingUp, setIsLevelingUp] = useState(false);
+  const [isBadgeCrashing, setIsBadgeCrashing] = useState(false);
+  const [prevLevel, setPrevLevel] = useState<number | null>(null);
   const expAnimationFrameRef = useRef<number | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
@@ -52,6 +55,34 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
     isStudent && level !== undefined && exp
       ? toTotalExp(level, exp.current, expMax)
       : null;
+
+  const animatedProgress =
+    targetTotalExp !== null
+      ? fromTotalExp(displayedTotalExp ?? targetTotalExp, expMax)
+      : null;
+
+  useEffect(() => {
+    if (animatedProgress?.level !== undefined) {
+      if (prevLevel !== null && animatedProgress.level > prevLevel) {
+        setIsLevelingUp(true);
+        // Delay the crash shake until the number actually hits the badge (at T=1.95s)
+        const crashTimer = setTimeout(() => {
+          setIsBadgeCrashing(true);
+          // Persistent shake: duration matches the increased CSS animation time
+          setTimeout(() => setIsBadgeCrashing(false), 800);
+        }, 1950);
+
+        // Extended timer to allow the complex level-up animation to complete.
+        // It raises, spins, and then crashes down over ~2.0s.
+        const resetTimer = setTimeout(() => setIsLevelingUp(false), 3000);
+        return () => {
+          clearTimeout(crashTimer);
+          clearTimeout(resetTimer);
+        };
+      }
+      setPrevLevel(animatedProgress.level);
+    }
+  }, [animatedProgress?.level, prevLevel]);
 
   useEffect(
     () => () => {
@@ -114,19 +145,21 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
     };
   }, [displayedTotalExp, targetTotalExp]);
 
-  const animatedProgress =
-    targetTotalExp !== null
-      ? fromTotalExp(displayedTotalExp ?? targetTotalExp, expMax)
-      : null;
   const expPercent =
     animatedProgress && expMax > 0
       ? Math.min(100, Math.round((animatedProgress.currentExp / expMax) * 100))
       : 0;
-  // Key motion elements directly by animated level so each level transition remounts once without effect-driven state.
-  const levelAnimationKey = animatedProgress?.level ?? 0;
 
   return (
-    <div className={styles.badge} aria-label={`${formatName(user)} profile`} ref={menuRef}>
+    <div
+      className={`
+        ${styles.badge} 
+        ${isLevelingUp ? styles.badgeLevelUp : ''} 
+        ${isBadgeCrashing ? styles.badgeCrashShake : ''}
+      `}
+      aria-label={`${formatName(user)} profile`}
+      ref={menuRef}
+    >
       <div className={styles.shimmerEffect} aria-hidden="true" />
       <div className={styles.meta}>
         <div className={styles.name} title={formatName(user) || ''}>
@@ -138,37 +171,93 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
               <img src={expIcon} alt="" aria-hidden="true" className={styles.levelIcon} />
               Level{' '}
               <span className={styles.levelValueWrap}>
-                {levelAnimationKey > 0 ? (
+                <AnimatePresence mode="popLayout" initial={false}>
                   <motion.span
-                    key={`badge-level-rays-${levelAnimationKey}`}
-                    aria-hidden="true"
-                    className={styles.levelRays}
-                    initial={{ opacity: 0, scale: 0.6 }}
-                    animate={{
-                      opacity: [0, 1, 0],
-                      scale: [0.6, 1.1, 1.35],
-                      y: [0, -2, 0],
+                    key={animatedProgress.level}
+                    initial={{ y: -14, opacity: 0, rotateY: 1080, scale: 1.1 }}
+                    animate={{ 
+                      y: 0, 
+                      opacity: 1, 
+                      rotateY: 0,
+                      scale: 1,
+                      transition: {
+                        y: { 
+                          type: 'tween', 
+                          duration: 0.15, 
+                          ease: "easeIn", 
+                          delay: 1.8 // Hold during transformation spin, then drop
+                        },
+                        rotateY: { duration: 0.8, delay: 0.9, ease: "easeOut" }, // Spin back from 1080 to 0
+                        opacity: { duration: 0.1, delay: 0.9 },
+                        scale: { duration: 0.2, delay: 0.9 },
+                      }
                     }}
-                    transition={{
-                      duration: 0.6,
-                      ease: 'easeOut',
-                      times: [0, 0.35, 1],
+                    exit={{ 
+                      y: [0, -14], 
+                      rotateY: [0, 1080], 
+                      opacity: [1, 1, 0],
+                      scale: [1, 1.1],
+                      color: 'var(--color-secondary)',
+                      transition: {
+                        duration: 0.9,
+                        y: { ease: "easeOut" },
+                        rotateY: { ease: "easeInOut" },
+                        opacity: { times: [0, 0.95, 1] },
+                        scale: { ease: "easeOut" }
+                      }
                     }}
-                  />
-                ) : null}
-                <motion.span
-                  key={`badge-level-value-${levelAnimationKey}`}
-                  className={styles.levelValue}
-                  initial={{ y: 0, scale: 1 }}
-                  animate={{ y: [0, -2, 0], scale: [1, 1.3, 1] }}
-                  transition={{
-                    duration: 0.6,
-                    ease: 'easeOut',
-                    times: [0, 0.4, 1],
-                  }}
-                >
-                  {animatedProgress.level}
-                </motion.span>
+                    className={styles.levelValue}
+                    style={{
+                      color: isLevelingUp ? 'var(--color-secondary)' : 'var(--color-accent-light)',
+                      textShadow: isLevelingUp 
+                        ? '0 0 10px var(--color-secondary-soft), 0 0 20px var(--color-secondary-soft)' 
+                        : 'none',
+                      fontWeight: isLevelingUp ? 900 : 800,
+                      transformStyle: 'preserve-3d',
+                      zIndex: isLevelingUp ? 11 : 1,
+                    }}
+                  >
+                    {animatedProgress.level}
+                  </motion.span>
+                </AnimatePresence>
+
+                <AnimatePresence>
+                  {isLevelingUp && (
+                    <>
+                      <motion.div
+                        initial={{ opacity: 0, y: 0, scale: 0.5 }}
+                        animate={{ opacity: 1, y: -40, scale: 1 }}
+                        exit={{ opacity: 0, y: -50, scale: 1.2 }}
+                        className={styles.levelUpLabel}
+                      >
+                        Level Up!
+                      </motion.div>
+                      <div className={styles.levelValueBurst} />
+                      {[...Array(8)].map((_, i) => (
+                        <motion.div
+                          key={`particle-${i}`}
+                          initial={{ opacity: 1, x: 0, y: 0, scale: 1.2 }}
+                          animate={{ 
+                            opacity: 0, 
+                            x: (Math.random() - 0.5) * 80, 
+                            y: (Math.random() - 0.5) * 80,
+                            scale: 0 
+                          }}
+                          transition={{ 
+                            duration: 1.2, 
+                            ease: "easeOut",
+                            delay: Math.random() * 0.2
+                          }}
+                          className={styles.particle}
+                          style={{
+                            left: '50%',
+                            top: '50%',
+                          }}
+                        />
+                      ))}
+                    </>
+                  )}
+                </AnimatePresence>
               </span>
             </span>
             <div className={styles.barTrack} role="progressbar" aria-valuenow={expPercent} aria-valuemin={0} aria-valuemax={100}>
