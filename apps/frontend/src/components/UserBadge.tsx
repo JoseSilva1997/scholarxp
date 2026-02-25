@@ -21,12 +21,28 @@ function formatName(user: AuthUser) {
   return [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
 }
 
+// Deterministic particle offsets for the level-up burst to avoid impure render logic and flickering
+const LEVEL_UP_PARTICLE_OFFSETS = [
+  { x: 45, y: -15, delay: 0.0 },
+  { x: -35, y: -35, delay: 0.04 },
+  { x: 15, y: 45, delay: 0.08 },
+  { x: -45, y: 15, delay: 0.12 },
+  { x: 30, y: 35, delay: 0.02 },
+  { x: -15, y: -45, delay: 0.06 },
+  { x: 50, y: 5, delay: 0.10 },
+  { x: -50, y: -5, delay: 0.14 }
+];
+
 export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [displayedTotalExp, setDisplayedTotalExp] = useState<number | null>(null);
   const [isLevelingUp, setIsLevelingUp] = useState(false);
   const [isBadgeCrashing, setIsBadgeCrashing] = useState(false);
-  const [prevLevel, setPrevLevel] = useState<number | null>(null);
+  const prevLevelRef = useRef<number | null>(null);
+  const levelingUpTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const crashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const uncrashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const levelingUpRafRef = useRef<number | null>(null);
   const expAnimationFrameRef = useRef<number | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
@@ -62,27 +78,47 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
       : null;
 
   useEffect(() => {
-    if (animatedProgress?.level !== undefined) {
-      if (prevLevel !== null && animatedProgress.level > prevLevel) {
-        setIsLevelingUp(true);
-        // Delay the crash shake until the number actually hits the badge (at T=1.95s)
-        const crashTimer = setTimeout(() => {
-          setIsBadgeCrashing(true);
-          // Persistent shake: duration matches the increased CSS animation time
-          setTimeout(() => setIsBadgeCrashing(false), 800);
-        }, 1950);
+    const currentLevel = animatedProgress?.level;
+    if (currentLevel !== undefined) {
+      if (prevLevelRef.current !== null && currentLevel > prevLevelRef.current) {
+        // Clear any previous queued level-up check to avoid duplicate animations.
+        if (levelingUpRafRef.current) cancelAnimationFrame(levelingUpRafRef.current);
 
-        // Extended timer to allow the complex level-up animation to complete.
-        // It raises, spins, and then crashes down over ~2.0s.
-        const resetTimer = setTimeout(() => setIsLevelingUp(false), 3000);
-        return () => {
-          clearTimeout(crashTimer);
-          clearTimeout(resetTimer);
-        };
+        // Deferring state changes to a new frame to avoid synchronous setState inside an effect.
+        levelingUpRafRef.current = requestAnimationFrame(() => {
+          setIsLevelingUp(true);
+
+          if (levelingUpTimerRef.current) clearTimeout(levelingUpTimerRef.current);
+          if (crashTimerRef.current) clearTimeout(crashTimerRef.current);
+          if (uncrashTimerRef.current) clearTimeout(uncrashTimerRef.current);
+          setIsBadgeCrashing(false);
+
+          crashTimerRef.current = setTimeout(() => {
+            setIsBadgeCrashing(true);
+            uncrashTimerRef.current = setTimeout(() => {
+              setIsBadgeCrashing(false);
+              uncrashTimerRef.current = null;
+            }, 600);
+            crashTimerRef.current = null;
+          }, 850); // Matches the new faster sequence drop point
+
+          levelingUpTimerRef.current = setTimeout(() => {
+            setIsLevelingUp(false);
+            levelingUpTimerRef.current = null;
+          }, 2400); // Resets sooner now that sequence is snappy
+          
+          levelingUpRafRef.current = null;
+        });
       }
-      setPrevLevel(animatedProgress.level);
+      prevLevelRef.current = currentLevel;
     }
-  }, [animatedProgress?.level, prevLevel]);
+    return () => {
+      if (levelingUpRafRef.current) cancelAnimationFrame(levelingUpRafRef.current);
+      if (levelingUpTimerRef.current) clearTimeout(levelingUpTimerRef.current);
+      if (crashTimerRef.current) clearTimeout(crashTimerRef.current);
+      if (uncrashTimerRef.current) clearTimeout(uncrashTimerRef.current);
+    };
+  }, [animatedProgress?.level]); // Ref is stable, only dependency is the derived level.
 
   useEffect(
     () => () => {
@@ -183,26 +219,26 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
                       transition: {
                         y: { 
                           type: 'tween', 
-                          duration: 0.15, 
+                          duration: 0.12, 
                           ease: "easeIn", 
-                          delay: 1.8 // Hold during transformation spin, then drop
+                          delay: 0.8 // Hold during transformation spin, then drop
                         },
-                        rotateY: { duration: 0.8, delay: 0.9, ease: "easeOut" }, // Spin back from 1080 to 0
-                        opacity: { duration: 0.1, delay: 0.9 },
-                        scale: { duration: 0.2, delay: 0.9 },
+                        rotateY: { duration: 0.5, delay: 0.3, ease: "easeOut" }, // Spin back faster
+                        opacity: { duration: 0.1, delay: 0.3 },
+                        scale: { duration: 0.15, delay: 0.3 },
                       }
                     }}
                     exit={{ 
-                      y: [0, -14], 
-                      rotateY: [0, 1080], 
-                      opacity: [1, 1, 0],
-                      scale: [1, 1.1],
+                      y: -14, // No array here, starts from 0 (if reached) and goes to -14
+                      rotateY: 1080, 
+                      opacity: 0,
+                      scale: 1.1,
                       color: 'var(--color-secondary)',
                       transition: {
-                        duration: 0.9,
+                        duration: 0.3,
                         y: { ease: "easeOut" },
                         rotateY: { ease: "easeInOut" },
-                        opacity: { times: [0, 0.95, 1] },
+                        opacity: { duration: 0.25 },
                         scale: { ease: "easeOut" }
                       }
                     }}
@@ -220,44 +256,6 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
                     {animatedProgress.level}
                   </motion.span>
                 </AnimatePresence>
-
-                <AnimatePresence>
-                  {isLevelingUp && (
-                    <>
-                      <motion.div
-                        initial={{ opacity: 0, y: 0, scale: 0.5 }}
-                        animate={{ opacity: 1, y: -40, scale: 1 }}
-                        exit={{ opacity: 0, y: -50, scale: 1.2 }}
-                        className={styles.levelUpLabel}
-                      >
-                        Level Up!
-                      </motion.div>
-                      <div className={styles.levelValueBurst} />
-                      {[...Array(8)].map((_, i) => (
-                        <motion.div
-                          key={`particle-${i}`}
-                          initial={{ opacity: 1, x: 0, y: 0, scale: 1.2 }}
-                          animate={{ 
-                            opacity: 0, 
-                            x: (Math.random() - 0.5) * 80, 
-                            y: (Math.random() - 0.5) * 80,
-                            scale: 0 
-                          }}
-                          transition={{ 
-                            duration: 1.2, 
-                            ease: "easeOut",
-                            delay: Math.random() * 0.2
-                          }}
-                          className={styles.particle}
-                          style={{
-                            left: '50%',
-                            top: '50%',
-                          }}
-                        />
-                      ))}
-                    </>
-                  )}
-                </AnimatePresence>
               </span>
             </span>
             <div className={styles.barTrack} role="progressbar" aria-valuenow={expPercent} aria-valuemin={0} aria-valuemax={100}>
@@ -267,6 +265,80 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
           </div>
         ) : null}
       </div>
+
+      <AnimatePresence>
+        {isLevelingUp && (
+          <motion.div 
+            key={`level-up-anim-${animatedProgress?.level}`} 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className={styles.levelUpContainer}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: -20, scale: 0.5, x: '-50%' }}
+              animate={{ 
+                opacity: 1, 
+                y: 0, 
+                scale: 1,
+                x: '-50%',
+                transition: {
+                  delay: 0.4, 
+                  duration: 0.3,
+                  ease: "backOut"
+                }
+              }}
+              exit={{ opacity: 0, scale: 1.1, x: '-50%' }}
+              className={styles.levelUpLabel}
+            >
+              Level Up!
+            </motion.div>
+            
+            {/* Burst effect synced to the faster drop at T=0.85s */}
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0, x: '-50%', y: '-50%' }}
+              animate={{ 
+                scale: 3, 
+                opacity: [0, 1, 0],
+                x: '-50%',
+                y: '-50%'
+              }}
+              transition={{
+                delay: 0.85, 
+                duration: 1.0,
+                ease: "easeOut"
+              }}
+              className={styles.levelValueBurst}
+              style={{ animation: 'none', left: '50%', top: '50%' }} 
+            />
+
+            {/* Particles also synced with the crash hit at T=0.85s */}
+            {LEVEL_UP_PARTICLE_OFFSETS.map((params, i) => (
+              <motion.div
+                key={`particle-${i}`}
+                initial={{ opacity: 0, x: 0, y: 0, scale: 0 }}
+                animate={{ 
+                  opacity: [0, 1, 0], 
+                  x: params.x, 
+                  y: params.y,
+                  scale: [0, 1.2, 0],
+                }}
+                transition={{ 
+                  delay: 0.85 + params.delay, 
+                  duration: 1.0, 
+                  ease: "easeOut",
+                }}
+                className={styles.particle}
+                style={{
+                  left: '50%',
+                  top: '50%',
+                }}
+              />
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <button
         type="button"
         className={styles.avatarButton}
