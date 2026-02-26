@@ -1,10 +1,22 @@
 import type { QuestionData, questionType } from '@scholarxp/question-type-dtos';
-import type { PracticeMode } from '@scholarxp/constants';
 import type { ModuleSummaryResponse } from '../modules';
+
+// Session type values are contract-owned so backend/frontend can evolve behavior without DB enum coupling.
+export const PracticeSessionTypeValues = {
+  practiceRoom: 'practice_room',
+  viewAnswers: 'view_answers',
+  retry: 'retry',
+} as const;
+
+// String union keeps compatibility with string-backed DB storage while preserving typed usage in app code.
+export type PracticeSessionType =
+  (typeof PracticeSessionTypeValues)[keyof typeof PracticeSessionTypeValues];
 
 // Module-unit-scoped room payload used by the current practice-room flow.
 export interface ModuleUnitPracticeRoom {
   sessionId: string;
+  // Session type allows clients to branch behavior (practice vs read-only review) from one backend-owned value.
+  sessionType?: PracticeSessionType;
   moduleUnitId: number;
   moduleUnitTitle: string;
   // Completed units are delivered as read-only so clients can disable answer interactions.
@@ -92,7 +104,6 @@ export interface SubmitAttemptPayload {
   questionUnitId: number;
   questionContentId: number;
   sessionId: string;
-  practiceMode: PracticeMode;
   timeTakenMs: number;
   hintUnlocked: boolean;
   studentAnswer: StudentAnswer;
@@ -105,4 +116,10 @@ export interface SubmitAttemptResponse {
   hasCorrectAttempt: boolean;
   // Returning the updated progress allows the frontend to synchronize XP bars without a separate refetch.
   updatedModuleProgress?: ModuleSummaryResponse;
+}
+
+// Response returned when a practice session is explicitly closed; closedAt is always an ISO UTC timestamp.
+export interface ClosePracticeSessionResponse {
+  sessionId: string;
+  closedAt: string;
 }

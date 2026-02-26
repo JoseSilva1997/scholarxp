@@ -174,6 +174,7 @@ describe('PracticeRoomService', () => {
       // Setup: practice session
       prisma.practiceSession.create.mockResolvedValue({
         id: '11111111-1111-4111-8111-111111111999',
+        sessionType: 'practice_room',
       } as any);
 
       // Setup: find module unit
@@ -197,9 +198,10 @@ describe('PracticeRoomService', () => {
         data: {
           moduleId,
           userId: studentId,
+          sessionType: 'practice_room',
           startTime: expect.any(Date),
         },
-        select: { id: true },
+        select: { id: true, sessionType: true },
       });
 
       // Verify module unit query included proper filters
@@ -236,6 +238,7 @@ describe('PracticeRoomService', () => {
       prisma.moduleUnit.findFirst.mockResolvedValue(mockModuleUnit as any);
       prisma.practiceSession.create.mockResolvedValue({
         id: '11111111-1111-4111-8111-111111111888',
+        sessionType: 'practice_room',
       } as any);
       prisma.questionAttempt.findMany.mockResolvedValue([]);
 
@@ -251,6 +254,7 @@ describe('PracticeRoomService', () => {
       prisma.moduleUnit.findFirst.mockResolvedValue(mockModuleUnit as any);
       prisma.practiceSession.findFirst.mockResolvedValue({
         id: '11111111-1111-4111-8111-111111111444',
+        sessionType: 'practice_room',
       } as any);
       prisma.questionAttempt.findMany.mockResolvedValue([]);
 
@@ -267,7 +271,7 @@ describe('PracticeRoomService', () => {
           moduleId: 1,
           userId: 100,
         },
-        select: { id: true },
+        select: { id: true, sessionType: true, endTime: true },
       });
       expect(prisma.practiceSession.create).not.toHaveBeenCalled();
       expect(result.practiceRoom.sessionId).toBe(
@@ -303,6 +307,7 @@ describe('PracticeRoomService', () => {
       prisma.moduleUnit.findFirst.mockResolvedValue(mockModuleUnit as any);
       prisma.practiceSession.create.mockResolvedValue({
         id: '11111111-1111-4111-8111-111111111777',
+        sessionType: 'practice_room',
       } as any);
       prisma.questionAttempt.findMany.mockResolvedValue([]);
 
@@ -373,19 +378,27 @@ describe('PracticeRoomService', () => {
   describe('createPracticeSession (private)', () => {
     // ===== HAPPY PATH =====
     it('should create session with correct data', async () => {
-      const mockSession = { id: 555 };
+      const mockSession = {
+        id: '11111111-1111-4111-8111-111111111555',
+        sessionType: 'practice_room',
+      };
       prisma.practiceSession.create.mockResolvedValue(mockSession as any);
 
-      const result = await (service as any).createPracticeSession(1, 100);
+      const result = await (service as any).createPracticeSession(
+        1,
+        100,
+        'practice_room',
+      );
 
       expect(prisma.practiceSession.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             moduleId: 1,
             userId: 100,
+            sessionType: 'practice_room',
             startTime: expect.any(Date),
           }),
-          select: { id: true },
+          select: { id: true, sessionType: true },
         }),
       );
       expect(result).toEqual(mockSession);
@@ -395,15 +408,17 @@ describe('PracticeRoomService', () => {
     it('should create session with different module and student ids', async () => {
       prisma.practiceSession.create.mockResolvedValue({
         id: '11111111-1111-4111-8111-111111111666',
+        sessionType: 'practice_room',
       } as any);
 
-      await (service as any).createPracticeSession(99, 999);
+      await (service as any).createPracticeSession(99, 999, 'practice_room');
 
       expect(prisma.practiceSession.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             moduleId: 99,
             userId: 999,
+            sessionType: 'practice_room',
           }),
         }),
       );
@@ -414,9 +429,10 @@ describe('PracticeRoomService', () => {
       const beforeCall = new Date();
       prisma.practiceSession.create.mockResolvedValue({
         id: '11111111-1111-4111-8111-111111111777',
+        sessionType: 'practice_room',
       } as any);
 
-      await (service as any).createPracticeSession(1, 100);
+      await (service as any).createPracticeSession(1, 100, 'practice_room');
 
       const call = prisma.practiceSession.create.mock.calls[0]?.[0] as any;
       const afterCall = new Date();
@@ -733,6 +749,8 @@ describe('PracticeRoomService', () => {
     it('creates an attempt and marks hasCorrectAttempt true when submission is correct', async () => {
       prisma.practiceSession.findFirst.mockResolvedValue({
         id: '11111111-1111-4111-8111-111111111077',
+        sessionType: 'practice_room',
+        endTime: null,
       } as any);
       prisma.questionUnit.findFirst.mockResolvedValue({
         id: 201,
@@ -753,7 +771,6 @@ describe('PracticeRoomService', () => {
         questionUnitId: 201,
         questionContentId: 301,
         sessionId: '11111111-1111-4111-8111-111111111077',
-        practiceMode: 'PRACTICE_ROOM' as any,
         timeTakenMs: 1200,
         hintUnlocked: false,
         studentAnswer: { selectedOptionIndex: 2 } as any,
@@ -766,7 +783,6 @@ describe('PracticeRoomService', () => {
           questionId: 201,
           contentId: 301,
           sessionId: '11111111-1111-4111-8111-111111111077',
-          practiceMode: 'PRACTICE_ROOM',
           isCorrect: true,
           timeTakenMs: 1200,
           hintsUsed: 0,
@@ -806,7 +822,6 @@ describe('PracticeRoomService', () => {
           questionUnitId: 201,
           questionContentId: 301,
           sessionId: '11111111-1111-4111-8111-111111111077',
-          practiceMode: 'PRACTICE_ROOM' as any,
           timeTakenMs: 1200,
           hintUnlocked: true,
           studentAnswer: { selectedOptionIndex: 2 } as any,
@@ -825,7 +840,6 @@ describe('PracticeRoomService', () => {
           questionUnitId: 201,
           questionContentId: 301,
           sessionId: '11111111-1111-4111-8111-111111111077',
-          practiceMode: 'PRACTICE_ROOM' as any,
           timeTakenMs: 1200,
           hintUnlocked: true,
           studentAnswer: { selectedOptionIndex: 2 } as any,
@@ -836,6 +850,8 @@ describe('PracticeRoomService', () => {
     it('throws ForbiddenException when module unit is already completed', async () => {
       prisma.practiceSession.findFirst.mockResolvedValue({
         id: '11111111-1111-4111-8111-111111111077',
+        sessionType: 'practice_room',
+        endTime: null,
       } as any);
       prisma.moduleUnitUserProgress.findFirst.mockResolvedValue({
         isCompleted: true,
@@ -847,7 +863,6 @@ describe('PracticeRoomService', () => {
           questionUnitId: 201,
           questionContentId: 301,
           sessionId: '11111111-1111-4111-8111-111111111077',
-          practiceMode: 'PRACTICE_ROOM' as any,
           timeTakenMs: 1200,
           hintUnlocked: true,
           studentAnswer: { selectedOptionIndex: 2 } as any,
@@ -856,6 +871,197 @@ describe('PracticeRoomService', () => {
         message: 'This unit is completed. Viewing answers is read-only.',
       });
       expect(prisma.questionAttempt.create).not.toHaveBeenCalled();
+    });
+
+    it('throws when the session type is view_answers', async () => {
+      prisma.practiceSession.findFirst.mockResolvedValue({
+        id: '11111111-1111-4111-8111-111111111077',
+        sessionType: 'view_answers',
+        endTime: null,
+      } as any);
+
+      await expect(
+        service.submitAttempt(1, 10, 100, {
+          moduleUnitId: 10,
+          questionUnitId: 201,
+          questionContentId: 301,
+          sessionId: '11111111-1111-4111-8111-111111111077',
+          timeTakenMs: 1200,
+          hintUnlocked: true,
+          studentAnswer: { selectedOptionIndex: 2 } as any,
+        }),
+      ).rejects.toMatchObject({
+        message:
+          'This session is read-only. Start a practice session to submit answers.',
+      });
+      expect(prisma.questionAttempt.create).not.toHaveBeenCalled();
+    });
+
+    it('closes the active session when completion is reached', async () => {
+      prisma.practiceSession.findFirst.mockResolvedValue({
+        id: '11111111-1111-4111-8111-111111111077',
+        sessionType: 'practice_room',
+        endTime: null,
+      } as any);
+      prisma.questionUnit.findFirst.mockResolvedValue({
+        id: 201,
+        contents: [
+          {
+            id: 301,
+            type: 'mcq',
+            questionData: { correctOptionIndex: 2 },
+          },
+        ],
+      } as any);
+      prisma.questionAttempt.findFirst.mockResolvedValue(null);
+      prisma.questionAttempt.create.mockResolvedValue({ id: 999 } as any);
+      studentModuleUnitProgressService.syncFromAttempts.mockResolvedValueOnce({
+        moduleUnitId: 10,
+        studentId: 100,
+        currentMasteryScore: 1,
+        noOfCorrectAnswers: 1,
+        isCompleted: true,
+        completedAt: new Date('2026-02-26T10:00:00.000Z'),
+        lastPracticedAt: new Date('2026-02-26T10:00:00.000Z'),
+      });
+      prisma.practiceSession.updateMany.mockResolvedValue({ count: 1 } as any);
+
+      await service.submitAttempt(1, 10, 100, {
+        moduleUnitId: 10,
+        questionUnitId: 201,
+        questionContentId: 301,
+        sessionId: '11111111-1111-4111-8111-111111111077',
+        timeTakenMs: 1200,
+        hintUnlocked: false,
+        studentAnswer: { selectedOptionIndex: 2 } as any,
+      });
+
+      expect(prisma.practiceSession.updateMany).toHaveBeenCalledWith({
+        where: { id: '11111111-1111-4111-8111-111111111077', endTime: null },
+        data: { endTime: expect.any(Date) },
+      });
+    });
+  });
+
+  describe('closeSession', () => {
+    it('closes an open session and returns closedAt', async () => {
+      prisma.moduleUnit.findFirst.mockResolvedValue(
+        buildMockModuleUnit({ id: 10 }) as any,
+      );
+      prisma.practiceSession.findFirst.mockResolvedValue({
+        id: '11111111-1111-4111-8111-111111111077',
+        sessionType: 'practice_room',
+        endTime: null,
+      } as any);
+      prisma.practiceSession.updateMany.mockResolvedValue({ count: 1 } as any);
+
+      const result = await service.closeSession(
+        1,
+        10,
+        100,
+        '11111111-1111-4111-8111-111111111077',
+      );
+
+      expect(prisma.practiceSession.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: '11111111-1111-4111-8111-111111111077',
+          moduleId: 1,
+          userId: 100,
+          endTime: null,
+        },
+        data: { endTime: expect.any(Date) },
+      });
+      expect(result.sessionId).toBe('11111111-1111-4111-8111-111111111077');
+      expect(typeof result.closedAt).toBe('string');
+    });
+
+    it('returns existing endTime without mutating when already closed', async () => {
+      const closedAt = new Date('2026-02-26T11:30:00.000Z');
+      prisma.moduleUnit.findFirst.mockResolvedValue(
+        buildMockModuleUnit({ id: 10 }) as any,
+      );
+      prisma.practiceSession.findFirst.mockResolvedValue({
+        id: '11111111-1111-4111-8111-111111111077',
+        sessionType: 'practice_room',
+        endTime: closedAt,
+      } as any);
+
+      const result = await service.closeSession(
+        1,
+        10,
+        100,
+        '11111111-1111-4111-8111-111111111077',
+      );
+
+      expect(prisma.practiceSession.updateMany).not.toHaveBeenCalled();
+      expect(result.closedAt).toBe(closedAt.toISOString());
+    });
+  });
+
+  describe('closeStaleSessions', () => {
+    it('closes sessions stale by last attempt or start time', async () => {
+      const now = new Date('2026-02-26T12:00:00.000Z');
+      prisma.practiceSession.findMany.mockResolvedValue([
+        {
+          id: '11111111-1111-4111-8111-111111111001',
+          startTime: new Date('2026-02-26T09:30:00.000Z'),
+          questionAttempts: [],
+        },
+        {
+          id: '11111111-1111-4111-8111-111111111002',
+          startTime: new Date('2026-02-26T10:30:00.000Z'),
+          questionAttempts: [
+            { attemptedAt: new Date('2026-02-26T10:45:00.000Z') },
+          ],
+        },
+        {
+          id: '11111111-1111-4111-8111-111111111003',
+          startTime: new Date('2026-02-26T11:30:00.000Z'),
+          questionAttempts: [
+            { attemptedAt: new Date('2026-02-26T11:45:00.000Z') },
+          ],
+        },
+      ] as any);
+      prisma.practiceSession.updateMany.mockResolvedValue({ count: 2 } as any);
+
+      const result = await service.closeStaleSessions({
+        now,
+        inactivityMinutes: 60,
+      });
+
+      expect(prisma.practiceSession.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: {
+            in: [
+              '11111111-1111-4111-8111-111111111001',
+              '11111111-1111-4111-8111-111111111002',
+            ],
+          },
+          endTime: null,
+        },
+        data: { endTime: now },
+      });
+      expect(result.closedCount).toBe(2);
+    });
+
+    it('returns zero when no stale sessions are found', async () => {
+      prisma.practiceSession.findMany.mockResolvedValue([
+        {
+          id: '11111111-1111-4111-8111-111111111003',
+          startTime: new Date('2026-02-26T11:30:00.000Z'),
+          questionAttempts: [
+            { attemptedAt: new Date('2026-02-26T11:45:00.000Z') },
+          ],
+        },
+      ] as any);
+
+      const result = await service.closeStaleSessions({
+        now: new Date('2026-02-26T12:00:00.000Z'),
+        inactivityMinutes: 60,
+      });
+
+      expect(prisma.practiceSession.updateMany).not.toHaveBeenCalled();
+      expect(result.closedCount).toBe(0);
     });
   });
 

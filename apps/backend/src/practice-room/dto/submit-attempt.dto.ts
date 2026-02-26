@@ -2,14 +2,12 @@
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
-  IsIn,
   IsInt,
   IsNotEmpty,
   IsObject,
   IsUUID,
   Min,
 } from 'class-validator';
-import { PRACTICE_MODES, type PracticeMode } from '@scholarxp/constants';
 import type {
   StudentAnswer,
   SubmitAttemptPayload,
@@ -33,9 +31,6 @@ export class SubmitAttemptDto implements SubmitAttemptPayload {
 
   @IsUUID()
   sessionId: string;
-
-  @IsIn(Object.values(PRACTICE_MODES))
-  practiceMode: PracticeMode;
 
   @Type(() => Number)
   @IsInt()

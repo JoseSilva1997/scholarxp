@@ -5,6 +5,7 @@ import type {
   ModuleUnitPracticeRoom,
   ModuleUnitPracticeRoomResponse,
   ModuleSummaryResponse,
+  PracticeSessionType,
   PracticeAttemptSnapshot,
   PracticeQuestion,
   PracticeQuestionUnit,
@@ -21,6 +22,7 @@ export class ModuleUnitPracticeRoomResponseDto implements ModuleUnitPracticeRoom
 
 export class ModuleUnitPracticeRoomDto implements ModuleUnitPracticeRoom {
   sessionId!: string;
+  sessionType?: PracticeSessionType;
   moduleUnitId!: number;
   moduleUnitTitle!: string;
   isReadOnly?: boolean;

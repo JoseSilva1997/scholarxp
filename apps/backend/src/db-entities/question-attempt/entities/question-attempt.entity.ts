@@ -4,7 +4,8 @@ export class QuestionAttempt {
   studentId: number;
   questionId: number;
   contentId: number;
-  practiceMode: string;
+  // Session id is the canonical link to session-level origin/type metadata.
+  sessionId: string;
   isCorrect: boolean;
   timeTakenMs: number;
   hintsUsed: number;

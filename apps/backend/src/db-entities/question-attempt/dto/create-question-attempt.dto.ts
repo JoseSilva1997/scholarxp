@@ -4,10 +4,8 @@ import {
   IsInt,
   IsNotEmpty,
   IsObject,
-  IsString,
   IsUUID,
 } from 'class-validator';
-import type { PracticeMode } from '@scholarxp/constants';
 
 export class CreateQuestionAttemptDto {
   @IsInt()
@@ -28,10 +26,6 @@ export class CreateQuestionAttemptDto {
 
   @IsUUID()
   sessionId: string;
-
-  @IsString()
-  @IsNotEmpty()
-  practiceMode: PracticeMode;
 
   @IsBoolean()
   @IsNotEmpty()

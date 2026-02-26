@@ -60,6 +60,16 @@ export function clearCsrfToken() {
   csrfToken = null;
 }
 
+// Exported for keepalive requests that bypass apiFetch during page-unload lifecycle events.
+export function getCsrfToken() {
+  return csrfToken;
+}
+
+// Exported so non-apiFetch callers can still target the same backend base URL consistently.
+export function getApiBaseUrl() {
+  return API_BASE;
+}
+
 // Explicit setter allows callers (e.g., logout response) to prime the token without an extra round-trip.
 export function setCsrfToken(token: string | null) {
   csrfToken = token;

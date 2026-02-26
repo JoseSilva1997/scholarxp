@@ -5,7 +5,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
-import type { StudentAnswer } from '@scholarxp/api-contracts';
+import {
+  PracticeSessionTypeValues,
+  type PracticeSessionType,
+  type StudentAnswer,
+} from '@scholarxp/api-contracts';
 import { AvatarService } from '../db-entities/avatar/avatar.service';
 import { UserModuleService } from '../db-entities/user-module/user-module.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -26,8 +30,14 @@ type AttemptQuestionContent = {
   questionData: Prisma.JsonValue;
 };
 type PrismaClientLike = Prisma.TransactionClient | PrismaService;
+type OwnedPracticeSession = {
+  id: string;
+  sessionType: string;
+  endTime: Date | null;
+};
 const MODULE_UNIT_EXP_REWARD = 50;
 const STUDENT_EXP_REWARD = 25;
+const DEFAULT_STALE_SESSION_MINUTES = 60;
 
 // PracticeRoomService builds the page-load payload so the frontend can render core questions and latest attempts.
 @Injectable()
@@ -48,20 +58,23 @@ export class PracticeRoomService {
     existingSessionId?: string,
   ): Promise<ModuleUnitPracticeRoomResponseDto> {
     const moduleUnit = await this.getModuleUnitOrThrow(moduleId, moduleUnitId);
+    const isReadOnly = await this.isModuleUnitCompleted(
+      moduleUnitId,
+      studentId,
+    );
+    const nextSessionType = isReadOnly
+      ? PracticeSessionTypeValues.viewAnswers
+      : PracticeSessionTypeValues.practiceRoom;
     const session =
       existingSessionId === undefined
-        ? await this.createPracticeSession(moduleId, studentId)
-        : await this.getPracticeSessionOrThrow(
+        ? await this.createPracticeSession(moduleId, studentId, nextSessionType)
+        : await this.getOwnedPracticeSessionOrThrow(
             moduleId,
             studentId,
             existingSessionId,
           );
     const questionUnitDrafts =
       this.practiceRoomMapper.toQuestionUnitDrafts(moduleUnit);
-    const isReadOnly = await this.isModuleUnitCompleted(
-      moduleUnitId,
-      studentId,
-    );
     const latestAttempts = await this.getLatestAttempts(
       moduleUnitId,
       studentId,
@@ -78,6 +91,7 @@ export class PracticeRoomService {
 
     return this.practiceRoomMapper.buildResponse({
       sessionId: session.id,
+      sessionType: normalizeSessionType(session.sessionType),
       moduleUnitId: moduleUnit.id,
       moduleUnitTitle: moduleUnit.title,
       isReadOnly,
@@ -104,7 +118,12 @@ export class PracticeRoomService {
     payload: SubmitAttemptDto,
   ): Promise<SubmitAttemptResponseDto> {
     this.validateModuleUnitPayload(moduleUnitId, payload.moduleUnitId);
-    await this.validateSession(moduleId, studentId, payload.sessionId);
+    const session = await this.validateSession(
+      moduleId,
+      studentId,
+      payload.sessionId,
+    );
+    this.assertSessionAllowsSubmissions(session.sessionType);
     await this.assertModuleUnitAllowsSubmissions(moduleUnitId, studentId);
     const attemptQuestionContent = await this.loadQuestionContentForAttempt(
       moduleUnitId,
@@ -134,14 +153,22 @@ export class PracticeRoomService {
           attemptedAt,
           tx,
         );
-        await this.studentModuleUnitProgressService.syncFromAttempts(
-          {
-            moduleUnitId,
-            studentId,
-            attemptedAt,
-          },
-          tx,
-        );
+        const syncedProgress =
+          await this.studentModuleUnitProgressService.syncFromAttempts(
+            {
+              moduleUnitId,
+              studentId,
+              attemptedAt,
+            },
+            tx,
+          );
+        // Closing immediately on first completion
+        if (syncedProgress.isCompleted) {
+          await tx.practiceSession.updateMany({
+            where: { id: payload.sessionId, endTime: null },
+            data: { endTime: attemptedAt },
+          });
+        }
         const updatedMembership = await this.persistAttemptExpRewards(
           moduleId,
           studentId,
@@ -170,6 +197,83 @@ export class PracticeRoomService {
           }
         : undefined,
     };
+  }
+
+  // Idempotent close enables unload/navigation hooks to fire-and-forget without duplicate-close failures.
+  async closeSession(
+    moduleId: number,
+    moduleUnitId: number,
+    studentId: number,
+    sessionId: string,
+  ) {
+    await this.getModuleUnitOrThrow(moduleId, moduleUnitId);
+    const session = await this.getOwnedPracticeSessionOrThrow(
+      moduleId,
+      studentId,
+      sessionId,
+    );
+    const closedAt = session.endTime ?? new Date();
+    if (!session.endTime) {
+      await this.prisma.practiceSession.updateMany({
+        where: {
+          id: sessionId,
+          moduleId,
+          userId: studentId,
+          endTime: null,
+        },
+        data: { endTime: closedAt },
+      });
+    }
+    return {
+      sessionId,
+      closedAt: closedAt.toISOString(),
+    };
+  }
+
+  // Reconciles stale open sessions so abandoned tabs do not leave long-running sessions open indefinitely.
+  async closeStaleSessions(params?: {
+    now?: Date;
+    inactivityMinutes?: number;
+  }) {
+    const now = params?.now ?? new Date();
+    const inactivityMinutes = Math.max(
+      1,
+      params?.inactivityMinutes ?? DEFAULT_STALE_SESSION_MINUTES,
+    );
+    const cutoff = new Date(now.getTime() - inactivityMinutes * 60 * 1000);
+
+    const openSessions = await this.prisma.practiceSession.findMany({
+      where: { endTime: null },
+      select: {
+        id: true,
+        startTime: true,
+        questionAttempts: {
+          orderBy: [{ attemptedAt: 'desc' }, { id: 'desc' }],
+          take: 1,
+          select: { attemptedAt: true },
+        },
+      },
+    });
+
+    const staleSessionIds = openSessions
+      .filter((session) => {
+        const lastActivityAt = session.questionAttempts[0]?.attemptedAt;
+        return (lastActivityAt ?? session.startTime) <= cutoff;
+      })
+      .map((session) => session.id);
+
+    if (staleSessionIds.length === 0) {
+      return { closedCount: 0 };
+    }
+
+    const result = await this.prisma.practiceSession.updateMany({
+      where: {
+        id: { in: staleSessionIds },
+        endTime: null,
+      },
+      data: { endTime: now },
+    });
+    return { closedCount: result.count };
   }
 
   // Loads module-unit content in one query to avoid round-trips while building the room payload.
@@ -203,15 +307,20 @@ export class PracticeRoomService {
   }
 
   // Creates a session up front so the frontend can immediately reference it for subsequent attempt submissions.
-  private createPracticeSession(moduleId: number, studentId: number) {
+  private createPracticeSession(
+    moduleId: number,
+    studentId: number,
+    sessionType: PracticeSessionType,
+  ) {
     return this.prisma.practiceSession.create({
       data: {
         moduleId,
         userId: studentId,
+        sessionType,
         // Starting a fresh session on room load provides a stable id for immediate UI wiring.
         startTime: new Date(),
       },
-      select: { id: true },
+      select: { id: true, sessionType: true },
     });
   }
 
@@ -296,7 +405,16 @@ export class PracticeRoomService {
     studentId: number,
     sessionId: string,
   ) {
-    await this.getPracticeSessionOrThrow(moduleId, studentId, sessionId);
+    return this.getOwnedPracticeSessionOrThrow(moduleId, studentId, sessionId);
+  }
+
+  // Submission permissions are session-type-aware so read-only "view answers" sessions cannot generate attempts.
+  private assertSessionAllowsSubmissions(sessionType: string) {
+    if (sessionType === PracticeSessionTypeValues.viewAnswers) {
+      throw new ForbiddenException(
+        'This session is read-only. Start a practice session to submit answers.',
+      );
+    }
   }
 
   // Completed module units are view-only; this prevents creating new attempts from "View answers" entry points.
@@ -326,18 +444,18 @@ export class PracticeRoomService {
   }
 
   // Session ownership checks are shared by room-load and submit paths so both flows enforce the same authorization boundary.
-  private async getPracticeSessionOrThrow(
+  private async getOwnedPracticeSessionOrThrow(
     moduleId: number,
     studentId: number,
     sessionId: string,
-  ): Promise<{ id: string }> {
+  ): Promise<OwnedPracticeSession> {
     const session = await this.prisma.practiceSession.findFirst({
       where: {
         id: sessionId,
         moduleId,
         userId: studentId,
       },
-      select: { id: true },
+      select: { id: true, sessionType: true, endTime: true },
     });
 
     if (session) {
@@ -514,7 +632,6 @@ export class PracticeRoomService {
         questionId: payload.questionUnitId,
         contentId: payload.questionContentId,
         sessionId: payload.sessionId,
-        practiceMode: payload.practiceMode,
         isCorrect,
         timeTakenMs: payload.timeTakenMs,
         hintsUsed: payload.hintUnlocked ? 1 : 0,
@@ -525,4 +642,13 @@ export class PracticeRoomService {
       select: { id: true },
     });
   }
+}
+
+function normalizeSessionType(value: string): PracticeSessionType {
+  // Unknown persisted values fall back to practice_room so clients can render safely while preserving backward compatibility.
+  const knownValues = Object.values(PracticeSessionTypeValues);
+  if (knownValues.includes(value as (typeof knownValues)[number])) {
+    return value as PracticeSessionType;
+  }
+  return PracticeSessionTypeValues.practiceRoom;
 }

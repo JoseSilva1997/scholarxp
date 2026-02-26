@@ -3,13 +3,16 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type {
   ModuleUnitPracticeRoomResponse,
+  PracticeSessionType,
   PracticeAttemptSnapshot,
   PracticeQuestion,
   PracticeQuestionUnit,
   StudentAnswer,
   SubmitAttemptPayload,
 } from '@scholarxp/api-contracts';
-import { MODULE_EXP_MAX, PRACTICE_MODES } from '@scholarxp/constants';
+import { PracticeSessionTypeValues } from '@scholarxp/api-contracts';
+import { MODULE_EXP_MAX } from '@scholarxp/constants';
+import { closePracticeRoomSessionKeepalive } from '../../api/modules';
 import {
   getDisplayErrorMessage,
   shouldLogApiError,
@@ -17,6 +20,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { logError } from '../../utils/logger';
 import {
+  useCloseModuleUnitPracticeSessionMutation,
   useModuleUnitPracticeRoomQuery,
   useSubmitModuleUnitPracticeAttemptMutation,
 } from '../queries/usePracticeRoomQueries';
@@ -94,6 +98,10 @@ export function usePracticeRoomPageState({
     requestedSessionId,
   );
   const submitAttemptMutation = useSubmitModuleUnitPracticeAttemptMutation(
+    parsedModuleId,
+    parsedUnitId,
+  );
+  const closeSessionMutation = useCloseModuleUnitPracticeSessionMutation(
     parsedModuleId,
     parsedUnitId,
   );
@@ -177,6 +185,11 @@ export function usePracticeRoomPageState({
   const moduleProgressScopeRef = useRef<string | null>(null);
   const activeContentIdRef = useRef<number | null>(null);
   const activeContentViewStartMsRef = useRef<number | null>(null);
+  const closedSessionIdsRef = useRef<Set<string>>(new Set());
+  const latestSessionIdRef = useRef<string | null>(null);
+  const latestModuleIdRef = useRef<number | null>(parsedModuleId);
+  const latestUnitIdRef = useRef<number | null>(parsedUnitId);
+  const closeSessionMutateRef = useRef(closeSessionMutation.mutate);
 
   useEffect(() => {
     if (!practiceRoomQuery.error) return;
@@ -304,7 +317,73 @@ export function usePracticeRoomPageState({
     } satisfies ModuleUnitPracticeRoomResponse['practiceRoom'];
   }, [moduleUnitRoom, submittedAttemptByContentId]);
   // Backend-owned completion state makes answer interactions read-only when students open completed units.
-  const isRoomReadOnly = roomWithLocalAttempts?.isReadOnly === true;
+  const sessionType: PracticeSessionType =
+    roomWithLocalAttempts?.sessionType ?? PracticeSessionTypeValues.practiceRoom;
+  // Session type is the canonical mode; isReadOnly remains as a compatibility guard while APIs transition.
+  const isRoomReadOnly =
+    roomWithLocalAttempts?.isReadOnly === true ||
+    sessionType === PracticeSessionTypeValues.viewAnswers;
+
+  useEffect(() => {
+    latestSessionIdRef.current = roomWithLocalAttempts?.sessionId ?? null;
+  }, [roomWithLocalAttempts?.sessionId]);
+
+  useEffect(() => {
+    latestModuleIdRef.current = parsedModuleId;
+    latestUnitIdRef.current = parsedUnitId;
+  }, [parsedModuleId, parsedUnitId]);
+
+  useEffect(() => {
+    // Keep latest mutate function in a ref so teardown handlers don't re-register on every render.
+    closeSessionMutateRef.current = closeSessionMutation.mutate;
+  }, [closeSessionMutation.mutate]);
+
+  useEffect(() => {
+    const closeSessionBestEffort = (source: 'unmount' | 'pagehide') => {
+      const sessionId = latestSessionIdRef.current;
+      const moduleId = latestModuleIdRef.current;
+      const unitId = latestUnitIdRef.current;
+      if (!sessionId || moduleId === null || unitId === null) {
+        return;
+      }
+      if (closedSessionIdsRef.current.has(sessionId)) {
+        return;
+      }
+      closedSessionIdsRef.current.add(sessionId);
+
+      if (
+        source === 'pagehide' &&
+        closePracticeRoomSessionKeepalive(moduleId, unitId, sessionId)
+      ) {
+        return;
+      }
+
+      closeSessionMutateRef.current(sessionId, {
+        onError: (error) => {
+          // Allow retry through a later fallback trigger if close fails during teardown.
+          closedSessionIdsRef.current.delete(sessionId);
+          if (shouldLogApiError(error)) {
+            logError(error, {
+              feature: 'practice-room',
+              action: 'close-session',
+              moduleId,
+              unitId,
+            });
+          }
+        },
+      });
+    };
+
+    const handlePageHide = () => {
+      closeSessionBestEffort('pagehide');
+    };
+    window.addEventListener('pagehide', handlePageHide);
+
+    return () => {
+      window.removeEventListener('pagehide', handlePageHide);
+      closeSessionBestEffort('unmount');
+    };
+  }, []);
 
   const seededOptionByContentId = useMemo(() => {
     if (!roomWithLocalAttempts) return {};
@@ -720,7 +799,6 @@ export function usePracticeRoomPageState({
       questionUnitId: activeQuestionUnit.questionUnitId,
       questionContentId: activeQuestion.question.id,
       sessionId: roomWithLocalAttempts.sessionId,
-      practiceMode: PRACTICE_MODES.PRACTICE_ROOM,
       // MVP uses view duration (content shown -> submit). Later we can add interaction-duration as a second metric.
       timeTakenMs: Math.max(0, nowMs - viewStartedAtMs),
       hintUnlocked: isActiveHintUnlocked,
@@ -853,6 +931,7 @@ export function usePracticeRoomPageState({
     isLoading:
       practiceRoomQuery.isPending ||
       (moduleDetailQuery.isPending && moduleProgressAnimation === null),
+    sessionType,
     pageError,
     submitErrorMessage,
     isSubmittingAttempt: submitAttemptMutation.isPending,

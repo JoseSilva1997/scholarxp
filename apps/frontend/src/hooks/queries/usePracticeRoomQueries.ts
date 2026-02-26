@@ -1,7 +1,11 @@
 // Query hook for loading practice-room data while keeping route components free of fetch orchestration.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { SubmitAttemptPayload, SubmitAttemptResponse } from '@scholarxp/api-contracts';
-import { getPracticeRoom, submitPracticeRoomAttempt } from '../../api/modules';
+import {
+  closePracticeRoomSession,
+  getPracticeRoom,
+  submitPracticeRoomAttempt,
+} from '../../api/modules';
 import { queryKeys } from '../query-keys';
 
 export function useModuleUnitPracticeRoomQuery(
@@ -101,6 +105,22 @@ export function useSubmitModuleUnitPracticeAttemptMutation(
         queryKey: queryKeys.modules.all,
         refetchType: 'none',
       });
+    },
+  });
+}
+
+export function useCloseModuleUnitPracticeSessionMutation(
+  moduleId: number | null,
+  moduleUnitId: number | null,
+) {
+  return useMutation({
+    mutationFn: (sessionId: string) => {
+      if (moduleId === null || moduleUnitId === null) {
+        throw new Error(
+          'Cannot close a practice-room session without valid module and unit ids.',
+        );
+      }
+      return closePracticeRoomSession(moduleId, moduleUnitId, sessionId);
     },
   });
 }

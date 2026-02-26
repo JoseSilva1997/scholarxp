@@ -1,7 +1,11 @@
 // Mapper for turning raw practice-room query results into stable API payloads while keeping services orchestration-focused.
 import { Injectable } from '@nestjs/common';
 import type { questionType, QuestionData } from '@scholarxp/question-type-dtos';
-import type { StudentAnswer, ModuleSummaryResponse } from '@scholarxp/api-contracts';
+import type {
+  StudentAnswer,
+  ModuleSummaryResponse,
+  PracticeSessionType,
+} from '@scholarxp/api-contracts';
 import { ModuleUnitPracticeRoomResponseDto } from './dto/practice-room-response.dto';
 import type {
   LatestAttemptSnapshot,
@@ -11,6 +15,7 @@ import type {
 
 type BuildResponseInput = {
   sessionId: string;
+  sessionType: PracticeSessionType;
   moduleUnitId: number;
   moduleUnitTitle: string;
   isReadOnly: boolean;
@@ -70,6 +75,7 @@ export class PracticeRoomMapper {
     const response = new ModuleUnitPracticeRoomResponseDto();
     response.practiceRoom = {
       sessionId: input.sessionId,
+      sessionType: input.sessionType,
       moduleUnitId: input.moduleUnitId,
       moduleUnitTitle: input.moduleUnitTitle,
       isReadOnly: input.isReadOnly,

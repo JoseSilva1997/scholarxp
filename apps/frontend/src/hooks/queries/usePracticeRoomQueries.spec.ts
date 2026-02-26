@@ -17,13 +17,17 @@ vi.mock('@tanstack/react-query', () => ({
 // Mock the API call so queryFn can be invoked and asserts made.
 const getPracticeRoomMock = vi.fn();
 const submitPracticeRoomAttemptMock = vi.fn();
+const closePracticeRoomSessionMock = vi.fn();
 vi.mock('../../api/modules', () => ({
   getPracticeRoom: (...args: unknown[]) => getPracticeRoomMock(...args),
   submitPracticeRoomAttempt: (...args: unknown[]) =>
     submitPracticeRoomAttemptMock(...args),
+  closePracticeRoomSession: (...args: unknown[]) =>
+    closePracticeRoomSessionMock(...args),
 }));
 
 import {
+  useCloseModuleUnitPracticeSessionMutation,
   useModuleUnitPracticeRoomQuery,
   useSubmitModuleUnitPracticeAttemptMutation,
 } from './usePracticeRoomQueries';
@@ -39,6 +43,10 @@ describe('useModuleUnitPracticeRoomQuery', () => {
       moduleExpAwarded: 0,
       studentExpAwarded: 0,
       hasCorrectAttempt: false,
+    });
+    closePracticeRoomSessionMock.mockResolvedValue({
+      sessionId: '11111111-1111-4111-8111-111111111009',
+      closedAt: '2026-02-26T12:00:00.000Z',
     });
     invalidateQueriesMock.mockResolvedValue(undefined);
   });
@@ -121,6 +129,10 @@ describe('useSubmitModuleUnitPracticeAttemptMutation', () => {
       studentExpAwarded: 0,
       hasCorrectAttempt: false,
     });
+    closePracticeRoomSessionMock.mockResolvedValue({
+      sessionId: '11111111-1111-4111-8111-111111111009',
+      closedAt: '2026-02-26T12:00:00.000Z',
+    });
     invalidateQueriesMock.mockResolvedValue(undefined);
   });
 
@@ -133,7 +145,6 @@ describe('useSubmitModuleUnitPracticeAttemptMutation', () => {
       questionUnitId: 20,
       questionContentId: 50,
       sessionId: '11111111-1111-4111-8111-111111111009',
-      practiceMode: 'PRACTICE_ROOM',
       timeTakenMs: 1234,
       hintUnlocked: false,
       studentAnswer: { selectedOptionIndex: 0 },
@@ -154,7 +165,6 @@ describe('useSubmitModuleUnitPracticeAttemptMutation', () => {
         questionUnitId: 20,
         questionContentId: 50,
         sessionId: '11111111-1111-4111-8111-111111111009',
-        practiceMode: 'PRACTICE_ROOM',
         timeTakenMs: 1234,
         hintUnlocked: false,
         studentAnswer: { selectedOptionIndex: 0 },
@@ -176,5 +186,38 @@ describe('useSubmitModuleUnitPracticeAttemptMutation', () => {
     expect(invalidateQueriesMock).toHaveBeenCalledWith({
       queryKey: queryKeys.modules.moduleUnitPracticeRoomBase(5, 2),
     });
+  });
+});
+
+describe('useCloseModuleUnitPracticeSessionMutation', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    useMutationMock.mockReturnValue({ mutate: vi.fn() });
+    closePracticeRoomSessionMock.mockResolvedValue({
+      sessionId: '11111111-1111-4111-8111-111111111009',
+      closedAt: '2026-02-26T12:00:00.000Z',
+    });
+  });
+
+  it('wires mutationFn to closePracticeRoomSession when ids are valid', async () => {
+    useCloseModuleUnitPracticeSessionMutation(5, 2);
+    const opts = useMutationMock.mock.calls[0][0];
+
+    await opts.mutationFn('11111111-1111-4111-8111-111111111009');
+
+    expect(closePracticeRoomSessionMock).toHaveBeenCalledWith(
+      5,
+      2,
+      '11111111-1111-4111-8111-111111111009',
+    );
+  });
+
+  it('throws when ids are not valid', () => {
+    useCloseModuleUnitPracticeSessionMutation(null, 2);
+    const opts = useMutationMock.mock.calls[0][0];
+
+    expect(() =>
+      opts.mutationFn('11111111-1111-4111-8111-111111111009'),
+    ).toThrow('Cannot close a practice-room session');
   });
 });

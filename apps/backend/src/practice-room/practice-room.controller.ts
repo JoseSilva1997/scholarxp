@@ -15,6 +15,7 @@ import { AuthorizationGuard } from '../auth/guards/authorization.guard';
 import { Authorize } from '../auth/decorators/authorize.decorator';
 import type { AuthUser } from '../types/auth-user.type';
 import { GetPracticeRoomParamsDto } from './dto/get-practice-room-params.dto';
+import { ClosePracticeRoomSessionParamsDto } from './dto/close-practice-room-session-params.dto';
 import { GetPracticeRoomQueryDto } from './dto/get-practice-room-query.dto';
 import { SubmitAttemptDto } from './dto/submit-attempt.dto';
 import { features } from '@scholarxp/permissions';
@@ -56,6 +57,22 @@ export class PracticeRoomController {
       params.moduleUnitId,
       user.id,
       payload,
+    );
+  }
+
+  // Session close is idempotent so client unload/navigation hooks can call it safely without race-sensitive retries.
+  @Post('session/:sessionId/close')
+  @Authorize({ capability: features.navigation.modules, scope: 'module' })
+  closeSession(
+    @Param() params: ClosePracticeRoomSessionParamsDto,
+    @Req() req: Request,
+  ) {
+    const user = req.user as AuthUser;
+    return this.practiceRoomService.closeSession(
+      params.moduleId,
+      params.moduleUnitId,
+      user.id,
+      params.sessionId,
     );
   }
 }
