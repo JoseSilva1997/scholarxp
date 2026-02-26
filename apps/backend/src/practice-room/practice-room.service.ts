@@ -35,6 +35,12 @@ type OwnedPracticeSession = {
   sessionType: string;
   endTime: Date | null;
 };
+type RoomContext = {
+  moduleUnit: LoadedModuleUnit;
+  isReadOnly: boolean;
+  session: OwnedPracticeSession;
+  questionUnitDrafts: RoomQuestionUnitDraft[];
+};
 const MODULE_UNIT_EXP_REWARD = 50;
 const STUDENT_EXP_REWARD = 25;
 const DEFAULT_STALE_SESSION_MINUTES = 60;
@@ -57,56 +63,31 @@ export class PracticeRoomService {
     studentId: number,
     existingSessionId?: string,
   ): Promise<ModuleUnitPracticeRoomResponseDto> {
-    const moduleUnit = await this.getModuleUnitOrThrow(moduleId, moduleUnitId);
-    const isReadOnly = await this.isModuleUnitCompleted(
+    const roomContext = await this.loadRoomContext(
+      moduleId,
       moduleUnitId,
       studentId,
+      existingSessionId,
     );
-    const nextSessionType = isReadOnly
-      ? PracticeSessionTypeValues.viewAnswers
-      : PracticeSessionTypeValues.practiceRoom;
-    const session =
-      existingSessionId === undefined
-        ? await this.createPracticeSession(moduleId, studentId, nextSessionType)
-        : await this.getOwnedPracticeSessionOrThrow(
-            moduleId,
-            studentId,
-            existingSessionId,
-          );
-    const questionUnitDrafts =
-      this.practiceRoomMapper.toQuestionUnitDrafts(moduleUnit);
-    const latestAttempts = await this.getLatestAttempts(
+    const latestAttemptByKey = await this.getLatestAttemptMap(
       moduleUnitId,
       studentId,
-      questionUnitDrafts,
+      roomContext.questionUnitDrafts,
     );
-    const latestAttemptByKey =
-      this.practiceRoomMapper.toLatestAttemptMap(latestAttempts);
-
-    // Fetch student's module progress in the same session to avoid extra round-trips for the frontend progress bar.
-    const membership = await this.prisma.userModule.findUnique({
-      where: { moduleId_userId: { moduleId, userId: studentId } },
-      include: { module: true },
-    });
+    const moduleProgress = await this.getModuleProgressSnapshot(
+      moduleId,
+      studentId,
+    );
 
     return this.practiceRoomMapper.buildResponse({
-      sessionId: session.id,
-      sessionType: normalizeSessionType(session.sessionType),
-      moduleUnitId: moduleUnit.id,
-      moduleUnitTitle: moduleUnit.title,
-      isReadOnly,
-      questionUnitDrafts,
+      sessionId: roomContext.session.id,
+      sessionType: normalizeSessionType(roomContext.session.sessionType),
+      moduleUnitId: roomContext.moduleUnit.id,
+      moduleUnitTitle: roomContext.moduleUnit.title,
+      isReadOnly: roomContext.isReadOnly,
+      questionUnitDrafts: roomContext.questionUnitDrafts,
       latestAttemptByKey,
-      moduleProgress: membership
-        ? {
-            id: membership.moduleId,
-            title: membership.module.title,
-            description: membership.module.description,
-            userModuleLevel: membership.userModuleLevel,
-            currentExp: membership.currentExp,
-            expMax: MODULE_EXP_MAX, // Default module expansion ceiling from global gamification rules.
-          }
-        : undefined,
+      moduleProgress,
     });
   }
 
@@ -162,13 +143,12 @@ export class PracticeRoomService {
             },
             tx,
           );
-        // Closing immediately on first completion
-        if (syncedProgress.isCompleted) {
-          await tx.practiceSession.updateMany({
-            where: { id: payload.sessionId, endTime: null },
-            data: { endTime: attemptedAt },
-          });
-        }
+        await this.closeSessionOnCompletionIfNeeded(
+          payload.sessionId,
+          attemptedAt,
+          syncedProgress.isCompleted,
+          tx,
+        );
         const updatedMembership = await this.persistAttemptExpRewards(
           moduleId,
           studentId,
@@ -257,13 +237,7 @@ export class PracticeRoomService {
       },
     });
 
-    // Identify sessions that haven't seen any activity (or have a start time) older than the cutoff.
-    const staleSessionIds = openSessions
-      .filter((session) => {
-        const lastActivityAt = session.questionAttempts[0]?.attemptedAt;
-        return (lastActivityAt ?? session.startTime) <= cutoff;
-      })
-      .map((session) => session.id);
+    const staleSessionIds = this.collectStaleSessionIds(openSessions, cutoff);
 
     // If no stale sessions are found, return a zero count immediately to avoid unnecessary database writes.
     if (staleSessionIds.length === 0) {
@@ -279,6 +253,39 @@ export class PracticeRoomService {
       data: { endTime: now },
     });
     return { closedCount: result.count };
+  }
+
+  // Keeping completion-close logic isolated avoids repeating updateMany details in transactional flows.
+  private closeSessionOnCompletionIfNeeded(
+    sessionId: string,
+    attemptedAt: Date,
+    isCompleted: boolean,
+    tx: Prisma.TransactionClient,
+  ) {
+    if (!isCompleted) {
+      return Promise.resolve();
+    }
+    return tx.practiceSession.updateMany({
+      where: { id: sessionId, endTime: null },
+      data: { endTime: attemptedAt },
+    });
+  }
+
+  // Extracted stale-id selection keeps closeStaleSessions focused on orchestration rather than filtering details.
+  private collectStaleSessionIds(
+    openSessions: Array<{
+      id: string;
+      startTime: Date;
+      questionAttempts: Array<{ attemptedAt: Date }>;
+    }>,
+    cutoff: Date,
+  ) {
+    return openSessions
+      .filter((session) => {
+        const lastActivityAt = session.questionAttempts[0]?.attemptedAt;
+        return (lastActivityAt ?? session.startTime) <= cutoff;
+      })
+      .map((session) => session.id);
   }
 
   // Loads module-unit content in one query to avoid round-trips while building the room payload.
@@ -311,6 +318,85 @@ export class PracticeRoomService {
     return moduleUnit;
   }
 
+  // Keeps getPracticeRoom orchestration concise by grouping room-loading dependencies in one call.
+  private async loadRoomContext(
+    moduleId: number,
+    moduleUnitId: number,
+    studentId: number,
+    existingSessionId?: string,
+  ): Promise<RoomContext> {
+    const moduleUnit = await this.getModuleUnitOrThrow(moduleId, moduleUnitId);
+    const isReadOnly = await this.isModuleUnitCompleted(
+      moduleUnitId,
+      studentId,
+    );
+    const session = await this.resolveRoomSession(
+      moduleId,
+      studentId,
+      isReadOnly,
+      existingSessionId,
+    );
+    const questionUnitDrafts =
+      this.practiceRoomMapper.toQuestionUnitDrafts(moduleUnit);
+
+    return {
+      moduleUnit,
+      isReadOnly,
+      session,
+      questionUnitDrafts,
+    };
+  }
+
+  // Session resolution centralizes "new vs resume" decisions so room behavior stays consistent across callsites.
+  private async resolveRoomSession(
+    moduleId: number,
+    studentId: number,
+    isReadOnly: boolean,
+    existingSessionId?: string,
+  ): Promise<OwnedPracticeSession> {
+    if (existingSessionId) {
+      return this.getOwnedPracticeSessionOrThrow(
+        moduleId,
+        studentId,
+        existingSessionId,
+      );
+    }
+    const sessionType = isReadOnly
+      ? PracticeSessionTypeValues.viewAnswers
+      : PracticeSessionTypeValues.practiceRoom;
+    return this.createPracticeSession(moduleId, studentId, sessionType);
+  }
+
+  // Encapsulates latest-attempt lookup+mapping so getPracticeRoom only coordinates high-level room assembly.
+  private async getLatestAttemptMap(
+    moduleUnitId: number,
+    studentId: number,
+    questionUnitDrafts: RoomQuestionUnitDraft[],
+  ) {
+    return this.practiceRoomMapper.toLatestAttemptMap(
+      await this.getLatestAttempts(moduleUnitId, studentId, questionUnitDrafts),
+    );
+  }
+
+  // Fetches student's module progression once and shapes it for the shared contract payload.
+  private async getModuleProgressSnapshot(moduleId: number, studentId: number) {
+    const membership = await this.prisma.userModule.findUnique({
+      where: { moduleId_userId: { moduleId, userId: studentId } },
+      include: { module: true },
+    });
+    if (!membership) {
+      return undefined;
+    }
+    return {
+      id: membership.moduleId,
+      title: membership.module.title,
+      description: membership.module.description,
+      userModuleLevel: membership.userModuleLevel,
+      currentExp: membership.currentExp,
+      expMax: MODULE_EXP_MAX, // Default module expansion ceiling from global gamification rules.
+    };
+  }
+
   // Creates a session up front so the frontend can immediately reference it for subsequent attempt submissions.
   private createPracticeSession(
     moduleId: number,
@@ -325,7 +411,7 @@ export class PracticeRoomService {
         // Starting a fresh session on room load provides a stable id for immediate UI wiring.
         startTime: new Date(),
       },
-      select: { id: true, sessionType: true },
+      select: { id: true, sessionType: true, endTime: true },
     });
   }
 

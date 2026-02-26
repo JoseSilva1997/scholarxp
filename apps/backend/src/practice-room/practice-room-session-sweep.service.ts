@@ -20,7 +20,7 @@ export class PracticeRoomSessionSweepService
   private sweepTimer: NodeJS.Timeout | null = null;
 
   constructor(private readonly practiceRoomService: PracticeRoomService) {}
-  
+
   onModuleInit() {
     // A fixed interval keeps stale-session cleanup predictable without requiring external scheduler infrastructure.
     this.sweepTimer = setInterval(() => {
@@ -43,10 +43,13 @@ export class PracticeRoomSessionSweepService
         inactivityMinutes: STALE_SESSION_MINUTES,
       });
       if (result.closedCount > 0) {
-        this.logger.log(`Closed ${result.closedCount} stale practice session(s).`,);
+        this.logger.log(
+          `Closed ${result.closedCount} stale practice session(s).`,
+        );
       }
     } catch (error) {
-      this.logger.error('Failed to close stale practice sessions.',
+      this.logger.error(
+        'Failed to close stale practice sessions.',
         error instanceof Error ? error.stack : undefined,
       );
     }

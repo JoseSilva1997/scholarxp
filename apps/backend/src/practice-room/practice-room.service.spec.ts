@@ -201,7 +201,7 @@ describe('PracticeRoomService', () => {
           sessionType: 'practice_room',
           startTime: expect.any(Date),
         },
-        select: { id: true, sessionType: true },
+        select: { id: true, sessionType: true, endTime: true },
       });
 
       // Verify module unit query included proper filters
@@ -398,7 +398,7 @@ describe('PracticeRoomService', () => {
             sessionType: 'practice_room',
             startTime: expect.any(Date),
           }),
-          select: { id: true, sessionType: true },
+          select: { id: true, sessionType: true, endTime: true },
         }),
       );
       expect(result).toEqual(mockSession);
