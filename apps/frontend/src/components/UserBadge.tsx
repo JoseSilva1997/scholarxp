@@ -36,6 +36,7 @@ const LEVEL_UP_PARTICLE_OFFSETS = [
 export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [displayedTotalExp, setDisplayedTotalExp] = useState<number | null>(null);
+  const [expGainIndicator, setExpGainIndicator] = useState<number | null>(null);
   const [isLevelingUp, setIsLevelingUp] = useState(false);
   const [isBadgeCrashing, setIsBadgeCrashing] = useState(false);
   const prevLevelRef = useRef<number | null>(null);
@@ -44,6 +45,7 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
   const uncrashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const levelingUpRafRef = useRef<number | null>(null);
   const expAnimationFrameRef = useRef<number | null>(null);
+  const expGainIndicatorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const displayedTotalExpRef = useRef<number | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
@@ -126,6 +128,9 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
       if (expAnimationFrameRef.current !== null) {
         cancelAnimationFrame(expAnimationFrameRef.current);
       }
+      if (expGainIndicatorTimeoutRef.current !== null) {
+        clearTimeout(expGainIndicatorTimeoutRef.current);
+      }
     },
     [],
   );
@@ -163,12 +168,26 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
 
     const animationStart = currentDisplayedTotalExp;
     const animationDistance = Math.abs(targetTotalExp - animationStart);
+    const previousTargetTotalExp = targetRef.current ?? animationStart;
+    const expGained = targetTotalExp - previousTargetTotalExp;
     // Increased duration to make the XP climb more deliberate and satisfying.
     const animationDurationMs = Math.max(400, Math.min(1600, animationDistance * 18));
     const animationDelta = targetTotalExp - animationStart;
     const startedAt = performance.now();
 
     targetRef.current = targetTotalExp;
+
+    // Show only positive reward deltas so the badge matches practice-room gain feedback.
+    if (expGained > 0) {
+      setExpGainIndicator(expGained);
+      if (expGainIndicatorTimeoutRef.current !== null) {
+        clearTimeout(expGainIndicatorTimeoutRef.current);
+      }
+      expGainIndicatorTimeoutRef.current = setTimeout(() => {
+        setExpGainIndicator(null);
+        expGainIndicatorTimeoutRef.current = null;
+      }, 1400);
+    }
 
     if (expAnimationFrameRef.current !== null) {
       cancelAnimationFrame(expAnimationFrameRef.current);
@@ -280,7 +299,23 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
                 </span>
               </span>
               <div className={styles.trackContainer}>
-                <span className={styles.expLabel}>{animatedProgress.currentExp} xp</span>
+                <div className={styles.expValueContainer}>
+                  <span className={styles.expLabel}>{animatedProgress.currentExp} xp</span>
+                  <AnimatePresence>
+                    {expGainIndicator ? (
+                      <motion.span
+                        key="exp-gain-indicator"
+                        initial={{ y: 10, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.4, ease: 'easeOut' }}
+                        className={styles.expGain}
+                      >
+                        +{expGainIndicator}
+                      </motion.span>
+                    ) : null}
+                  </AnimatePresence>
+                </div>
                 <div className={styles.barTrack} role="progressbar" aria-valuenow={expPercent} aria-valuemin={0} aria-valuemax={100}>
                   <div className={styles.barFill} style={{ width: `${expPercent}%` }} />
                 </div>

@@ -87,6 +87,18 @@ describe('UserBadge', () => {
     expect(screen.queryAllByText('Level Up!')).toHaveLength(0);
   });
 
+  it('shows and clears exp gain indicator when exp increases', async () => {
+    const { rerender } = render(<UserBadge user={user} level={5} exp={{ current: 20, max: 100 }} />);
+
+    // Run enough fake time for the initial rAF sync so the next update is treated as a gain event.
+    await vi.advanceTimersByTimeAsync(20);
+
+    rerender(<UserBadge user={user} level={5} exp={{ current: 60, max: 100 }} />);
+    await vi.advanceTimersByTimeAsync(20);
+
+    expect(screen.getByText('+40')).toBeInTheDocument();
+  });
+
   it('handles avatar image load errors by falling back to default', () => {
     render(<UserBadge user={{ ...user, profilePictureUrl: 'https://bad-link.com/img.jpg' }} />);
     

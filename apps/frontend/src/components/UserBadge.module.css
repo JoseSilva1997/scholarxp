@@ -3,9 +3,10 @@
   align-items: center;
   gap: 16px;
   border-radius: var(--radius-full);
-  padding: 6px 6px 6px 18px;
+  padding: 4px 6px 4px 28px;
   background: var(--color-glass-bg); /* Glassy background for dark header context */
   backdrop-filter: blur(12px);
+  border: 1px solid var(--color-glass-border); /* Subtle glass border */
   transition: all var(--transition-base);
   position: relative;
 }
@@ -126,6 +127,16 @@
   flex: 1;
 }
 
+.expValueContainer {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  margin-bottom: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .level {
   font-size: 0.65rem;
   color: var(--color-accent-light);
@@ -199,16 +210,24 @@
   100% { background-position: -200% 0; }
 }
 
-.expLabel {  position: absolute;
-  bottom: 100%;
-  right: 0;
-  margin-bottom: 2px;  font-size: 0.6rem;
+.expLabel {
+  font-size: 0.65rem;
   font-weight: 600;
   color: var(--color-text-on-dark-muted); /* Translucent white text on dark */
   white-space: nowrap;
   letter-spacing: 0.01em;
   font-variant-numeric: tabular-nums;
   text-align: right;
+}
+
+.expGain {
+  order: -1;
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: var(--color-secondary);
+  text-shadow: 0 0 4px var(--color-secondary-soft);
+  pointer-events: none;
+  white-space: nowrap;
 }
 
 .menu {
