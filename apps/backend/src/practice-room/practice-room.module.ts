@@ -4,6 +4,7 @@ import { AvatarModule } from '../db-entities/avatar/avatar.module';
 import { UserModuleModule } from '../db-entities/user-module/user-module.module';
 import { PracticeRoomController } from './practice-room.controller';
 import { PracticeRoomMapper } from './practice-room.mapper';
+import { PracticeRoomSessionSweepService } from './practice-room-session-sweep.service';
 import { PracticeRoomService } from './practice-room.service';
 import { StudentModuleUnitProgressService } from './student-module-unit-progress.service';
 
@@ -13,6 +14,7 @@ import { StudentModuleUnitProgressService } from './student-module-unit-progress
   controllers: [PracticeRoomController],
   providers: [
     PracticeRoomService,
+    PracticeRoomSessionSweepService,
     PracticeRoomMapper,
     StudentModuleUnitProgressService,
   ],

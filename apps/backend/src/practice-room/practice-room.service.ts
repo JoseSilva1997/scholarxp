@@ -235,6 +235,7 @@ export class PracticeRoomService {
     now?: Date;
     inactivityMinutes?: number;
   }) {
+    // Determine the inactivity threshold based on the current time and provided configuration.
     const now = params?.now ?? new Date();
     const inactivityMinutes = Math.max(
       1,
@@ -242,6 +243,7 @@ export class PracticeRoomService {
     );
     const cutoff = new Date(now.getTime() - inactivityMinutes * 60 * 1000);
 
+    // Fetch all currently open sessions, including the timestamp of their most recent question attempt to track activity.
     const openSessions = await this.prisma.practiceSession.findMany({
       where: { endTime: null },
       select: {
@@ -255,6 +257,7 @@ export class PracticeRoomService {
       },
     });
 
+    // Identify sessions that haven't seen any activity (or have a start time) older than the cutoff.
     const staleSessionIds = openSessions
       .filter((session) => {
         const lastActivityAt = session.questionAttempts[0]?.attemptedAt;
@@ -262,10 +265,12 @@ export class PracticeRoomService {
       })
       .map((session) => session.id);
 
+    // If no stale sessions are found, return a zero count immediately to avoid unnecessary database writes.
     if (staleSessionIds.length === 0) {
       return { closedCount: 0 };
     }
 
+    // Batch update the identified stale sessions, setting their end time to the current timestamp.
     const result = await this.prisma.practiceSession.updateMany({
       where: {
         id: { in: staleSessionIds },
