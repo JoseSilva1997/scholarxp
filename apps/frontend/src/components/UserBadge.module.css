@@ -138,12 +138,12 @@
 }
 
 .level {
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   color: var(--color-accent-light);
   font-weight: 800;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
 .levelValue {
@@ -158,8 +158,6 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 3ch; /* Increased slightly to handle level numbers up to 999 without shifting */
-  /* Added perspective to ensure 3D rotation looks authentic */
   perspective: 1000px;
 }
 
@@ -181,6 +179,7 @@
   height: 10px;
   width: 100%;
   min-width: 80px;
+  margin-left: 4px;
   background: var(--color-glass-bg-deep); /* Dark background for track elements */
   border-radius: var(--radius-full);
   overflow: hidden;
@@ -403,7 +402,7 @@
 .menuItem:hover,
 .menuItem:focus-visible {
   background: var(--color-primary-glass-hover); /* Glassy primary hover effect */
-  color: var(--color-surface); /* Pure white text on primary hover */
+  color: var(--color-text-on-dark); /* Pure white text on primary hover */
   outline: none;
   padding-left: 20px;
 }
