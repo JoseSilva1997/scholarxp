@@ -1,4 +1,6 @@
 // Encapsulates practice-room route orchestration so the page component can stay presentational.
+// Sub-concerns (session lifecycle, XP animation, persistence, attempt submission) are each
+// delegated to a dedicated hook; this file wires them together and owns the final page-state API.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type {
@@ -7,8 +9,6 @@ import type {
   PracticeAttemptSnapshot,
   PracticeQuestion,
   PracticeQuestionUnit,
-  StudentAnswer,
-  SubmitAttemptPayload,
 } from '@scholarxp/api-contracts';
 import { PracticeSessionTypeValues } from '@scholarxp/api-contracts';
 import {
@@ -29,6 +29,7 @@ import {
   usePracticeRoomPersistence,
   isUuidString,
 } from './usePracticeRoomPersistence';
+import { useSubmitAttempt } from './useSubmitAttempt';
 
 type UsePracticeRoomPageStateParams = {
   moduleIdParam: string | undefined;
@@ -55,7 +56,14 @@ export function usePracticeRoomPageState({
   moduleIdParam,
   unitIdParam,
 }: UsePracticeRoomPageStateParams) {
+  // ─── Auth ──────────────────────────────────────────────────────────────────
+  // applyStudentExpReward updates the cached auth state after a correct attempt
+  // so the header avatar XP bar reflects the award without a full auth refetch.
   const { applyStudentExpReward } = useAuth();
+
+  // ─── URL / param parsing ───────────────────────────────────────────────────
+  // Route params arrive as raw strings; parse and validate them once here so
+  // every downstream consumer receives typed, range-checked values.
   const [searchParams, setSearchParams] = useSearchParams();
   const searchParamsString = searchParams.toString();
 
@@ -70,6 +78,9 @@ export function usePracticeRoomPageState({
     const value = Number(unitIdParam);
     return Number.isFinite(value) && value > 0 ? value : null;
   }, [unitIdParam]);
+
+  // Session id and question id come from the URL so rooms survive hard reloads
+  // and a ?questionId= deep-link jumps straight to the right question.
   const requestedSessionId = parsePracticeRoomSessionIdQuery(
     searchParams.get('sessionId'),
   );
@@ -77,6 +88,8 @@ export function usePracticeRoomPageState({
     searchParams.get('questionId'),
   );
 
+  // ─── Queries & mutations ───────────────────────────────────────────────────
+  // All server I/O is declared up-front so the rest of the hook is purely reactive.
   const practiceRoomQuery = useModuleUnitPracticeRoomQuery(
     parsedModuleId,
     parsedUnitId,
@@ -91,8 +104,16 @@ export function usePracticeRoomPageState({
     parsedUnitId,
   );
   const moduleDetailQuery = useModuleDetailQuery(parsedModuleId);
+
+  // Unwrap to stable null-safe references used throughout the hook.
   const moduleUnitRoom = practiceRoomQuery.data?.practiceRoom ?? null;
   const moduleDetail = moduleDetailQuery.data ?? null;
+
+  // ─── Sub-hooks ─────────────────────────────────────────────────────────────
+  // Self-contained cross-cutting concerns are delegated to dedicated hooks.
+  // This hook wires their outputs together and owns the overall page-state API.
+
+  // XP animation bar, level-up celebration, and exp-gain chip.
   const {
     moduleProgress,
     moduleExpGainIndicator,
@@ -100,11 +121,19 @@ export function usePracticeRoomPageState({
     isProgressInitialized,
     applyExpAward,
   } = useModuleProgressAnimation({ moduleDetail, moduleId: parsedModuleId });
+
+  // Persistence is wired before state so lazy initialisers can seed from
+  // localStorage on the very first render.
   const { initialSelection, persistSelection, storageKey } = usePracticeRoomPersistence({
     moduleId: parsedModuleId,
     unitId: parsedUnitId,
   });
 
+  // ─── Local session state ───────────────────────────────────────────────────
+  // All three main maps are keyed by sessionId so in-progress state survives
+  // seamlessly if the backend assigns a fresh session (e.g. a retry session).
+
+  // Which question-unit index is currently displayed, per session.
   const [selectedQuestionUnitIndexBySessionId, setSelectedQuestionUnitIndexBySessionId] =
     useState<Record<string, number>>(
       () =>
@@ -115,6 +144,8 @@ export function usePracticeRoomPageState({
             }
           : {},
     );
+
+  // Hint-unlock status per content id, per session.
   const [unlockedHintByContentIdBySessionId, setUnlockedHintByContentIdBySessionId] =
     useState<Record<string, Record<number, boolean>>>(
       () =>
@@ -125,6 +156,8 @@ export function usePracticeRoomPageState({
             }
           : {},
     );
+
+  // Which content ids have been submitted this session (used to lock re-submission).
   const [submittedByContentIdBySessionId, setSubmittedByContentIdBySessionId] =
     useState<Record<string, Record<number, boolean>>>(
       () =>
@@ -135,6 +168,23 @@ export function usePracticeRoomPageState({
             }
           : {},
     );
+
+  // In-flight option selections the student has tapped but not yet submitted.
+  const [selectedOptionOverrideByContentId, setSelectedOptionOverrideByContentId] =
+    useState<Record<number, number>>({});
+
+  // Optimistic attempt snapshots applied locally while the query cache catches up.
+  const [submittedAttemptByContentId, setSubmittedAttemptByContentId] = useState<
+    Record<number, PracticeAttemptSnapshot | null>
+  >({});
+
+  // Tracks which content id is currently in view and when the student first saw
+  // it, giving the submit handler accurate view-duration data without extra state.
+  const activeContentIdRef = useRef<number | null>(null);
+  const activeContentViewStartMsRef = useRef<number | null>(null);
+
+  // Derived here (before the effects section) because the persistence write-effect
+  // below depends on it; it cannot be deferred to the derived-state section.
   const selectedQuestionUnitIndex = useMemo(
     () =>
       moduleUnitRoom
@@ -142,15 +192,10 @@ export function usePracticeRoomPageState({
         : 0,
     [moduleUnitRoom, selectedQuestionUnitIndexBySessionId],
   );
-  const [selectedOptionOverrideByContentId, setSelectedOptionOverrideByContentId] =
-    useState<Record<number, number>>({});
-  const [submittedAttemptByContentId, setSubmittedAttemptByContentId] = useState<
-    Record<number, PracticeAttemptSnapshot | null>
-  >({});
-  const [submitErrorMessage, setSubmitErrorMessage] = useState<string | null>(null);
-  const activeContentIdRef = useRef<number | null>(null);
-  const activeContentViewStartMsRef = useRef<number | null>(null);
 
+  // ─── Side effects ──────────────────────────────────────────────────────────
+
+  // Log query errors server-side; the UI surfaces safe messages via pageError.
   useEffect(() => {
     if (!practiceRoomQuery.error) return;
     if (shouldLogApiError(practiceRoomQuery.error)) {
@@ -174,6 +219,8 @@ export function usePracticeRoomPageState({
     }
   }, [moduleDetailQuery.error, parsedModuleId]);
 
+  // Keep the ?sessionId= param in sync with the server-assigned session so a
+  // hard reload always resumes the same session instead of creating a new one.
   useEffect(() => {
     if (!moduleUnitRoom) {
       return;
@@ -181,7 +228,6 @@ export function usePracticeRoomPageState({
     if (requestedSessionId === moduleUnitRoom.sessionId) {
       return;
     }
-    // Keep session id in the URL so browser reload resumes the same backend practice session.
     const nextSearchParams = new URLSearchParams(searchParamsString);
     nextSearchParams.set('sessionId', String(moduleUnitRoom.sessionId));
     setSearchParams(nextSearchParams, { replace: true });
@@ -192,6 +238,8 @@ export function usePracticeRoomPageState({
     setSearchParams,
   ]);
 
+  // Honour a ?questionId= deep-link by jumping to the matching question once
+  // the room data arrives; rAF defers the state write to satisfy hook lint rules.
   useEffect(() => {
     if (!moduleUnitRoom || requestedQuestionUnitId === null) {
       return;
@@ -202,7 +250,6 @@ export function usePracticeRoomPageState({
     if (targetQuestionIndex < 0) {
       return;
     }
-    // Defer state sync to the next frame to satisfy hook linting while preserving deep-link behavior.
     const frameId = requestAnimationFrame(() => {
       setSelectedQuestionUnitIndexBySessionId((previousValue) => {
         if (previousValue[moduleUnitRoom.sessionId] === targetQuestionIndex) {
@@ -219,6 +266,8 @@ export function usePracticeRoomPageState({
     };
   }, [moduleUnitRoom, requestedQuestionUnitId]);
 
+  // Write question-selection progress to localStorage after every relevant
+  // change so the student can resume mid-session after a page refresh.
   useEffect(() => {
     if (storageKey === null || !moduleUnitRoom) {
       return;
@@ -241,11 +290,14 @@ export function usePracticeRoomPageState({
     unlockedHintByContentIdBySessionId,
   ]);
 
+  // ─── Derived room state ────────────────────────────────────────────────────
+
+  // Merge server snapshots with pending local attempts so progress bars and
+  // question-status chips update immediately before TanStack Query refetches.
   const roomWithLocalAttempts = useMemo(() => {
     if (!moduleUnitRoom) {
       return null;
     }
-
     return {
       ...moduleUnitRoom,
       questions: moduleUnitRoom.questions.map((questionUnit) =>
@@ -256,14 +308,17 @@ export function usePracticeRoomPageState({
       ),
     } satisfies ModuleUnitPracticeRoomResponse['practiceRoom'];
   }, [moduleUnitRoom, submittedAttemptByContentId]);
-  // Backend-owned completion state makes answer interactions read-only when students open completed units.
+
+  // Backend-owned session type is the canonical read-only signal; isReadOnly is
+  // kept as an additional guard while session-type APIs stabilise.
   const sessionType: PracticeSessionType =
     roomWithLocalAttempts?.sessionType ?? PracticeSessionTypeValues.practiceRoom;
-  // Session type is the canonical mode; isReadOnly remains as a compatibility guard while APIs transition.
   const isRoomReadOnly =
     roomWithLocalAttempts?.isReadOnly === true ||
     sessionType === PracticeSessionTypeValues.viewAnswers;
 
+  // Session lifecycle must be wired after roomWithLocalAttempts is available
+  // so it can pass a stable sessionId to the close-on-unmount effect.
   useSessionLifecycle({
     sessionId: roomWithLocalAttempts?.sessionId ?? null,
     moduleId: parsedModuleId,
@@ -271,10 +326,12 @@ export function usePracticeRoomPageState({
     closeSession: closeSessionMutation.mutate,
   });
 
+  // ─── Derived option & active-question state ────────────────────────────────
+
+  // Seed option selections from the latest server-side attempt so choices are
+  // restored when the student reopens a room mid-session.
   const seededOptionByContentId = useMemo(() => {
     if (!roomWithLocalAttempts) return {};
-
-    // Seed option selections from latest core attempts to preserve continuity across room reloads.
     const seededSelection: Record<number, number> = {};
     for (const questionUnit of roomWithLocalAttempts.questions) {
       const coreAttemptSelection = readSelectedOptionIndex(
@@ -288,6 +345,8 @@ export function usePracticeRoomPageState({
     return seededSelection;
   }, [roomWithLocalAttempts]);
 
+  // Student overrides win over seeded values; merged into one map so the option
+  // panel only needs a single lookup.
   const selectedOptionByContentId = useMemo(
     () => ({
       ...seededOptionByContentId,
@@ -296,6 +355,7 @@ export function usePracticeRoomPageState({
     [seededOptionByContentId, selectedOptionOverrideByContentId],
   );
 
+  // Active question is the question-unit at the clamped selected index.
   const activeQuestionUnit = useMemo<PracticeQuestionUnit | null>(() => {
     if (!roomWithLocalAttempts || roomWithLocalAttempts.questions.length === 0) {
       return null;
@@ -333,6 +393,108 @@ export function usePracticeRoomPageState({
     };
   }, [roomWithLocalAttempts, selectedQuestionUnitIndex]);
 
+  // Start the view-duration timer whenever the active content id changes.
+  // The ref values are consumed by the submit handler to compute timeTakenMs.
+  useEffect(() => {
+    if (!activeQuestion) {
+      return;
+    }
+    const activeContentId = activeQuestion.question.id;
+    if (activeContentIdRef.current === activeContentId) {
+      return;
+    }
+    // Timing starts when the content item first becomes active, not when the room opens.
+    activeContentIdRef.current = activeContentId;
+    activeContentViewStartMsRef.current = Date.now();
+  }, [activeQuestion]);
+
+  // Slice the session-keyed maps down to the active session so consumers
+  // receive flat maps without needing to know the sessionId.
+  const unlockedHintByContentId = useMemo(
+    () =>
+      moduleUnitRoom
+        ? unlockedHintByContentIdBySessionId[moduleUnitRoom.sessionId] ?? {}
+        : {},
+    [moduleUnitRoom, unlockedHintByContentIdBySessionId],
+  );
+  const submittedByContentId = useMemo(
+    () =>
+      moduleUnitRoom
+        ? submittedByContentIdBySessionId[moduleUnitRoom.sessionId] ?? {}
+        : {},
+    [moduleUnitRoom, submittedByContentIdBySessionId],
+  );
+
+  // ─── Active question flags ─────────────────────────────────────────────────
+  // Scalar booleans derived from all the above; kept flat so the page component
+  // can destructure them directly without any further computation.
+
+  // Clamp the selected option to the valid option range; null if nothing is selected.
+  const selectedOptionIndex = useMemo(() => {
+    if (!activeQuestion) {
+      return null;
+    }
+    const persistedSelection = selectedOptionByContentId[activeQuestion.question.id];
+    if (
+      typeof persistedSelection !== 'number' ||
+      persistedSelection < 0 ||
+      persistedSelection >= activeQuestionOptions.length
+    ) {
+      return null;
+    }
+    return persistedSelection;
+  }, [activeQuestion, activeQuestionOptions.length, selectedOptionByContentId]);
+
+  const isActiveHintUnlocked = activeQuestion
+    ? Boolean(unlockedHintByContentId[activeQuestion.question.id])
+    : false;
+  const hasSubmittedActiveQuestion = activeQuestion
+    ? Boolean(submittedByContentId[activeQuestion.question.id])
+    : false;
+  // Persisted feedback is suppressed once the learner starts a new draft selection.
+  const hasActiveOptionOverride = activeQuestion
+    ? Object.prototype.hasOwnProperty.call(
+        selectedOptionOverrideByContentId,
+        activeQuestion.question.id,
+      )
+    : false;
+  const isActiveQuestionIncorrect =
+    activeQuestionUnit?.coreQuestion.lastAttempt?.isCorrect === false;
+  const showTryAgainButton = hasSubmittedActiveQuestion && isActiveQuestionIncorrect;
+
+  // ─── Submit attempt ────────────────────────────────────────────────────────
+  // Payload building, mutation call, optimistic state, and error handling are
+  // all owned by useSubmitAttempt; this hook only wires the required context.
+  const {
+    submitErrorMessage,
+    isSubmittingAttempt,
+    canSubmitAttempt,
+    submitActiveQuestionAttempt,
+    tryAgainActiveQuestion,
+  } = useSubmitAttempt({
+    room: roomWithLocalAttempts,
+    activeQuestionUnit,
+    activeQuestion,
+    isRoomReadOnly,
+    selectedOptionIndex,
+    hasSubmittedActiveQuestion,
+    isActiveHintUnlocked,
+    activeContentIdRef,
+    activeContentViewStartMsRef,
+    mutateAsync: submitAttemptMutation.mutateAsync,
+    isPending: submitAttemptMutation.isPending,
+    applyExpAward,
+    moduleDetail,
+    applyStudentExpReward,
+    setSubmittedAttemptByContentId,
+    setSubmittedByContentIdBySessionId,
+    parsedModuleId,
+    parsedUnitId,
+  });
+
+  // ─── Page-level error ──────────────────────────────────────────────────────
+  // Consolidated user-safe error string derived last so it has access to all
+  // query and param state; shown as a full-page fallback by the component.
   const pageError = useMemo(() => {
     if (!parsedModuleId || !parsedUnitId) {
       return 'Practice room not found. Please check the link and try again.';
@@ -352,51 +514,9 @@ export function usePracticeRoomPageState({
     return null;
   }, [moduleDetailQuery.error, parsedModuleId, parsedUnitId, practiceRoomQuery.error]);
 
-  // Note: module progress animation (server sync, rAF loop, level-up celebration)
-  // is managed by useModuleProgressAnimation above.
-
-  const selectedOptionIndex = useMemo(() => {
-    if (!activeQuestion) {
-      return null;
-    }
-    const persistedSelection = selectedOptionByContentId[activeQuestion.question.id];
-    if (
-      typeof persistedSelection !== 'number' ||
-      persistedSelection < 0 ||
-      persistedSelection >= activeQuestionOptions.length
-    ) {
-      return null;
-    }
-    return persistedSelection;
-  }, [activeQuestion, activeQuestionOptions.length, selectedOptionByContentId]);
-
-  const unlockedHintByContentId = useMemo(
-    () =>
-      moduleUnitRoom
-        ? unlockedHintByContentIdBySessionId[moduleUnitRoom.sessionId] ?? {}
-        : {},
-    [moduleUnitRoom, unlockedHintByContentIdBySessionId],
-  );
-  const submittedByContentId = useMemo(
-    () =>
-      moduleUnitRoom
-        ? submittedByContentIdBySessionId[moduleUnitRoom.sessionId] ?? {}
-        : {},
-    [moduleUnitRoom, submittedByContentIdBySessionId],
-  );
-
-  useEffect(() => {
-    if (!activeQuestion) {
-      return;
-    }
-    const activeContentId = activeQuestion.question.id;
-    if (activeContentIdRef.current === activeContentId) {
-      return;
-    }
-    // View-duration timing starts when a concrete content item becomes active, not when the room first opens.
-    activeContentIdRef.current = activeContentId;
-    activeContentViewStartMsRef.current = Date.now();
-  }, [activeQuestion]);
+  // ─── Actions ───────────────────────────────────────────────────────────────
+  // Event handlers passed to the page component; declared last so they can
+  // close over all derived state above without forward-reference issues.
 
   const selectQuestionUnit = (index: number) => {
     if (!roomWithLocalAttempts || roomWithLocalAttempts.questions.length === 0) {
@@ -437,23 +557,6 @@ export function usePracticeRoomPageState({
     }));
   };
 
-  const isActiveHintUnlocked = activeQuestion
-    ? Boolean(unlockedHintByContentId[activeQuestion.question.id])
-    : false;
-  const hasSubmittedActiveQuestion = activeQuestion
-    ? Boolean(submittedByContentId[activeQuestion.question.id])
-    : false;
-  // Persisted feedback should be suppressed once the learner starts a new draft selection.
-  const hasActiveOptionOverride = activeQuestion
-    ? Object.prototype.hasOwnProperty.call(
-        selectedOptionOverrideByContentId,
-        activeQuestion.question.id,
-      )
-    : false;
-  const isActiveQuestionIncorrect =
-    activeQuestionUnit?.coreQuestion.lastAttempt?.isCorrect === false;
-  const showTryAgainButton = hasSubmittedActiveQuestion && isActiveQuestionIncorrect;
-
   const goToPreviousQuestionUnit = () => {
     if (!questionUnitNav.canGoPrevious) return;
     if (!roomWithLocalAttempts) return;
@@ -476,117 +579,6 @@ export function usePracticeRoomPageState({
     }));
   };
 
-  const canSubmitAttempt =
-    Boolean(roomWithLocalAttempts && activeQuestionUnit && activeQuestion) &&
-    !isRoomReadOnly &&
-    selectedOptionIndex !== null &&
-    !hasSubmittedActiveQuestion &&
-    !submitAttemptMutation.isPending;
-
-  const submitActiveQuestionAttempt = async () => {
-    if (
-      !roomWithLocalAttempts ||
-      !activeQuestionUnit ||
-      !activeQuestion ||
-      isRoomReadOnly ||
-      selectedOptionIndex === null ||
-      hasSubmittedActiveQuestion
-    ) {
-      return;
-    }
-
-    const studentAnswer: StudentAnswer = {
-      selectedOptionIndex,
-    };
-    // Local evaluation is used only for immediate optimistic UI; backend remains the source of truth for persisted correctness.
-    const optimisticIsCorrect = isSelectedOptionCorrect(
-      activeQuestion.question,
-      selectedOptionIndex,
-    );
-    const nowMs = Date.now();
-    const viewStartedAtMs =
-      activeContentIdRef.current === activeQuestion.question.id &&
-      activeContentViewStartMsRef.current !== null
-        ? activeContentViewStartMsRef.current
-        : nowMs;
-    const payload: SubmitAttemptPayload = {
-      moduleUnitId: roomWithLocalAttempts.moduleUnitId,
-      questionUnitId: activeQuestionUnit.questionUnitId,
-      questionContentId: activeQuestion.question.id,
-      sessionId: roomWithLocalAttempts.sessionId,
-      // MVP uses view duration (content shown -> submit). Later we can add interaction-duration as a second metric.
-      timeTakenMs: Math.max(0, nowMs - viewStartedAtMs),
-      hintUnlocked: isActiveHintUnlocked,
-      studentAnswer,
-    };
-
-    setSubmitErrorMessage(null);
-
-    try {
-      const submitResponse = await submitAttemptMutation.mutateAsync(payload);
-      if (submitResponse.moduleExpAwarded > 0) {
-        // Delegate the animation target update, double-count guard, and level-up celebration
-        // to the progress hook so the submit handler stays focused on attempt business logic.
-        applyExpAward(submitResponse.moduleExpAwarded, moduleDetail);
-      }
-      if (submitResponse.studentExpAwarded > 0) {
-        // Updating auth cache immediately keeps header avatar progress in sync with the in-room reward feedback.
-        applyStudentExpReward(submitResponse.studentExpAwarded);
-      }
-      setSubmittedAttemptByContentId((previousValue) => ({
-        ...previousValue,
-        [activeQuestion.question.id]: {
-          studentAnswer,
-          isCorrect: optimisticIsCorrect,
-        },
-      }));
-      const sessionId = roomWithLocalAttempts.sessionId;
-      setSubmittedByContentIdBySessionId((previousValue) => ({
-        ...previousValue,
-        [sessionId]: {
-          ...(previousValue[sessionId] ?? {}),
-          [activeQuestion.question.id]: true,
-        },
-      }));
-    } catch (error) {
-      const message = getDisplayErrorMessage(error, {
-        fallbackMessage:
-          'We could not submit your answer right now. Please try again.',
-      });
-      setSubmitErrorMessage(message);
-      if (shouldLogApiError(error)) {
-        logError(error, {
-          feature: 'practice-room',
-          action: 'submit-attempt',
-          moduleId: parsedModuleId,
-          unitId: parsedUnitId,
-        });
-      }
-    }
-  };
-
-  const tryAgainActiveQuestion = () => {
-    if (!activeQuestion || !roomWithLocalAttempts) {
-      return;
-    }
-    const sessionId = roomWithLocalAttempts.sessionId;
-    // Clearing local submit locks lets students immediately retry after an incorrect attempt while preserving seeded selection.
-    setSubmittedByContentIdBySessionId((previousValue) => {
-      const nextSessionValue = { ...(previousValue[sessionId] ?? {}) };
-      delete nextSessionValue[activeQuestion.question.id];
-      return {
-        ...previousValue,
-        [sessionId]: nextSessionValue,
-      };
-    });
-    setSubmittedAttemptByContentId((previousValue) => {
-      const nextValue = { ...previousValue };
-      delete nextValue[activeQuestion.question.id];
-      return nextValue;
-    });
-    setSubmitErrorMessage(null);
-  };
-
   return {
     parsedModuleId,
     parsedUnitId,
@@ -600,7 +592,7 @@ export function usePracticeRoomPageState({
     sessionType,
     pageError,
     submitErrorMessage,
-    isSubmittingAttempt: submitAttemptMutation.isPending,
+    isSubmittingAttempt,
     isRoomReadOnly,
     canSubmitAttempt,
     selectedQuestionUnitIndex,
@@ -622,6 +614,10 @@ export function usePracticeRoomPageState({
     goToNextQuestionUnit,
   };
 }
+
+// ─── File-level utilities ─────────────────────────────────────────────────────
+// Pure functions are kept at module scope (not inside the hook) to give the
+// bundler a stable reference and keep the hook body free of unrelated logic.
 
 // Apply local submissions over server snapshots so completion bars update instantly while query refetch catches up.
 function applySubmittedAttemptOverrides(
@@ -651,7 +647,8 @@ function applySubmittedAttemptOverrides(
   };
 }
 
-// Student-answer payloads differ by question type; this helper safely extracts MCQ/true-false indexes when available.
+// Student-answer payloads differ by question type; this helper safely extracts
+// MCQ/true-false selectedOptionIndex values when available.
 function readSelectedOptionIndex(
   studentAnswer: unknown,
 ): number | null {
@@ -665,7 +662,8 @@ function readSelectedOptionIndex(
   return candidate.selectedOptionIndex;
 }
 
-// Render only option-based questions for now; unknown question schemas return an empty list safely.
+// Normalise question data into a flat option list for rendering.
+// Unknown or unsupported question schemas return an empty list safely.
 function readQuestionOptions(
   questionData: unknown,
 ): Array<{ optionText: string }> {
@@ -695,33 +693,7 @@ function readQuestionOptions(
   );
 }
 
-// Frontend uses question authoring metadata to compute correctness until backend grading/explanation flow is introduced.
-function isSelectedOptionCorrect(
-  question: PracticeQuestion,
-  selectedOptionIndex: number,
-): boolean {
-  if (!question.questionData || typeof question.questionData !== 'object') {
-    return false;
-  }
-
-  const questionData = question.questionData as QuestionDataWithOptions;
-  if (question.type === 'mcq') {
-    const candidate = questionData as { correctOptionIndex?: unknown };
-    return candidate.correctOptionIndex === selectedOptionIndex;
-  }
-
-  if (question.type === 'true-false') {
-    if (selectedOptionIndex === 0) {
-      return questionData.trueOption?.isCorrect === true;
-    }
-    if (selectedOptionIndex === 1) {
-      return questionData.falseOption?.isCorrect === true;
-    }
-  }
-
-  return false;
-}
-
+// URL query-param parsers — validate before use so the hook receives typed values.
 function parsePracticeRoomSessionIdQuery(
   sessionIdParam: string | null,
 ): string | null {
