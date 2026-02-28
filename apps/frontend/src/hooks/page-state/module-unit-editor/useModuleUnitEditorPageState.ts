@@ -22,11 +22,7 @@ import {
   TrueFalseQuestionSchema,
 } from '@scholarxp/question-type-dtos';
 import { logError } from '../../../utils/logger';
-import type {
-  ModuleUnitEditorContent,
-  ModuleUnitEditorQuestion,
-  ModuleUnitEditorGroup,
-} from '../../../types/module';
+import type { ModuleUnitEditorGroup } from '../../../types/module';
 import {
   QUESTION_TYPE_CONFIGS,
   makeId,
@@ -48,75 +44,21 @@ import {
   useUpdateQuestionContentMutation,
   useUpdateQuestionGroupNameMutation,
 } from '../../queries/useModuleUnitEditorQueries';
+import type {
+  DeleteTarget,
+  Question,
+  QuestionContent,
+  QuestionGroup,
+  SelectionState,
+  Variant,
+} from './types';
+import { useModuleUnitEditorDeleteFlow } from './useModuleUnitEditorDeleteFlow';
 
 // ===== Types =====
-// Local editor types derived from API contracts but allowing draft state for unsaved items.
-type QuestionContent = Omit<
-  ModuleUnitEditorContent,
-  'id' | 'questionUnitId' | 'difficultyScore'
-> & {
-  id: string;
-  questionUnitId: string;
-  // Backend defaults difficulty values, so local drafts can omit it until persisted.
-  difficultyScore?: number;
-};
-
-type Variant = {
-  id: string;
-  label: string;
-  content?: QuestionContent;
-  isDraft?: boolean;
-};
-
-type Question = Omit<
-  ModuleUnitEditorQuestion,
-  'id' | 'coreContent' | 'variants' | 'type' | 'moduleUnitId' | 'questionGroupId'
-> & {
-  id: string;
-  title: string;
-  type: QuestionType;
-  coreContent?: QuestionContent;
-  variants: Variant[];
-  isDraft?: boolean;
-};
-
-type QuestionGroup = Omit<
-  ModuleUnitEditorGroup,
-  'id' | 'questions' | 'name' | 'moduleUnitId' | 'sortOrder'
-> & {
-  id: string;
-  title: string;
-  sortOrder: number;
-  questions: Question[];
-};
-
-type DeleteTarget =
-  | { type: 'group'; groupId: string; title: string }
-  | { type: 'question'; groupId: string; questionId: string; title: string }
-  | {
-      type: 'variant';
-      groupId: string;
-      questionId: string;
-      variantId: string;
-      label: string;
-    };
-
-type SelectionState = {
-  groupId: string;
-  questionId: string | null;
-  variantId: string | null;
-};
-
 type UseModuleUnitEditorPageStateParams = {
   moduleIdParam: string | undefined;
   unitIdParam: string | undefined;
   initialQuestionIdParam?: string;
-};
-
-type DeleteCopy = {
-  title: string;
-  body: string;
-  confirmLabel: string;
 };
 
 // ===== Constants and Labels =====
@@ -209,46 +151,6 @@ const appendDraftVariantToQuestion = (
     (question) => question.id === questionId,
     (question) => ({ ...question, variants: [...question.variants, variant] }),
   );
-
-const removeQuestionGroup = (groups: QuestionGroup[], groupId: string) =>
-  groups.filter((group) => group.id !== groupId);
-
-const removeQuestionFromGroup = (
-  groups: QuestionGroup[],
-  groupId: string,
-  questionId: string,
-) =>
-  updateGroupById(groups, groupId, (group) => ({
-    ...group,
-    questions: group.questions.filter((question) => question.id !== questionId),
-  }));
-
-const removeVariantFromQuestion = (
-  groups: QuestionGroup[],
-  groupId: string,
-  questionId: string,
-  variantId: string,
-) =>
-  updateQuestionByPredicate(
-    groups,
-    groupId,
-    (question) => question.id === questionId,
-    (question) => ({
-      ...question,
-      variants: question.variants.filter((variant) => variant.id !== variantId),
-    }),
-  );
-
-const computeFallbackSelection = (nextGroups: QuestionGroup[]): SelectionState | null => {
-  // Fall back to the first remaining question to keep the editor focused on a valid target.
-  for (const group of nextGroups) {
-    const firstQuestion = group.questions[0];
-    if (firstQuestion) {
-      return { groupId: group.id, questionId: firstQuestion.id, variantId: null };
-    }
-  }
-  return null;
-};
 
 const mapEditorGroupsToState = (
   groups: ModuleUnitEditorGroup[] | undefined,
@@ -612,42 +514,6 @@ export function useModuleUnitEditorPageState({
       : selectedQuestion.title;
   }, [groups, selectedQuestion, selected]);
 
-  const deleteCopy = useMemo<DeleteCopy>(() => {
-    if (!deleteTarget) {
-      return { title: '', body: '', confirmLabel: 'Delete' };
-    }
-
-    const actionLabel = isUnitLive ? 'Archive' : 'Delete';
-
-    if (deleteTarget.type === 'group') {
-      return {
-        title: `${actionLabel} group "${deleteTarget.title}"?`,
-        body: isUnitLive
-          ? 'Archiving this group removes it from future student practice in this live unit, including all questions and variants in the group.'
-          : 'Deleting this group will remove all core questions and variants inside it. This keeps the unit list tidy but cannot be undone here.',
-        confirmLabel: `${actionLabel} group`,
-      };
-    }
-
-    if (deleteTarget.type === 'question') {
-      return {
-        title: `${actionLabel} question "${deleteTarget.title}"?`,
-        body: isUnitLive
-          ? 'Archiving this question removes it and its variants from future student practice in this live unit.'
-          : 'Deleting this question will also remove every variant tied to it. Students will no longer see this question in practice sets.',
-        confirmLabel: `${actionLabel} question`,
-      };
-    }
-
-    return {
-      title: `${actionLabel} variant "${deleteTarget.label}"?`,
-      body: isUnitLive
-        ? 'Archiving this variant removes it from future student practice in this live unit. Other variants and the core question stay intact.'
-        : 'Deleting this variant removes it from the question set. Other variants and the core question stay intact.',
-      confirmLabel: `${actionLabel} variant`,
-    };
-  }, [deleteTarget, isUnitLive]);
-
   const isQuestionSaved = useCallback(
     (question: Question) => !question.isDraft && Boolean(question.coreContent),
     [],
@@ -865,200 +731,36 @@ export function useModuleUnitEditorPageState({
     });
   };
 
-  const handleDeleteMutationError = (
-    err: unknown,
-    message: string,
-    feature: 'question-group' | 'question' | 'variant',
-  ) => {
-    setDeleteError(message);
-    logError(err, { feature, action: 'delete', unitId: parsedUnitId });
+  const clearVariantCache = (questionId: string, variantId: string) => {
+    // Variant cache entries are scoped by question and variant ids to avoid cross-item leakage.
+    questionTypeCacheRef.current.delete(`${questionId}-variant-${variantId}`);
   };
 
-  const deleteGroupTarget = async (
-    target: Extract<DeleteTarget, { type: 'group' }>,
-    currentSelection: SelectionState | null,
-    currentExpanded: Set<string>,
-  ): Promise<{
-    nextGroups: QuestionGroup[];
-    nextSelected: SelectionState | null;
-    nextExpanded: Set<string>;
-  } | null> => {
-    const numericId = Number(target.groupId);
-    if (Number.isFinite(numericId)) {
-      try {
-        await deleteQuestionGroupMutation.mutateAsync(numericId);
-      } catch (err) {
-        handleDeleteMutationError(
-          err,
-          'Could not delete this group. Please try again.',
-          'question-group',
-        );
-        return null;
-      }
-    }
-
-    const currentGroups = groupsRef.current;
-    const removedGroup = currentGroups.find((group) => group.id === target.groupId);
-    removedGroup?.questions.forEach(clearQuestionCaches);
-    const nextExpanded = new Set(currentExpanded);
-    nextExpanded.delete(target.groupId);
-
-    if (editingGroupIdRef.current === target.groupId) {
-      setEditingGroupId(null);
-    }
-
-    return {
-      nextGroups: removeQuestionGroup(currentGroups, target.groupId),
-      nextSelected:
-        currentSelection?.groupId === target.groupId ? null : currentSelection,
-      nextExpanded,
-    };
-  };
-
-  const deleteQuestionTarget = async (
-    target: Extract<DeleteTarget, { type: 'question' }>,
-    currentSelection: SelectionState | null,
-    currentExpanded: Set<string>,
-  ): Promise<{
-    nextGroups: QuestionGroup[];
-    nextSelected: SelectionState | null;
-    nextExpanded: Set<string>;
-  } | null> => {
-    const numericId = Number(target.questionId);
-    if (Number.isFinite(numericId)) {
-      try {
-        await deleteQuestionMutation.mutateAsync(numericId);
-      } catch (err) {
-        handleDeleteMutationError(
-          err,
-          'Could not delete this question. Please try again.',
-          'question',
-        );
-        return null;
-      }
-    }
-
-    const currentGroups = groupsRef.current;
-    const targetGroup = currentGroups.find((group) => group.id === target.groupId);
-    const targetQuestion = targetGroup?.questions.find(
-      (question) => question.id === target.questionId,
-    );
-    if (targetQuestion) {
-      clearQuestionCaches(targetQuestion);
-    }
-
-    const nextGroups = removeQuestionFromGroup(
-      currentGroups,
-      target.groupId,
-      target.questionId,
-    );
-    let nextSelected = currentSelection;
-    if (
-      currentSelection?.groupId === target.groupId &&
-      currentSelection.questionId === target.questionId
-    ) {
-      const updatedGroup = nextGroups.find((group) => group.id === target.groupId);
-      const fallbackQuestion = updatedGroup?.questions[0];
-      nextSelected = fallbackQuestion
-        ? { groupId: target.groupId, questionId: fallbackQuestion.id, variantId: null }
-        : null;
-    }
-
-    return {
-      nextGroups,
-      nextSelected,
-      nextExpanded: new Set(currentExpanded),
-    };
-  };
-
-  const deleteVariantTarget = async (
-    target: Extract<DeleteTarget, { type: 'variant' }>,
-    currentSelection: SelectionState | null,
-    currentExpanded: Set<string>,
-  ): Promise<{
-    nextGroups: QuestionGroup[];
-    nextSelected: SelectionState | null;
-    nextExpanded: Set<string>;
-  } | null> => {
-    const numericQuestionId = Number(target.questionId);
-    const numericVariantId = Number(target.variantId);
-    if (Number.isFinite(numericQuestionId) && Number.isFinite(numericVariantId)) {
-      try {
-        await deleteVariantMutation.mutateAsync({
-          questionId: numericQuestionId,
-          variantId: numericVariantId,
-        });
-      } catch (err) {
-        handleDeleteMutationError(
-          err,
-          'Could not delete this variant. Please try again.',
-          'variant',
-        );
-        return null;
-      }
-    }
-
-    questionTypeCacheRef.current.delete(
-      `${target.questionId}-variant-${target.variantId}`,
-    );
-    const currentGroups = groupsRef.current;
-    const nextSelected =
-      currentSelection?.groupId === target.groupId &&
-      currentSelection.questionId === target.questionId &&
-      currentSelection.variantId === target.variantId
-        ? {
-            groupId: target.groupId,
-            questionId: target.questionId,
-            variantId: null,
-          }
-        : currentSelection;
-
-    return {
-      nextGroups: removeVariantFromQuestion(
-        currentGroups,
-        target.groupId,
-        target.questionId,
-        target.variantId,
-      ),
-      nextSelected,
-      nextExpanded: new Set(currentExpanded),
-    };
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!deleteTarget || !parsedModuleId || !parsedUnitId) return;
-
-    setIsDeleting(true);
-    setDeleteError(null);
-
-    // Freeze selection/expansion at confirmation time so post-delete fallback is deterministic.
-    const currentExpanded = new Set(expandedGroupsRef.current);
-    const currentSelection = selectedRef.current;
-    const deleteResult =
-      deleteTarget.type === 'group'
-        ? await deleteGroupTarget(deleteTarget, currentSelection, currentExpanded)
-        : deleteTarget.type === 'question'
-          ? await deleteQuestionTarget(deleteTarget, currentSelection, currentExpanded)
-          : await deleteVariantTarget(deleteTarget, currentSelection, currentExpanded);
-    if (!deleteResult) {
-      setIsDeleting(false);
-      return;
-    }
-
-    const resolvedSelection =
-      deleteResult.nextSelected ?? computeFallbackSelection(deleteResult.nextGroups);
-    setGroups(deleteResult.nextGroups);
-    setExpandedGroups(deleteResult.nextExpanded);
-    setSelected(resolvedSelection);
-
-    if (!resolvedSelection) {
-      setForm(buildInitialForm());
-    }
-
-    setDeleteTarget(null);
-    setSaveError(null);
-    setIsDeleting(false);
-  };
+  const { deleteCopy, handleConfirmDelete } = useModuleUnitEditorDeleteFlow({
+    parsedModuleId,
+    parsedUnitId,
+    isUnitLive,
+    deleteTarget,
+    groupsRef,
+    selectedRef,
+    expandedGroupsRef,
+    editingGroupIdRef,
+    setDeleteTarget,
+    setDeleteError,
+    setSaveError,
+    setIsDeleting,
+    setEditingGroupId,
+    setGroups,
+    setExpandedGroups,
+    setSelected,
+    setForm,
+    buildInitialForm,
+    deleteQuestionGroupMutation,
+    deleteQuestionMutation,
+    deleteVariantMutation,
+    clearQuestionCaches,
+    clearVariantCache,
+  });
 
   const setCorrectOption = (id: string) => {
     setForm((prev) => ({
