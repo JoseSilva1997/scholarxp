@@ -1,3 +1,4 @@
+import { formatQuestionLabel, formatVariantLabel } from './helpers/formatting';
 // Encapsulates ModuleUnitEditor route orchestration so the route can stay focused on rendering.
 import {
   useCallback,
@@ -69,11 +70,6 @@ type UseModuleUnitEditorPageStateParams = {
 
 // ===== Constants and Labels =====
 
-const formatQuestionLabel = (index: number, isDraft?: boolean) =>
-  `Question ${index + 1}${isDraft ? ' (draft)' : ''}`;
-
-const formatVariantLabel = (index: number, isDraft?: boolean) =>
-  `Variant ${index + 1}${isDraft ? ' (draft)' : ''}`;
 
 const deriveNextGroupSortOrder = (existingGroups: QuestionGroup[]) =>
   // Keep order independent from labels so renames do not affect persisted sequencing.
