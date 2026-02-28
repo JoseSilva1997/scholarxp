@@ -117,7 +117,7 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-vi.mock('../../hooks/page-state/useModuleUnitEditorPageState', () => ({
+vi.mock('../../hooks/page-state/module-unit-editor/useModuleUnitEditorPageState', () => ({
   useModuleUnitEditorPageState: () => ({
     ...pageState,
     setVariantInstructions: mocks.setVariantInstructions,

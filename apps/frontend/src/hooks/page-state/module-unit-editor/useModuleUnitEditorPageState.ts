@@ -7,27 +7,27 @@ import type {
   UpdateQuestionContentPayload,
 } from '@scholarxp/api-contracts';
 import { getModuleUnitGroupName } from '@scholarxp/api-contracts';
-import { ApiError } from '../../api/client';
+import { ApiError } from '../../../api/client';
 import {
   emptyMcqTemplate,
   DEFAULT_QUESTION_TYPE,
   TrueFalseQuestionSchema,
 } from '@scholarxp/question-type-dtos';
-import { logError } from '../../utils/logger';
+import { logError } from '../../../utils/logger';
 import type {
   ModuleUnitEditorContent,
   ModuleUnitEditorQuestion,
   ModuleUnitEditorGroup,
-} from '../../types/module';
+} from '../../../types/module';
 import {
   QUESTION_TYPE_CONFIGS,
   makeId,
   normalizeQuestionType,
-} from '../../components/question-types/QuestionTypeRegistry';
+} from '../../../components/question-types/QuestionTypeRegistry';
 import type {
   QuestionType,
   QuestionForm,
-} from '../../components/question-types/QuestionTypeRegistry';
+} from '../../../components/question-types/QuestionTypeRegistry';
 import {
   useCreateQuestionGroupMutation,
   useCreateQuestionMutation,
@@ -39,7 +39,7 @@ import {
   useUpdateModuleUnitMutation,
   useUpdateQuestionContentMutation,
   useUpdateQuestionGroupNameMutation,
-} from '../queries/useModuleUnitEditorQueries';
+} from '../../queries/useModuleUnitEditorQueries';
 
 // ===== Types =====
 // Local editor types derived from API contracts but allowing draft state for unsaved items.
