@@ -1,4 +1,7 @@
-// Encapsulates ModulesPage orchestration so the route stays focused on rendering and layout.
+// Orchestrates data and actions for the Modules page route. This hook
+// shields the component from complex logic like permission checks,
+// navigation and API mutation handling; the component only cares about
+// rendering the current state.
 import { useEffect, useMemo, useState } from 'react';
 import type { CreateModulePayload } from '@scholarxp/api-contracts';
 import { useNavigate } from 'react-router-dom';
@@ -12,6 +15,8 @@ import { canUserAccess } from '../../permissions/permission';
 import { useCreateModuleMutation, useModulesListQuery } from '../queries/useModulesQueries';
 import { features } from '@scholarxp/permissions';
 
+// return shape consumed by the page component. Keeping the return small
+// allows future refactors without breaking callers.
 type UseModulesPageStateResult = {
   user: ReturnType<typeof useAuth>['user'];
   modules: ReturnType<typeof useModulesListQuery>['data'] extends infer T
@@ -42,6 +47,8 @@ export function useModulesPageState(): UseModulesPageStateResult {
   const createModuleMutation = useCreateModuleMutation();
   const canCreateModules = useMemo(() => canUserAccess(features.modules.create, user), [user]);
 
+  // log listing errors for diagnostics, but UI surfaces a friendlier
+  // message via `listErrorMessage` below.
   useEffect(() => {
     if (!modulesQuery.error) return;
     if (shouldLogApiError(modulesQuery.error)) {
@@ -49,6 +56,9 @@ export function useModulesPageState(): UseModulesPageStateResult {
     }
   }, [modulesQuery.error]);
 
+
+  // derive friendly values the page consumes; memoization isn't required here
+  // since the parent component already handles re-renders sensibly.
   const modules = modulesQuery.data ?? [];
   const isLoading = isModulesQueryEnabled && modulesQuery.isPending;
   const listErrorMessage = modulesQuery.error
@@ -58,21 +68,27 @@ export function useModulesPageState(): UseModulesPageStateResult {
       })
     : null;
 
+  // user wants to add a new module; clear any old error and show the modal.
   const openCreateModal = () => {
     setCreateError(null);
     setShowCreate(true);
   };
 
+  // hide the creation dialog and clear errors so it starts fresh next time.
   const closeCreateModal = () => {
     setShowCreate(false);
     setCreateError(null);
   };
 
+  // navigate when the user clicks on a module row; keeps routing logic
+  // out of the presentational component.
   const openModule = (moduleId: number) => {
     // Route to module detail page so users can drill into content quickly.
     navigate(`/main/modules/${moduleId}`);
   };
 
+  // called by the create modal when user submits. handles API errors
+  // gracefully and leaves the modal open so they can retry.
   const handleCreateModule = async (payload: CreateModulePayload) => {
     setCreateError(null);
     try {

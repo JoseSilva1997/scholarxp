@@ -1,7 +1,9 @@
-// Owns the submit-attempt lifecycle for a single practice-room question: building
-// the payload, invoking the mutation, applying optimistic local state, and surfacing
-// error messages. Also owns tryAgainActiveQuestion so all submission-state concerns
-// are co-located and the main page-state hook stays focused on orchestration.
+// Manages everything related to sending an answer for the active question in
+// a practice room. This includes assembling the API payload, handling the
+// mutation result, updating local state optimistically, and providing helpers
+// for retrying a question. Placing all of this logic here keeps
+// `usePracticeRoomPageState` simpler and lets tests target submission rules
+// in isolation.
 import { useState } from 'react';
 import type {
   PracticeAttemptSnapshot,
@@ -18,9 +20,16 @@ import {
 import { logError } from '../../../utils/logger';
 import type { ProgressModuleDetail } from './useModuleProgressAnimation';
 
+// lightweight wrapper so callers only need to provide the question
+// itself (not the entire unit).
 type ActiveQuestion = {
   question: PracticeQuestion;
 };
+
+// Parameters are almost entirely derived from the parent page state; this
+// hook never mutates them except via the two setter callbacks at the bottom.
+// keeping the shape explicit helps unit tests feed realistic props during
+// failure scenarios.
 
 type UseSubmitAttemptParams = {
   // Active room/question context — all read-only inputs from the parent.
@@ -82,8 +91,12 @@ export function useSubmitAttempt({
   parsedModuleId,
   parsedUnitId,
 }: UseSubmitAttemptParams): UseSubmitAttemptResult {
+  // holds any error returned when the submission fails; surfaced to UI.
   const [submitErrorMessage, setSubmitErrorMessage] = useState<string | null>(null);
 
+  // derived boolean that encapsulates all guard conditions preventing
+  // a submission; keeps callers simple (no need to recompute this logic
+  // themselves when disabling buttons).
   const canSubmitAttempt =
     Boolean(room && activeQuestionUnit && activeQuestion) &&
     !isRoomReadOnly &&
@@ -91,6 +104,9 @@ export function useSubmitAttempt({
     !hasSubmittedActiveQuestion &&
     !isPending;
 
+  // called when user presses the submit button. it re-checks guard
+  // conditions (defensive in case callers forget) then builds the
+  // payload including view duration and hint state.
   const submitActiveQuestionAttempt = async () => {
     if (
       !room ||
@@ -170,6 +186,9 @@ export function useSubmitAttempt({
     }
   };
 
+  // allows the student to retry the same question. we only clear the
+  // local locks which prevent repeat submits; this leaves the selected
+  // answer intact so UI doesn't jump around while they reconsider.
   const tryAgainActiveQuestion = () => {
     if (!activeQuestion || !room) {
       return;

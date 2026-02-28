@@ -1,4 +1,6 @@
-// Handles module-unit-editor question save orchestration so persistence logic stays isolated and testable.
+// --- Purpose: Handles module-unit-editor question save orchestration ---
+// This hook manages all the logic for saving questions and variants in the Module Unit Editor.
+// It keeps persistence logic isolated and testable, so the parent hook and UI stay clean and focused.
 import { useCallback, type Dispatch, type SetStateAction } from 'react';
 import type {
   CreateQuestionPayload,
@@ -29,6 +31,9 @@ import {
 import { coreCacheKey, variantCacheKey } from './helpers/cacheKeys';
 
 
+// --- Types: define local types for clarity and maintainability ---
+// Types are kept close to the hook so it's easy to see what parameters and state are expected.
+// This helps future maintainers understand the contract of the hook at a glance.
 type UseModuleUnitEditorSaveFlowParams = {
   parsedModuleId: number | null;
   parsedUnitId: number | null;
@@ -87,6 +92,12 @@ type UseModuleUnitEditorSaveFlowParams = {
   };
 };
 
+// --- Main Hook: useModuleUnitEditorSaveFlow ---
+// This hook manages all save flows for the Module Unit Editor page.
+// It handles persistence, mutation, error handling, and state updates for saves.
+//
+// Sections below are separated by comments to make navigation and understanding easier.
+// Comments explain why things are done, not just what is happening.
 export function useModuleUnitEditorSaveFlow({
   parsedModuleId,
   parsedUnitId,
@@ -108,6 +119,8 @@ export function useModuleUnitEditorSaveFlow({
   createVariantMutation,
   updateQuestionContentMutation,
 }: UseModuleUnitEditorSaveFlowParams) {
+  // --- Ensure Persisted Group ID: creates a group on the backend if needed ---
+  // This lets users create questions in draft groups, and only persists the group when saving a question for the first time.
   const ensurePersistedGroupId = useCallback(
     async (targetGroupId: string, targetGroup: QuestionGroup): Promise<number | null> => {
       const numericGroupId = toPersistedId(targetGroupId);
@@ -159,6 +172,8 @@ export function useModuleUnitEditorSaveFlow({
     ],
   );
 
+  // --- Persist Draft Question: creates a question on the backend if it's still a draft ---
+  // This ensures that draft questions are saved and assigned real IDs before saving content or variants.
   const persistDraftQuestionIfNeeded = useCallback(
     async ({
       payload,
@@ -224,6 +239,8 @@ export function useModuleUnitEditorSaveFlow({
     [createQuestionMutation, form.type, setGroups, setSelected],
   );
 
+  // --- Save Variant Content: handles saving a variant, either creating or updating as needed ---
+  // This ensures that variants are saved correctly, and updates state and caches accordingly.
   const saveVariantContent = useCallback(
     async ({
       payload,
@@ -371,6 +388,8 @@ export function useModuleUnitEditorSaveFlow({
     ],
   );
 
+  // --- Save Core Content: handles saving the main question content ---
+  // This ensures that the core question is updated on the backend and state stays in sync.
   const saveCoreContent = useCallback(
     async ({
       payload,
@@ -446,6 +465,8 @@ export function useModuleUnitEditorSaveFlow({
     [clearOtherTypesCache, setGroups, setSaveError, updateQuestionContentMutation],
   );
 
+  // --- Handle Save Question: orchestrates the full save flow when the user saves ---
+  // This validates input, persists groups/questions/variants as needed, and updates all state accordingly.
   const handleSaveQuestion = useCallback(async () => {
     if (parsedModuleId === null || parsedUnitId === null) return;
 
@@ -570,6 +591,8 @@ export function useModuleUnitEditorSaveFlow({
     setSaveError,
   ]);
 
+  // --- Public API: expose the save handler to the parent/page ---
+  // This keeps the parent focused on UI and lets this hook handle all save logic.
   return {
     handleSaveQuestion,
   };

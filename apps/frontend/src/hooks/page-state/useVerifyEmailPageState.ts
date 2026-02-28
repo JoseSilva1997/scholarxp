@@ -1,4 +1,6 @@
-// Encapsulates VerifyEmail route orchestration so the page component remains focused on rendering.
+// This hook bundles all the logic required for the email verification
+// screen. The route component uses its returned state and handlers so
+// it can remain a plain UI layer.
 import { useEffect, useState, type FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getDisplayErrorMessage } from '../../api/get-display-error';
@@ -24,12 +26,18 @@ export function useVerifyEmailPageState() {
   const [info, setInfo] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
 
+  // decrement the cooldown timer each second; the interval clears
+  // itself when it reaches zero. This keeps the resend button disabled
+  // for a short period after being pressed.
   useEffect(() => {
     if (cooldown <= 0) return;
     const timer = setInterval(() => setCooldown((t) => Math.max(0, t - 1)), 1000);
     return () => clearInterval(timer);
   }, [cooldown]);
 
+  // called when the user submits the verification form. we clear any
+  // previous messages, run the mutation, and navigate to the main app on
+  // success. a missing user in the response is interpreted as a bad code.
   async function handleVerify(event: FormEvent) {
     event.preventDefault();
     setError(null);
@@ -51,6 +59,9 @@ export function useVerifyEmailPageState() {
     }
   }
 
+  // triggered when the user asks to resend the code. protects against
+  // double-click spam, requires an email value, and starts the cooldown
+  // regardless of success so users can't hammer the API.
   async function handleResend() {
     if (resendVerificationMutation.isPending) {
       return;

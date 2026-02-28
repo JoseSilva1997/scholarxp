@@ -1,4 +1,7 @@
-// Encapsulates Register route orchestration (validation + submission) so the page stays render-focused.
+// This hook owns all the logic for the register page so the
+// component itself can remain purely presentational.
+// It handles form state, validation rules, and invoking the
+// mutation that creates a new account.
 import { useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ApiError } from '../../api/auth';
@@ -9,6 +12,9 @@ import { useRegisterByEmailMutation } from '../queries/useAuthMutations';
 export function useRegisterPageState() {
   const navigate = useNavigate();
   const registerByEmailMutation = useRegisterByEmailMutation();
+
+  // we keep a simple object for the five inputs and update
+  // generically based on the input's name attribute.
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -18,6 +24,8 @@ export function useRegisterPageState() {
   });
   const [error, setError] = useState<string | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
+
+  // toggle whether the password strength meter should display.
   const [showMeter, setShowMeter] = useState(false);
 
   const passwordChecks = useMemo(
@@ -35,6 +43,9 @@ export function useRegisterPageState() {
   );
   const passedCount = passwordChecks.filter((item) => item.pass).length;
   const strengthPercent = (passedCount / passwordChecks.length) * 100;
+  // Human-friendly label shown under the strength meter.
+  // We only care about broad buckets rather than a numeric
+  // score to keep the UX simple.
   const strengthLabel =
     passedCount <= 1
       ? 'Very weak'
@@ -46,6 +57,8 @@ export function useRegisterPageState() {
             ? 'Strong'
             : 'Excellent';
 
+  // generic change handler for all input fields.
+  // keeps us from writing nearly identical handlers for each one.
   function handleChange(event: ChangeEvent<HTMLInputElement>) {
     const { name, value } = event.target;
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -105,6 +118,10 @@ export function useRegisterPageState() {
     return issues;
   }
 
+  // Submission handler triggered by the form element. All side-
+  // effects (navigation, mutation errors) live here so the page
+  // component simply passes this handler and renders UI based on
+  // the returned state values.
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
@@ -112,6 +129,7 @@ export function useRegisterPageState() {
 
     const validationIssues = validateForm();
     if (validationIssues.length) {
+      // short-circuit on client issues to avoid a round-trip.
       setErrors(validationIssues);
       return;
     }
@@ -123,7 +141,8 @@ export function useRegisterPageState() {
         email: form.email.trim().toLowerCase(),
         password: form.password,
       });
-      // Send the user to the verification screen so they can confirm their email before logging in.
+      // send the user to the next step; we don't log them in until
+      // they verify, so store the email in navigation state.
       navigate('/verify-email', {
         replace: true,
         state: { email: form.email.trim().toLowerCase() },
@@ -151,6 +170,7 @@ export function useRegisterPageState() {
           );
         }
       } else {
+        // network errors / unexpected issues get a generic message
         setError('Something went wrong. Please try again.');
       }
     }

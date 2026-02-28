@@ -1,4 +1,6 @@
-// Handles module-unit-editor delete state orchestration so the parent hook can stay focused on composition.
+// --- Purpose: Handles module-unit-editor delete state orchestration ---
+// This hook manages all the logic for deleting groups, questions, and variants in the Module Unit Editor.
+// It keeps the parent hook focused on composition and UI, while all delete-related logic lives here for clarity and maintainability.
 import { useMemo, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import type { QuestionForm } from '../../../components/question-types/QuestionTypeRegistry';
 import type { DeleteCopy, DeleteTarget, Question, QuestionGroup, SelectionState } from './helpers/types';
@@ -29,6 +31,9 @@ type DeleteVariantMutation = {
   mutateAsync: (input: { questionId: number; variantId: number }) => Promise<unknown>;
 };
 
+// --- Types: define local types for clarity and maintainability ---
+// Types are kept close to the hook so it's easy to see what parameters and state are expected.
+// This helps future maintainers understand the contract of the hook at a glance.
 type UseModuleUnitEditorDeleteFlowParams = {
   parsedModuleId: number | null;
   parsedUnitId: number | null;
@@ -55,6 +60,12 @@ type UseModuleUnitEditorDeleteFlowParams = {
   clearVariantCache: (questionId: string, variantId: string) => void;
 };
 
+// --- Main Hook: useModuleUnitEditorDeleteFlow ---
+// This hook manages all delete flows for the Module Unit Editor page.
+// It handles confirmation, mutation, error handling, and state updates for deletes.
+//
+// Sections below are separated by comments to make navigation and understanding easier.
+// Comments explain why things are done, not just what is happening.
 export function useModuleUnitEditorDeleteFlow({
   parsedModuleId,
   parsedUnitId,
@@ -80,6 +91,8 @@ export function useModuleUnitEditorDeleteFlow({
   clearQuestionCaches,
   clearVariantCache,
 }: UseModuleUnitEditorDeleteFlowParams) {
+  // --- Delete Copy: builds the UI copy for delete/archiving dialogs based on context ---
+  // This ensures the user always sees the right message for what they're deleting and whether the unit is live.
   const deleteCopy = useMemo<DeleteCopy>(() => {
     if (!deleteTarget) {
       return { title: '', body: '', confirmLabel: 'Delete' };
@@ -116,6 +129,8 @@ export function useModuleUnitEditorDeleteFlow({
     };
   }, [deleteTarget, isUnitLive]);
 
+  // --- Error Handling: centralizes error reporting for all delete mutations ---
+  // This keeps error handling DRY and ensures all errors are logged and surfaced to the user in a safe way.
   const handleDeleteMutationError = (
     err: unknown,
     message: string,
@@ -125,6 +140,8 @@ export function useModuleUnitEditorDeleteFlow({
     logModuleUnitEditorError(err, feature, 'delete', parsedUnitId);
   };
 
+  // --- Delete Group: handles deleting a group and all its questions/variants ---
+  // This ensures all related state and caches are cleaned up, and the UI updates correctly.
   const deleteGroupTarget = async (
     target: Extract<DeleteTarget, { type: 'group' }>,
     currentSelection: SelectionState | null,
@@ -162,6 +179,8 @@ export function useModuleUnitEditorDeleteFlow({
     };
   };
 
+  // --- Delete Question: handles deleting a question and all its variants ---
+  // This ensures all related state and caches are cleaned up, and the UI updates correctly.
   const deleteQuestionTarget = async (
     target: Extract<DeleteTarget, { type: 'question' }>,
     currentSelection: SelectionState | null,
@@ -214,6 +233,8 @@ export function useModuleUnitEditorDeleteFlow({
     };
   };
 
+  // --- Delete Variant: handles deleting a single variant from a question ---
+  // This ensures all related state and caches are cleaned up, and the UI updates correctly.
   const deleteVariantTarget = async (
     target: Extract<DeleteTarget, { type: 'variant' }>,
     currentSelection: SelectionState | null,
@@ -262,6 +283,8 @@ export function useModuleUnitEditorDeleteFlow({
     };
   };
 
+  // --- Confirm Delete: orchestrates the full delete flow when the user confirms ---
+  // This freezes selection/expansion at confirmation time so fallback is deterministic, and updates all state accordingly.
   const handleConfirmDelete = async () => {
     if (!deleteTarget || !parsedModuleId || !parsedUnitId) return;
 
@@ -297,6 +320,8 @@ export function useModuleUnitEditorDeleteFlow({
     setIsDeleting(false);
   };
 
+  // --- Public API: expose delete copy and confirm handler to the parent/page ---
+  // This keeps the parent focused on UI and lets this hook handle all delete logic.
   return {
     deleteCopy,
     handleConfirmDelete,

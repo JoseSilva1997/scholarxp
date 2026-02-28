@@ -68,19 +68,24 @@ type UseModuleUnitEditorPageStateParams = {
   initialQuestionIdParam?: string;
 };
 
-// ===== Constants and Labels =====
-
-
 const deriveNextGroupSortOrder = (existingGroups: QuestionGroup[]) =>
   // Keep order independent from labels so renames do not affect persisted sequencing.
   existingGroups.reduce((maxValue, group) => Math.max(maxValue, group.sortOrder), 0) + 1;
 
+// --- Main Hook: useModuleUnitEditorPageState ---
+// This hook manages all state, data fetching, mutations, and orchestration for the Module Unit Editor page.
+// It keeps the UI component simple and focused on rendering, while all the logic lives here for testability and clarity.
+//
+// Sections below are separated by comments to make navigation and understanding easier.
+// Comments explain why things are done, not just what is happening.
 export function useModuleUnitEditorPageState({
   moduleIdParam,
   unitIdParam,
   initialQuestionIdParam,
 }: UseModuleUnitEditorPageStateParams) {
   // ===== Route Scope and Server State =====
+  // Parse route params and set up all server state hooks.
+  // This ensures all downstream hooks are guarded by valid IDs, and keeps the logic robust against bad input.
   // Route scope parsing keeps downstream query/mutation hooks guarded by valid numeric ids.
   const parsedModuleId = useMemo(() => {
     if (!moduleIdParam) return null;
@@ -125,6 +130,8 @@ export function useModuleUnitEditorPageState({
   }, [editorDataQuery.error, parsedUnitId]);
 
   // ===== Local Editor State =====
+  // All local UI state is managed here, so the page can respond to user actions and keep everything in sync.
+  // This includes form state, selection, expanded/collapsed groups, and error banners.
   const [unitTitle, setUnitTitle] = useState('');
   const [variantInstructions, setVariantInstructions] = useState('');
   const [groups, setGroups] = useState<QuestionGroup[]>([]);
@@ -182,11 +189,13 @@ export function useModuleUnitEditorPageState({
 
   useEffect(() => {
     // Clear stale delete errors when target changes so modal feedback reflects the current action.
+    // This keeps the UI feedback relevant to the user's current action.
     setDeleteError(null);
   }, [deleteTarget]);
 
   useEffect(() => {
     // Sync refs each render so async delete flows always read the latest editor state.
+    // This avoids bugs where async handlers operate on stale state.
     groupsRef.current = groups;
     selectedRef.current = selected;
     expandedGroupsRef.current = expandedGroups;
@@ -196,11 +205,13 @@ export function useModuleUnitEditorPageState({
   const setSelectedFromUi = useCallback<
     Dispatch<SetStateAction<SelectionState | null>>
   >((value) => {
-    // User-driven target changes should clear stale error banners from the previously edited item.
+    // When the user selects a new item, clear any old error banners so the UI feels responsive and clean.
     setSaveError(null);
     setSelected(value);
   }, []);
 
+  // --- Helpers: cache and transform logic for question/variant forms ---
+  // These helpers keep the form logic DRY and make it easy to support multiple question types.
   const resetOptionsForType = useCallback(
     (type: QuestionType) => QUESTION_TYPE_CONFIGS[type].getInitialOptions(mcqOptionSlots),
     [mcqOptionSlots],
@@ -226,6 +237,8 @@ export function useModuleUnitEditorPageState({
     [resetOptionsForType],
   );
 
+  // Loads question or variant content into the form, merging with defaults and handling legacy/edge cases.
+  // This ensures the editor always shows a valid, complete form for the selected item.
   const loadContentIntoForm = useCallback(
     (content: QuestionContent | undefined, cacheKey: string) => {
       if (!content) {
@@ -299,6 +312,8 @@ export function useModuleUnitEditorPageState({
     [buildInitialForm, mcqOptionSlots],
   );
 
+  // --- Derived Values: compute values from state for rendering or logic ---
+  // These selectors make it easy for the UI to get the current question, navigation items, etc.
   const selectedQuestion = useMemo(() => {
     if (!selected) return null;
     const group = groups.find((g) => g.id === selected.groupId);
@@ -353,6 +368,8 @@ export function useModuleUnitEditorPageState({
   const canGoNext = selectedIndex >= 0 && selectedIndex < navigationItems.length - 1;
 
   // ===== UI-Level Actions =====
+  // All UI event handlers and orchestration logic lives here.
+  // This keeps the UI components simple and lets us test logic in isolation.
   const handleNavigate = (direction: -1 | 1) => {
     if (selectedIndex < 0 || !selected) return;
     const nextItem = navigationItems[selectedIndex + direction];
@@ -596,6 +613,7 @@ export function useModuleUnitEditorPageState({
 
   const clearQuestionCaches = (question: Question) => {
     // Remove all cached form variants for deleted questions so no stale data leaks into new drafts.
+    // This prevents bugs where old form state appears in new questions.
     questionTypeCacheRef.current.delete(coreCacheKey(question.id));
     question.variants.forEach((variant) => {
       questionTypeCacheRef.current.delete(variantCacheKey(question.id, variant.id));
@@ -604,6 +622,7 @@ export function useModuleUnitEditorPageState({
 
   const clearVariantCache = (questionId: string, variantId: string) => {
     // Variant cache entries are scoped by question and variant ids to avoid cross-item leakage.
+    // This keeps the form state for each variant isolated and predictable.
     questionTypeCacheRef.current.delete(variantCacheKey(questionId, variantId));
   };
 
@@ -633,6 +652,8 @@ export function useModuleUnitEditorPageState({
     clearVariantCache,
   });
 
+  // --- Form Handlers: update form state in response to user actions ---
+  // These handlers keep the form state in sync with user input.
   const setCorrectOption = (id: string) => {
     setForm((prev) => ({
       ...prev,
@@ -686,6 +707,8 @@ export function useModuleUnitEditorPageState({
     }));
   };
 
+  // --- Save Logic: orchestrate saving questions, variants, and instructions ---
+  // This logic is kept in a separate hook for testability and separation of concerns.
   const { handleSaveQuestion } = useModuleUnitEditorSaveFlow({
     parsedModuleId,
     parsedUnitId,
@@ -731,8 +754,11 @@ export function useModuleUnitEditorPageState({
   };
 
   // ===== Effects =====
+  // Effects keep the local state in sync with server data and selection changes.
+  // This ensures the editor always reflects the latest backend state and user actions.
   useEffect(() => {
-    // Initial load maps API responses into editor-local state with string ids for draft compatibility.
+    // On initial load, map API responses into editor-local state with string ids for draft compatibility.
+    // This also supports deep-linking to a specific question if requested.
     if (!editorDataQuery.data || parsedUnitId === null) return;
 
     const { unit, moduleUnits } = editorDataQuery.data;
@@ -785,7 +811,8 @@ export function useModuleUnitEditorPageState({
   ]);
 
   useEffect(() => {
-    // Selection changes rehydrate form state from either core content or selected variant content.
+    // When the selection changes, rehydrate form state from either core content or selected variant content.
+    // This keeps the form in sync with what the user is editing.
     if (!selected) return;
 
     const group = groups.find((candidate) => candidate.id === selected.groupId);
@@ -811,7 +838,8 @@ export function useModuleUnitEditorPageState({
   }, [groups, selected, loadContentIntoForm]);
 
   // ===== Public API =====
-  // Public route API: UI-only route component consumes this contract and renders from it.
+  // Everything below is returned for the route/page to use. This keeps the UI focused on rendering,
+  // and lets us test and maintain all logic in one place.
   return {
     parsedModuleId,
     parsedUnitId,

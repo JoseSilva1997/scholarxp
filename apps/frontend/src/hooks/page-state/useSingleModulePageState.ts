@@ -61,6 +61,9 @@ export function useSingleModulePageState({
   const [showCreateUnit, setShowCreateUnit] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
+  // normalize the route parameter into a valid numeric id or null.
+  // we memoize to avoid recalculating on every render and ensure
+  // dependency arrays downstream stay stable.
   const parsedId = useMemo(() => {
     if (!moduleIdParam) return null;
     const value = Number(moduleIdParam);
@@ -73,6 +76,8 @@ export function useSingleModulePageState({
   const updateModuleUnitMutation = useUpdateModuleUnitMutation(parsedId);
   const updateModuleUnitStatusMutation = useUpdateModuleUnitStatusMutation(parsedId);
 
+  // permission checks are memoized to avoid re-evaluating the
+  // shared matrix on every render. user object is primary dependency.
   const canEditSettings = useMemo(() => canUserAccess(features.modules.settings, user), [user]);
   const canToggleStudentView = useMemo(
     () => canUserAccess(features.modules.toggleStudentView, user),
@@ -84,6 +89,7 @@ export function useSingleModulePageState({
   );
   const canManageInvites = useMemo(() => canUserAccess(features.modules.invitations, user), [user]);
 
+  // log any unexpected errors from the detail query for monitoring.
   useEffect(() => {
     if (!moduleQuery.error) return;
     if (shouldLogApiError(moduleQuery.error)) {
@@ -91,6 +97,7 @@ export function useSingleModulePageState({
     }
   }, [moduleQuery.error, parsedId]);
 
+  // likewise track errors when loading the list of units.
   useEffect(() => {
     if (!moduleUnitsQuery.error) return;
     if (shouldLogApiError(moduleUnitsQuery.error)) {
@@ -99,6 +106,9 @@ export function useSingleModulePageState({
   }, [moduleUnitsQuery.error, parsedId]);
 
   const module = moduleQuery.data ?? null;
+
+  // convert raw API units into the shape expected by the UI component.
+  // comments inside the mapper explain why particular fields are preserved.
   const moduleUnits = useMemo<ModuleUnit[]>(
     () =>
       (moduleUnitsQuery.data ?? []).map((unit) => ({
@@ -125,7 +135,11 @@ export function useSingleModulePageState({
     [moduleUnitsQuery.data],
   );
 
+  // derived UI state summarizing whether we're still fetching data.
   const isLoading = parsedId !== null && (moduleQuery.isPending || moduleUnitsQuery.isPending);
+
+  // compute a user-visible error message; prioritizes action errors over
+  // fetch errors, and gives a helpful default when the id is invalid.
   const pageError = useMemo(() => {
     if (!parsedId) {
       return 'Module not found. Please check the link and try again.';
@@ -144,6 +158,9 @@ export function useSingleModulePageState({
     return null;
   }, [actionError, moduleQuery.error, moduleUnitsQuery.error, parsedId]);
 
+  // experience bar calculations. We keep these separate so the UI
+  // layer can render a percentage and cap even if backend data is
+  // temporarily unavailable.
   const expMax = useMemo(() => {
     if (!module) return MODULE_EXP_MAX;
     // Prefer module-specific cap when backend provides it so future tuning is seamless.
@@ -156,6 +173,8 @@ export function useSingleModulePageState({
     return Math.min(100, Math.round((module.currentExp / expMax) * 100));
   }, [module, expMax]);
 
+  // create unit handler used by the UI when teacher hits "add unit".
+  // we clear previous action errors to avoid stale messages lingering.
   const handleCreateUnit = async (title: string) => {
     if (!module) return;
     setActionError(null);
@@ -175,6 +194,8 @@ export function useSingleModulePageState({
     }
   };
 
+  // toggling a unit's status is a common teacher interaction, so we
+  // give it a dedicated handler that logs failures for monitoring.
   const handleChangeUnitStatus = async (unitId: string, status: ModuleUnitStatus) => {
     if (!module) return;
     setActionError(null);
