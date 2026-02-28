@@ -1,5 +1,13 @@
 // Encapsulates ModuleUnitEditor route orchestration so the route can stay focused on rendering.
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from 'react';
 import type {
   CreateQuestionPayload,
   CreateVariantPayload,
@@ -359,6 +367,12 @@ export function useModuleUnitEditorPageState({
   const [editingGroupTitle, setEditingGroupTitle] = useState('');
   const [renamingGroupId, setRenamingGroupId] = useState<string | null>(null);
 
+  // Keep latest snapshots available to async handlers so state math is based on fresh data.
+  const groupsRef = useRef<QuestionGroup[]>(groups);
+  const selectedRef = useRef<SelectionState | null>(selected);
+  const expandedGroupsRef = useRef<Set<string>>(expandedGroups);
+  const editingGroupIdRef = useRef<string | null>(editingGroupId);
+
   const editingGroupInputRef = useRef<HTMLInputElement | null>(null);
   // Cache per-question inputs by type so toggling type does not destroy in-progress edits.
   const questionTypeCacheRef = useRef<
@@ -393,6 +407,22 @@ export function useModuleUnitEditorPageState({
     // Clear stale delete errors when target changes so modal feedback reflects the current action.
     setDeleteError(null);
   }, [deleteTarget]);
+
+  useEffect(() => {
+    // Sync refs each render so async delete flows always read the latest editor state.
+    groupsRef.current = groups;
+    selectedRef.current = selected;
+    expandedGroupsRef.current = expandedGroups;
+    editingGroupIdRef.current = editingGroupId;
+  }, [groups, selected, expandedGroups, editingGroupId]);
+
+  const setSelectedFromUi = useCallback<
+    Dispatch<SetStateAction<SelectionState | null>>
+  >((value) => {
+    // User-driven target changes should clear stale error banners from the previously edited item.
+    setSaveError(null);
+    setSelected(value);
+  }, []);
 
   const resetOptionsForType = useCallback(
     (type: QuestionType) => QUESTION_TYPE_CONFIGS[type].getInitialOptions(mcqOptionSlots),
@@ -867,17 +897,18 @@ export function useModuleUnitEditorPageState({
       }
     }
 
-    const removedGroup = groups.find((group) => group.id === target.groupId);
+    const currentGroups = groupsRef.current;
+    const removedGroup = currentGroups.find((group) => group.id === target.groupId);
     removedGroup?.questions.forEach(clearQuestionCaches);
     const nextExpanded = new Set(currentExpanded);
     nextExpanded.delete(target.groupId);
 
-    if (editingGroupId === target.groupId) {
+    if (editingGroupIdRef.current === target.groupId) {
       setEditingGroupId(null);
     }
 
     return {
-      nextGroups: removeQuestionGroup(groups, target.groupId),
+      nextGroups: removeQuestionGroup(currentGroups, target.groupId),
       nextSelected:
         currentSelection?.groupId === target.groupId ? null : currentSelection,
       nextExpanded,
@@ -907,7 +938,8 @@ export function useModuleUnitEditorPageState({
       }
     }
 
-    const targetGroup = groups.find((group) => group.id === target.groupId);
+    const currentGroups = groupsRef.current;
+    const targetGroup = currentGroups.find((group) => group.id === target.groupId);
     const targetQuestion = targetGroup?.questions.find(
       (question) => question.id === target.questionId,
     );
@@ -916,7 +948,7 @@ export function useModuleUnitEditorPageState({
     }
 
     const nextGroups = removeQuestionFromGroup(
-      groups,
+      currentGroups,
       target.groupId,
       target.questionId,
     );
@@ -969,6 +1001,7 @@ export function useModuleUnitEditorPageState({
     questionTypeCacheRef.current.delete(
       `${target.questionId}-variant-${target.variantId}`,
     );
+    const currentGroups = groupsRef.current;
     const nextSelected =
       currentSelection?.groupId === target.groupId &&
       currentSelection.questionId === target.questionId &&
@@ -982,7 +1015,7 @@ export function useModuleUnitEditorPageState({
 
     return {
       nextGroups: removeVariantFromQuestion(
-        groups,
+        currentGroups,
         target.groupId,
         target.questionId,
         target.variantId,
@@ -998,13 +1031,15 @@ export function useModuleUnitEditorPageState({
     setIsDeleting(true);
     setDeleteError(null);
 
-    const currentExpanded = new Set(expandedGroups);
+    // Freeze selection/expansion at confirmation time so post-delete fallback is deterministic.
+    const currentExpanded = new Set(expandedGroupsRef.current);
+    const currentSelection = selectedRef.current;
     const deleteResult =
       deleteTarget.type === 'group'
-        ? await deleteGroupTarget(deleteTarget, selected, currentExpanded)
+        ? await deleteGroupTarget(deleteTarget, currentSelection, currentExpanded)
         : deleteTarget.type === 'question'
-          ? await deleteQuestionTarget(deleteTarget, selected, currentExpanded)
-          : await deleteVariantTarget(deleteTarget, selected, currentExpanded);
+          ? await deleteQuestionTarget(deleteTarget, currentSelection, currentExpanded)
+          : await deleteVariantTarget(deleteTarget, currentSelection, currentExpanded);
     if (!deleteResult) {
       setIsDeleting(false);
       return;
@@ -1628,7 +1663,7 @@ export function useModuleUnitEditorPageState({
     groups,
     expandedGroups,
     selected,
-    setSelected,
+    setSelected: setSelectedFromUi,
     form,
     setForm,
     selectedQuestion,
