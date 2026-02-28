@@ -6,6 +6,7 @@ import type {
   QuestionSource,
   UpdateQuestionContentPayload,
 } from '@scholarxp/api-contracts';
+import { SOURCE_HUMAN } from './helpers/source';
 import type { QuestionData } from '@scholarxp/question-type-dtos';
 import { QUESTION_TYPE_CONFIGS } from '../../../components/question-types/QuestionTypeRegistry';
 import type {
@@ -27,7 +28,6 @@ import {
 } from './helpers/errorHandling';
 import { coreCacheKey, variantCacheKey } from './helpers/cacheKeys';
 
-const SOURCE_HUMAN: QuestionSource = 'human';
 
 type UseModuleUnitEditorSaveFlowParams = {
   parsedModuleId: number | null;

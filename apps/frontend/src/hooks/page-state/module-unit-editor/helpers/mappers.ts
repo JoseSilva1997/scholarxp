@@ -1,14 +1,8 @@
 // Converts backend module-unit-editor payloads into local editor state with draft-friendly ids.
-import type { QuestionSource } from '@scholarxp/api-contracts';
 import { normalizeQuestionType } from '../../../../components/question-types/QuestionTypeRegistry';
 import type { ModuleUnitEditorGroup } from '../../../../types/module';
 import type { QuestionGroup } from './types';
-
-const SOURCE_HUMAN: QuestionSource = 'human';
-const SOURCE_AI: QuestionSource = 'ai-generated';
-
-const normalizeSource = (value?: string | null): QuestionSource =>
-  value === SOURCE_AI ? SOURCE_AI : SOURCE_HUMAN;
+import { normalizeSource } from './source';
 
 export const mapEditorGroupsToState = (
   groups: ModuleUnitEditorGroup[] | undefined,

@@ -8,10 +8,9 @@ import {
   type Dispatch,
   type SetStateAction,
 } from 'react';
-import type {
-  QuestionSource,
-} from '@scholarxp/api-contracts';
+// ...existing code...
 import { getModuleUnitGroupName } from '@scholarxp/api-contracts';
+import { normalizeSource } from './helpers/source';
 import {
   emptyMcqTemplate,
   DEFAULT_QUESTION_TYPE,
@@ -69,8 +68,6 @@ type UseModuleUnitEditorPageStateParams = {
 };
 
 // ===== Constants and Labels =====
-const SOURCE_HUMAN: QuestionSource = 'human';
-const SOURCE_AI: QuestionSource = 'ai-generated';
 
 const formatQuestionLabel = (index: number, isDraft?: boolean) =>
   `Question ${index + 1}${isDraft ? ' (draft)' : ''}`;
@@ -81,9 +78,6 @@ const formatVariantLabel = (index: number, isDraft?: boolean) =>
 const deriveNextGroupSortOrder = (existingGroups: QuestionGroup[]) =>
   // Keep order independent from labels so renames do not affect persisted sequencing.
   existingGroups.reduce((maxValue, group) => Math.max(maxValue, group.sortOrder), 0) + 1;
-
-const normalizeSource = (value?: string | null): QuestionSource =>
-  value === SOURCE_AI ? SOURCE_AI : SOURCE_HUMAN;
 
 export function useModuleUnitEditorPageState({
   moduleIdParam,
