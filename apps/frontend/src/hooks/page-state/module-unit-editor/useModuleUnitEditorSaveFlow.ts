@@ -14,7 +14,13 @@ import type {
   QuestionType,
 } from '../../../components/question-types/QuestionTypeRegistry';
 import { logError } from '../../../utils/logger';
-import type { Question, QuestionGroup, SelectionState, Variant } from './types';
+import type { Question, QuestionGroup, SelectionState } from './types';
+import {
+  replaceDraftGroupId,
+  updateQuestionByIds,
+  updateQuestionByPredicate,
+  updateVariantById,
+} from './stateTransforms';
 
 const SOURCE_HUMAN: QuestionSource = 'human';
 
@@ -75,55 +81,6 @@ type UseModuleUnitEditorSaveFlowParams = {
     }) => Promise<unknown>;
   };
 };
-
-type QuestionUpdater = (question: Question) => Question;
-
-const updateGroupById = (
-  groups: QuestionGroup[],
-  groupId: string,
-  updater: (group: QuestionGroup) => QuestionGroup,
-) => groups.map((group) => (group.id === groupId ? updater(group) : group));
-
-const updateQuestionByPredicate = (
-  groups: QuestionGroup[],
-  groupId: string,
-  predicate: (question: Question) => boolean,
-  updater: QuestionUpdater,
-) =>
-  updateGroupById(groups, groupId, (group) => ({
-    ...group,
-    questions: group.questions.map((question) =>
-      predicate(question) ? updater(question) : question,
-    ),
-  }));
-
-const updateQuestionByIds = (
-  groups: QuestionGroup[],
-  groupId: string,
-  questionIds: string[],
-  updater: QuestionUpdater,
-) => {
-  const idSet = new Set(questionIds);
-  return updateQuestionByPredicate(groups, groupId, (question) => idSet.has(question.id), updater);
-};
-
-const updateVariantById = (
-  question: Question,
-  variantId: string,
-  updater: (variant: Variant) => Variant,
-): Question => ({
-  ...question,
-  variants: question.variants.map((variant) =>
-    variant.id === variantId ? updater(variant) : variant,
-  ),
-});
-
-const replaceDraftGroupId = (
-  groups: QuestionGroup[],
-  targetGroupId: string,
-  persistedGroupId: string,
-) =>
-  updateGroupById(groups, targetGroupId, (group) => ({ ...group, id: persistedGroupId }));
 
 export function useModuleUnitEditorSaveFlow({
   parsedModuleId,

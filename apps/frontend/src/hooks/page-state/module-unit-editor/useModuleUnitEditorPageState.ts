@@ -47,10 +47,14 @@ import type {
   QuestionGroup,
   QuestionContent,
   SelectionState,
-  Variant,
 } from './types';
 import { useModuleUnitEditorDeleteFlow } from './useModuleUnitEditorDeleteFlow';
 import { useModuleUnitEditorSaveFlow } from './useModuleUnitEditorSaveFlow';
+import {
+  appendDraftQuestionToGroup,
+  appendDraftVariantToQuestion,
+  updateGroupById,
+} from './stateTransforms';
 
 // ===== Types =====
 type UseModuleUnitEditorPageStateParams = {
@@ -75,52 +79,6 @@ const deriveNextGroupSortOrder = (existingGroups: QuestionGroup[]) =>
 
 const normalizeSource = (value?: string | null): QuestionSource =>
   value === SOURCE_AI ? SOURCE_AI : SOURCE_HUMAN;
-
-// ===== Pure State Helpers =====
-// Pure state transformers keep complex updates testable and reduce nested setState logic.
-type QuestionUpdater = (question: Question) => Question;
-
-const updateGroupById = (
-  groups: QuestionGroup[],
-  groupId: string,
-  updater: (group: QuestionGroup) => QuestionGroup,
-) => groups.map((group) => (group.id === groupId ? updater(group) : group));
-
-const updateQuestionByPredicate = (
-  groups: QuestionGroup[],
-  groupId: string,
-  predicate: (question: Question) => boolean,
-  updater: QuestionUpdater,
-) =>
-  updateGroupById(groups, groupId, (group) => ({
-    ...group,
-    questions: group.questions.map((question) =>
-      predicate(question) ? updater(question) : question,
-    ),
-  }));
-
-const appendDraftQuestionToGroup = (
-  groups: QuestionGroup[],
-  groupId: string,
-  question: Question,
-) =>
-  updateGroupById(groups, groupId, (group) => ({
-    ...group,
-    questions: [...group.questions, question],
-  }));
-
-const appendDraftVariantToQuestion = (
-  groups: QuestionGroup[],
-  groupId: string,
-  questionId: string,
-  variant: Variant,
-) =>
-  updateQuestionByPredicate(
-    groups,
-    groupId,
-    (question) => question.id === questionId,
-    (question) => ({ ...question, variants: [...question.variants, variant] }),
-  );
 
 const mapEditorGroupsToState = (
   groups: ModuleUnitEditorGroup[] | undefined,

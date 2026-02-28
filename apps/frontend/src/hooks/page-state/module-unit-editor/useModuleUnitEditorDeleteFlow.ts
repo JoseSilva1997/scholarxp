@@ -1,8 +1,14 @@
 // Handles module-unit-editor delete state orchestration so the parent hook can stay focused on composition.
-import { useMemo, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
+import { useMemo, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import { logError } from '../../../utils/logger';
 import type { QuestionForm } from '../../../components/question-types/QuestionTypeRegistry';
 import type { DeleteCopy, DeleteTarget, Question, QuestionGroup, SelectionState } from './types';
+import {
+  computeFallbackSelection,
+  removeQuestionFromGroup,
+  removeQuestionGroup,
+  removeVariantFromQuestion,
+} from './stateTransforms';
 
 type DeleteResult = {
   nextGroups: QuestionGroup[];
@@ -27,10 +33,10 @@ type UseModuleUnitEditorDeleteFlowParams = {
   parsedUnitId: number | null;
   isUnitLive: boolean;
   deleteTarget: DeleteTarget | null;
-  groupsRef: MutableRefObject<QuestionGroup[]>;
-  selectedRef: MutableRefObject<SelectionState | null>;
-  expandedGroupsRef: MutableRefObject<Set<string>>;
-  editingGroupIdRef: MutableRefObject<string | null>;
+  groupsRef: RefObject<QuestionGroup[]>;
+  selectedRef: RefObject<SelectionState | null>;
+  expandedGroupsRef: RefObject<Set<string>>;
+  editingGroupIdRef: RefObject<string | null>;
   setDeleteTarget: Dispatch<SetStateAction<DeleteTarget | null>>;
   setDeleteError: Dispatch<SetStateAction<string | null>>;
   setSaveError: Dispatch<SetStateAction<string | null>>;
@@ -46,56 +52,6 @@ type UseModuleUnitEditorDeleteFlowParams = {
   deleteVariantMutation: DeleteVariantMutation;
   clearQuestionCaches: (question: Question) => void;
   clearVariantCache: (questionId: string, variantId: string) => void;
-};
-
-const removeQuestionGroup = (groups: QuestionGroup[], groupId: string) =>
-  groups.filter((group) => group.id !== groupId);
-
-const removeQuestionFromGroup = (
-  groups: QuestionGroup[],
-  groupId: string,
-  questionId: string,
-) =>
-  groups.map((group) =>
-    group.id === groupId
-      ? {
-          ...group,
-          questions: group.questions.filter((question) => question.id !== questionId),
-        }
-      : group,
-  );
-
-const removeVariantFromQuestion = (
-  groups: QuestionGroup[],
-  groupId: string,
-  questionId: string,
-  variantId: string,
-) =>
-  groups.map((group) =>
-    group.id === groupId
-      ? {
-          ...group,
-          questions: group.questions.map((question) =>
-            question.id === questionId
-              ? {
-                  ...question,
-                  variants: question.variants.filter((variant) => variant.id !== variantId),
-                }
-              : question,
-          ),
-        }
-      : group,
-  );
-
-const computeFallbackSelection = (nextGroups: QuestionGroup[]): SelectionState | null => {
-  // Fall back to the first remaining question to keep the editor focused on a valid target.
-  for (const group of nextGroups) {
-    const firstQuestion = group.questions[0];
-    if (firstQuestion) {
-      return { groupId: group.id, questionId: firstQuestion.id, variantId: null };
-    }
-  }
-  return null;
 };
 
 export function useModuleUnitEditorDeleteFlow({
