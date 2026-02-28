@@ -25,6 +25,10 @@ import {
 import { useModuleDetailQuery } from '../../queries/useModulesQueries';
 import { useModuleProgressAnimation } from './useModuleProgressAnimation';
 import { useSessionLifecycle } from './useSessionLifecycle';
+import {
+  usePracticeRoomPersistence,
+  isUuidString,
+} from './usePracticeRoomPersistence';
 
 type UsePracticeRoomPageStateParams = {
   moduleIdParam: string | undefined;
@@ -45,13 +49,6 @@ type QuestionDataWithOptions = {
 type QuestionUnitNav = {
   canGoPrevious: boolean;
   canGoNext: boolean;
-};
-
-type PracticeRoomQuestionSelectionPersistence = {
-  sessionId: string;
-  selectedQuestionUnitIndex: number;
-  unlockedHintByContentId: Record<number, boolean>;
-  submittedByContentId: Record<number, boolean>;
 };
 
 export function usePracticeRoomPageState({
@@ -103,51 +100,38 @@ export function usePracticeRoomPageState({
     isProgressInitialized,
     applyExpAward,
   } = useModuleProgressAnimation({ moduleDetail, moduleId: parsedModuleId });
-  const questionSelectionPersistenceKey = useMemo(
-    () =>
-      buildPracticeRoomQuestionSelectionStorageKey({
-        moduleId: parsedModuleId,
-        unitId: parsedUnitId,
-      }),
-    [parsedModuleId, parsedUnitId],
-  );
-  const persistedQuestionSelection = useMemo(
-    () =>
-      questionSelectionPersistenceKey === null
-        ? null
-        : readPracticeRoomQuestionSelectionPersistence(
-            questionSelectionPersistenceKey,
-          ),
-    [questionSelectionPersistenceKey],
-  );
+  const { initialSelection, persistSelection, storageKey } = usePracticeRoomPersistence({
+    moduleId: parsedModuleId,
+    unitId: parsedUnitId,
+  });
 
   const [selectedQuestionUnitIndexBySessionId, setSelectedQuestionUnitIndexBySessionId] =
     useState<Record<string, number>>(
       () =>
-        persistedQuestionSelection
+        initialSelection
           ? {
-              [persistedQuestionSelection.sessionId]:
-                persistedQuestionSelection.selectedQuestionUnitIndex,
+              [initialSelection.sessionId]:
+                initialSelection.selectedQuestionUnitIndex,
             }
           : {},
     );
   const [unlockedHintByContentIdBySessionId, setUnlockedHintByContentIdBySessionId] =
     useState<Record<string, Record<number, boolean>>>(
       () =>
-        persistedQuestionSelection
+        initialSelection
           ? {
-              [persistedQuestionSelection.sessionId]:
-                persistedQuestionSelection.unlockedHintByContentId,
+              [initialSelection.sessionId]:
+                initialSelection.unlockedHintByContentId,
             }
           : {},
     );
   const [submittedByContentIdBySessionId, setSubmittedByContentIdBySessionId] =
     useState<Record<string, Record<number, boolean>>>(
       () =>
-        persistedQuestionSelection
+        initialSelection
           ? {
-              [persistedQuestionSelection.sessionId]:
-                persistedQuestionSelection.submittedByContentId,
+              [initialSelection.sessionId]:
+                initialSelection.submittedByContentId,
             }
           : {},
     );
@@ -236,24 +220,22 @@ export function usePracticeRoomPageState({
   }, [moduleUnitRoom, requestedQuestionUnitId]);
 
   useEffect(() => {
-    if (questionSelectionPersistenceKey === null || !moduleUnitRoom) {
+    if (storageKey === null || !moduleUnitRoom) {
       return;
     }
     const sessionId = moduleUnitRoom.sessionId;
     // Persist the question position per session so a brand-new practice session starts at question one.
-    writePracticeRoomQuestionSelectionPersistence(
-      questionSelectionPersistenceKey,
-      {
-        sessionId,
-        selectedQuestionUnitIndex,
-        unlockedHintByContentId:
-          unlockedHintByContentIdBySessionId[sessionId] ?? {},
-        submittedByContentId: submittedByContentIdBySessionId[sessionId] ?? {},
-      },
-    );
+    persistSelection({
+      sessionId,
+      selectedQuestionUnitIndex,
+      unlockedHintByContentId:
+        unlockedHintByContentIdBySessionId[sessionId] ?? {},
+      submittedByContentId: submittedByContentIdBySessionId[sessionId] ?? {},
+    });
   }, [
     moduleUnitRoom,
-    questionSelectionPersistenceKey,
+    persistSelection,
+    storageKey,
     selectedQuestionUnitIndex,
     submittedByContentIdBySessionId,
     unlockedHintByContentIdBySessionId,
@@ -740,71 +722,6 @@ function isSelectedOptionCorrect(
   return false;
 }
 
-function buildPracticeRoomQuestionSelectionStorageKey(params: {
-  moduleId: number | null;
-  unitId: number | null;
-}): string | null {
-  if (!params.moduleId || !params.unitId) {
-    return null;
-  }
-  return `practice-room-question-selection-v1:${params.moduleId}:${params.unitId}`;
-}
-
-function readPracticeRoomQuestionSelectionPersistence(
-  storageKey: string,
-): PracticeRoomQuestionSelectionPersistence | null {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  const rawValue = window.localStorage.getItem(storageKey);
-  if (!rawValue) {
-    return null;
-  }
-
-  try {
-    const parsedValue =
-      JSON.parse(rawValue) as Partial<PracticeRoomQuestionSelectionPersistence>;
-    if (
-      typeof parsedValue.sessionId !== 'string' ||
-      !isUuidString(parsedValue.sessionId)
-    ) {
-      return null;
-    }
-    if (
-      typeof parsedValue.selectedQuestionUnitIndex !== 'number' ||
-      parsedValue.selectedQuestionUnitIndex < 0
-    ) {
-      return null;
-    }
-    const unlockedHintByContentId = sanitizePersistedBooleanByContentId(
-      parsedValue.unlockedHintByContentId,
-    );
-    const submittedByContentId = sanitizePersistedBooleanByContentId(
-      parsedValue.submittedByContentId,
-    );
-    return {
-      sessionId: parsedValue.sessionId,
-      selectedQuestionUnitIndex: parsedValue.selectedQuestionUnitIndex,
-      unlockedHintByContentId,
-      submittedByContentId,
-    };
-  } catch {
-    return null;
-  }
-}
-
-function writePracticeRoomQuestionSelectionPersistence(
-  storageKey: string,
-  value: PracticeRoomQuestionSelectionPersistence,
-) {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  window.localStorage.setItem(storageKey, JSON.stringify(value));
-}
-
 function parsePracticeRoomSessionIdQuery(
   sessionIdParam: string | null,
 ): string | null {
@@ -828,32 +745,4 @@ function parsePracticeRoomQuestionUnitIdQuery(
     return null;
   }
   return parsedQuestionId;
-}
-
-function isUuidString(value: string): boolean {
-  // UUID validation keeps URL and local persistence aligned with backend session-id constraints.
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    value,
-  );
-}
-
-function sanitizePersistedBooleanByContentId(
-  value: unknown,
-): Record<number, boolean> {
-  if (!value || typeof value !== 'object') {
-    return {};
-  }
-
-  const sanitized: Record<number, boolean> = {};
-  for (const [rawContentId, rawFlag] of Object.entries(value)) {
-    const contentId = Number(rawContentId);
-    if (!Number.isInteger(contentId) || contentId <= 0) {
-      continue;
-    }
-    if (typeof rawFlag !== 'boolean') {
-      continue;
-    }
-    sanitized[contentId] = rawFlag;
-  }
-  return sanitized;
 }
