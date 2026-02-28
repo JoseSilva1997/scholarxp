@@ -11,7 +11,6 @@ import type {
   SubmitAttemptPayload,
 } from '@scholarxp/api-contracts';
 import { PracticeSessionTypeValues } from '@scholarxp/api-contracts';
-import { MODULE_EXP_MAX } from '@scholarxp/constants';
 import {
   getDisplayErrorMessage,
   shouldLogApiError,
@@ -24,6 +23,7 @@ import {
   useSubmitModuleUnitPracticeAttemptMutation,
 } from '../../queries/usePracticeRoomQueries';
 import { useModuleDetailQuery } from '../../queries/useModulesQueries';
+import { useModuleProgressAnimation } from './useModuleProgressAnimation';
 import { useSessionLifecycle } from './useSessionLifecycle';
 
 type UsePracticeRoomPageStateParams = {
@@ -40,16 +40,6 @@ type QuestionDataWithOptions = {
   options: Array<{ optionText: string }>;
   trueOption?: { isCorrect: boolean; explanation?: string };
   falseOption?: { isCorrect: boolean; explanation?: string };
-};
-
-type ModuleProgress = {
-  level: number;
-  currentExp: number;
-  expPercent: number;
-};
-type ModuleProgressAnimationSnapshot = {
-  totalExp: number;
-  expMax: number;
 };
 
 type QuestionUnitNav = {
@@ -71,8 +61,6 @@ export function usePracticeRoomPageState({
   const { applyStudentExpReward } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const searchParamsString = searchParams.toString();
-  const [showLevelUp, setShowLevelUp] = useState(false);
-  const prevLevelRef = useRef<number | undefined>(undefined);
 
   const parsedModuleId = useMemo(() => {
     if (!moduleIdParam) return null;
@@ -108,6 +96,13 @@ export function usePracticeRoomPageState({
   const moduleDetailQuery = useModuleDetailQuery(parsedModuleId);
   const moduleUnitRoom = practiceRoomQuery.data?.practiceRoom ?? null;
   const moduleDetail = moduleDetailQuery.data ?? null;
+  const {
+    moduleProgress,
+    moduleExpGainIndicator,
+    showLevelUp,
+    isProgressInitialized,
+    applyExpAward,
+  } = useModuleProgressAnimation({ moduleDetail, moduleId: parsedModuleId });
   const questionSelectionPersistenceKey = useMemo(
     () =>
       buildPracticeRoomQuestionSelectionStorageKey({
@@ -169,39 +164,8 @@ export function usePracticeRoomPageState({
     Record<number, PracticeAttemptSnapshot | null>
   >({});
   const [submitErrorMessage, setSubmitErrorMessage] = useState<string | null>(null);
-  const [moduleExpGainIndicator, setModuleExpGainIndicator] = useState<number | null>(
-    null,
-  );
-  const [moduleProgressAnimation, setModuleProgressAnimation] =
-    useState<ModuleProgressAnimationSnapshot | null>(null);
-  const [displayedModuleTotalExp, setDisplayedModuleTotalExp] = useState<
-    number | null
-  >(null);
-  const displayedModuleTotalExpRef = useRef<number | null>(null);
-  const moduleProgressAnimationFrameRef = useRef<number | null>(null);
-  const moduleProgressSyncFrameRef = useRef<number | null>(null);
-  const moduleExpGainIndicatorTimeoutRef = useRef<number | null>(null);
-  const levelUpVisibilityTimeoutRef = useRef<number | null>(null);
-  const moduleProgressScopeRef = useRef<string | null>(null);
   const activeContentIdRef = useRef<number | null>(null);
   const activeContentViewStartMsRef = useRef<number | null>(null);
-
-  // Centralised celebration helper so both the server-sync effect and the submit handler
-  // trigger the level-up banner through one consistent path. Always advances prevLevelRef
-  // so the next comparison starts from the correct baseline regardless of whether a
-  // celebration was shown.
-  const triggerLevelUpCelebration = (previousLevel: number | undefined, nextLevel: number) => {
-    prevLevelRef.current = nextLevel;
-    if (previousLevel === undefined || nextLevel <= previousLevel) return;
-    setShowLevelUp(true);
-    if (levelUpVisibilityTimeoutRef.current !== null) {
-      clearTimeout(levelUpVisibilityTimeoutRef.current);
-    }
-    levelUpVisibilityTimeoutRef.current = window.setTimeout(() => {
-      setShowLevelUp(false);
-      levelUpVisibilityTimeoutRef.current = null;
-    }, 3000);
-  };
 
   useEffect(() => {
     if (!practiceRoomQuery.error) return;
@@ -225,24 +189,6 @@ export function usePracticeRoomPageState({
       });
     }
   }, [moduleDetailQuery.error, parsedModuleId]);
-
-  useEffect(
-    () => () => {
-      if (moduleProgressAnimationFrameRef.current !== null) {
-        cancelAnimationFrame(moduleProgressAnimationFrameRef.current);
-      }
-      if (moduleProgressSyncFrameRef.current !== null) {
-        cancelAnimationFrame(moduleProgressSyncFrameRef.current);
-      }
-      if (moduleExpGainIndicatorTimeoutRef.current !== null) {
-        clearTimeout(moduleExpGainIndicatorTimeoutRef.current);
-      }
-      if (levelUpVisibilityTimeoutRef.current !== null) {
-        clearTimeout(levelUpVisibilityTimeoutRef.current);
-      }
-    },
-    [],
-  );
 
   useEffect(() => {
     if (!moduleUnitRoom) {
@@ -424,168 +370,8 @@ export function usePracticeRoomPageState({
     return null;
   }, [moduleDetailQuery.error, parsedModuleId, parsedUnitId, practiceRoomQuery.error]);
 
-  useEffect(() => {
-    if (!moduleDetail || !parsedModuleId) {
-      return;
-    }
-
-    const expMax =
-      moduleDetail.expMax && moduleDetail.expMax > 0
-        ? moduleDetail.expMax
-        : MODULE_EXP_MAX;
-    const currentExp = moduleDetail.currentExp ?? 0;
-    const level = moduleDetail.userModuleLevel;
-
-    if (level === undefined) {
-      return;
-    }
-
-    const scopeKey = String(parsedModuleId);
-    const serverTotalExp = toModuleTotalExp(level, currentExp, expMax);
-    const isNewScope = moduleProgressScopeRef.current !== scopeKey;
-    const hasNoAnimationSnapshot = moduleProgressAnimation === null;
-    const shouldSyncFromServer =
-      isNewScope ||
-      hasNoAnimationSnapshot ||
-      serverTotalExp > moduleProgressAnimation.totalExp;
-
-    if (!shouldSyncFromServer) {
-      return;
-    }
-
-    moduleProgressScopeRef.current = scopeKey;
-    // Deferring state updates avoids sync effect-write churn while still keeping progress tied to latest server truth.
-    if (moduleProgressSyncFrameRef.current !== null) {
-      cancelAnimationFrame(moduleProgressSyncFrameRef.current);
-    }
-    moduleProgressSyncFrameRef.current = requestAnimationFrame(() => {
-      const { level: nextLevel } = fromModuleTotalExp(serverTotalExp, expMax);
-      // Celebrate level-up only on server-driven progress jumps while already active in the room.
-      triggerLevelUpCelebration(prevLevelRef.current, nextLevel);
-
-      setModuleProgressAnimation({
-        totalExp: serverTotalExp,
-        expMax,
-      });
-
-      // Snapping is reserved for the initial room load or when switching modules.
-      // For standard progress updates (XP gain), we leave the display value alone
-      // so the animation effect can smoothly bridge the gap.
-      if (isNewScope || hasNoAnimationSnapshot) {
-        setDisplayedModuleTotalExp(serverTotalExp);
-      }
-
-      moduleProgressSyncFrameRef.current = null;
-    });
-  }, [moduleDetail, moduleProgressAnimation, parsedModuleId]);
-
-  const moduleProgressAnimationFrameTargetRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    // Keep animation reads ref-based so the effect can depend on target snapshot only.
-    displayedModuleTotalExpRef.current = displayedModuleTotalExp;
-  }, [displayedModuleTotalExp]);
-
-  useEffect(() => {
-    if (!moduleProgressAnimation) {
-      return;
-    }
-
-    const currentDisplayedModuleTotalExp = displayedModuleTotalExpRef.current;
-    if (currentDisplayedModuleTotalExp === null) {
-      // First boot: set immediately so the starting UI matches the server state.
-      // We wrap in rAF to ensure we don't conflict with pending render cycles.
-      moduleProgressAnimationFrameRef.current = requestAnimationFrame(() => {
-        displayedModuleTotalExpRef.current = moduleProgressAnimation.totalExp;
-        setDisplayedModuleTotalExp(moduleProgressAnimation.totalExp);
-        moduleProgressAnimationFrameTargetRef.current = moduleProgressAnimation.totalExp;
-        moduleProgressAnimationFrameRef.current = null;
-      });
-      return;
-    }
-
-    // If the target hasn't changed, we don't need to restart the animation.
-    // This check avoids the "stuttering" effect where animations restart every frame.
-    if (moduleProgressAnimationFrameTargetRef.current === moduleProgressAnimation.totalExp) {
-      return;
-    }
-
-    const animationStart = currentDisplayedModuleTotalExp;
-    const animationDistance = Math.abs(
-      moduleProgressAnimation.totalExp - animationStart,
-    );
-    // Increased duration values to make the progress bar fill feel more substantial.
-    const animationDurationMs = Math.max(400, Math.min(1600, animationDistance * 18));
-    const animationDelta = moduleProgressAnimation.totalExp - animationStart;
-    const startedAt = performance.now();
-
-    moduleProgressAnimationFrameTargetRef.current = moduleProgressAnimation.totalExp;
-
-    if (moduleProgressAnimationFrameRef.current !== null) {
-      cancelAnimationFrame(moduleProgressAnimationFrameRef.current);
-    }
-
-    // The bar and XP text should move together so learners can immediately perceive gained progress.
-    const step = (now: number) => {
-      const elapsed = now - startedAt;
-      const progress = Math.min(1, elapsed / animationDurationMs);
-      const easedProgress = easeOutCubic(progress);
-      const nextValue = Math.round(animationStart + animationDelta * easedProgress);
-      
-      displayedModuleTotalExpRef.current = nextValue;
-      setDisplayedModuleTotalExp(nextValue);
-
-      if (progress < 1) {
-        moduleProgressAnimationFrameRef.current = requestAnimationFrame(step);
-        return;
-      }
-
-      moduleProgressAnimationFrameRef.current = null;
-    };
-
-    moduleProgressAnimationFrameRef.current = requestAnimationFrame(step);
-
-    return () => {
-      if (moduleProgressAnimationFrameRef.current !== null) {
-        cancelAnimationFrame(moduleProgressAnimationFrameRef.current);
-      }
-    };
-  }, [moduleProgressAnimation]); // Decoupled from displayedModuleTotalExp to avoid frame-restarts.
-
-  const moduleProgress = useMemo<ModuleProgress | null>(() => {
-    if (!moduleDetail || moduleDetail.userModuleLevel === undefined) {
-      return null;
-    }
-
-    const expMax =
-      moduleDetail.expMax && moduleDetail.expMax > 0
-        ? moduleDetail.expMax
-        : MODULE_EXP_MAX;
-    const fallbackTotalExp = toModuleTotalExp(
-      moduleDetail.userModuleLevel,
-      moduleDetail.currentExp ?? 0,
-      expMax,
-    );
-    const animatedTotalExp = displayedModuleTotalExp ?? fallbackTotalExp;
-    const derivedProgress = fromModuleTotalExp(animatedTotalExp, expMax);
-    const currentExp = derivedProgress.currentExp;
-    const expPercent =
-      expMax > 0 ? Math.min(100, Math.round((currentExp / expMax) * 100)) : 0;
-
-    return {
-      level: derivedProgress.level,
-      currentExp,
-      expPercent,
-    };
-  }, [displayedModuleTotalExp, moduleDetail]);
-
-  useEffect(() => {
-    if (moduleProgress?.level === undefined) {
-      return;
-    }
-    // Ref-only sync keeps event-path comparisons correct after room reloads/refetches.
-    prevLevelRef.current = moduleProgress.level;
-  }, [moduleProgress?.level]);
+  // Note: module progress animation (server sync, rAF loop, level-up celebration)
+  // is managed by useModuleProgressAnimation above.
 
   const selectedOptionIndex = useMemo(() => {
     if (!activeQuestion) {
@@ -601,6 +387,7 @@ export function usePracticeRoomPageState({
     }
     return persistedSelection;
   }, [activeQuestion, activeQuestionOptions.length, selectedOptionByContentId]);
+
   const unlockedHintByContentId = useMemo(
     () =>
       moduleUnitRoom
@@ -753,51 +540,12 @@ export function usePracticeRoomPageState({
 
     setSubmitErrorMessage(null);
 
-    // Capture the server total XP before mutation so we can determine exactly where the animation should end,
-    // avoiding the "double-jump" bug that occurs when the background refetch and local update overlap.
-    const currentExpMax =
-      moduleDetail?.expMax && moduleDetail.expMax > 0 ? moduleDetail.expMax : MODULE_EXP_MAX;
-
-    const baselineTotalExp =
-      moduleDetail && moduleDetail.userModuleLevel !== undefined
-        ? toModuleTotalExp(moduleDetail.userModuleLevel, moduleDetail.currentExp ?? 0, currentExpMax)
-        : moduleProgressAnimation?.totalExp ?? displayedModuleTotalExp ?? 0;
-
     try {
       const submitResponse = await submitAttemptMutation.mutateAsync(payload);
       if (submitResponse.moduleExpAwarded > 0) {
-        const targetTotalExp = baselineTotalExp + submitResponse.moduleExpAwarded;
-
-        setModuleProgressAnimation((previousValue) => {
-          // If the animation target is already at or beyond our target (likely from the server refetch sync),
-          // we avoid adding the award a second time to prevent the "double-count" bug.
-          if (previousValue && previousValue.totalExp >= targetTotalExp) {
-            return previousValue;
-          }
-
-          const previousLevel =
-            prevLevelRef.current ??
-            fromModuleTotalExp(previousValue?.totalExp ?? baselineTotalExp, currentExpMax).level;
-          const { level: nextLevel } = fromModuleTotalExp(targetTotalExp, currentExpMax);
-
-          // Trigger level-up feedback from the submit event and synchronize the level ref
-          // so a secondary server-sync doesn't trigger a double celebration.
-          triggerLevelUpCelebration(previousLevel, nextLevel);
-
-          return {
-            totalExp: targetTotalExp,
-            expMax: currentExpMax,
-          };
-        });
-        setModuleExpGainIndicator(submitResponse.moduleExpAwarded);
-        if (moduleExpGainIndicatorTimeoutRef.current !== null) {
-          clearTimeout(moduleExpGainIndicatorTimeoutRef.current);
-        }
-        // The gain chip is intentionally brief so it celebrates progress without cluttering the header.
-        moduleExpGainIndicatorTimeoutRef.current = window.setTimeout(() => {
-          setModuleExpGainIndicator(null);
-          moduleExpGainIndicatorTimeoutRef.current = null;
-        }, 1400);
+        // Delegate the animation target update, double-count guard, and level-up celebration
+        // to the progress hook so the submit handler stays focused on attempt business logic.
+        applyExpAward(submitResponse.moduleExpAwarded, moduleDetail);
       }
       if (submitResponse.studentExpAwarded > 0) {
         // Updating auth cache immediately keeps header avatar progress in sync with the in-room reward feedback.
@@ -866,7 +614,7 @@ export function usePracticeRoomPageState({
     showLevelUp,
     isLoading:
       practiceRoomQuery.isPending ||
-      (moduleDetailQuery.isPending && moduleProgressAnimation === null),
+      (moduleDetailQuery.isPending && !isProgressInitialized),
     sessionType,
     pageError,
     submitErrorMessage,
@@ -891,30 +639,6 @@ export function usePracticeRoomPageState({
     goToPreviousQuestionUnit,
     goToNextQuestionUnit,
   };
-}
-
-function toModuleTotalExp(level: number, currentExp: number, expMax: number) {
-  // Total-exp normalization lets us animate across level boundaries without special-case branching.
-  return Math.max(0, level - 1) * expMax + Math.max(0, currentExp);
-}
-
-function fromModuleTotalExp(totalExp: number, expMax: number) {
-  if (expMax <= 0) {
-    return {
-      level: 1,
-      currentExp: 0,
-    };
-  }
-
-  const safeTotalExp = Math.max(0, totalExp);
-  return {
-    level: Math.floor(safeTotalExp / expMax) + 1,
-    currentExp: safeTotalExp % expMax,
-  };
-}
-
-function easeOutCubic(progress: number) {
-  return 1 - Math.pow(1 - progress, 3);
 }
 
 // Apply local submissions over server snapshots so completion bars update instantly while query refetch catches up.
