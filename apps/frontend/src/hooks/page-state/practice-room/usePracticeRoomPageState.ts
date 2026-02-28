@@ -12,7 +12,6 @@ import type {
 } from '@scholarxp/api-contracts';
 import { PracticeSessionTypeValues } from '@scholarxp/api-contracts';
 import { MODULE_EXP_MAX } from '@scholarxp/constants';
-import { closePracticeRoomSessionKeepalive } from '../../../api/modules';
 import {
   getDisplayErrorMessage,
   shouldLogApiError,
@@ -25,6 +24,7 @@ import {
   useSubmitModuleUnitPracticeAttemptMutation,
 } from '../../queries/usePracticeRoomQueries';
 import { useModuleDetailQuery } from '../../queries/useModulesQueries';
+import { useSessionLifecycle } from './useSessionLifecycle';
 
 type UsePracticeRoomPageStateParams = {
   moduleIdParam: string | undefined;
@@ -185,11 +185,6 @@ export function usePracticeRoomPageState({
   const moduleProgressScopeRef = useRef<string | null>(null);
   const activeContentIdRef = useRef<number | null>(null);
   const activeContentViewStartMsRef = useRef<number | null>(null);
-  const closedSessionIdsRef = useRef<Set<string>>(new Set());
-  const latestSessionIdRef = useRef<string | null>(null);
-  const latestModuleIdRef = useRef<number | null>(parsedModuleId);
-  const latestUnitIdRef = useRef<number | null>(parsedUnitId);
-  const closeSessionMutateRef = useRef(closeSessionMutation.mutate);
 
   // Centralised celebration helper so both the server-sync effect and the submit handler
   // trigger the level-up banner through one consistent path. Always advances prevLevelRef
@@ -341,66 +336,12 @@ export function usePracticeRoomPageState({
     roomWithLocalAttempts?.isReadOnly === true ||
     sessionType === PracticeSessionTypeValues.viewAnswers;
 
-  useEffect(() => {
-    latestSessionIdRef.current = roomWithLocalAttempts?.sessionId ?? null;
-  }, [roomWithLocalAttempts?.sessionId]);
-
-  useEffect(() => {
-    latestModuleIdRef.current = parsedModuleId;
-    latestUnitIdRef.current = parsedUnitId;
-  }, [parsedModuleId, parsedUnitId]);
-
-  useEffect(() => {
-    // Keep latest mutate function in a ref so teardown handlers don't re-register on every render.
-    closeSessionMutateRef.current = closeSessionMutation.mutate;
-  }, [closeSessionMutation.mutate]);
-
-  useEffect(() => {
-    const closeSessionBestEffort = (source: 'unmount' | 'pagehide') => {
-      const sessionId = latestSessionIdRef.current;
-      const moduleId = latestModuleIdRef.current;
-      const unitId = latestUnitIdRef.current;
-      if (!sessionId || moduleId === null || unitId === null) {
-        return;
-      }
-      if (closedSessionIdsRef.current.has(sessionId)) {
-        return;
-      }
-      closedSessionIdsRef.current.add(sessionId);
-
-      if (
-        source === 'pagehide' &&
-        closePracticeRoomSessionKeepalive(moduleId, unitId, sessionId)
-      ) {
-        return;
-      }
-
-      closeSessionMutateRef.current(sessionId, {
-        onError: (error) => {
-          // Allow retry through a later fallback trigger if close fails during teardown.
-          closedSessionIdsRef.current.delete(sessionId);
-          if (shouldLogApiError(error)) {
-            logError(error, {
-              feature: 'practice-room',
-              action: 'close-session',
-              moduleId,
-              unitId,
-            });
-          }
-        },
-      });
-    };
-
-    const handlePageHide = () => {
-      closeSessionBestEffort('pagehide');
-    };
-    window.addEventListener('pagehide', handlePageHide);
-
-    return () => {
-      window.removeEventListener('pagehide', handlePageHide);
-      closeSessionBestEffort('unmount');
-    };
-  }, []);
+  useSessionLifecycle({
+    sessionId: roomWithLocalAttempts?.sessionId ?? null,
+    moduleId: parsedModuleId,
+    unitId: parsedUnitId,
+    closeSession: closeSessionMutation.mutate,
+  });
 
   const seededOptionByContentId = useMemo(() => {
     if (!roomWithLocalAttempts) return {};
