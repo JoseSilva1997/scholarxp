@@ -1,9 +1,16 @@
 // DTO for the module unit editor read endpoint; expanded as nested question/variant payloads are added.
 // DTO returned to the module unit editor screen with nested questions and variants.
 import type { QuestionData } from '@scholarxp/question-type-dtos';
-import type { QuestionSource } from '@scholarxp/api-contracts';
+import type {
+  ModuleUnitEditorContentResponse,
+  ModuleUnitEditorGroupResponse,
+  ModuleUnitEditorQuestionResponse,
+  ModuleUnitEditorResponse,
+  ModuleUnitEditorVariantResponse,
+  QuestionSource,
+} from '@scholarxp/api-contracts';
 
-export class ModuleUnitEditorDto {
+export class ModuleUnitEditorDto implements ModuleUnitEditorResponse {
   id: number;
   moduleId: number | null;
   title: string;
@@ -11,7 +18,7 @@ export class ModuleUnitEditorDto {
   questionGroups: ModuleUnitEditorGroupDto[];
 }
 
-export class ModuleUnitEditorGroupDto {
+export class ModuleUnitEditorGroupDto implements ModuleUnitEditorGroupResponse {
   id: number;
   moduleUnitId: number;
   name: string;
@@ -19,7 +26,9 @@ export class ModuleUnitEditorGroupDto {
   questions: ModuleUnitEditorQuestionDto[];
 }
 
-export class ModuleUnitEditorQuestionDto {
+export class ModuleUnitEditorQuestionDto
+  implements ModuleUnitEditorQuestionResponse
+{
   id: number;
   questionGroupId: number | null;
   title: string;
@@ -28,13 +37,17 @@ export class ModuleUnitEditorQuestionDto {
   variants: ModuleUnitEditorVariantDto[];
 }
 
-export class ModuleUnitEditorVariantDto {
+export class ModuleUnitEditorVariantDto
+  implements ModuleUnitEditorVariantResponse
+{
   id: number;
   variantLabel: string;
   content: ModuleUnitEditorContentDto;
 }
 
-export class ModuleUnitEditorContentDto {
+export class ModuleUnitEditorContentDto
+  implements ModuleUnitEditorContentResponse
+{
   id: number;
   questionUnitId: number;
   questionStem: string;

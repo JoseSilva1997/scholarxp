@@ -1,14 +1,15 @@
 // Handles module-unit-editor delete state orchestration so the parent hook can stay focused on composition.
 import { useMemo, type Dispatch, type RefObject, type SetStateAction } from 'react';
-import { logError } from '../../../utils/logger';
 import type { QuestionForm } from '../../../components/question-types/QuestionTypeRegistry';
-import type { DeleteCopy, DeleteTarget, Question, QuestionGroup, SelectionState } from './types';
+import type { DeleteCopy, DeleteTarget, Question, QuestionGroup, SelectionState } from './helpers/types';
 import {
   computeFallbackSelection,
   removeQuestionFromGroup,
   removeQuestionGroup,
   removeVariantFromQuestion,
-} from './stateTransforms';
+} from './helpers/stateTransforms';
+import { toPersistedId } from './helpers/idParsers';
+import { logModuleUnitEditorError } from './helpers/errorHandling';
 
 type DeleteResult = {
   nextGroups: QuestionGroup[];
@@ -121,7 +122,7 @@ export function useModuleUnitEditorDeleteFlow({
     feature: 'question-group' | 'question' | 'variant',
   ) => {
     setDeleteError(message);
-    logError(err, { feature, action: 'delete', unitId: parsedUnitId });
+    logModuleUnitEditorError(err, feature, 'delete', parsedUnitId);
   };
 
   const deleteGroupTarget = async (
@@ -129,8 +130,8 @@ export function useModuleUnitEditorDeleteFlow({
     currentSelection: SelectionState | null,
     currentExpanded: Set<string>,
   ): Promise<DeleteResult | null> => {
-    const numericId = Number(target.groupId);
-    if (Number.isFinite(numericId)) {
+    const numericId = toPersistedId(target.groupId);
+    if (numericId !== null) {
       try {
         await deleteQuestionGroupMutation.mutateAsync(numericId);
       } catch (err) {
@@ -166,8 +167,8 @@ export function useModuleUnitEditorDeleteFlow({
     currentSelection: SelectionState | null,
     currentExpanded: Set<string>,
   ): Promise<DeleteResult | null> => {
-    const numericId = Number(target.questionId);
-    if (Number.isFinite(numericId)) {
+    const numericId = toPersistedId(target.questionId);
+    if (numericId !== null) {
       try {
         await deleteQuestionMutation.mutateAsync(numericId);
       } catch (err) {
@@ -218,9 +219,9 @@ export function useModuleUnitEditorDeleteFlow({
     currentSelection: SelectionState | null,
     currentExpanded: Set<string>,
   ): Promise<DeleteResult | null> => {
-    const numericQuestionId = Number(target.questionId);
-    const numericVariantId = Number(target.variantId);
-    if (Number.isFinite(numericQuestionId) && Number.isFinite(numericVariantId)) {
+    const numericQuestionId = toPersistedId(target.questionId);
+    const numericVariantId = toPersistedId(target.variantId);
+    if (numericQuestionId !== null && numericVariantId !== null) {
       try {
         await deleteVariantMutation.mutateAsync({
           questionId: numericQuestionId,

@@ -5,7 +5,12 @@ import {
 } from '@nestjs/common';
 import { ModuleUnitStatus, Prisma } from '@prisma/client';
 import { QuestionDataSchema } from '@scholarxp/question-type-dtos';
+import type { QuestionData } from '@scholarxp/question-type-dtos';
 import {
+  type CreateQuestionResponse,
+  type CreateVariantResponse,
+  type QuestionContentResponse,
+  type QuestionSource,
   getModuleUnitGroupName,
   MODULE_UNIT_GROUP_START_ORDER,
 } from '@scholarxp/api-contracts';
@@ -70,7 +75,7 @@ export class QuestionUnitService {
     moduleId: number,
     moduleUnitId: number,
     payload: CreateQuestionWithContentDto,
-  ) {
+  ): Promise<CreateQuestionResponse> {
     const moduleUnit = await this.prisma.moduleUnit.findUnique({
       where: { id: moduleUnitId },
       select: { id: true, moduleId: true },
@@ -131,7 +136,26 @@ export class QuestionUnitService {
       return { questionUnit, coreContent };
     });
 
-    return result;
+    return {
+      questionUnit: {
+        id: result.questionUnit.id,
+        moduleUnitId: result.questionUnit.moduleUnitId,
+        questionGroupId: result.questionUnit.questionGroupId,
+        title: result.questionUnit.title,
+      },
+      coreContent: {
+        id: result.coreContent.id,
+        questionUnitId: result.coreContent.questionUnitId,
+        questionStem: result.coreContent.questionStem,
+        questionData: result.coreContent.questionData as unknown as QuestionData,
+        type: result.coreContent.type,
+        hint: result.coreContent.hint,
+        difficultyScore: result.coreContent.difficultyScore,
+        source: result.coreContent.source as QuestionSource,
+        isArchived: result.coreContent.isArchived,
+        isCore: result.coreContent.isCore,
+      },
+    };
   }
 
   // Create a variant for an existing question unit with its own content and metadata.
@@ -140,7 +164,7 @@ export class QuestionUnitService {
     moduleUnitId: number,
     questionUnitId: number,
     payload: CreateVariantWithContentDto,
-  ) {
+  ): Promise<CreateVariantResponse> {
     const questionUnit = await this.prisma.questionUnit.findUnique({
       where: { id: questionUnitId },
       select: {
@@ -198,7 +222,24 @@ export class QuestionUnitService {
       return { variant };
     });
 
-    return variantResult;
+    return {
+      variant: {
+        id: variantResult.variant.id,
+        variantLabel: variantResult.variant.variantLabel,
+        content: {
+          id: variantResult.variant.content.id,
+          questionUnitId: variantResult.variant.content.questionUnitId,
+          questionStem: variantResult.variant.content.questionStem,
+          questionData:
+            variantResult.variant.content.questionData as unknown as QuestionData,
+          type: variantResult.variant.content.type,
+          hint: variantResult.variant.content.hint,
+          difficultyScore: variantResult.variant.content.difficultyScore,
+          source: variantResult.variant.content.source as QuestionSource,
+          isArchived: variantResult.variant.content.isArchived,
+        },
+      },
+    };
   }
 
   // Remove a question and all of its content/variants within module/unit scope.
@@ -354,7 +395,7 @@ export class QuestionUnitService {
     questionUnitId: number,
     contentId: number,
     dto: UpdateQuestionContentDto,
-  ) {
+  ): Promise<QuestionContentResponse> {
     const content = await this.prisma.questionContent.findUnique({
       where: { id: contentId },
       include: {
@@ -380,9 +421,21 @@ export class QuestionUnitService {
       }
     }
 
-    return this.prisma.questionContent.update({
+    const updatedContent = await this.prisma.questionContent.update({
       where: { id: contentId },
       data: dto as Prisma.QuestionContentUpdateInput,
     });
+
+    return {
+      id: updatedContent.id,
+      questionUnitId: updatedContent.questionUnitId,
+      questionStem: updatedContent.questionStem,
+      questionData: updatedContent.questionData as unknown as QuestionData,
+      type: updatedContent.type,
+      hint: updatedContent.hint,
+      difficultyScore: updatedContent.difficultyScore,
+      source: updatedContent.source as QuestionSource,
+      isArchived: updatedContent.isArchived,
+    };
   }
 }

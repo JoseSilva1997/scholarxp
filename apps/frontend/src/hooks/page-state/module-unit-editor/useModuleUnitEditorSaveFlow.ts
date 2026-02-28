@@ -7,20 +7,25 @@ import type {
   UpdateQuestionContentPayload,
 } from '@scholarxp/api-contracts';
 import type { QuestionData } from '@scholarxp/question-type-dtos';
-import { ApiError } from '../../../api/client';
 import { QUESTION_TYPE_CONFIGS } from '../../../components/question-types/QuestionTypeRegistry';
 import type {
   QuestionForm,
   QuestionType,
 } from '../../../components/question-types/QuestionTypeRegistry';
-import { logError } from '../../../utils/logger';
-import type { Question, QuestionGroup, SelectionState } from './types';
+import type { Question, QuestionGroup, SelectionState } from './helpers/types';
 import {
   replaceDraftGroupId,
   updateQuestionByIds,
   updateQuestionByPredicate,
   updateVariantById,
-} from './stateTransforms';
+} from './helpers/stateTransforms';
+import { toPersistedId } from './helpers/idParsers';
+import {
+  getQuestionSaveErrorMessage,
+  isClientError,
+  logModuleUnitEditorError,
+} from './helpers/errorHandling';
+import { coreCacheKey, variantCacheKey } from './helpers/cacheKeys';
 
 const SOURCE_HUMAN: QuestionSource = 'human';
 
@@ -105,8 +110,8 @@ export function useModuleUnitEditorSaveFlow({
 }: UseModuleUnitEditorSaveFlowParams) {
   const ensurePersistedGroupId = useCallback(
     async (targetGroupId: string, targetGroup: QuestionGroup): Promise<number | null> => {
-      const numericGroupId = Number(targetGroupId);
-      if (Number.isFinite(numericGroupId)) {
+      const numericGroupId = toPersistedId(targetGroupId);
+      if (numericGroupId !== null) {
         return numericGroupId;
       }
 
@@ -140,11 +145,7 @@ export function useModuleUnitEditorSaveFlow({
         return persistedGroupId;
       } catch (err) {
         setSaveError('Could not create question group. Please try again.');
-        logError(err, {
-          feature: 'question-group',
-          action: 'create',
-          unitId: parsedUnitId,
-        });
+        logModuleUnitEditorError(err, 'question-group', 'create', parsedUnitId);
         return null;
       }
     },
@@ -300,7 +301,7 @@ export function useModuleUnitEditorSaveFlow({
           variantId: String(createdVariant.variant.id),
         });
         clearOtherTypesCache(
-          `${persistedQuestionId}-variant-${createdVariant.variant.id}`,
+          variantCacheKey(persistedQuestionId, String(createdVariant.variant.id)),
           payload.type as QuestionType,
         );
         return true;
@@ -352,7 +353,7 @@ export function useModuleUnitEditorSaveFlow({
       );
 
       clearOtherTypesCache(
-        `${persistedQuestionId}-variant-${selectedVariantId}`,
+        variantCacheKey(persistedQuestionId, selectedVariantId),
         payload.type as QuestionType,
       );
       return true;
@@ -439,7 +440,7 @@ export function useModuleUnitEditorSaveFlow({
         ),
       );
 
-      clearOtherTypesCache(`${persistedQuestionId}-core`, payload.type as QuestionType);
+      clearOtherTypesCache(coreCacheKey(persistedQuestionId), payload.type as QuestionType);
       return true;
     },
     [clearOtherTypesCache, setGroups, setSaveError, updateQuestionContentMutation],
@@ -538,16 +539,16 @@ export function useModuleUnitEditorSaveFlow({
       }
     } catch (err) {
       // Expected validation/permission issues should remain user-actionable and quiet in telemetry.
-      if (err instanceof ApiError && err.status >= 400 && err.status < 500) {
-        const detailMessage = err.details?.[0]?.message;
+      if (isClientError(err)) {
         setSaveError(
-          detailMessage ??
-            err.message ??
+          getQuestionSaveErrorMessage(
+            err,
             'Could not save the question. Please review your input.',
+          ),
         );
       } else {
         setSaveError('Could not save the question. Please try again.');
-        logError(err, { feature: 'question', action: 'save', unitId: parsedUnitId });
+        logModuleUnitEditorError(err, 'question', 'save', parsedUnitId);
       }
     } finally {
       setIsSavingQuestion(false);

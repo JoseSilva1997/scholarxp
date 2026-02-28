@@ -12,14 +12,11 @@ import type {
   QuestionSource,
 } from '@scholarxp/api-contracts';
 import { getModuleUnitGroupName } from '@scholarxp/api-contracts';
-import { ApiError } from '../../../api/client';
 import {
   emptyMcqTemplate,
   DEFAULT_QUESTION_TYPE,
   TrueFalseQuestionSchema,
 } from '@scholarxp/question-type-dtos';
-import { logError } from '../../../utils/logger';
-import type { ModuleUnitEditorGroup } from '../../../types/module';
 import {
   QUESTION_TYPE_CONFIGS,
   makeId,
@@ -47,14 +44,22 @@ import type {
   QuestionGroup,
   QuestionContent,
   SelectionState,
-} from './types';
+} from './helpers/types';
 import { useModuleUnitEditorDeleteFlow } from './useModuleUnitEditorDeleteFlow';
 import { useModuleUnitEditorSaveFlow } from './useModuleUnitEditorSaveFlow';
 import {
   appendDraftQuestionToGroup,
   appendDraftVariantToQuestion,
   updateGroupById,
-} from './stateTransforms';
+} from './helpers/stateTransforms';
+import { mapEditorGroupsToState } from './helpers/mappers';
+import { coreCacheKey, variantCacheKey } from './helpers/cacheKeys';
+import {
+  getClientSafeErrorMessage,
+  isClientError,
+  logModuleUnitEditorError,
+} from './helpers/errorHandling';
+import { toPersistedId } from './helpers/idParsers';
 
 // ===== Types =====
 type UseModuleUnitEditorPageStateParams = {
@@ -79,50 +84,6 @@ const deriveNextGroupSortOrder = (existingGroups: QuestionGroup[]) =>
 
 const normalizeSource = (value?: string | null): QuestionSource =>
   value === SOURCE_AI ? SOURCE_AI : SOURCE_HUMAN;
-
-const mapEditorGroupsToState = (
-  groups: ModuleUnitEditorGroup[] | undefined,
-): QuestionGroup[] =>
-  (groups ?? []).map((group) => ({
-    id: String(group.id),
-    title: group.name,
-    sortOrder: group.sortOrder,
-    questions: (group.questions ?? []).map((question) => ({
-      id: String(question.id),
-      title: question.title,
-      type: normalizeQuestionType(question.type),
-      variants: (question.variants ?? []).map((variant) => ({
-        id: String(variant.id),
-        label: variant.variantLabel,
-        content: variant.content
-          ? {
-              id: String(variant.content.id),
-              questionUnitId: String(variant.content.questionUnitId ?? question.id),
-              questionStem: variant.content.questionStem,
-              questionData: variant.content.questionData,
-              type: normalizeQuestionType(variant.content.type),
-              hint: variant.content.hint ?? null,
-              difficultyScore: variant.content.difficultyScore,
-              source: normalizeSource(variant.content.source),
-              isArchived: Boolean(variant.content.isArchived),
-            }
-          : undefined,
-      })),
-      coreContent: question.coreContent
-        ? {
-            id: String(question.coreContent.id),
-            questionUnitId: String(question.coreContent.questionUnitId),
-            questionStem: question.coreContent.questionStem,
-            questionData: question.coreContent.questionData,
-            type: normalizeQuestionType(question.coreContent.type),
-            hint: question.coreContent.hint ?? null,
-            difficultyScore: question.coreContent.difficultyScore,
-            source: normalizeSource(question.coreContent.source),
-            isArchived: Boolean(question.coreContent.isArchived),
-          }
-        : undefined,
-    })),
-  }));
 
 export function useModuleUnitEditorPageState({
   moduleIdParam,
@@ -170,11 +131,7 @@ export function useModuleUnitEditorPageState({
 
   useEffect(() => {
     if (!editorDataQuery.error || parsedUnitId === null) return;
-    logError(editorDataQuery.error, {
-      feature: 'module-unit-editor',
-      action: 'load',
-      unitId: parsedUnitId,
-    });
+    logModuleUnitEditorError(editorDataQuery.error, 'module-unit-editor', 'load', parsedUnitId);
   }, [editorDataQuery.error, parsedUnitId]);
 
   // ===== Local Editor State =====
@@ -523,8 +480,8 @@ export function useModuleUnitEditorPageState({
       return;
     }
 
-    const numericGroupId = Number(groupId);
-    if (!Number.isFinite(numericGroupId)) {
+    const numericGroupId = toPersistedId(groupId);
+    if (numericGroupId === null) {
       // Draft groups only exist locally until first question save creates the backend group.
       handleUpdateGroupTitle(groupId, nextTitle);
       setEditingGroupId(null);
@@ -546,18 +503,14 @@ export function useModuleUnitEditorPageState({
     } catch (err) {
       if (inputEl) {
         // Surface backend-safe expected errors; keep unknown failures generic.
-        const message =
-          err instanceof ApiError && err.status >= 400 && err.status < 500
-            ? err.message
-            : 'Could not rename this group. Please try again.';
+        const message = getClientSafeErrorMessage(
+          err,
+          'Could not rename this group. Please try again.',
+        );
         inputEl.setCustomValidity(message);
         inputEl.reportValidity();
       }
-      logError(err, {
-        feature: 'question-group',
-        action: 'rename',
-        unitId: parsedUnitId,
-      });
+      logModuleUnitEditorError(err, 'question-group', 'rename', parsedUnitId);
     } finally {
       setRenamingGroupId(null);
     }
@@ -653,15 +606,15 @@ export function useModuleUnitEditorPageState({
 
   const clearQuestionCaches = (question: Question) => {
     // Remove all cached form variants for deleted questions so no stale data leaks into new drafts.
-    questionTypeCacheRef.current.delete(`${question.id}-core`);
+    questionTypeCacheRef.current.delete(coreCacheKey(question.id));
     question.variants.forEach((variant) => {
-      questionTypeCacheRef.current.delete(`${question.id}-variant-${variant.id}`);
+      questionTypeCacheRef.current.delete(variantCacheKey(question.id, variant.id));
     });
   };
 
   const clearVariantCache = (questionId: string, variantId: string) => {
     // Variant cache entries are scoped by question and variant ids to avoid cross-item leakage.
-    questionTypeCacheRef.current.delete(`${questionId}-variant-${variantId}`);
+    questionTypeCacheRef.current.delete(variantCacheKey(questionId, variantId));
   };
 
   const { deleteCopy, handleConfirmDelete } = useModuleUnitEditorDeleteFlow({
@@ -721,8 +674,8 @@ export function useModuleUnitEditorPageState({
     if (!selectedQuestion || !selected) return;
 
     const cacheKey = selected.variantId
-      ? `${selectedQuestion.id}-variant-${selected.variantId}`
-      : `${selectedQuestion.id}-core`;
+      ? variantCacheKey(selectedQuestion.id, selected.variantId)
+      : coreCacheKey(selectedQuestion.id);
 
     questionTypeCacheRef.current.set(cacheKey, {
       ...(questionTypeCacheRef.current.get(cacheKey) ?? {}),
@@ -776,15 +729,11 @@ export function useModuleUnitEditorPageState({
         variantContext: variantInstructions,
       });
     } catch (err) {
-      if (err instanceof ApiError && err.status >= 400 && err.status < 500) {
+      if (isClientError(err)) {
         setSaveError(err.message ?? 'Could not save variant generation settings.');
       } else {
         setSaveError('Could not save variant generation settings. Please try again.');
-        logError(err, {
-          feature: 'module-unit',
-          action: 'save-variant-context',
-          unitId: parsedUnitId,
-        });
+        logModuleUnitEditorError(err, 'module-unit', 'save-variant-context', parsedUnitId);
       }
     } finally {
       setIsSavingVariantInstructions(false);
@@ -833,10 +782,7 @@ export function useModuleUnitEditorPageState({
     );
 
     if (selectedQuestion?.coreContent) {
-      loadContentIntoForm(
-        selectedQuestion.coreContent,
-        `${selectedQuestion.id}-core`,
-      );
+      loadContentIntoForm(selectedQuestion.coreContent, coreCacheKey(selectedQuestion.id));
     } else {
       setForm(buildInitialForm());
     }
@@ -861,8 +807,8 @@ export function useModuleUnitEditorPageState({
     if (!question) return;
 
     const cacheKey = selected.variantId
-      ? `${question.id}-variant-${selected.variantId}`
-      : `${question.id}-core`;
+      ? variantCacheKey(question.id, selected.variantId)
+      : coreCacheKey(question.id);
 
     if (selected.variantId) {
       const variant = question.variants.find(
