@@ -108,7 +108,7 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-vi.mock('../../hooks/page-state/usePracticeRoomPageState', () => ({
+vi.mock('../../hooks/page-state/practice-room/usePracticeRoomPageState', () => ({
   usePracticeRoomPageState: () => ({
     ...pageState,
     selectQuestionUnit: mocks.selectQuestionUnit,

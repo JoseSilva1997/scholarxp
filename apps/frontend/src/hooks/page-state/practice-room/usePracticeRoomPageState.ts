@@ -12,19 +12,19 @@ import type {
 } from '@scholarxp/api-contracts';
 import { PracticeSessionTypeValues } from '@scholarxp/api-contracts';
 import { MODULE_EXP_MAX } from '@scholarxp/constants';
-import { closePracticeRoomSessionKeepalive } from '../../api/modules';
+import { closePracticeRoomSessionKeepalive } from '../../../api/modules';
 import {
   getDisplayErrorMessage,
   shouldLogApiError,
-} from '../../api/get-display-error';
-import { useAuth } from '../../context/AuthContext';
-import { logError } from '../../utils/logger';
+} from '../../../api/get-display-error';
+import { useAuth } from '../../../context/AuthContext';
+import { logError } from '../../../utils/logger';
 import {
   useCloseModuleUnitPracticeSessionMutation,
   useModuleUnitPracticeRoomQuery,
   useSubmitModuleUnitPracticeAttemptMutation,
-} from '../queries/usePracticeRoomQueries';
-import { useModuleDetailQuery } from '../queries/useModulesQueries';
+} from '../../queries/usePracticeRoomQueries';
+import { useModuleDetailQuery } from '../../queries/useModulesQueries';
 
 type UsePracticeRoomPageStateParams = {
   moduleIdParam: string | undefined;
@@ -190,6 +190,23 @@ export function usePracticeRoomPageState({
   const latestModuleIdRef = useRef<number | null>(parsedModuleId);
   const latestUnitIdRef = useRef<number | null>(parsedUnitId);
   const closeSessionMutateRef = useRef(closeSessionMutation.mutate);
+
+  // Centralised celebration helper so both the server-sync effect and the submit handler
+  // trigger the level-up banner through one consistent path. Always advances prevLevelRef
+  // so the next comparison starts from the correct baseline regardless of whether a
+  // celebration was shown.
+  const triggerLevelUpCelebration = (previousLevel: number | undefined, nextLevel: number) => {
+    prevLevelRef.current = nextLevel;
+    if (previousLevel === undefined || nextLevel <= previousLevel) return;
+    setShowLevelUp(true);
+    if (levelUpVisibilityTimeoutRef.current !== null) {
+      clearTimeout(levelUpVisibilityTimeoutRef.current);
+    }
+    levelUpVisibilityTimeoutRef.current = window.setTimeout(() => {
+      setShowLevelUp(false);
+      levelUpVisibilityTimeoutRef.current = null;
+    }, 3000);
+  };
 
   useEffect(() => {
     if (!practiceRoomQuery.error) return;
@@ -502,20 +519,8 @@ export function usePracticeRoomPageState({
     }
     moduleProgressSyncFrameRef.current = requestAnimationFrame(() => {
       const { level: nextLevel } = fromModuleTotalExp(serverTotalExp, expMax);
-      const previousLevel = prevLevelRef.current;
-
       // Celebrate level-up only on server-driven progress jumps while already active in the room.
-      if (previousLevel !== undefined && nextLevel > previousLevel) {
-        setShowLevelUp(true);
-        if (levelUpVisibilityTimeoutRef.current !== null) {
-          clearTimeout(levelUpVisibilityTimeoutRef.current);
-        }
-        levelUpVisibilityTimeoutRef.current = window.setTimeout(() => {
-          setShowLevelUp(false);
-          levelUpVisibilityTimeoutRef.current = null;
-        }, 3000);
-      }
-      prevLevelRef.current = nextLevel;
+      triggerLevelUpCelebration(prevLevelRef.current, nextLevel);
 
       setModuleProgressAnimation({
         totalExp: serverTotalExp,
@@ -834,19 +839,9 @@ export function usePracticeRoomPageState({
             fromModuleTotalExp(previousValue?.totalExp ?? baselineTotalExp, currentExpMax).level;
           const { level: nextLevel } = fromModuleTotalExp(targetTotalExp, currentExpMax);
 
-          // Trigger level-up feedback from the submit event to avoid effect-driven render cascades.
-          if (nextLevel > previousLevel) {
-            setShowLevelUp(true);
-            if (levelUpVisibilityTimeoutRef.current !== null) {
-              clearTimeout(levelUpVisibilityTimeoutRef.current);
-            }
-            levelUpVisibilityTimeoutRef.current = window.setTimeout(() => {
-              setShowLevelUp(false);
-              levelUpVisibilityTimeoutRef.current = null;
-            }, 3000);
-          }
-          // Synchronize the transition level so a secondary sync from the background query doesn't trigger a double celebration.
-          prevLevelRef.current = nextLevel;
+          // Trigger level-up feedback from the submit event and synchronize the level ref
+          // so a secondary server-sync doesn't trigger a double celebration.
+          triggerLevelUpCelebration(previousLevel, nextLevel);
 
           return {
             totalExp: targetTotalExp,

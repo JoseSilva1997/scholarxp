@@ -4,33 +4,33 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Mock } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 
-import { logError } from '../../utils/logger';
+import { logError } from '../../../utils/logger';
 
-vi.mock('../queries/usePracticeRoomQueries', () => ({
+vi.mock('../../queries/usePracticeRoomQueries', () => ({
   useModuleUnitPracticeRoomQuery: vi.fn(),
   useSubmitModuleUnitPracticeAttemptMutation: vi.fn(),
   useCloseModuleUnitPracticeSessionMutation: vi.fn(),
 }));
-vi.mock('../queries/useModulesQueries', () => ({
+vi.mock('../../queries/useModulesQueries', () => ({
   useModuleDetailQuery: vi.fn(),
 }));
-vi.mock('../../context/AuthContext', () => ({
+vi.mock('../../../context/AuthContext', () => ({
   useAuth: vi.fn(),
 }));
-vi.mock('../../api/get-display-error', () => ({
+vi.mock('../../../api/get-display-error', () => ({
   getDisplayErrorMessage: (err: unknown) => `display:${String(err)}`,
   shouldLogApiError: () => true,
 }));
-vi.mock('../../utils/logger', () => ({ logError: vi.fn() }));
+vi.mock('../../../utils/logger', () => ({ logError: vi.fn() }));
 
 import { usePracticeRoomPageState } from './usePracticeRoomPageState';
 import {
   useCloseModuleUnitPracticeSessionMutation,
   useModuleUnitPracticeRoomQuery,
   useSubmitModuleUnitPracticeAttemptMutation,
-} from '../queries/usePracticeRoomQueries';
-import { useModuleDetailQuery } from '../queries/useModulesQueries';
-import { useAuth } from '../../context/AuthContext';
+} from '../../queries/usePracticeRoomQueries';
+import { useModuleDetailQuery } from '../../queries/useModulesQueries';
+import { useAuth } from '../../../context/AuthContext';
 
 type PracticeRoomPageState = ReturnType<typeof usePracticeRoomPageState>;
 
