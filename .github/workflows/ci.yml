@@ -36,6 +36,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build shared packages
+        # Workspace packages export from dist/, so they must be built on fresh runners before type-aware lint/tests.
+        run: pnpm -r --filter "./packages/*" build
+
       - name: Lint frontend
         run: pnpm --filter frontend lint
 
@@ -67,6 +71,10 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Build shared packages
+        # Backend imports shared contracts/permissions which resolve to dist artifacts in workspace packages.
+        run: pnpm -r --filter "./packages/*" build
 
       - name: Generate Prisma client
         # Explicit generation keeps ESLint/TypeScript type resolution stable in fresh CI runners.
