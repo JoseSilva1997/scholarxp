@@ -82,8 +82,8 @@ describe('UserBadge', () => {
     // Level-up text should appear. Use queryAllByText because AnimatePresence might have multiple during transition.
     expect(screen.queryAllByText('Level Up!').length).toBeGreaterThan(0);
     
-    // Wait for animation cycle to finish
-    await vi.advanceTimersByTimeAsync(3000);
+    // Flush all queued timers so the assertion does not depend on specific animation-duration constants.
+    await vi.runAllTimersAsync();
     expect(screen.queryAllByText('Level Up!')).toHaveLength(0);
   });
 

@@ -73,8 +73,7 @@ export default function SingleModulePage() {
                 <div className={styles.titleGroup}>
                   <h1 className={styles.title}>{module.title}</h1>
                   <p className={styles.subtitle}>
-                    {module.description ||
-                      'Master your knowledge through consistent practice and revision.'}
+                    {module.description}
                   </p>
                 </div>
 

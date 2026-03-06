@@ -1,6 +1,12 @@
 // Unit tests for useQuestPageState verify grouping logic, date formatting, and state orchestration.
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import type {
+  AuthUser,
+  QuestHistoryResponse,
+  QuestView,
+} from '@scholarxp/api-contracts';
+import type { InfiniteData } from '@tanstack/react-query';
 import { useQuestPageState } from './useQuestPageState';
 import { useAuth } from '../../context/AuthContext';
 import { useQuestHistoryInfiniteQuery } from '../queries/useQuestsQueries';
@@ -32,7 +38,42 @@ function createQuestHistoryHookState(
 
 describe('useQuestPageState', () => {
   const mockToday = '2024-03-20';
-  const mockUser = { id: 1, name: 'Test User' };
+  // Keep the auth fixture aligned with shared API contracts so hook tests fail only on real regressions.
+  const mockUser: AuthUser = {
+    id: 1,
+    firstName: 'Test',
+    lastName: 'User',
+    email: 'test@example.com',
+    profilePictureUrl: '',
+    globalRole: 'student',
+    isVerified: true,
+  };
+
+  function createQuestView(overrides: Partial<QuestView>): QuestView {
+    // Provide a complete QuestView baseline to keep each test focused on day-grouping behavior.
+    return {
+      id: 1,
+      moduleId: 101,
+      moduleUnitId: 1001,
+      moduleTitle: 'Algebra',
+      moduleUnitTitle: 'Linear Equations',
+      type: 'complete_daily_practice',
+      expGranted: 10,
+      isCompleted: false,
+      questDateUtc: mockToday,
+      generatedAt: '2024-03-20T00:00:00.000Z',
+      completedAt: null,
+      description: 'Complete daily practice for Algebra',
+      ...overrides,
+    };
+  }
+
+  function createInfiniteQuestData(
+    pages: QuestHistoryResponse[],
+  ): InfiniteData<QuestHistoryResponse, unknown> {
+    // Infinite query results require pageParams to mirror TanStack Query's runtime data shape.
+    return { pages, pageParams: [] };
+  }
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -90,17 +131,17 @@ describe('useQuestPageState', () => {
     );
     
     const mockQuests = [
-      { id: 1, questDateUtc: '2024-03-20', title: 'Quest 1' },
-      { id: 2, questDateUtc: '2024-03-20', title: 'Quest 2' },
-      { id: 3, questDateUtc: '2024-03-19', title: 'Quest 3' },
+      createQuestView({ id: 1, questDateUtc: '2024-03-20' }),
+      createQuestView({ id: 2, questDateUtc: '2024-03-20' }),
+      createQuestView({ id: 3, questDateUtc: '2024-03-19' }),
     ];
 
     vi.mocked(useQuestHistoryInfiniteQuery).mockReturnValue(
       createQuestHistoryHookState({
         isPending: false,
-        data: {
-          pages: [{ quests: mockQuests }],
-        },
+        data: createInfiniteQuestData([
+          { quests: mockQuests, hasMore: false, nextDayOffset: null },
+        ]),
       }),
     );
 
@@ -131,16 +172,16 @@ describe('useQuestPageState', () => {
     );
     
     const mockQuests = [
-      { id: 1, questDateUtc: '2024-03-18', title: 'Old' },
-      { id: 2, questDateUtc: '2024-03-20', title: 'New' },
+      createQuestView({ id: 1, questDateUtc: '2024-03-18' }),
+      createQuestView({ id: 2, questDateUtc: '2024-03-20' }),
     ];
 
     vi.mocked(useQuestHistoryInfiniteQuery).mockReturnValue(
       createQuestHistoryHookState({
         isPending: false,
-        data: {
-          pages: [{ quests: mockQuests }],
-        },
+        data: createInfiniteQuestData([
+          { quests: mockQuests, hasMore: false, nextDayOffset: null },
+        ]),
       }),
     );
 
@@ -161,7 +202,7 @@ describe('useQuestPageState', () => {
         hasNextPage: true,
         isFetchingNextPage: false,
         fetchNextPage,
-        data: { pages: [] },
+        data: createInfiniteQuestData([]),
       }),
     );
 
@@ -187,7 +228,7 @@ describe('useQuestPageState', () => {
         hasNextPage: true,
         isFetchingNextPage: true,
         fetchNextPage,
-        data: { pages: [] },
+        data: createInfiniteQuestData([]),
       }),
     );
 
@@ -226,9 +267,7 @@ describe('useQuestPageState', () => {
     vi.mocked(useQuestHistoryInfiniteQuery).mockReturnValue(
       createQuestHistoryHookState({
         isPending: false,
-        data: {
-          pages: [],
-        },
+        data: createInfiniteQuestData([]),
       }),
     );
 
