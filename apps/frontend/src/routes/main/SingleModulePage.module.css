@@ -197,15 +197,50 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 24px;
-  padding: 20px;
+  padding: 24px 32px;
   margin-bottom: 40px;
   display: flex;
-  flex-direction: column;
-  gap: 20px;
+  flex-direction: row;
+  align-items: center;
+  gap: 32px;
   box-shadow: var(--shadow-md);
   position: relative;
   overflow: hidden;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.badgeSection {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.progressData {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.progressHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.progressTitle {
+  color: var(--color-text);
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.progressActions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .progressContainer:hover {
@@ -214,42 +249,25 @@
   box-shadow: var(--shadow-lg);
 }
 
-/* Removed extra glows and overlays for maximum clarity */
-@media (min-width: 768px) {
+@media (max-width: 900px) {
   .progressContainer {
-    flex-direction: row;
+    flex-direction: column;
     align-items: center;
-    padding: 24px 32px;
-    gap: 32px;
+    text-align: center;
+    gap: 24px;
+  }
+  .progressHeader {
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+  }
+  .progressData {
+    width: 100%;
   }
 }
 
-.progressRow {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.levelBadge {
-  padding: 14px 24px;
-  border-radius: 18px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-weight: 800;
-  color: var(--color-text);
-  font-size: 1.125rem;
-}
-
-.levelIcon {
-  width: 28px;
-  height: 28px;
-  filter: drop-shadow(var(--shadow-sm));
-}
-
 .barTrack {
-  flex: 1;
+  width: 100%;
   height: 12px;
   background: var(--color-bg);
   border-radius: 6px;
@@ -303,26 +321,28 @@
 
 .expGroup {
   display: flex;
-  flex-direction: column;
-  min-width: 100px;
-  text-align: right;
-  line-height: 1.1;
-  gap: 2px;
+  align-items: center;
+  gap: 8px;
+}
+
+.expIconSmall {
+  width: 18px;
+  height: 18px;
+  filter: drop-shadow(var(--shadow-sm));
 }
 
 .expLabel {
-  font-weight: 800;
+  font-weight: 600;
   color: var(--color-text);
-  font-size: 1.25rem;
+  font-size: 1.05rem;
   font-family: var(--font-display);
   letter-spacing: -0.01em;
-  /* Removed glow for better clarity */
 }
 
 .expTotal {
   font-weight: 700;
   color: var(--color-text-muted);
-  font-size: 0.8rem;
+  font-size: 0.95rem;
   letter-spacing: 0.02em;
 }
 

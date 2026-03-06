@@ -157,6 +157,25 @@
   --color-quest-gold-glow: rgba(243, 206, 48, 0.5);
   --color-quest-gold-surface: #fffef0;
 
+  /* Badge Profile Level Gold */
+  --color-badge-gold-light: #FFF7A1;
+  --color-badge-gold-primary: #FFD700;
+  --color-badge-gold-dark: #D4AF37;
+  --color-badge-gold-darkest: #AA7C11;
+  --color-badge-gold-shadow: #5C4301;
+  --color-badge-glow: rgba(212, 175, 55, 0.2);
+
+  /* Badge Profile Level Purple */
+  --color-badge-purple-primary: #9D4EDD;
+  --color-badge-purple-dark: #6800E6;
+  --color-badge-purple-darkest: #1A002E;
+
+  /* Badge Profile Level Number */
+  --color-badge-number: #2D0052;
+
+  /* Badge Profile Level Number Shadow */
+  --color-badge-number-shadow: rgba(0, 0, 0, 0.7);
+
   /* Visualization Utilities */
   --color-mask-opaque: #000000;
 
@@ -265,5 +284,8 @@
     /* Button Colors - Deep Navy for better presence without being too stark */
     --btn-primary-dark: #2a4365; /* Deep Navy Blue */
     --btn-primary-dark-hover: #3182ce; /* Bright Blue for active feel */
+
+    /* Badge glow for Dark Mode visibility */
+    --color-badge-glow: rgba(212, 175, 55, 0.45);
   }
 }
