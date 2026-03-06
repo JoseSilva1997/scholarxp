@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import type { AuthUser } from '../types/auth';
 import defaultAvatar from '../assets/default-profile-pic.png';
 import { STUDENT_EXP_MAX } from '@scholarxp/constants';
-import expIcon from '../assets/exp_icon.svg';
 import styles from './UserBadge.module.css';
 
 type UserBadgeProps = {
@@ -244,7 +243,6 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
           <div className={styles.progress}>
             <div className={styles.barRow}>
               <span className={styles.level}>
-                <img src={expIcon} alt="" aria-hidden="true" className={styles.levelIcon} />
                 Level{' '}
                 <span className={styles.levelValueWrap}>
                   <AnimatePresence mode="popLayout" initial={false}>
