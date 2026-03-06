@@ -3,17 +3,12 @@
   align-items: center;
   gap: 16px;
   border-radius: var(--radius-full);
-  padding: 6px 6px 6px 18px;
+  padding: 4px 6px 4px 28px;
   background: var(--color-glass-bg); /* Glassy background for dark header context */
   backdrop-filter: blur(12px);
-  border: 1px solid var(--color-glass-border); /* Subtle translucent border */
-  box-shadow: 
-    var(--shadow-md),
-    inset 0 1px 1px var(--color-glass-border-subtle); /* Inner glow for depth */
+  border: 1px solid var(--color-glass-border); /* Subtle glass border */
   transition: all var(--transition-base);
   position: relative;
-  /* overflow: hidden is removed to allow the absolute menu to be visible. */
-  /* We use clip-path to keep the shimmer contained within the badge. */
 }
 
 /* Shimmer layer moved to a separate pseudo-element that doesn't conflict with layout */
@@ -113,28 +108,49 @@
   -webkit-text-fill-color: transparent;
 }
 
+.progress {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  margin-top: 14px; /* Space for the absolute XP label */
+  white-space: nowrap;
+}
+
+.barRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.trackContainer {
+  position: relative;
+  flex: 1;
+}
+
+.expValueContainer {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  margin-bottom: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .level {
   font-size: 0.75rem;
   color: var(--color-accent-light);
   font-weight: 800;
   display: flex;
   align-items: center;
-  gap: 4px;
-}
-
-.progress {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 1px;
-  white-space: nowrap;
-  flex-wrap: nowrap;
+  gap: 6px;
 }
 
 .levelValue {
   display: inline-block;
   position: relative;
   z-index: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .levelValueWrap {
@@ -142,48 +158,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 1ch;
-}
-
-.levelRays {
-  position: absolute;
-  width: 1.9em;
-  height: 1.9em;
-  pointer-events: none;
-}
-
-.levelRays::before,
-.levelRays::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    repeating-conic-gradient(
-      from 0deg,
-      var(--color-success-rays) 0deg 8deg, /* Success green rays represent progress/levels */
-      transparent 8deg 45deg
-    );
-  -webkit-mask: radial-gradient(
-    circle,
-    transparent 0 40%,
-    var(--color-mask-opaque) 40% 90%,
-    transparent 90% 100%
-  );
-  mask: radial-gradient(
-    circle,
-    transparent 0 40%,
-    var(--color-mask-opaque) 40% 90%,
-    transparent 90% 100%
-  );
-}
-
-.levelRays::after {
-  display: none;
+  perspective: 1000px;
 }
 
 .levelIcon {
-  width: 14px;
-  height: 14px;
+  width: 10px;
+  height: 10px;
+  margin-right: 2px;
   filter: drop-shadow(0 0 6px var(--color-accent));
   animation: float 3s ease-in-out infinite;
 }
@@ -195,8 +176,10 @@
 
 .barTrack {
   position: relative;
-  height: 6px;
-  width: 70px;
+  height: 10px;
+  width: 100%;
+  min-width: 80px;
+  margin-left: 4px;
   background: var(--color-glass-bg-deep); /* Dark background for track elements */
   border-radius: var(--radius-full);
   overflow: hidden;
@@ -227,11 +210,23 @@
 }
 
 .expLabel {
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   font-weight: 600;
   color: var(--color-text-on-dark-muted); /* Translucent white text on dark */
   white-space: nowrap;
   letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.expGain {
+  order: -1;
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: var(--color-secondary);
+  text-shadow: 0 0 4px var(--color-secondary-soft);
+  pointer-events: none;
+  white-space: nowrap;
 }
 
 .menu {
@@ -407,7 +402,7 @@
 .menuItem:hover,
 .menuItem:focus-visible {
   background: var(--color-primary-glass-hover); /* Glassy primary hover effect */
-  color: var(--color-surface); /* Pure white text on primary hover */
+  color: var(--color-text-on-dark); /* Pure white text on primary hover */
   outline: none;
   padding-left: 20px;
 }
@@ -431,7 +426,7 @@
   background: var(--color-error-glass-hover);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 720px) {
   .badge {
     padding: 6px 6px 6px 12px;
     gap: 10px;
@@ -489,4 +484,97 @@
     font-size: 9px;
     margin-left: 12px;
   }
+}
+
+/* Level Up Animation Styles */
+.levelValueAnimate {
+  display: inline-block;
+  color: var(--color-accent-light);
+  text-shadow: 
+    0 0 10px var(--color-accent-soft),
+    0 0 20px var(--color-accent-soft);
+  font-weight: 900;
+  position: relative;
+  z-index: 11;
+  transform-style: preserve-3d;
+}
+
+.levelUpContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.levelUpLabel {
+  position: absolute;
+  top: calc(100% + 12px); /* Pop below the badge (under the header) */
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  font-weight: 900;
+  color: var(--color-surface); /* Pop clearly against main content */
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  white-space: nowrap;
+  pointer-events: none;
+  text-shadow: 0 0 10px var(--color-accent);
+  z-index: 20;
+  background: var(--color-accent); /* Vibrant label */
+  padding: 4px 10px;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px var(--color-overlay-dark);
+}
+
+.particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: var(--color-accent-light);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 5;
+  box-shadow: 0 0-6px var(--color-accent);
+}
+
+.badgeLevelUp {
+  border-color: var(--color-accent-light) !important;
+  box-shadow: 
+    var(--shadow-lg),
+    0 0 20px var(--color-accent-soft) !important;
+  transform: translateY(-2px) scale(1.02);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.badgeCrashShake {
+  animation: crashShake 0.8s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+@keyframes crashShake {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  5%, 15%, 25%, 35%, 45% { transform: translate3d(-2px, 1px, 0) rotate(-0.5deg); }
+  10%, 20%, 30%, 40% { transform: translate3d(2px, -1px, 0) rotate(0.5deg); }
+  50%, 65%, 80% { transform: translate3d(-1px, 0.5px, 0) rotate(-0.2deg); }
+  57.5%, 72.5%, 87.5% { transform: translate3d(1px, -0.5px, 0) rotate(0.2deg); }
+}
+
+.levelValueBurst {
+  position: absolute;
+  inset: -10px;
+  background: radial-gradient(circle, var(--color-accent-soft) 0%, transparent 70%);
+  opacity: 0.4;
+  pointer-events: none;
+  z-index: 0;
+  border-radius: 50%;
+  animation: burstFade 2s ease-out forwards;
+}
+
+@keyframes burstFade {
+  0% { transform: scale(0.5); opacity: 0.8; }
+  100% { transform: scale(2.5); opacity: 0; }
 }

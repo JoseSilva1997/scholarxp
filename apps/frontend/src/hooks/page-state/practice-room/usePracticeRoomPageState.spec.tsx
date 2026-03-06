@@ -4,31 +4,33 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Mock } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 
-import { logError } from '../../utils/logger';
+import { logError } from '../../../utils/logger';
 
-vi.mock('../queries/usePracticeRoomQueries', () => ({
+vi.mock('../../queries/usePracticeRoomQueries', () => ({
   useModuleUnitPracticeRoomQuery: vi.fn(),
   useSubmitModuleUnitPracticeAttemptMutation: vi.fn(),
+  useCloseModuleUnitPracticeSessionMutation: vi.fn(),
 }));
-vi.mock('../queries/useModulesQueries', () => ({
+vi.mock('../../queries/useModulesQueries', () => ({
   useModuleDetailQuery: vi.fn(),
 }));
-vi.mock('../../context/AuthContext', () => ({
+vi.mock('../../../context/AuthContext', () => ({
   useAuth: vi.fn(),
 }));
-vi.mock('../../api/get-display-error', () => ({
+vi.mock('../../../api/get-display-error', () => ({
   getDisplayErrorMessage: (err: unknown) => `display:${String(err)}`,
   shouldLogApiError: () => true,
 }));
-vi.mock('../../utils/logger', () => ({ logError: vi.fn() }));
+vi.mock('../../../utils/logger', () => ({ logError: vi.fn() }));
 
 import { usePracticeRoomPageState } from './usePracticeRoomPageState';
 import {
+  useCloseModuleUnitPracticeSessionMutation,
   useModuleUnitPracticeRoomQuery,
   useSubmitModuleUnitPracticeAttemptMutation,
-} from '../queries/usePracticeRoomQueries';
-import { useModuleDetailQuery } from '../queries/useModulesQueries';
-import { useAuth } from '../../context/AuthContext';
+} from '../../queries/usePracticeRoomQueries';
+import { useModuleDetailQuery } from '../../queries/useModulesQueries';
+import { useAuth } from '../../../context/AuthContext';
 
 type PracticeRoomPageState = ReturnType<typeof usePracticeRoomPageState>;
 
@@ -64,8 +66,11 @@ describe('usePracticeRoomPageState (core-only)', () => {
   const useModuleDetailQueryMock = useModuleDetailQuery as unknown as Mock;
   const useSubmitModuleUnitPracticeAttemptMutationMock =
     useSubmitModuleUnitPracticeAttemptMutation as unknown as Mock;
+  const useCloseModuleUnitPracticeSessionMutationMock =
+    useCloseModuleUnitPracticeSessionMutation as unknown as Mock;
   const useAuthMock = useAuth as unknown as Mock;
   const applyStudentExpRewardMock = vi.fn();
+  const closeSessionMutateMock = vi.fn();
 
   beforeEach(() => {
     vi.resetAllMocks();
@@ -91,6 +96,10 @@ describe('usePracticeRoomPageState (core-only)', () => {
         hasCorrectAttempt: false,
       }),
     });
+    closeSessionMutateMock.mockReset();
+    useCloseModuleUnitPracticeSessionMutationMock.mockReturnValue({
+      mutate: closeSessionMutateMock,
+    });
   });
 
   it('parses module/unit ids and exposes not-found error for invalid ids', () => {
@@ -114,6 +123,33 @@ describe('usePracticeRoomPageState (core-only)', () => {
       1,
       '11111111-1111-4111-8111-111111111077',
     );
+  });
+
+  it('closes the active session on unmount', async () => {
+    useModuleUnitPracticeRoomQueryMock.mockReturnValue({
+      isPending: false,
+      error: null,
+      data: {
+        practiceRoom: {
+          sessionId: '11111111-1111-4111-8111-111111111077',
+          moduleUnitId: 3,
+          moduleUnitTitle: 'Unit',
+          questions: [],
+        },
+      },
+    });
+
+    const rendered = renderHookWithParams('1', '1');
+    rendered.unmount();
+
+    await waitFor(() => {
+      expect(closeSessionMutateMock).toHaveBeenCalledWith(
+        '11111111-1111-4111-8111-111111111077',
+        expect.objectContaining({
+          onError: expect.any(Function),
+        }),
+      );
+    });
   });
 
   it('selects the targeted question when questionId query param is present', async () => {

@@ -13,7 +13,8 @@ describe('QuestionAttemptService', () => {
     studentId: 2,
     questionId: 3,
     contentId: 4,
-    practiceMode: 'timed',
+    // Keep a concrete UUID so service tests mirror required DB relation constraints.
+    sessionId: '11111111-1111-4111-8111-111111111077',
     isCorrect: true,
     timeTakenMs: 1200,
     hintsUsed: 0,

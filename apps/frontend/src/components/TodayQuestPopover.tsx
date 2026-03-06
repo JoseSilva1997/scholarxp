@@ -6,7 +6,6 @@ import {
   BsBoxSeam,
   BsCheckCircleFill,
   BsChevronRight,
-  BsHexagon,
   BsInfoCircle,
   BsJournalText,
   BsLightningChargeFill,
@@ -113,12 +112,6 @@ export default function TodayQuestPopover({
                     <BsCheckCircleFill className={styles.slotCheck} />
                   )}
                 </button>
-              ))}
-              {/* Fill remaining slots to maintain layout symmetry if fewer than 3 quests exist. */}
-              {Array.from({ length: Math.max(0, 3 - quests.length) }).map((_, i) => (
-                <div key={`empty-${i}`} className={`${styles.slot} ${styles.emptySlot}`}>
-                  <BsHexagon className={styles.emptySlotIcon} />
-                </div>
               ))}
             </div>
 

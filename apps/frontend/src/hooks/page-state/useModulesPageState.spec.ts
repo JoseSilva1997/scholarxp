@@ -109,7 +109,7 @@ describe('useModulesPageState', () => {
     expect(mocks.logError).toHaveBeenCalledWith(listError, { feature: 'modules', action: 'list' });
   });
 
-  it('creates module successfully and navigates to module detail', async () => {
+  it('creates module successfully', async () => {
     mocks.createMutateAsync.mockResolvedValue({ id: 77 });
 
     const { result } = renderHook(() => useModulesPageState());
@@ -124,7 +124,6 @@ describe('useModulesPageState', () => {
     });
 
     expect(mocks.createMutateAsync).toHaveBeenCalledWith({ title: 'New module' });
-    expect(mocks.navigate).toHaveBeenCalledWith('/main/modules/77');
     expect(result.current.showCreate).toBe(false);
   });
 

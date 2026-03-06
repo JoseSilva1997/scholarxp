@@ -1,6 +1,7 @@
 // Verifies modules API helpers call apiFetch with the correct endpoint and payload contracts.
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  closePracticeRoomSession,
   createModule,
   createModuleUnit,
   getModuleById,
@@ -157,7 +158,6 @@ describe('modules api', () => {
       questionUnitId: 200,
       questionContentId: 300,
       sessionId: '11111111-1111-4111-8111-111111111055',
-      practiceMode: 'PRACTICE_ROOM',
       timeTakenMs: 4200,
       hintUnlocked: true,
       studentAnswer: { selectedOptionIndex: 1 },
@@ -183,6 +183,21 @@ describe('modules api', () => {
       '/module/4/unit/99/practice-room?sessionId=11111111-1111-4111-8111-111111111055',
       {
         method: 'GET',
+      },
+    );
+  });
+
+  it('closes practice room session with POST /module/:moduleId/unit/:unitId/practice-room/session/:sessionId/close', async () => {
+    await closePracticeRoomSession(
+      4,
+      99,
+      '11111111-1111-4111-8111-111111111055',
+    );
+
+    expect(clientMocks.apiFetch).toHaveBeenCalledWith(
+      '/module/4/unit/99/practice-room/session/11111111-1111-4111-8111-111111111055/close',
+      {
+        method: 'POST',
       },
     );
   });

@@ -9,15 +9,20 @@ import { useAuth } from '../../context/AuthContext';
 import { logError } from '../../utils/logger';
 import { useQuestHistoryInfiniteQuery } from '../queries/useQuestsQueries';
 
-const QUESTS_PER_DAY = 3;
+// Define the number of days to fetch per page for quest history
 const DAY_PAGE_SIZE = 14;
 
+// Type definition for a single day's quest section
 export type QuestDaySection = {
   questDayUtc: string;
   dayLabel: string;
+  isToday: boolean;
   quests: Array<QuestView | null>;
 };
 
+// The result type returned by the useQuestPageState hook
+// This ensures the hook's return structure is clear and consistent
+// for consumers of this hook.
 type UseQuestPageStateResult = {
   daySections: QuestDaySection[];
   isLoading: boolean;
@@ -27,14 +32,18 @@ type UseQuestPageStateResult = {
   loadMore: () => void;
 };
 
+// Main hook to manage the state of the quest page
 export function useQuestPageState(): UseQuestPageStateResult {
   const { user, isLoading: isAuthLoading } = useAuth();
   const isHistoryQueryEnabled = !isAuthLoading && Boolean(user);
+
+  // Fetch quest history data using an infinite query pattern
   const questHistoryQuery = useQuestHistoryInfiniteQuery(
     isHistoryQueryEnabled,
     DAY_PAGE_SIZE,
   );
 
+  // Log errors if the quest history query fails
   useEffect(() => {
     if (!questHistoryQuery.error) return;
     if (shouldLogApiError(questHistoryQuery.error)) {
@@ -42,6 +51,7 @@ export function useQuestPageState(): UseQuestPageStateResult {
     }
   }, [questHistoryQuery.error]);
 
+  // Group quests by their UTC day for easier display and organization
   const groupedQuestDays = useMemo(() => {
     const groupedByDay = new Map<string, QuestView[]>();
     const pages = questHistoryQuery.data?.pages ?? [];
@@ -56,20 +66,25 @@ export function useQuestPageState(): UseQuestPageStateResult {
       }
     }
 
+    // Sort days in descending order (most recent first)
     return Array.from(groupedByDay.entries()).sort(([leftDay], [rightDay]) =>
       leftDay < rightDay ? 1 : -1,
     );
   }, [questHistoryQuery.data?.pages]);
 
+  // Transform grouped quest days into a format suitable for the UI
   const daySections = useMemo(() => {
+    const todayUtc = formatDateToUtcDay(new Date());
     return groupedQuestDays.map(([questDayUtc, dayQuests]) => ({
       questDayUtc,
       dayLabel: formatQuestDayLabel(questDayUtc),
-      // Fixed 3-slot shape keeps cards consistent even if one day has fewer quests.
-      quests: Array.from({ length: QUESTS_PER_DAY }, (_, index) => dayQuests[index] ?? null),
+      isToday: questDayUtc === todayUtc,
+      // Use only available quests for the day; no fixed slot count padding.
+      quests: dayQuests,
     }));
   }, [groupedQuestDays]);
 
+  // Generate a user-friendly error message if the query fails
   const pageError = questHistoryQuery.error
     ? getDisplayErrorMessage(questHistoryQuery.error, {
         fallbackMessage:
@@ -77,6 +92,7 @@ export function useQuestPageState(): UseQuestPageStateResult {
       })
     : null;
 
+  // Function to load more quest history pages
   const loadMore = () => {
     // Query metadata controls continuation so UI only requests valid next-day windows.
     if (questHistoryQuery.hasNextPage && !questHistoryQuery.isFetchingNextPage) {
@@ -84,6 +100,7 @@ export function useQuestPageState(): UseQuestPageStateResult {
     }
   };
 
+  // Return the structured state for the quest page
   return {
     daySections,
     isLoading: isHistoryQueryEnabled && questHistoryQuery.isPending,
@@ -94,6 +111,7 @@ export function useQuestPageState(): UseQuestPageStateResult {
   };
 }
 
+// Helper function to format a UTC day into a user-friendly label
 function formatQuestDayLabel(questDayUtc: string): string {
   const todayUtc = formatDateToUtcDay(new Date());
   if (questDayUtc === todayUtc) {
@@ -109,6 +127,7 @@ function formatQuestDayLabel(questDayUtc: string): string {
   }).format(parsedDate);
 }
 
+// Helper function to convert a Date object to a UTC day string
 function formatDateToUtcDay(value: Date): string {
   return value.toISOString().slice(0, 10);
 }

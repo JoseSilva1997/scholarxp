@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   getDisplayErrorMessage: vi.fn(),
   logError: vi.fn(),
   createMutateAsync: vi.fn(),
+  updateMutateAsync: vi.fn(),
   updateStatusMutateAsync: vi.fn(),
   setQueryData: vi.fn(),
 }));
@@ -85,6 +86,11 @@ vi.mock('../queries/useModulesQueries', () => ({
     mutateAsync: mocks.createMutateAsync,
     isPending: false,
   }),
+  // Mirror the real hook dependencies so this spec validates behavior instead of failing on missing exports.
+  useUpdateModuleUnitMutation: () => ({
+    mutateAsync: mocks.updateMutateAsync,
+    isPending: false,
+  }),
   useUpdateModuleUnitStatusMutation: () => ({
     mutateAsync: mocks.updateStatusMutateAsync,
   }),
@@ -107,6 +113,7 @@ describe('useSingleModulePageState', () => {
     mocks.getDisplayErrorMessage.mockReset();
     mocks.logError.mockReset();
     mocks.createMutateAsync.mockReset();
+    mocks.updateMutateAsync.mockReset();
     mocks.updateStatusMutateAsync.mockReset();
     mocks.setQueryData.mockReset();
 
@@ -188,7 +195,7 @@ describe('useSingleModulePageState', () => {
     expect(result.current.expPercent).toBe(50);
   });
 
-  it('creates a unit and navigates to the unit editor', async () => {
+  it('creates a unit', async () => {
     moduleQueryState = {
       data: {
         id: 9,
@@ -208,7 +215,6 @@ describe('useSingleModulePageState', () => {
     });
 
     expect(mocks.createMutateAsync).toHaveBeenCalledWith({ title: 'Chapter 1' });
-    expect(mocks.navigate).toHaveBeenCalledWith('/main/modules/9/123/editor');
     expect(result.current.showCreateUnit).toBe(false);
   });
 
@@ -241,6 +247,58 @@ describe('useSingleModulePageState', () => {
       action: 'status-change',
       moduleUnitId: '40',
       status: 'live',
+    });
+  });
+
+  it('updates unit title through mutation with numeric module-unit id', async () => {
+    moduleQueryState = {
+      data: {
+        id: 14,
+        title: 'History',
+      },
+      isPending: false,
+      error: null,
+    };
+    mocks.updateMutateAsync.mockResolvedValue({ id: 40, title: 'Renamed lesson' });
+
+    const { result } = renderHook(() =>
+      useSingleModulePageState({ moduleIdParam: '14', user: mockUser }),
+    );
+
+    await act(async () => {
+      await result.current.handleUpdateUnitTitle('40', 'Renamed lesson');
+    });
+
+    expect(mocks.updateMutateAsync).toHaveBeenCalledWith({
+      moduleUnitId: 40,
+      payload: { title: 'Renamed lesson' },
+    });
+  });
+
+  it('logs and rethrows title-update errors when telemetry is enabled', async () => {
+    const updateError = new Error('update failed');
+    moduleQueryState = {
+      data: {
+        id: 14,
+        title: 'History',
+      },
+      isPending: false,
+      error: null,
+    };
+    mocks.updateMutateAsync.mockRejectedValue(updateError);
+    mocks.shouldLogApiError.mockReturnValue(true);
+
+    const { result } = renderHook(() =>
+      useSingleModulePageState({ moduleIdParam: '14', user: mockUser }),
+    );
+
+    await expect(result.current.handleUpdateUnitTitle('40', 'Renamed lesson')).rejects.toThrow(
+      'update failed',
+    );
+    expect(mocks.logError).toHaveBeenCalledWith(updateError, {
+      feature: 'module-unit',
+      action: 'update-title',
+      unitId: '40',
     });
   });
 });

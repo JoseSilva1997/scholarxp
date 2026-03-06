@@ -20,7 +20,7 @@ import {
   QUESTION_TYPE_CONFIGS,
   type QuestionTypeConfig,
 } from '../../components/question-types/QuestionTypeRegistry';
-import { useModuleUnitEditorPageState } from '../../hooks/page-state/useModuleUnitEditorPageState';
+import { useModuleUnitEditorPageState } from '../../hooks/page-state/module-unit-editor/useModuleUnitEditorPageState';
 import ConfirmDeleteModal from '../../components/Modals/ConfirmDeleteModal';
 import styles from './ModuleUnitEditor.module.css';
 

@@ -41,8 +41,7 @@ export default function SingleModulePage() {
     expMax,
     isCreatingUnit,
     handleCreateUnit,
-    handleChangeUnitStatus,
-    handleModuleSaved,
+    handleChangeUnitStatus,    handleUpdateUnitTitle,    handleModuleSaved,
   } = useSingleModulePageState({ moduleIdParam: moduleId, user });
 
   return (
@@ -74,8 +73,7 @@ export default function SingleModulePage() {
                 <div className={styles.titleGroup}>
                   <h1 className={styles.title}>{module.title}</h1>
                   <p className={styles.subtitle}>
-                    {module.description ||
-                      'Master your knowledge through consistent practice and revision.'}
+                    {module.description}
                   </p>
                 </div>
 
@@ -162,7 +160,12 @@ export default function SingleModulePage() {
 
               {canManageModuleContent &&
                 moduleUnits.map((unit) => (
-                  <ModuleUnitCard key={unit.id} unit={unit} onChangeStatus={handleChangeUnitStatus} />
+                  <ModuleUnitCard
+                    key={unit.id}
+                    unit={unit}
+                    onChangeStatus={handleChangeUnitStatus}
+                    onUpdateTitle={handleUpdateUnitTitle}
+                  />
                 ))}
 
               {canManageModuleContent ? (

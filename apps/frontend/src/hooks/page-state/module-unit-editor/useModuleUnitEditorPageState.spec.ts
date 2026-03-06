@@ -49,18 +49,18 @@ let editorDataState: {
   data: null,
 };
 
-vi.mock('../../utils/logger', () => ({
+vi.mock('../../../utils/logger', () => ({
   logError: mocks.logError,
 }));
 
-vi.mock('../../api/client', () => {
+vi.mock('../../../api/client', () => {
   // Use the same ApiError class from mocks so instanceof checks work correctly.
   return {
     ApiError: mocks.ApiError,
   };
 });
 
-vi.mock('../queries/useModuleUnitEditorQueries', () => ({
+vi.mock('../../queries/useModuleUnitEditorQueries', () => ({
   useModuleUnitEditorDataQuery: () => editorDataState,
   useUpdateQuestionGroupNameMutation: () => ({ mutateAsync: mocks.renameMutateAsync }),
   useCreateQuestionGroupMutation: () => ({ mutateAsync: mocks.createGroupMutateAsync }),

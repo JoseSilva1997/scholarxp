@@ -168,7 +168,7 @@ describe('Header', () => {
       });
     });
 
-    it('uses currentExp when it exceeds STUDENT_EXP_MAX', () => {
+    it('keeps max at STUDENT_EXP_MAX even if currentExp exceeds it to avoid totalExp calculation drift', () => {
       const highExpStudent: AuthUser = {
         ...studentWithAvatar,
         avatar: {
@@ -178,13 +178,13 @@ describe('Header', () => {
       };
 
       renderWithProviders(
-  <Header user={highExpStudent} />,
-);
+        <Header user={highExpStudent} />,
+      );
 
-      // max = Math.max(2000, 1000) = 2000
+      // max = STUDENT_EXP_MAX (1000)
       expect(mockUserBadgeProps.exp).toEqual({
         current: 2000,
-        max: 2000,
+        max: 1000,
       });
     });
 

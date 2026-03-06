@@ -10,7 +10,7 @@ import {
 } from 'react-icons/fa6';
 import expIcon from '../../assets/exp_icon.svg';
 import MainSection from '../../components/MainSection';
-import { usePracticeRoomPageState } from '../../hooks/page-state/usePracticeRoomPageState';
+import { usePracticeRoomPageState } from '../../hooks/page-state/practice-room/usePracticeRoomPageState';
 import styles from './PracticeRoomPage.module.css';
 import { getQuestionUnitStatusClass } from './practice-room-status';
 import { buildPracticeRoomAnswerFeedback } from './practice-room-answer-feedback';

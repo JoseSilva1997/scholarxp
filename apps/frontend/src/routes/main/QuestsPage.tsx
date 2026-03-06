@@ -107,7 +107,7 @@ export default function QuestsPage() {
               <span>Recent Activity</span>
             </div>
             
-            {daySections.map((daySection, index) => {
+            {daySections.map((daySection) => {
               // Check if all quests in the day are complete and count them.
               const completedQuestsCount = daySection.quests.filter(
                 (quest) => quest && quest.isCompleted,
@@ -121,7 +121,7 @@ export default function QuestsPage() {
                       <BsCheckCircleFill
                         className={`${styles.markerIcon} ${styles.markerCheck}`}
                       />
-                    ) : index === 0 ? (
+                    ) : daySection.isToday ? (
                       <div className={`${styles.markerCircle} ${styles.markerToday}`} />
                     ) : (
                       <div className={`${styles.markerCircle} ${styles.markerIncomplete}`} />
@@ -129,7 +129,7 @@ export default function QuestsPage() {
                   </div>
                   <section
                     className={`${styles.daySection} ${allQuestsComplete ? styles.completed : ""} ${
-                      index === 0 ? styles.isToday : ""
+                      daySection.isToday ? styles.isToday : ""
                     }`.trim()}
                   >
                     <div className={styles.dayInfo}>

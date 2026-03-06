@@ -40,14 +40,25 @@ vi.mock('../context/UiLayoutContext', () => ({
 }));
 
 vi.mock('../components/Header', () => ({
-  default: ({ onLogout }: { onLogout: () => Promise<void> }) => (
-    <button onClick={() => void onLogout()}>header-logout</button>
+  default: ({
+    onLogout,
+    onToggleSidebar,
+  }: {
+    onLogout: () => Promise<void>;
+    onToggleSidebar: () => void;
+  }) => (
+    <div data-testid="header">
+      <button onClick={() => void onLogout()}>header-logout</button>
+      <button onClick={onToggleSidebar}>header-toggle</button>
+    </div>
   ),
 }));
 
 vi.mock('../components/SidebarNav', () => ({
-  default: ({ onNavigate }: { onNavigate: () => void }) => (
-    <button onClick={onNavigate}>sidebar-navigate</button>
+  default: ({ onNavigate, collapsed }: { onNavigate: () => void; collapsed: boolean }) => (
+    <div data-testid="sidebar" data-collapsed={collapsed}>
+      <button onClick={onNavigate}>sidebar-navigate</button>
+    </div>
   ),
 }));
 
@@ -107,5 +118,67 @@ describe('AuthedLayout', () => {
     fireEvent.click(overlay!);
 
     expect(mocks.setSidebarOpen).toHaveBeenCalledWith(false);
+  });
+
+  it('toggles sidebar state', () => {
+    render(<AuthedLayout />);
+
+    fireEvent.click(screen.getByText('header-toggle'));
+
+    expect(mocks.setSidebarOpen).toHaveBeenCalled();
+  });
+
+  it('starts with sidebar collapsed', () => {
+    uiState.isSidebarOpen = false;
+    render(<AuthedLayout />);
+
+    const sidebar = screen.getByTestId('sidebar');
+
+    expect(sidebar.getAttribute('data-collapsed')).toBe('true');
+  });
+
+  it('skips sidebar collapse on desktop navigation', () => {
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 1200,
+    });
+
+    render(<AuthedLayout />);
+
+    fireEvent.click(screen.getAllByText('sidebar-navigate')[0]);
+
+    expect(mocks.setSidebarOpen).not.toHaveBeenCalled();
+  });
+
+  it('locks body scroll on mobile when sidebar is open', () => {
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 700,
+    });
+
+    render(<AuthedLayout />);
+
+    expect(document.body.style.overflow).toBe('hidden');
+    expect(document.documentElement.style.overflow).toBe('hidden');
+  });
+
+  it('unlocks body scroll when sidebar is closed', () => {
+    uiState.isSidebarOpen = false;
+    render(<AuthedLayout />);
+
+    expect(document.body.style.overflow).toBe('');
+    expect(document.documentElement.style.overflow).toBe('');
+  });
+
+  it('unlocks body scroll on desktop even if sidebar is open', () => {
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 1200,
+    });
+
+    render(<AuthedLayout />);
+
+    expect(document.body.style.overflow).toBe('');
+    expect(document.documentElement.style.overflow).toBe('');
   });
 });

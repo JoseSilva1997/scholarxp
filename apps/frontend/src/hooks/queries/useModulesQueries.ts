@@ -6,6 +6,7 @@ import type {
   ModuleSummaryResponse,
   ModuleUnitResponse,
   UpdateModulePayload,
+  UpdateModuleUnitPayload,
   UpdateModuleUnitStatusPayload,
 } from '@scholarxp/api-contracts';
 import {
@@ -15,6 +16,7 @@ import {
   getModuleUnits,
   listModules,
   updateModule,
+  updateModuleUnit,
   updateModuleUnitStatus,
 } from '../../api/modules';
 import { queryKeys } from '../query-keys';
@@ -125,6 +127,37 @@ export function useCreateModuleUnitMutation(moduleId: number | null) {
           // Insert newly created unit immediately so cache reflects the mutation result without a refetch gap.
           const deduped = previous.filter((unit) => unit.id !== createdUnit.id);
           return [createdUnit, ...deduped];
+        },
+      );
+    },
+    onSettled: async () => {
+      if (moduleId === null) return;
+      await queryClient.invalidateQueries({ queryKey: queryKeys.modules.units(moduleId) });
+    },
+  });
+}
+
+export function useUpdateModuleUnitMutation(moduleId: number | null) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      moduleUnitId,
+      payload,
+    }: {
+      moduleUnitId: number;
+      payload: UpdateModuleUnitPayload;
+    }) => updateModuleUnit(moduleUnitId, payload),
+    onSuccess: (updatedUnit) => {
+      if (moduleId === null) return;
+      queryClient.setQueryData<ModuleUnitResponse[]>(
+        queryKeys.modules.units(moduleId),
+        (previousUnits) => {
+          if (!previousUnits) return previousUnits;
+          // Optimistically update unit details in cache to keep list interactions responsive.
+          return previousUnits.map((unit) =>
+            unit.id === updatedUnit.id ? { ...unit, ...updatedUnit } : unit,
+          );
         },
       );
     },

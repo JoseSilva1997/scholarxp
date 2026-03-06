@@ -1,4 +1,5 @@
 import type { QuestionData } from '@scholarxp/question-type-dtos';
+import type { QuestionSource } from '../questions';
 
 /**
  * Module domain contracts for ScholarXP
@@ -110,7 +111,8 @@ export interface ModuleUnitEditorContentResponse {
   type: string;
   hint: string | null;
   difficultyScore: number;
-  source: string;
+  // Keep editor content source aligned with question contracts to prevent frontend/backend drift.
+  source: QuestionSource;
   isArchived: boolean;
 }
 

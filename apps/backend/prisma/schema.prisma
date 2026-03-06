@@ -140,6 +140,8 @@ model PracticeSession {
   id               String            @id @default(uuid()) @db.Uuid
   moduleId         Int?              @map("module_id")
   userId           Int?              @map("user_id")
+  // Keep this as string so shared contracts own allowed values without DB enum migrations for each value change.
+  sessionType      String            @default("practice_room") @map("session_type")
   startTime        DateTime          @map("start_time")
   endTime          DateTime?         @map("end_time")
   module           Module?           @relation(fields: [moduleId], references: [id], onDelete: SetNull)
@@ -253,19 +255,19 @@ model QuestionVariant {
 
 model QuestionAttempt {
   id            Int              @id @default(autoincrement())
-  sessionId     String?          @db.Uuid @map("session_id")
+  // Session id is required so every attempt has canonical session context for analytics and policy checks.
+  sessionId     String           @db.Uuid @map("session_id")
   moduleUnitId  Int?             @map("module_unit_id")
   studentId     Int?             @map("student_id")
   questionId    Int              @map("question_id")
   contentId     Int              @map("content_id")
-  practiceMode  String           @map("practice_mode")
   isCorrect     Boolean          @map("is_correct")
   timeTakenMs   Int              @map("time_taken_ms")
   hintsUsed     Int              @default(0) @map("hints_used")
   studentAnswer Json             @map("student_answer")
   attemptedAt   DateTime         @default(now()) @map("attempted_at")
-  // Session linkage keeps attempts grouped under one practice run without making the relation mandatory for legacy rows.
-  session       PracticeSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  // Required relation ensures deletes are blocked when attempts exist, preserving attempt history integrity.
+  session       PracticeSession  @relation(fields: [sessionId], references: [id], onDelete: Restrict)
   content       QuestionContent  @relation(fields: [contentId], references: [id], onDelete: Cascade)
   moduleUnit    ModuleUnit?      @relation(fields: [moduleUnitId], references: [id], onDelete: SetNull)
   question      QuestionUnit     @relation(fields: [questionId], references: [id], onDelete: Cascade)

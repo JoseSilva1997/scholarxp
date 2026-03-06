@@ -1,4 +1,5 @@
 import type { 
+  ClosePracticeSessionResponse,
   CreateModulePayload,
   UpdateModulePayload,
   CreateModuleUnitMinimalPayload,
@@ -15,7 +16,7 @@ import type {
   SubmitAttemptPayload,
   SubmitAttemptResponse,
 } from '@scholarxp/api-contracts';
-import { apiFetch } from './client';
+import { apiFetch, getApiBaseUrl, getCsrfToken } from './client';
 
 export async function listModules(): Promise<ModuleSummaryResponse[]> {
   return apiFetch<ModuleSummaryResponse[]>('/module', {
@@ -122,6 +123,43 @@ export async function submitPracticeRoomAttempt(
   );
 }
 
+export async function closePracticeRoomSession(
+  moduleId: number,
+  moduleUnitId: number,
+  sessionId: string,
+): Promise<ClosePracticeSessionResponse> {
+  return apiFetch<ClosePracticeSessionResponse>(
+    buildPracticeRoomSessionClosePath(moduleId, moduleUnitId, sessionId),
+    {
+      method: 'POST',
+    },
+  );
+}
+
+// Keepalive close is best-effort for unload/pagehide where async mutation completion is not guaranteed.
+export function closePracticeRoomSessionKeepalive(
+  moduleId: number,
+  moduleUnitId: number,
+  sessionId: string,
+): boolean {
+  const csrfToken = getCsrfToken();
+  if (!csrfToken) {
+    return false;
+  }
+
+  const url = `${getApiBaseUrl()}${buildPracticeRoomSessionClosePath(moduleId, moduleUnitId, sessionId)}`;
+  void fetch(url, {
+    method: 'POST',
+    credentials: 'include',
+    keepalive: true,
+    headers: {
+      'Content-Type': 'application/json',
+      'x-csrf-token': csrfToken,
+    },
+  });
+  return true;
+}
+
 export async function createModuleUnitQuestionGroup(
   moduleId: number,
   moduleUnitId: number,
@@ -159,4 +197,12 @@ export async function updateModuleUnitQuestionGroupName(
       body: JSON.stringify(payload),
     },
   );
+}
+
+function buildPracticeRoomSessionClosePath(
+  moduleId: number,
+  moduleUnitId: number,
+  sessionId: string,
+) {
+  return `/module/${moduleId}/unit/${moduleUnitId}/practice-room/session/${sessionId}/close`;
 }

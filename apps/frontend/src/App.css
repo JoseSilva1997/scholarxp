@@ -46,15 +46,6 @@
   -webkit-mask-image: none;
 }
 
-.App__loading {
-  /* Keep route chunk loading centered so layout does not jump during lazy navigation. */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: 1 1 auto;
-  min-height: 240px;
-}
-
 @media (max-width: 768px) {
   .App__content {
     gap: 32px;
