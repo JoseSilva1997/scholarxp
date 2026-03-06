@@ -14,6 +14,9 @@ jobs:
     name: Frontend checks
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      # Frontend modules validate this at import-time; CI uses a safe placeholder backend URL.
+      VITE_API_URL: http://127.0.0.1:3000
 
     steps:
       - name: Checkout
@@ -64,6 +67,10 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        # Explicit generation keeps ESLint/TypeScript type resolution stable in fresh CI runners.
+        run: pnpm --filter backend exec prisma generate
 
       - name: Lint backend
         run: pnpm --filter backend lint

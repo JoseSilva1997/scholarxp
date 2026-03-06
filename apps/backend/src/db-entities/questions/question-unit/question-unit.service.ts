@@ -147,7 +147,8 @@ export class QuestionUnitService {
         id: result.coreContent.id,
         questionUnitId: result.coreContent.questionUnitId,
         questionStem: result.coreContent.questionStem,
-        questionData: result.coreContent.questionData as unknown as QuestionData,
+        questionData: result.coreContent
+          .questionData as unknown as QuestionData,
         type: result.coreContent.type,
         hint: result.coreContent.hint,
         difficultyScore: result.coreContent.difficultyScore,
@@ -230,8 +231,8 @@ export class QuestionUnitService {
           id: variantResult.variant.content.id,
           questionUnitId: variantResult.variant.content.questionUnitId,
           questionStem: variantResult.variant.content.questionStem,
-          questionData:
-            variantResult.variant.content.questionData as unknown as QuestionData,
+          questionData: variantResult.variant.content
+            .questionData as unknown as QuestionData,
           type: variantResult.variant.content.type,
           hint: variantResult.variant.content.hint,
           difficultyScore: variantResult.variant.content.difficultyScore,

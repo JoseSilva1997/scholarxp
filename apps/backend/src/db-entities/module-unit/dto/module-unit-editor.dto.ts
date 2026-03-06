@@ -26,9 +26,7 @@ export class ModuleUnitEditorGroupDto implements ModuleUnitEditorGroupResponse {
   questions: ModuleUnitEditorQuestionDto[];
 }
 
-export class ModuleUnitEditorQuestionDto
-  implements ModuleUnitEditorQuestionResponse
-{
+export class ModuleUnitEditorQuestionDto implements ModuleUnitEditorQuestionResponse {
   id: number;
   questionGroupId: number | null;
   title: string;
@@ -37,17 +35,13 @@ export class ModuleUnitEditorQuestionDto
   variants: ModuleUnitEditorVariantDto[];
 }
 
-export class ModuleUnitEditorVariantDto
-  implements ModuleUnitEditorVariantResponse
-{
+export class ModuleUnitEditorVariantDto implements ModuleUnitEditorVariantResponse {
   id: number;
   variantLabel: string;
   content: ModuleUnitEditorContentDto;
 }
 
-export class ModuleUnitEditorContentDto
-  implements ModuleUnitEditorContentResponse
-{
+export class ModuleUnitEditorContentDto implements ModuleUnitEditorContentResponse {
   id: number;
   questionUnitId: number;
   questionStem: string;
