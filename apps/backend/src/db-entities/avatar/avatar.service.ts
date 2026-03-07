@@ -37,7 +37,9 @@ export class AvatarService {
     // Persist canonical totalExp so account progression is always derived from one source of truth.
     return this.prisma.avatar.create({
       data: {
-        ...createAvatarDto,
+        userId: createAvatarDto.userId,
+        // Avatar creation is initialization-only; XP accrual happens exclusively through reward awarding paths.
+        totalExp: 0,
       },
     });
   }
@@ -48,11 +50,6 @@ export class AvatarService {
 
   async findOne(id: number) {
     return this.getOrThrow(id);
-  }
-
-  async remove(id: number) {
-    await this.getOrThrow(id);
-    return this.prisma.avatar.delete({ where: { id } });
   }
 
   // Practice flows award student XP through this helper so avatar progression writes stay centralized.

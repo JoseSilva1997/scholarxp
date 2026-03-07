@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
+import { getProgressWithinLevel } from '@scholarxp/progression';
 import type { AuthUser } from '../types/auth';
 import defaultAvatar from '../assets/default-profile-pic.png';
 import styles from './UserBadge.module.css';
@@ -499,38 +500,6 @@ export default function UserBadge({ user, onLogout }: UserBadgeProps) {
       ) : null}
     </div>
   );
-}
-
-function getLevelStartExp(level: number) {
-  const normalizedLevel = Math.max(1, Math.floor(level));
-  return Math.floor(100 * Math.pow(normalizedLevel - 1, 1.5));
-}
-
-function getLevelFromTotalExp(totalExp: number) {
-  const safeTotalExp = Math.max(0, totalExp);
-  return Math.floor(Math.pow(safeTotalExp / 100, 2 / 3)) + 1;
-}
-
-function getProgressWithinLevel(totalExp: number) {
-  const safeTotalExp = Math.max(0, totalExp);
-  const level = getLevelFromTotalExp(safeTotalExp);
-  const levelStartExp = getLevelStartExp(level);
-  const nextLevelStartExp = getLevelStartExp(level + 1);
-  const currentLevelExp = safeTotalExp - levelStartExp;
-  const nextLevelExpRequired = Math.max(1, nextLevelStartExp - levelStartExp);
-  const xpToNextLevel = Math.max(0, nextLevelStartExp - safeTotalExp);
-  const progressPercent = Math.max(
-    0,
-    Math.min(100, (currentLevelExp / nextLevelExpRequired) * 100),
-  );
-
-  return {
-    level,
-    currentLevelExp,
-    nextLevelExpRequired,
-    xpToNextLevel,
-    progressPercent,
-  };
 }
 
 function easeOutCubic(progress: number) {

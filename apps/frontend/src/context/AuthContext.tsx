@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AuthResponse } from '@scholarxp/api-contracts';
+import { getProgressWithinLevel } from '@scholarxp/progression';
 import { getCurrentUser, logout as apiLogout } from '../api/auth';
 import { clearCsrfToken, refreshCsrfToken } from '../api/client';
 import { queryKeys } from '../hooks/query-keys';
@@ -152,27 +153,4 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return ctx;
-}
-
-// Mirrors backend level-rules for optimistic UI updates while waiting for /auth/me refresh.
-function getProgressWithinLevel(totalExp: number) {
-  const normalizedTotalExp = Math.max(0, Math.floor(totalExp));
-  const level = Math.floor(Math.pow(normalizedTotalExp / 100, 2 / 3)) + 1;
-  const levelStartExp = Math.floor(100 * Math.pow(level - 1, 1.5));
-  const nextLevelStartExp = Math.floor(100 * Math.pow(level, 1.5));
-  const currentLevelExp = normalizedTotalExp - levelStartExp;
-  const nextLevelExpRequired = Math.max(1, nextLevelStartExp - levelStartExp);
-  const xpToNextLevel = Math.max(0, nextLevelStartExp - normalizedTotalExp);
-  const progressPercent = Math.max(
-    0,
-    Math.min(100, (currentLevelExp / nextLevelExpRequired) * 100),
-  );
-
-  return {
-    level,
-    currentLevelExp,
-    nextLevelExpRequired,
-    xpToNextLevel,
-    progressPercent,
-  };
 }

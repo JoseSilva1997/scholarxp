@@ -4,8 +4,4 @@ export class CreateAvatarDto {
   @IsInt()
   @IsNotEmpty()
   userId: number;
-
-  @IsInt()
-  @IsNotEmpty()
-  totalExp: number;
 }

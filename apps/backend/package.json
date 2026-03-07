@@ -38,6 +38,7 @@
     "@scholarxp/api-contracts": "workspace:*",
     "@scholarxp/constants": "workspace:*",
     "@scholarxp/permissions": "workspace:*",
+    "@scholarxp/progression": "workspace:*",
     "@scholarxp/question-type-dtos": "workspace:*",
     "bcryptjs": "^3.0.3",
     "class-transformer": "^0.5.1",

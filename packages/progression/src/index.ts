@@ -1,3 +1,4 @@
+// Shared account progression utilities so backend and frontend derive level state from one canonical formula.
 export type AccountLevelProgress = {
   level: number;
   currentLevelExp: number;
@@ -6,19 +7,19 @@ export type AccountLevelProgress = {
   progressPercent: number;
 };
 
-// Level start follows product rule: TotalXP(level) = 100 * (level - 1)^1.5.
+// Uses the product curve rule: total XP at level N starts at floor(100 * (N - 1)^1.5).
 export function getLevelStartExp(level: number): number {
   const normalizedLevel = Math.max(1, Math.floor(level));
   return Math.floor(100 * Math.pow(normalizedLevel - 1, 1.5));
 }
 
-// Inverts the level-start formula so account progression derives from one canonical total XP value.
+// Inverts the level-start curve so any total XP can deterministically map to a level.
 export function getLevelFromTotalExp(totalExp: number): number {
   const normalizedTotalExp = Math.max(0, Math.floor(totalExp));
   return Math.floor(Math.pow(normalizedTotalExp / 100, 2 / 3)) + 1;
 }
 
-// Derives current progress within level so frontend consumers do not replicate formula logic.
+// Derives level, in-level XP, and percentage snapshot from a single total XP source of truth.
 export function getProgressWithinLevel(totalExp: number): AccountLevelProgress {
   const normalizedTotalExp = Math.max(0, Math.floor(totalExp));
   const level = getLevelFromTotalExp(normalizedTotalExp);

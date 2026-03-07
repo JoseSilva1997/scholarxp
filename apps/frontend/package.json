@@ -16,6 +16,7 @@
     "@scholarxp/api-contracts": "workspace:*",
     "@scholarxp/constants": "workspace:*",
     "@scholarxp/permissions": "workspace:*",
+    "@scholarxp/progression": "workspace:*",
     "@scholarxp/question-type-dtos": "workspace:*",
     "@sentry/browser": "^8.55.0",
     "@tanstack/react-query": "^5.90.20",
