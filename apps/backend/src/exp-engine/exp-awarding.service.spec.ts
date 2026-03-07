@@ -288,7 +288,8 @@ describe('ExpAwardingService', () => {
       }),
     );
     const streakEventCalls = expLedgerService.recordEvent.mock.calls.filter(
-      ([params]) => params.eventType === ExpLedgerEventTypes.PRACTICE_ROOM_STREAK,
+      ([params]) =>
+        params.eventType === ExpLedgerEventTypes.PRACTICE_ROOM_STREAK,
     );
     expect(streakEventCalls).toHaveLength(0);
   });

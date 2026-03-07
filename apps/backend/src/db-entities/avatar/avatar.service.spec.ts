@@ -31,6 +31,7 @@ describe('AvatarService', () => {
     prisma.avatar.create.mockResolvedValue({
       id: 1,
       ...createDto,
+      totalExp: 200,
       createdAt: now,
     });
 
@@ -43,8 +44,15 @@ describe('AvatarService', () => {
     expect(prisma.avatar.findUnique).toHaveBeenCalledWith({
       where: { userId },
     });
-    expect(prisma.avatar.create).toHaveBeenCalledWith({ data: createDto });
-    expect(result).toEqual({ id: 1, ...createDto, createdAt: now });
+    expect(prisma.avatar.create).toHaveBeenCalledWith({
+      data: { ...createDto, totalExp: 200 },
+    });
+    expect(result).toEqual({
+      id: 1,
+      ...createDto,
+      totalExp: 200,
+      createdAt: now,
+    });
   });
 
   it('create rejects non-students', async () => {
@@ -169,14 +177,14 @@ describe('AvatarService', () => {
   it('addStudentExp increments currentExp for an existing avatar', async () => {
     prisma.avatar.findUnique.mockResolvedValue({
       id: 4,
-      currentExp: 200,
-      level: 1,
+      totalExp: 200,
     } as any);
     prisma.avatar.update.mockResolvedValue({
       id: 4,
       userId,
-      level: 1,
-      currentExp: 225,
+      level: 2,
+      currentExp: 125,
+      totalExp: 225,
       createdAt: now,
     } as any);
 
@@ -184,24 +192,28 @@ describe('AvatarService', () => {
 
     expect(prisma.avatar.findUnique).toHaveBeenCalledWith({
       where: { userId },
-      select: { id: true, currentExp: true, level: true },
+      select: { id: true, totalExp: true, level: true, currentExp: true },
     });
     expect(prisma.avatar.update).toHaveBeenCalledWith({
       where: { id: 4 },
       data: {
-        currentExp: {
+        totalExp: {
           set: 225,
         },
+        currentExp: {
+          set: 125,
+        },
         level: {
-          set: 1,
+          set: 2,
         },
       },
     });
     expect(result).toEqual({
       id: 4,
       userId,
-      level: 1,
-      currentExp: 225,
+      level: 2,
+      currentExp: 125,
+      totalExp: 225,
       createdAt: now,
     });
   });
@@ -210,6 +222,48 @@ describe('AvatarService', () => {
     await expect(service.addStudentExp(userId, 0)).rejects.toThrow(
       BadRequestException,
     );
+  });
+
+  it('addStudentExp derives canonical totalExp from legacy fields when totalExp is still defaulted', async () => {
+    prisma.avatar.findUnique.mockResolvedValue({
+      id: 4,
+      totalExp: 0,
+      level: 2,
+      currentExp: 50,
+    } as any);
+    prisma.avatar.update.mockResolvedValue({
+      id: 4,
+      userId,
+      level: 2,
+      currentExp: 75,
+      totalExp: 175,
+      createdAt: now,
+    } as any);
+
+    const result = await service.addStudentExp(userId, 25);
+
+    expect(prisma.avatar.update).toHaveBeenCalledWith({
+      where: { id: 4 },
+      data: {
+        totalExp: {
+          set: 175,
+        },
+        currentExp: {
+          set: 75,
+        },
+        level: {
+          set: 2,
+        },
+      },
+    });
+    expect(result).toEqual({
+      id: 4,
+      userId,
+      level: 2,
+      currentExp: 75,
+      totalExp: 175,
+      createdAt: now,
+    });
   });
 
   it('addStudentExp throws when avatar does not exist', async () => {

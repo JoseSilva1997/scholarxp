@@ -7,7 +7,10 @@ import type { Prisma } from '@prisma/client';
 import { CreateAvatarDto } from './dto/create-avatar.dto';
 import { UpdateAvatarDto } from './dto/update-avatar.dto';
 import { PrismaService } from '../../prisma/prisma.service';
-import { STUDENT_EXP_MAX } from '@scholarxp/constants';
+import {
+  getLevelStartExp,
+  getProgressWithinLevel,
+} from '../../exp-engine/level-rules';
 
 type PrismaClientLike = Prisma.TransactionClient | PrismaService;
 
@@ -36,7 +39,14 @@ export class AvatarService {
       );
     }
 
-    return this.prisma.avatar.create({ data: createAvatarDto });
+    // Persist totalExp as canonical account progression state while preserving current DTO shape.
+    return this.prisma.avatar.create({
+      data: {
+        ...createAvatarDto,
+        totalExp:
+          getLevelStartExp(createAvatarDto.level) + createAvatarDto.currentExp,
+      },
+    });
   }
 
   findAll() {
@@ -75,26 +85,33 @@ export class AvatarService {
     const prismaClient = tx ?? this.prisma;
     const avatar = await prismaClient.avatar.findUnique({
       where: { userId },
-      select: { id: true, currentExp: true, level: true },
+      select: { id: true, totalExp: true, level: true, currentExp: true },
     });
 
     if (!avatar) {
       throw new NotFoundException(`Avatar not found for user ${userId}`);
     }
 
-    // Calculate new XP and level, ensuring XP wraps around at the max threshold.
-    const totalExp = avatar.currentExp + expGained;
-    const levelGain = Math.floor(totalExp / STUDENT_EXP_MAX);
-    const remainingExp = totalExp % STUDENT_EXP_MAX;
+    // Migration-safe fallback: derive totalExp from legacy fields when old rows still have default totalExp.
+    const canonicalTotalExp =
+      avatar.totalExp > 0
+        ? avatar.totalExp
+        : getLevelStartExp(avatar.level) + avatar.currentExp;
+    // Recompute level snapshot from canonical totalExp so non-linear curves stay consistent.
+    const updatedTotalExp = canonicalTotalExp + expGained;
+    const progression = getProgressWithinLevel(updatedTotalExp);
 
     return prismaClient.avatar.update({
       where: { id: avatar.id },
       data: {
+        totalExp: {
+          set: updatedTotalExp,
+        },
         currentExp: {
-          set: remainingExp,
+          set: progression.currentLevelExp,
         },
         level: {
-          set: avatar.level + levelGain,
+          set: progression.level,
         },
       },
     });

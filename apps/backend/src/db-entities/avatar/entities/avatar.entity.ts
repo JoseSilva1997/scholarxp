@@ -3,5 +3,6 @@ export class Avatar {
   userId: number;
   level: number;
   currentExp: number;
+  totalExp: number;
   createdAt: Date;
 }
