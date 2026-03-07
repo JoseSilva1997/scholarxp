@@ -5,7 +5,7 @@ import { NotFoundException } from '@nestjs/common';
 import { PracticeRoomService } from './practice-room.service';
 import { PracticeRoomMapper } from './practice-room.mapper';
 import { StudentModuleUnitProgressService } from './student-module-unit-progress.service';
-import { PracticeRewardService } from '../exp-engine/exp-awarding.service';
+import { ExpAwardingService } from '../exp-engine/exp-awarding.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock, type PrismaMock } from '../test/test-helpers';
 import type {
@@ -143,7 +143,7 @@ describe('PracticeRoomService', () => {
           useValue: studentModuleUnitProgressService,
         },
         {
-          provide: PracticeRewardService,
+          provide: ExpAwardingService,
           useValue: practiceRewardService,
         },
       ],

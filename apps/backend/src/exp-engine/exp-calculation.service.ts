@@ -1,25 +1,23 @@
 // Service role: encapsulates calculation and rules for XP rewards to simplify orchestration logic and enable dedicated unit testing.
 import { Injectable } from '@nestjs/common';
-
-const FIRST_COMPLETION_REWARD = 100;
-const SECOND_COMPLETION_REWARD = 25;
-const MODULE_BASELINE_EXP = 1000;
-const FIRST_ATTEMPT_BONUS_EXP = 150;
-export const STREAK_TIER_DELTA_EXP = 50;
+import {
+  MODULE_UNIT_COMPLETION_REWARDS,
+  MODULE_UNIT_BASELINE_EXP,
+  MAXIMUM_FIRST_ATTEMPT_BONUS_EXP,
+} from '@scholarxp/constants';
 
 @Injectable()
 export class ExpCalculationService {
   resolveDailyCompletionReward(completionCountToday: number): number {
     // First completion of the UTC day gets full reward.
     if (completionCountToday <= 0) {
-      return FIRST_COMPLETION_REWARD;
+      return MODULE_UNIT_COMPLETION_REWARDS.FIRST_COMPLETION;
     }
     // Second completion gets reduced reward.
     if (completionCountToday === 1) {
-      return SECOND_COMPLETION_REWARD;
+      return MODULE_UNIT_COMPLETION_REWARDS.SECOND_COMPLETION;
     }
-    // Third and beyond intentionally grant zero.
-    return 0;
+    return MODULE_UNIT_COMPLETION_REWARDS.SUBSEQUENT_COMPLETIONS;
   }
 
   // Question-level pools are floored and remaining XP is allocated to the last question.
@@ -41,7 +39,7 @@ export class ExpCalculationService {
 
   getBaselineAward(totalQuestions: number, isLastQuestion: boolean): number {
     return this.getPerQuestionAward({
-      totalPoolExp: MODULE_BASELINE_EXP,
+      totalPoolExp: MODULE_UNIT_BASELINE_EXP,
       totalQuestions,
       isLastQuestion,
     });
@@ -52,7 +50,7 @@ export class ExpCalculationService {
     isLastQuestion: boolean,
   ): number {
     return this.getPerQuestionAward({
-      totalPoolExp: FIRST_ATTEMPT_BONUS_EXP,
+      totalPoolExp: MAXIMUM_FIRST_ATTEMPT_BONUS_EXP,
       totalQuestions,
       isLastQuestion,
     });

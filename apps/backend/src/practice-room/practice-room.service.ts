@@ -12,7 +12,7 @@ import {
 } from '@scholarxp/api-contracts';
 import { ExpAwardingService } from '../exp-engine/exp-awarding.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { MODULE_EXP_MAX } from '@scholarxp/constants';
+import { MODULE_UNIT_BASELINE_EXP } from '@scholarxp/constants';
 import { ModuleUnitPracticeRoomResponseDto } from './dto/practice-room-response.dto';
 import { SubmitAttemptDto } from './dto/submit-attempt.dto';
 import { SubmitAttemptResponseDto } from './dto/submit-attempt-response.dto';
@@ -197,7 +197,7 @@ export class PracticeRoomService {
             description: updatedMembership.module.description,
             userModuleLevel: updatedMembership.userModuleLevel,
             currentExp: updatedMembership.currentExp,
-            expMax: MODULE_EXP_MAX,
+            expMax: MODULE_UNIT_BASELINE_EXP,
           }
         : undefined,
     };
@@ -417,7 +417,7 @@ export class PracticeRoomService {
       description: membership.module.description,
       userModuleLevel: membership.userModuleLevel,
       currentExp: membership.currentExp,
-      expMax: MODULE_EXP_MAX, // Default module expansion ceiling from global gamification rules.
+      expMax: MODULE_UNIT_BASELINE_EXP, // Default module expansion ceiling from global gamification rules.
     };
   }
 

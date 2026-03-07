@@ -5,8 +5,11 @@ import { AvatarService } from '../db-entities/avatar/avatar.service';
 import { ExpLedgerService } from '../db-entities/exp-ledger/exp-ledger.service';
 import { UserModuleService } from '../db-entities/user-module/user-module.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { ExpLedgerEventTypes } from '@scholarxp/constants';
-import { ExpCalculationService, STREAK_TIER_DELTA_EXP } from './exp-calculation.service';
+import {
+  ExpLedgerEventTypes,
+  STREAK_BONUS_EXP_PER_DELTA,
+} from '@scholarxp/constants';
+import { ExpCalculationService } from './exp-calculation.service';
 
 type PrismaClientLike = Prisma.TransactionClient | PrismaService;
 
@@ -73,7 +76,6 @@ export class ExpAwardingService {
       };
     }
 
-    // Track cumulative XP from baseline + first-attempt + streak components.
     let totalAwardedExp = 0;
     // Keep last updated membership id to return a response-ready snapshot.
     let updatedMembershipId: number | null = null;
@@ -112,10 +114,11 @@ export class ExpAwardingService {
 
     // First-attempt bonus only applies when this correct submission was also first-ever attempt.
     if (!params.hadAnyAttemptBeforeSubmit) {
-      const firstAttemptAward = this.expCalculationService.getFirstAttemptBonusAward(
-        questionContext.totalQuestions,
-        questionContext.lastQuestionId === params.questionUnitId,
-      );
+      const firstAttemptAward =
+        this.expCalculationService.getFirstAttemptBonusAward(
+          questionContext.totalQuestions,
+          questionContext.lastQuestionId === params.questionUnitId,
+        );
       // Keep first-attempt bonus idempotent at question granularity.
       const firstAttemptEvent = await this.expLedgerService.recordEvent(
         {
@@ -211,7 +214,10 @@ export class ExpAwardingService {
       );
 
     // Translate count -> reward tier (100 / 25 / 0).
-    const reward = this.expCalculationService.resolveDailyCompletionReward(completionCountToday);
+    const reward =
+      this.expCalculationService.resolveDailyCompletionReward(
+        completionCountToday,
+      );
     // Skip writes entirely for zero-reward tiers.
     if (reward <= 0) {
       return 0;
@@ -307,7 +313,7 @@ export class ExpAwardingService {
           sessionId: input.sessionId,
           questId: null,
           eventType: ExpLedgerEventTypes.PRACTICE_ROOM_STREAK,
-          awardedExp: STREAK_TIER_DELTA_EXP,
+          awardedExp: STREAK_BONUS_EXP_PER_DELTA,
           idempotencyKey: `practice_streak:user:${input.studentId}:unit:${input.moduleUnitId}:tier:${tier}`,
         },
         input.prismaClient,
@@ -367,4 +373,3 @@ export class ExpAwardingService {
     };
   }
 }
-

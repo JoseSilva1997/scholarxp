@@ -30,16 +30,30 @@ describe('ExpCalculationService', () => {
 
   describe('getPerQuestionAward', () => {
     it('returns 0 if total questions is 0 or less', () => {
-      expect(service.getPerQuestionAward({ totalPoolExp: 1000, totalQuestions: 0, isLastQuestion: false })).toBe(0);
+      expect(
+        service.getPerQuestionAward({
+          totalPoolExp: 1000,
+          totalQuestions: 0,
+          isLastQuestion: false,
+        }),
+      ).toBe(0);
     });
 
     it('distributes floored base share to non-last questions', () => {
-      const result = service.getPerQuestionAward({ totalPoolExp: 1000, totalQuestions: 3, isLastQuestion: false });
+      const result = service.getPerQuestionAward({
+        totalPoolExp: 1000,
+        totalQuestions: 3,
+        isLastQuestion: false,
+      });
       expect(result).toBe(333); // Math.floor(1000 / 3)
     });
 
     it('allocates remainder to the last question', () => {
-      const result = service.getPerQuestionAward({ totalPoolExp: 1000, totalQuestions: 3, isLastQuestion: true });
+      const result = service.getPerQuestionAward({
+        totalPoolExp: 1000,
+        totalQuestions: 3,
+        isLastQuestion: true,
+      });
       expect(result).toBe(334); // 333 + 1 (remainder)
     });
   });
@@ -65,7 +79,7 @@ describe('ExpCalculationService', () => {
     it('calculates tier 3 (100% or 3 max)', () => {
       expect(service.resolveReachedStreakTier(10, 10)).toBe(3);
     });
-    
+
     it('handles small lessons (e.g. 5 questions) with minimum clamps correctly', () => {
       // 30% of 5 = 1.5 -> Math.max(3, 2) = 3
       // 50% of 5 = 2.5 -> Math.max(3, 3) = 3

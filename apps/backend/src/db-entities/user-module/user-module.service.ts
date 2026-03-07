@@ -8,7 +8,7 @@ import type { Prisma } from '@prisma/client';
 import { CreateUserModuleDto } from './dto/create-user-module.dto';
 import { UpdateUserModuleDto } from './dto/update-user-module.dto';
 import { PrismaService } from '../../prisma/prisma.service';
-import { MODULE_EXP_MAX } from '@scholarxp/constants';
+import { MODULE_UNIT_BASELINE_EXP } from '@scholarxp/constants';
 
 type PrismaClientLike = Prisma.TransactionClient | PrismaService;
 
@@ -80,8 +80,8 @@ export class UserModuleService {
     }
 
     const totalExp = membership.currentExp + expGained;
-    const levelGain = Math.floor(totalExp / MODULE_EXP_MAX);
-    const remainingExp = totalExp % MODULE_EXP_MAX;
+    const levelGain = Math.floor(totalExp / MODULE_UNIT_BASELINE_EXP);
+    const remainingExp = totalExp % MODULE_UNIT_BASELINE_EXP;
 
     return prismaClient.userModule.update({
       where: { id: membership.id },
