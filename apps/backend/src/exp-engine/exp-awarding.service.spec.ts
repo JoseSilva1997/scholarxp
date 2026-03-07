@@ -253,4 +253,43 @@ describe('ExpAwardingService', () => {
     });
     expect(expLedgerService.recordEvent).not.toHaveBeenCalled();
   });
+
+  it('scopes streak calculation to the current session only', async () => {
+    prisma.questionUnit.findMany.mockResolvedValue([
+      { id: 201 },
+      { id: 202 },
+      { id: 203 },
+      { id: 204 },
+    ] as never);
+    // Only one correct attempt exists in this session, so streak rewards should not trigger.
+    prisma.questionAttempt.findMany.mockResolvedValue([
+      { questionId: 201, isCorrect: true },
+    ] as never);
+
+    await service.awardAttemptModuleExp(
+      {
+        studentId: 100,
+        moduleId: 10,
+        moduleUnitId: 20,
+        sessionId: '22222222-2222-4222-8222-222222222222',
+        questionUnitId: 201,
+        isCorrect: true,
+        hadCorrectAttemptBeforeSubmit: false,
+        hadAnyAttemptBeforeSubmit: false,
+      },
+      prisma,
+    );
+
+    expect(prisma.questionAttempt.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          sessionId: '22222222-2222-4222-8222-222222222222',
+        }),
+      }),
+    );
+    const streakEventCalls = expLedgerService.recordEvent.mock.calls.filter(
+      ([params]) => params.eventType === ExpLedgerEventTypes.PRACTICE_ROOM_STREAK,
+    );
+    expect(streakEventCalls).toHaveLength(0);
+  });
 });
