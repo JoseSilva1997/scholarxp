@@ -7,11 +7,6 @@ import styles from './UserBadge.module.css';
 
 type UserBadgeProps = {
   user: AuthUser;
-  level?: number;
-  exp?: {
-    current: number;
-    max: number;
-  };
   onLogout?: () => Promise<void> | void;
 };
 
@@ -31,7 +26,7 @@ const LEVEL_UP_PARTICLE_OFFSETS = [
   { x: -50, y: -5, delay: 0.14 }
 ];
 
-export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps) {
+export default function UserBadge({ user, onLogout }: UserBadgeProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [displayedTotalExp, setDisplayedTotalExp] = useState<number | null>(null);
   const [expGainIndicator, setExpGainIndicator] = useState<number | null>(null);
@@ -67,13 +62,7 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
       : defaultAvatar;
 
   const isStudent = user.globalRole === 'student';
-  const targetTotalExp = isStudent
-    ? user.avatar
-      ? user.avatar.totalExp
-      : level !== undefined && exp
-        ? toLegacyTotalExp(level, exp.current)
-        : null
-    : null;
+  const targetTotalExp = isStudent && user.avatar ? user.avatar.totalExp : null;
 
   const animatedProgress =
     targetTotalExp !== null
@@ -510,10 +499,6 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
       ) : null}
     </div>
   );
-}
-
-function toLegacyTotalExp(level: number, currentExp: number) {
-  return getLevelStartExp(level) + Math.max(0, currentExp);
 }
 
 function getLevelStartExp(level: number) {

@@ -11,8 +11,6 @@ import styles from './Header.module.css';
 
 type HeaderProps = {
   user?: AuthUser | null;
-  studentLevel?: number;
-  studentExp?: { current: number; max: number };
   onLogout?: () => Promise<void> | void;
   onToggleSidebar?: () => void;
   showSidebarToggle?: boolean;
@@ -20,8 +18,6 @@ type HeaderProps = {
 
 export default function Header({
   user,
-  studentLevel,
-  studentExp,
   onLogout,
   onToggleSidebar,
   showSidebarToggle = false,
@@ -115,7 +111,7 @@ export default function Header({
       <div className={styles.headerRight}>
         <ThemeToggle />
         {user ? (
-          <UserBadge user={user} level={studentLevel} exp={studentExp} onLogout={onLogout} />
+          <UserBadge user={user} onLogout={onLogout} />
         ) : (
           <div className={styles.actions}>
             <Link className={`${styles.btn} ${styles.btnGhost}`} to="/login">
