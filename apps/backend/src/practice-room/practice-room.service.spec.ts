@@ -7,6 +7,7 @@ import { PracticeRoomMapper } from './practice-room.mapper';
 import { StudentModuleUnitProgressService } from './student-module-unit-progress.service';
 import { UserModuleService } from '../db-entities/user-module/user-module.service';
 import { ExpLedgerService } from '../db-entities/exp-ledger/exp-ledger.service';
+import { PracticeRewardService } from '../exp-engine/practice-reward.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock, type PrismaMock } from '../test/test-helpers';
 import type {
@@ -27,6 +28,9 @@ describe('PracticeRoomService', () => {
   };
   let expLedgerService: {
     recordEvent: jest.Mock;
+  };
+  let practiceRewardService: {
+    awardCompletionExp: jest.Mock;
   };
 
   // Mock data builders for consistent test setup
@@ -133,6 +137,9 @@ describe('PracticeRoomService', () => {
           Promise.resolve({ created: true, awardedExp: params.awardedExp }),
         ),
     };
+    practiceRewardService = {
+      awardCompletionExp: jest.fn().mockResolvedValue(0),
+    };
 
     // Build test module with mocked dependencies
     const module: TestingModule = await Test.createTestingModule({
@@ -151,6 +158,10 @@ describe('PracticeRoomService', () => {
         {
           provide: ExpLedgerService,
           useValue: expLedgerService,
+        },
+        {
+          provide: PracticeRewardService,
+          useValue: practiceRewardService,
         },
       ],
     }).compile();
@@ -810,6 +821,7 @@ describe('PracticeRoomService', () => {
         moduleExpAwarded: 50,
         hasCorrectAttempt: true,
       });
+      expect(practiceRewardService.awardCompletionExp).not.toHaveBeenCalled();
     });
 
     it('throws when payload module unit does not match route module unit', async () => {
@@ -937,6 +949,16 @@ describe('PracticeRoomService', () => {
         where: { id: '11111111-1111-4111-8111-111111111077', endTime: null },
         data: { endTime: expect.any(Date) },
       });
+      expect(practiceRewardService.awardCompletionExp).toHaveBeenCalledWith(
+        {
+          studentId: 100,
+          moduleId: 1,
+          moduleUnitId: 10,
+          sessionId: '11111111-1111-4111-8111-111111111077',
+          completedAt: expect.any(Date),
+        },
+        prisma,
+      );
     });
 
     it('does not re-apply XP when ledger events already exist', async () => {

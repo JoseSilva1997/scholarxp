@@ -41,7 +41,20 @@ export const MODULE_INVITE_DEFAULT_EXPIRY_HOURS = 48;
 export const MODULE_INVITE_DEFAULT_MAX_USES = 100;
 
 /*
-    PROGRESSION SYSTEM (GAMIFICATION) RULES
+    PROGRESSION SYSTEM EXP (GAMIFICATION) RULES
 */
 export const STUDENT_EXP_MAX = 1000;
 export const MODULE_EXP_MAX = 1000;
+
+
+// Centralised definitions of event types.
+export const ExpLedgerEventTypes = {
+    COMPLETE_MODULE_UNIT: 'module_unit_completed',
+    COMPLETE_QUEST: 'quest_completed',
+    CORRECT_PRACTICE_ROOM_ANSWER: 'practice_room_answer_correct',
+    PRACTICE_ROOM_STREAK: 'practice_room_streak',
+    PRACTICE_ROOM_CORRECT_AT_FIRST_ATTEMPT: 'practice_room_correct_at_first_attempt',
+    // Add more event types as needed
+} as const
+
+export type ExpLedgerEventType = typeof ExpLedgerEventTypes[keyof typeof ExpLedgerEventTypes];

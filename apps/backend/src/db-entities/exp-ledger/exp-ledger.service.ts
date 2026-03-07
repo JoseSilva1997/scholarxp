@@ -2,6 +2,8 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { DateHelpers } from '../../helpers/helpers';
+import { ExpLedgerEventTypes, ExpLedgerEventType } from '@scholarxp/constants';
 
 type PrismaClientLike = Prisma.TransactionClient | PrismaService;
 
@@ -11,7 +13,7 @@ export type RecordExpLedgerEventParams = {
   moduleUnitId: number | null;
   sessionId: string | null;
   questId: number | null;
-  eventType: string;
+  eventType: ExpLedgerEventType;
   awardedExp: number;
   idempotencyKey: string;
 };
@@ -66,5 +68,28 @@ export class ExpLedgerService {
       }
       throw error;
     }
+  }
+
+
+  async getTodaysNumberOfCompletedUnits(
+    userId: number,
+    tx?: PrismaClientLike,
+    timestamp?: Date,
+  ): Promise<number> {
+    const prismaClient = tx ?? this.prisma;
+    const { dayStartUtc, nextDayStartUtc } = DateHelpers.getUtcDayBounds(
+      timestamp || new Date(),
+    );
+
+    return prismaClient.expLedger.count({
+      where: {
+        userId,
+        eventType: ExpLedgerEventTypes.COMPLETE_MODULE_UNIT,
+        eventTimestamp: {
+          gte: dayStartUtc,
+          lt: nextDayStartUtc,
+        },
+      },
+    });
   }
 }

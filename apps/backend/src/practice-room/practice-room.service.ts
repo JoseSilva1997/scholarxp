@@ -12,8 +12,9 @@ import {
 } from '@scholarxp/api-contracts';
 import { UserModuleService } from '../db-entities/user-module/user-module.service';
 import { ExpLedgerService } from '../db-entities/exp-ledger/exp-ledger.service';
+import { PracticeRewardService } from '../exp-engine/practice-reward.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { MODULE_EXP_MAX } from '@scholarxp/constants';
+import { ExpLedgerEventTypes, MODULE_EXP_MAX } from '@scholarxp/constants';
 import { ModuleUnitPracticeRoomResponseDto } from './dto/practice-room-response.dto';
 import { SubmitAttemptDto } from './dto/submit-attempt.dto';
 import { SubmitAttemptResponseDto } from './dto/submit-attempt-response.dto';
@@ -59,6 +60,7 @@ export class PracticeRoomService {
     private readonly studentModuleUnitProgressService: StudentModuleUnitProgressService,
     private readonly userModuleService: UserModuleService,
     private readonly expLedgerService: ExpLedgerService,
+    private readonly practiceRewardService: PracticeRewardService,
   ) {}
 
   // Builds the initial room state for one student in one module unit and either resumes a provided session or opens a fresh one.
@@ -162,6 +164,19 @@ export class PracticeRoomService {
           createdAttempt.id,
           tx,
         );
+        if (syncedProgress.isCompleted) {
+          // Completion account XP is policy-owned by the reward service to keep this orchestration thin.
+          await this.practiceRewardService.awardCompletionExp(
+            {
+              studentId,
+              moduleId,
+              moduleUnitId,
+              sessionId: payload.sessionId,
+              completedAt: attemptedAt,
+            },
+            tx,
+          );
+        }
 
         return {
           alreadyHasCorrectAttempt: hadCorrectAttemptBeforeSubmit,
@@ -482,7 +497,7 @@ export class PracticeRoomService {
         moduleUnitId,
         sessionId,
         questId: null,
-        eventType: 'practice_attempt_module_exp',
+        eventType: ExpLedgerEventTypes.CORRECT_PRACTICE_ROOM_ANSWER,
         awardedExp: MODULE_UNIT_EXP_REWARD,
         idempotencyKey: `${idempotencyKey}:module`,
       },

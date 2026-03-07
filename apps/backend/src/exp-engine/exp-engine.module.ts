@@ -1,9 +1,12 @@
 // Module role: groups XP-engine infrastructure services so reward orchestration can be reused across domains.
 import { Module } from '@nestjs/common';
+import { AvatarModule } from '../db-entities/avatar/avatar.module';
 import { ExpLedgerService } from '../db-entities/exp-ledger/exp-ledger.service';
+import { PracticeRewardService } from './practice-reward.service';
 
 @Module({
-  providers: [ExpLedgerService],
-  exports: [ExpLedgerService],
+  imports: [AvatarModule],
+  providers: [ExpLedgerService, PracticeRewardService],
+  exports: [ExpLedgerService, PracticeRewardService],
 })
 export class ExpEngineModule {}
