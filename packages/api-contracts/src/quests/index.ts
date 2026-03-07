@@ -24,10 +24,10 @@ export const QUEST_TYPE_LABELS = {
 // Quests are generated at UTC midnight each day for each student based on their current progress.
 export interface Quest {
   id: number;
-  moduleId: number;
+  moduleId: number | null;
   // Null for module-level quests that are not tied to a specific lesson.
   moduleUnitId: number | null;
-  moduleTitle: string;
+  moduleTitle: string | null;
   type: QuestType;
   expGranted: number;
   isCompleted: boolean;

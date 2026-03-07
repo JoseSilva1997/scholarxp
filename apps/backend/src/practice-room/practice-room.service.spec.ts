@@ -5,8 +5,8 @@ import { NotFoundException } from '@nestjs/common';
 import { PracticeRoomService } from './practice-room.service';
 import { PracticeRoomMapper } from './practice-room.mapper';
 import { StudentModuleUnitProgressService } from './student-module-unit-progress.service';
-import { AvatarService } from '../db-entities/avatar/avatar.service';
 import { UserModuleService } from '../db-entities/user-module/user-module.service';
+import { ExpLedgerService } from '../db-entities/exp-ledger/exp-ledger.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock, type PrismaMock } from '../test/test-helpers';
 import type {
@@ -22,11 +22,11 @@ describe('PracticeRoomService', () => {
   let studentModuleUnitProgressService: {
     syncFromAttempts: jest.Mock;
   };
-  let avatarService: {
-    addStudentExp: jest.Mock;
-  };
   let userModuleService: {
     addStudentModuleExp: jest.Mock;
+  };
+  let expLedgerService: {
+    recordEvent: jest.Mock;
   };
 
   // Mock data builders for consistent test setup
@@ -113,15 +113,6 @@ describe('PracticeRoomService', () => {
         lastPracticedAt: new Date('2026-02-12T10:00:00.000Z'),
       }),
     };
-    avatarService = {
-      addStudentExp: jest.fn().mockResolvedValue({
-        id: 15,
-        userId: 100,
-        level: 1,
-        currentExp: 25,
-        createdAt: new Date('2026-02-12T10:00:00.000Z'),
-      }),
-    };
     userModuleService = {
       addStudentModuleExp: jest.fn().mockResolvedValue({
         id: 700,
@@ -133,6 +124,14 @@ describe('PracticeRoomService', () => {
         enrolledVia: 'invite',
         createdAt: new Date('2026-02-12T10:00:00.000Z'),
       }),
+    };
+    expLedgerService = {
+      // Default behavior creates fresh events so reward side effects apply in tests unless overridden.
+      recordEvent: jest
+        .fn()
+        .mockImplementation((params: { awardedExp: number }) =>
+          Promise.resolve({ created: true, awardedExp: params.awardedExp }),
+        ),
     };
 
     // Build test module with mocked dependencies
@@ -146,12 +145,12 @@ describe('PracticeRoomService', () => {
           useValue: studentModuleUnitProgressService,
         },
         {
-          provide: AvatarService,
-          useValue: avatarService,
-        },
-        {
           provide: UserModuleService,
           useValue: userModuleService,
+        },
+        {
+          provide: ExpLedgerService,
+          useValue: expLedgerService,
         },
       ],
     }).compile();
@@ -807,10 +806,8 @@ describe('PracticeRoomService', () => {
         50,
         prisma,
       );
-      expect(avatarService.addStudentExp).toHaveBeenCalledWith(100, 25, prisma);
       expect(result).toEqual({
         moduleExpAwarded: 50,
-        studentExpAwarded: 25,
         hasCorrectAttempt: true,
       });
     });
@@ -940,6 +937,43 @@ describe('PracticeRoomService', () => {
         where: { id: '11111111-1111-4111-8111-111111111077', endTime: null },
         data: { endTime: expect.any(Date) },
       });
+    });
+
+    it('does not re-apply XP when ledger events already exist', async () => {
+      prisma.practiceSession.findFirst.mockResolvedValue({
+        id: '11111111-1111-4111-8111-111111111077',
+        sessionType: 'practice_room',
+        endTime: null,
+      } as any);
+      prisma.questionUnit.findFirst.mockResolvedValue({
+        id: 201,
+        contents: [
+          {
+            id: 301,
+            type: 'mcq',
+            questionData: { correctOptionIndex: 2 },
+          },
+        ],
+      } as any);
+      prisma.questionAttempt.findFirst.mockResolvedValue(null);
+      prisma.questionAttempt.create.mockResolvedValue({ id: 999 } as any);
+      expLedgerService.recordEvent.mockResolvedValue({
+        created: false,
+        awardedExp: 0,
+      });
+
+      const result = await service.submitAttempt(1, 10, 100, {
+        moduleUnitId: 10,
+        questionUnitId: 201,
+        questionContentId: 301,
+        sessionId: '11111111-1111-4111-8111-111111111077',
+        timeTakenMs: 1200,
+        hintUnlocked: false,
+        studentAnswer: { selectedOptionIndex: 2 } as any,
+      });
+
+      expect(userModuleService.addStudentModuleExp).not.toHaveBeenCalled();
+      expect(result.moduleExpAwarded).toBe(0);
     });
   });
 

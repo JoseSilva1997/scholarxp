@@ -10,8 +10,8 @@ import {
   type PracticeSessionType,
   type StudentAnswer,
 } from '@scholarxp/api-contracts';
-import { AvatarService } from '../db-entities/avatar/avatar.service';
 import { UserModuleService } from '../db-entities/user-module/user-module.service';
+import { ExpLedgerService } from '../db-entities/exp-ledger/exp-ledger.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { MODULE_EXP_MAX } from '@scholarxp/constants';
 import { ModuleUnitPracticeRoomResponseDto } from './dto/practice-room-response.dto';
@@ -41,8 +41,13 @@ type RoomContext = {
   session: OwnedPracticeSession;
   questionUnitDrafts: RoomQuestionUnitDraft[];
 };
+type AttemptRewardPersistenceResult = {
+  moduleExpAwarded: number;
+  updatedMembership: Prisma.UserModuleGetPayload<{
+    include: { module: true };
+  }> | null;
+};
 const MODULE_UNIT_EXP_REWARD = 50;
-const STUDENT_EXP_REWARD = 25;
 const DEFAULT_STALE_SESSION_MINUTES = 60;
 
 // PracticeRoomService builds the page-load payload so the frontend can render core questions and latest attempts.
@@ -52,8 +57,8 @@ export class PracticeRoomService {
     private readonly prisma: PrismaService,
     private readonly practiceRoomMapper: PracticeRoomMapper,
     private readonly studentModuleUnitProgressService: StudentModuleUnitProgressService,
-    private readonly avatarService: AvatarService,
     private readonly userModuleService: UserModuleService,
+    private readonly expLedgerService: ExpLedgerService,
   ) {}
 
   // Builds the initial room state for one student in one module unit and either resumes a provided session or opens a fresh one.
@@ -117,7 +122,7 @@ export class PracticeRoomService {
     );
 
     const attemptedAt = new Date();
-    const { alreadyHasCorrectAttempt, updatedMembership } =
+    const { alreadyHasCorrectAttempt, updatedMembership, moduleExpAwarded } =
       await this.prisma.$transaction(async (tx) => {
         const hadCorrectAttemptBeforeSubmit = await this.hasAnyCorrectAttempt(
           moduleUnitId,
@@ -126,7 +131,7 @@ export class PracticeRoomService {
           tx,
         );
 
-        await this.createAttemptRecord(
+        const createdAttempt = await this.createAttemptRecord(
           moduleUnitId,
           studentId,
           payload,
@@ -149,22 +154,25 @@ export class PracticeRoomService {
           syncedProgress.isCompleted,
           tx,
         );
-        const updatedMembership = await this.persistAttemptExpRewards(
+        const rewardPersistence = await this.persistAttemptExpRewards(
           moduleId,
+          moduleUnitId,
           studentId,
+          payload.sessionId,
+          createdAttempt.id,
           tx,
         );
 
         return {
           alreadyHasCorrectAttempt: hadCorrectAttemptBeforeSubmit,
-          updatedMembership,
+          updatedMembership: rewardPersistence.updatedMembership,
+          moduleExpAwarded: rewardPersistence.moduleExpAwarded,
         };
       });
 
-    // Placeholder XP amounts unblock frontend progress until the real XP engine decides dynamic rewards.
+    // Reward values are ledger-backed so retries can safely return zero when the event was already applied.
     return {
-      moduleExpAwarded: MODULE_UNIT_EXP_REWARD,
-      studentExpAwarded: STUDENT_EXP_REWARD,
+      moduleExpAwarded,
       hasCorrectAttempt: alreadyHasCorrectAttempt || isCorrect,
       updatedModuleProgress: updatedMembership
         ? {
@@ -459,22 +467,60 @@ export class PracticeRoomService {
   // Reward persistence stays in the same transaction as attempt creation to avoid partially applied progress.
   private async persistAttemptExpRewards(
     moduleId: number,
+    moduleUnitId: number,
     studentId: number,
+    sessionId: string,
+    attemptId: number,
     tx: Prisma.TransactionClient,
-  ) {
+  ): Promise<AttemptRewardPersistenceResult> {
+    // Attempt-scoped key ensures at-least-once retry flows cannot grant duplicate XP for the same persisted attempt.
+    const idempotencyKey = `practice_attempt:${attemptId}:reward_v1`;
+    const moduleLedgerResult = await this.expLedgerService.recordEvent(
+      {
+        userId: studentId,
+        moduleId,
+        moduleUnitId,
+        sessionId,
+        questId: null,
+        eventType: 'practice_attempt_module_exp',
+        awardedExp: MODULE_UNIT_EXP_REWARD,
+        idempotencyKey: `${idempotencyKey}:module`,
+      },
+      tx,
+    );
+
+    if (!moduleLedgerResult.created) {
+      return {
+        moduleExpAwarded: 0,
+        updatedMembership: null,
+      };
+    }
+
     const updatedMembership = await this.userModuleService.addStudentModuleExp(
       moduleId,
       studentId,
-      MODULE_UNIT_EXP_REWARD,
+      moduleLedgerResult.awardedExp,
       tx,
     );
-    await this.avatarService.addStudentExp(studentId, STUDENT_EXP_REWARD, tx);
+    const updatedMembershipId = updatedMembership.id;
+
+    if (!updatedMembershipId) {
+      return {
+        moduleExpAwarded: moduleLedgerResult.awardedExp,
+        updatedMembership: null,
+      };
+    }
 
     // Reload with module include so we have title/description for the response mapper without extra queries.
-    return tx.userModule.findUnique({
-      where: { id: updatedMembership.id },
+    const membershipWithModule = await tx.userModule.findUnique({
+      where: { id: updatedMembershipId },
       include: { module: true },
     });
+
+    return {
+      moduleExpAwarded: moduleLedgerResult.awardedExp,
+      updatedMembership: membershipWithModule,
+    };
   }
 
   // Route params remain the source of truth, so payload moduleUnitId must match to prevent accidental cross-unit writes.
