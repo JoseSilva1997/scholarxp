@@ -192,7 +192,7 @@ describe('AvatarService', () => {
 
     expect(prisma.avatar.findUnique).toHaveBeenCalledWith({
       where: { userId },
-      select: { id: true, totalExp: true, level: true, currentExp: true },
+      select: { id: true, totalExp: true },
     });
     expect(prisma.avatar.update).toHaveBeenCalledWith({
       where: { id: 4 },
@@ -222,48 +222,6 @@ describe('AvatarService', () => {
     await expect(service.addStudentExp(userId, 0)).rejects.toThrow(
       BadRequestException,
     );
-  });
-
-  it('addStudentExp derives canonical totalExp from legacy fields when totalExp is still defaulted', async () => {
-    prisma.avatar.findUnique.mockResolvedValue({
-      id: 4,
-      totalExp: 0,
-      level: 2,
-      currentExp: 50,
-    } as any);
-    prisma.avatar.update.mockResolvedValue({
-      id: 4,
-      userId,
-      level: 2,
-      currentExp: 75,
-      totalExp: 175,
-      createdAt: now,
-    } as any);
-
-    const result = await service.addStudentExp(userId, 25);
-
-    expect(prisma.avatar.update).toHaveBeenCalledWith({
-      where: { id: 4 },
-      data: {
-        totalExp: {
-          set: 175,
-        },
-        currentExp: {
-          set: 75,
-        },
-        level: {
-          set: 2,
-        },
-      },
-    });
-    expect(result).toEqual({
-      id: 4,
-      userId,
-      level: 2,
-      currentExp: 75,
-      totalExp: 175,
-      createdAt: now,
-    });
   });
 
   it('addStudentExp throws when avatar does not exist', async () => {

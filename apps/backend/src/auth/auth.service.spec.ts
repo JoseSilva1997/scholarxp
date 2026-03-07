@@ -32,10 +32,17 @@ describe('AuthService', () => {
 
   const mockAvatar = {
     id: 1,
-    userId: 1,
+    totalExp: 1000,
+  };
+
+  const mockAvatarProgress = {
+    id: 1,
+    totalExp: 1000,
     level: 5,
-    currentExp: 1000,
-    createdAt: new Date(),
+    currentLevelExp: 200,
+    nextLevelExpRequired: 318,
+    xpToNextLevel: 118,
+    progressPercent: (200 / 318) * 100,
   };
 
   const mockVerificationToken = {
@@ -862,6 +869,7 @@ describe('AuthService', () => {
       expect(result.firstName).toBe('John');
       expect(result.avatar).not.toBeNull();
       expect(result.avatar?.level).toBe(5);
+      expect(result.avatar?.totalExp).toBe(1000);
       expect(result.institutionIds).toHaveLength(2);
       expect(result.hasInstitutionMembership).toBe(true);
     });
@@ -946,7 +954,7 @@ describe('AuthService', () => {
         globalRole: GlobalRole.student,
         isVerified: true,
         requiresEmailVerification: false,
-        avatar: mockAvatar,
+        avatar: mockAvatarProgress,
         institutionIds: [1],
         hasInstitutionMembership: true,
         ltiIdentities: [{ institutionId: 1, ltiUserId: 'lti-user-1' }],

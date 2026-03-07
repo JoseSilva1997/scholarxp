@@ -39,7 +39,7 @@ export class AvatarService {
       );
     }
 
-    // Persist totalExp as canonical account progression state while preserving current DTO shape.
+    // Persist canonical totalExp so account progression is always derived from one source of truth.
     return this.prisma.avatar.create({
       data: {
         ...createAvatarDto,
@@ -85,20 +85,15 @@ export class AvatarService {
     const prismaClient = tx ?? this.prisma;
     const avatar = await prismaClient.avatar.findUnique({
       where: { userId },
-      select: { id: true, totalExp: true, level: true, currentExp: true },
+      select: { id: true, totalExp: true },
     });
 
     if (!avatar) {
       throw new NotFoundException(`Avatar not found for user ${userId}`);
     }
 
-    // Migration-safe fallback: derive totalExp from legacy fields when old rows still have default totalExp.
-    const canonicalTotalExp =
-      avatar.totalExp > 0
-        ? avatar.totalExp
-        : getLevelStartExp(avatar.level) + avatar.currentExp;
     // Recompute level snapshot from canonical totalExp so non-linear curves stay consistent.
-    const updatedTotalExp = canonicalTotalExp + expGained;
+    const updatedTotalExp = avatar.totalExp + expGained;
     const progression = getProgressWithinLevel(updatedTotalExp);
 
     return prismaClient.avatar.update({

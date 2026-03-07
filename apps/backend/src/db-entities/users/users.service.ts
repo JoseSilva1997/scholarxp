@@ -83,6 +83,7 @@ export class UsersService {
               userId: id,
               level: 1,
               currentExp: 0,
+              totalExp: 0,
             },
           });
         }

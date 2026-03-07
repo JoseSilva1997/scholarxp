@@ -122,7 +122,7 @@ describe('UsersService', () => {
         select: { id: true },
       });
       expect(prisma.avatar.create).toHaveBeenCalledWith({
-        data: { userId: baseUser.id, level: 1, currentExp: 0 },
+        data: { userId: baseUser.id, level: 1, currentExp: 0, totalExp: 0 },
       });
       expect(result).toEqual({ ...baseUser, globalRole: GlobalRole.student });
     });
