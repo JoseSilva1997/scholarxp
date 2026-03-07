@@ -65,8 +65,6 @@ model User {
 model Avatar {
   id         Int      @id @default(autoincrement())
   userId     Int      @map("user_id")
-  level      Int
-  currentExp Int      @map("current_exp")
   // Canonical lifetime account XP used for non-linear level-curve calculations.
   totalExp   Int      @default(0) @map("total_exp")
   createdAt  DateTime @default(now()) @map("created_at")
