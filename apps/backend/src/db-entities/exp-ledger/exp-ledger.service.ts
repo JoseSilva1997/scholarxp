@@ -43,31 +43,26 @@ export class ExpLedgerService {
 
     const prismaClient = tx ?? this.prisma;
 
-    try {
-      await prismaClient.expLedger.create({
-        data: {
-          userId: params.userId,
-          moduleId: params.moduleId,
-          moduleUnitId: params.moduleUnitId,
-          sessionId: params.sessionId,
-          questId: params.questId,
-          eventType: params.eventType,
-          awardedExp: params.awardedExp,
-          idempotencyKey: params.idempotencyKey,
-        },
-        select: { id: true },
-      });
+    // Use ON CONFLICT DO NOTHING semantics so duplicate idempotency writes do not abort active transactions.
+    const insertResult = await prismaClient.expLedger.createMany({
+      data: {
+        userId: params.userId,
+        moduleId: params.moduleId,
+        moduleUnitId: params.moduleUnitId,
+        sessionId: params.sessionId,
+        questId: params.questId,
+        eventType: params.eventType,
+        awardedExp: params.awardedExp,
+        idempotencyKey: params.idempotencyKey,
+      },
+      skipDuplicates: true,
+    });
+
+    // count===1 means the event was new; count===0 means it was already recorded.
+    if (insertResult.count > 0) {
       return { created: true, awardedExp: params.awardedExp };
-    } catch (error: unknown) {
-      // Unique key collisions indicate a replay of an already-recorded reward event.
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
-        return { created: false, awardedExp: 0 };
-      }
-      throw error;
     }
+    return { created: false, awardedExp: 0 };
   }
 
   async getTodaysNumberOfCompletedUnits(

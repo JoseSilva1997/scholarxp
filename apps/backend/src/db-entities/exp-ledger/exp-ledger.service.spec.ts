@@ -1,8 +1,8 @@
 // Spec role: verifies XP ledger idempotency behavior so reward retries stay safe and deterministic.
 import { BadRequestException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { ExpLedgerService } from './exp-ledger.service';
 import { createPrismaMock, type PrismaMock } from '../../test/test-helpers';
+import { ExpLedgerEventTypes } from '@scholarxp/constants';
 
 describe('ExpLedgerService', () => {
   let service: ExpLedgerService;
@@ -14,7 +14,7 @@ describe('ExpLedgerService', () => {
   });
 
   it('creates a ledger event when idempotency key is new', async () => {
-    prisma.expLedger.create.mockResolvedValue({ id: 'evt-1' } as never);
+    prisma.expLedger.createMany.mockResolvedValue({ count: 1 });
 
     const result = await service.recordEvent({
       userId: 7,
@@ -22,34 +22,29 @@ describe('ExpLedgerService', () => {
       moduleUnitId: 21,
       sessionId: '11111111-1111-4111-8111-111111111111',
       questId: null,
-      eventType: 'practice_attempt_module_exp',
+      eventType: ExpLedgerEventTypes.CORRECT_PRACTICE_ROOM_ANSWER,
       awardedExp: 50,
       idempotencyKey: 'practice_attempt:999:reward_v1:module',
     });
 
-    expect(prisma.expLedger.create).toHaveBeenCalledWith({
+    expect(prisma.expLedger.createMany).toHaveBeenCalledWith({
       data: {
         userId: 7,
         moduleId: 11,
         moduleUnitId: 21,
         sessionId: '11111111-1111-4111-8111-111111111111',
         questId: null,
-        eventType: 'practice_attempt_module_exp',
+        eventType: ExpLedgerEventTypes.CORRECT_PRACTICE_ROOM_ANSWER,
         awardedExp: 50,
         idempotencyKey: 'practice_attempt:999:reward_v1:module',
       },
-      select: { id: true },
+      skipDuplicates: true,
     });
     expect(result).toEqual({ created: true, awardedExp: 50 });
   });
 
   it('returns created=false when idempotency key already exists', async () => {
-    prisma.expLedger.create.mockRejectedValue(
-      new Prisma.PrismaClientKnownRequestError('Duplicate', {
-        code: 'P2002',
-        clientVersion: 'test',
-      }),
-    );
+    prisma.expLedger.createMany.mockResolvedValue({ count: 0 });
 
     const result = await service.recordEvent({
       userId: 7,
@@ -57,7 +52,7 @@ describe('ExpLedgerService', () => {
       moduleUnitId: 21,
       sessionId: '11111111-1111-4111-8111-111111111111',
       questId: null,
-      eventType: 'practice_attempt_module_exp',
+      eventType: ExpLedgerEventTypes.CORRECT_PRACTICE_ROOM_ANSWER,
       awardedExp: 50,
       idempotencyKey: 'practice_attempt:999:reward_v1:module',
     });
@@ -73,11 +68,11 @@ describe('ExpLedgerService', () => {
         moduleUnitId: null,
         sessionId: null,
         questId: null,
-        eventType: 'daily_quest_complete',
+        eventType: ExpLedgerEventTypes.COMPLETE_QUEST,
         awardedExp: 0,
         idempotencyKey: 'dq:1',
       }),
     ).rejects.toThrow(BadRequestException);
-    expect(prisma.expLedger.create).not.toHaveBeenCalled();
+    expect(prisma.expLedger.createMany).not.toHaveBeenCalled();
   });
 });

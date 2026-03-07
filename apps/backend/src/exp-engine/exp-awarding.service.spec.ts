@@ -5,11 +5,12 @@ import { ExpLedgerService } from '../db-entities/exp-ledger/exp-ledger.service';
 import { UserModuleService } from '../db-entities/user-module/user-module.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock, type PrismaMock } from '../test/test-helpers';
-import { PracticeRewardService } from './practice-reward.service';
+import { ExpAwardingService } from './exp-awarding.service';
+import { ExpCalculationService } from './exp-calculation.service';
 import { ExpLedgerEventTypes } from '@scholarxp/constants';
 
-describe('PracticeRewardService', () => {
-  let service: PracticeRewardService;
+describe('ExpAwardingService', () => {
+  let service: ExpAwardingService;
   let prisma: PrismaMock;
   let expLedgerService: {
     recordEvent: jest.Mock;
@@ -61,7 +62,8 @@ describe('PracticeRewardService', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        PracticeRewardService,
+        ExpCalculationService,
+        ExpAwardingService,
         { provide: PrismaService, useValue: prisma },
         { provide: ExpLedgerService, useValue: expLedgerService },
         { provide: AvatarService, useValue: avatarService },
@@ -69,7 +71,7 @@ describe('PracticeRewardService', () => {
       ],
     }).compile();
 
-    service = module.get<PracticeRewardService>(PracticeRewardService);
+    service = module.get<ExpAwardingService>(ExpAwardingService);
   });
 
   it('awards 100 account xp on first completion of UTC day', async () => {
@@ -145,13 +147,25 @@ describe('PracticeRewardService', () => {
   });
 
   it('awards module xp for a persisted practice attempt and returns updated membership snapshot', async () => {
+    prisma.questionUnit.findMany.mockResolvedValue([
+      { id: 201 },
+      { id: 202 },
+      { id: 203 },
+    ] as never);
+    prisma.questionAttempt.findMany.mockResolvedValue([
+      { questionId: 201, isCorrect: true },
+    ] as never);
+
     const result = await service.awardAttemptModuleExp(
       {
         studentId: 100,
         moduleId: 10,
         moduleUnitId: 20,
         sessionId: '11111111-1111-4111-8111-111111111111',
-        attemptId: 9001,
+        questionUnitId: 201,
+        isCorrect: true,
+        hadCorrectAttemptBeforeSubmit: false,
+        hadAnyAttemptBeforeSubmit: false,
       },
       prisma,
     );
@@ -159,22 +173,39 @@ describe('PracticeRewardService', () => {
     expect(expLedgerService.recordEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         eventType: ExpLedgerEventTypes.CORRECT_PRACTICE_ROOM_ANSWER,
-        awardedExp: 50,
-        idempotencyKey: 'practice_attempt:9001:reward_v1:module',
+        awardedExp: 333,
+        idempotencyKey: 'practice_answer:user:100:unit:20:question:201',
       }),
       prisma,
     );
-    expect(userModuleService.addStudentModuleExp).toHaveBeenCalledWith(
+    expect(expLedgerService.recordEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: ExpLedgerEventTypes.PRACTICE_ROOM_CORRECT_AT_FIRST_ATTEMPT,
+        awardedExp: 50,
+        idempotencyKey: 'practice_first_attempt:user:100:unit:20:question:201',
+      }),
+      prisma,
+    );
+    expect(userModuleService.addStudentModuleExp).toHaveBeenNthCalledWith(
+      1,
+      10,
+      100,
+      333,
+      prisma,
+    );
+    expect(userModuleService.addStudentModuleExp).toHaveBeenNthCalledWith(
+      2,
       10,
       100,
       50,
       prisma,
     );
-    expect(result.moduleExpAwarded).toBe(50);
+    expect(result.moduleExpAwarded).toBe(383);
     expect(result.updatedMembership?.module.title).toBe('Biology');
   });
 
   it('returns zero module xp when attempt ledger event already exists', async () => {
+    prisma.questionUnit.findMany.mockResolvedValue([{ id: 201 }] as never);
     expLedgerService.recordEvent.mockResolvedValue({
       created: false,
       awardedExp: 0,
@@ -186,7 +217,10 @@ describe('PracticeRewardService', () => {
         moduleId: 10,
         moduleUnitId: 20,
         sessionId: '11111111-1111-4111-8111-111111111111',
-        attemptId: 9001,
+        questionUnitId: 201,
+        isCorrect: true,
+        hadCorrectAttemptBeforeSubmit: false,
+        hadAnyAttemptBeforeSubmit: false,
       },
       prisma,
     );
@@ -196,5 +230,27 @@ describe('PracticeRewardService', () => {
       updatedMembership: null,
     });
     expect(userModuleService.addStudentModuleExp).not.toHaveBeenCalled();
+  });
+
+  it('returns zero for wrong attempts and skips ledger writes', async () => {
+    const result = await service.awardAttemptModuleExp(
+      {
+        studentId: 100,
+        moduleId: 10,
+        moduleUnitId: 20,
+        sessionId: '11111111-1111-4111-8111-111111111111',
+        questionUnitId: 201,
+        isCorrect: false,
+        hadCorrectAttemptBeforeSubmit: false,
+        hadAnyAttemptBeforeSubmit: false,
+      },
+      prisma,
+    );
+
+    expect(result).toEqual({
+      moduleExpAwarded: 0,
+      updatedMembership: null,
+    });
+    expect(expLedgerService.recordEvent).not.toHaveBeenCalled();
   });
 });

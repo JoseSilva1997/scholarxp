@@ -10,7 +10,7 @@ import {
   type PracticeSessionType,
   type StudentAnswer,
 } from '@scholarxp/api-contracts';
-import { PracticeRewardService } from '../exp-engine/practice-reward.service';
+import { ExpAwardingService } from '../exp-engine/exp-awarding.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { MODULE_EXP_MAX } from '@scholarxp/constants';
 import { ModuleUnitPracticeRoomResponseDto } from './dto/practice-room-response.dto';
@@ -49,7 +49,7 @@ export class PracticeRoomService {
     private readonly prisma: PrismaService,
     private readonly practiceRoomMapper: PracticeRoomMapper,
     private readonly studentModuleUnitProgressService: StudentModuleUnitProgressService,
-    private readonly practiceRewardService: PracticeRewardService,
+    private readonly expAwardingService: ExpAwardingService,
   ) {}
 
   // Builds the initial room state for one student in one module unit and either resumes a provided session or opens a fresh one.
@@ -115,6 +115,12 @@ export class PracticeRoomService {
     const attemptedAt = new Date();
     const { alreadyHasCorrectAttempt, updatedMembership, moduleExpAwarded } =
       await this.prisma.$transaction(async (tx) => {
+        const hadAnyAttemptBeforeSubmit = await this.hasAnyAttempt(
+          moduleUnitId,
+          studentId,
+          payload.questionUnitId,
+          tx,
+        );
         const hadCorrectAttemptBeforeSubmit = await this.hasAnyCorrectAttempt(
           moduleUnitId,
           studentId,
@@ -122,7 +128,7 @@ export class PracticeRoomService {
           tx,
         );
 
-        const createdAttempt = await this.createAttemptRecord(
+        await this.createAttemptRecord(
           moduleUnitId,
           studentId,
           payload,
@@ -146,19 +152,22 @@ export class PracticeRoomService {
           tx,
         );
         const rewardPersistence =
-          await this.practiceRewardService.awardAttemptModuleExp(
+          await this.expAwardingService.awardAttemptModuleExp(
             {
               studentId,
               moduleId,
               moduleUnitId,
               sessionId: payload.sessionId,
-              attemptId: createdAttempt.id,
+              questionUnitId: payload.questionUnitId,
+              isCorrect,
+              hadCorrectAttemptBeforeSubmit,
+              hadAnyAttemptBeforeSubmit,
             },
             tx,
           );
         if (syncedProgress.isCompleted) {
           // Completion account XP is policy-owned by the reward service to keep this orchestration thin.
-          await this.practiceRewardService.awardCompletionExp(
+          await this.expAwardingService.awardCompletionExp(
             {
               studentId,
               moduleId,
@@ -698,6 +707,26 @@ export class PracticeRoomService {
     });
 
     return Boolean(correctAttempt);
+  }
+
+  // First-attempt bonus needs to know whether the student has attempted the question before this submission.
+  private async hasAnyAttempt(
+    moduleUnitId: number,
+    studentId: number,
+    questionUnitId: number,
+    tx?: PrismaClientLike,
+  ): Promise<boolean> {
+    const prismaClient = tx ?? this.prisma;
+    const existingAttempt = await prismaClient.questionAttempt.findFirst({
+      where: {
+        moduleUnitId,
+        studentId,
+        questionId: questionUnitId,
+      },
+      select: { id: true },
+    });
+
+    return Boolean(existingAttempt);
   }
 
   // Keeping attempt persistence isolated makes it easier to swap in a transaction once XP/difficulty writes are added.
