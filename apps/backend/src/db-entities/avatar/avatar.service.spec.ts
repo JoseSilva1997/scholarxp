@@ -106,43 +106,6 @@ describe('AvatarService', () => {
     await expect(service.findOne(1)).rejects.toThrow(NotFoundException);
   });
 
-  it('update checks existence then updates with DTO', async () => {
-    const updateDto = { totalExp: 300 };
-    prisma.avatar.findUnique.mockResolvedValue({
-      id: 1,
-      ...createDto,
-      createdAt: now,
-    });
-    prisma.avatar.update.mockResolvedValue({
-      id: 1,
-      ...createDto,
-      ...updateDto,
-      createdAt: now,
-    });
-
-    const result = await service.update(1, updateDto);
-
-    expect(prisma.avatar.findUnique).toHaveBeenCalledWith({ where: { id: 1 } });
-    expect(prisma.avatar.update).toHaveBeenCalledWith({
-      where: { id: 1 },
-      data: updateDto,
-    });
-    expect(result).toEqual({
-      id: 1,
-      ...createDto,
-      ...updateDto,
-      createdAt: now,
-    });
-  });
-
-  it('update rethrows NotFoundException when missing', async () => {
-    prisma.avatar.findUnique.mockResolvedValue(null);
-
-    await expect(service.update(1, { totalExp: 300 })).rejects.toThrow(
-      NotFoundException,
-    );
-  });
-
   it('remove checks existence then deletes', async () => {
     prisma.avatar.findUnique.mockResolvedValue({
       id: 1,

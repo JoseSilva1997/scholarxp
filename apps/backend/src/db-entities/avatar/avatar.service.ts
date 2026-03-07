@@ -5,7 +5,6 @@ import {
 } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { CreateAvatarDto } from './dto/create-avatar.dto';
-import { UpdateAvatarDto } from './dto/update-avatar.dto';
 import { PrismaService } from '../../prisma/prisma.service';
 
 type PrismaClientLike = Prisma.TransactionClient | PrismaService;
@@ -49,14 +48,6 @@ export class AvatarService {
 
   async findOne(id: number) {
     return this.getOrThrow(id);
-  }
-
-  async update(id: number, updateAvatarDto: UpdateAvatarDto) {
-    await this.getOrThrow(id);
-    return this.prisma.avatar.update({
-      where: { id },
-      data: updateAvatarDto,
-    });
   }
 
   async remove(id: number) {
