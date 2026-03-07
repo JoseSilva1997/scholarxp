@@ -57,6 +57,7 @@ model User {
   practiceSessions        PracticeSession[]
   questionAttempts        QuestionAttempt[]
   userModules             UserModule[]
+  expLedgerEntries        ExpLedger[]
 
   @@map("users")
 }
@@ -90,6 +91,7 @@ model Module {
   moduleUnits      ModuleUnit[]
   practiceSessions PracticeSession[]
   userModules      UserModule[]
+  expLedgerEntries ExpLedger[]
 
   @@unique([institutionId, ltiContextId])
   @@unique([institutionId, resourceLinkId])
@@ -113,27 +115,54 @@ model UserModule {
 }
 
 model DailyQuest {
-  id           Int        @id @default(autoincrement())
-  moduleId     Int        @map("module_id")
-  moduleUnitId Int?       @map("module_unit_id")
-  userId       Int        @map("user_id")
-  type         String
-  expGranted   Int        @map("exp_granted")
-  isCompleted  Boolean    @default(false) @map("is_completed")
+  id               Int         @id @default(autoincrement())
+  moduleId         Int?        @map("module_id")
+  moduleUnitId     Int?        @map("module_unit_id")
+  userId           Int         @map("user_id")
+  type             String
+  expGranted       Int         @map("exp_granted")
+  isCompleted      Boolean     @default(false) @map("is_completed")
   // UTC calendar day anchor used for "today" reads and quest history grouping.
-  questDateUtc DateTime   @db.Date @map("quest_date_utc")
-  generatedAt  DateTime   @default(now()) @map("generated_at")
+  questDateUtc     DateTime    @map("quest_date_utc") @db.Date
+  generatedAt      DateTime    @default(now()) @map("generated_at")
   // Nullable because incomplete quests do not have a completion timestamp.
-  completedAt  DateTime?  @map("completed_at")
-  module       Module      @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  completedAt      DateTime?   @map("completed_at")
+  module           Module?     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   // Composite relation enforces that any targeted lesson belongs to the same module as the quest.
-  moduleUnit   ModuleUnit? @relation(fields: [moduleUnitId, moduleId], references: [id, moduleId], onDelete: NoAction)
-  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  moduleUnit       ModuleUnit? @relation(fields: [moduleUnitId, moduleId], references: [id, moduleId], onDelete: NoAction)
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expLedgerEntries ExpLedger[]
 
+  // Uniqueness is enforced via partial unique indexes in SQL migrations so global (moduleId null)
+  // and module-scoped quests can each enforce the correct deduplication rules.
   // Supports user quest-history reads that page by UTC day and keep row ordering stable.
   @@index([userId, questDateUtc(sort: Desc), id], map: "daily_quests_user_id_quest_date_utc_id_idx")
-  @@unique([userId, moduleId, type, questDateUtc])
   @@map("daily_quests")
+}
+
+model ExpLedger {
+  id              String           @id @default(uuid()) @db.Uuid
+  userId          Int              @map("user_id")
+  moduleId        Int?             @map("module_id")
+  moduleUnitId    Int?             @map("module_unit_id")
+  sessionId       String?          @map("session_id") @db.Uuid
+  questId         Int?             @map("quest_id")
+  // Idempotency key prevents duplicate rewards when submit retries race.
+  idempotencyKey  String           @unique @map("idempotency_key")
+  eventType       String           @map("event_type")
+  awardedExp      Int              @map("awarded_exp")
+  eventTimestamp  DateTime         @default(now()) @map("event_timestamp")
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  module          Module?          @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+  moduleUnit      ModuleUnit?      @relation(fields: [moduleUnitId], references: [id], onDelete: SetNull)
+  practiceSession PracticeSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  quest           DailyQuest?      @relation(fields: [questId], references: [id], onDelete: SetNull)
+
+  // Supports chronological ledger reads and deterministic pagination for account history views.
+  @@index([userId, eventTimestamp(sort: Desc), id], map: "exp_ledger_user_id_event_timestamp_id_idx")
+  // Enables fast checks for idempotent session- and quest-scoped reward events.
+  @@index([sessionId, questId, eventType], map: "exp_ledger_scope_event_type_idx")
+  @@map("exp_ledger")
 }
 
 model PracticeSession {
@@ -147,6 +176,7 @@ model PracticeSession {
   module           Module?           @relation(fields: [moduleId], references: [id], onDelete: SetNull)
   user             User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
   questionAttempts QuestionAttempt[]
+  expLedgerEntries ExpLedger[]
 
   @@map("practice_sessions")
 }
@@ -166,6 +196,7 @@ model ModuleUnit {
   questionAttempts QuestionAttempt[]
   questionUnits    QuestionUnit[]
   dailyQuests      DailyQuest[]
+  expLedgerEntries ExpLedger[]
 
   // Supports composite FK from daily quests so module-unit targets cannot cross modules.
   @@unique([id, moduleId])
@@ -254,24 +285,24 @@ model QuestionVariant {
 }
 
 model QuestionAttempt {
-  id            Int              @id @default(autoincrement())
+  id            Int             @id @default(autoincrement())
   // Session id is required so every attempt has canonical session context for analytics and policy checks.
-  sessionId     String           @db.Uuid @map("session_id")
-  moduleUnitId  Int?             @map("module_unit_id")
-  studentId     Int?             @map("student_id")
-  questionId    Int              @map("question_id")
-  contentId     Int              @map("content_id")
-  isCorrect     Boolean          @map("is_correct")
-  timeTakenMs   Int              @map("time_taken_ms")
-  hintsUsed     Int              @default(0) @map("hints_used")
-  studentAnswer Json             @map("student_answer")
-  attemptedAt   DateTime         @default(now()) @map("attempted_at")
+  sessionId     String          @map("session_id") @db.Uuid
+  moduleUnitId  Int?            @map("module_unit_id")
+  studentId     Int?            @map("student_id")
+  questionId    Int             @map("question_id")
+  contentId     Int             @map("content_id")
+  isCorrect     Boolean         @map("is_correct")
+  timeTakenMs   Int             @map("time_taken_ms")
+  hintsUsed     Int             @default(0) @map("hints_used")
+  studentAnswer Json            @map("student_answer")
+  attemptedAt   DateTime        @default(now()) @map("attempted_at")
   // Required relation ensures deletes are blocked when attempts exist, preserving attempt history integrity.
-  session       PracticeSession  @relation(fields: [sessionId], references: [id], onDelete: Restrict)
-  content       QuestionContent  @relation(fields: [contentId], references: [id], onDelete: Cascade)
-  moduleUnit    ModuleUnit?      @relation(fields: [moduleUnitId], references: [id], onDelete: SetNull)
-  question      QuestionUnit     @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  student       User?            @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  session       PracticeSession @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  content       QuestionContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  moduleUnit    ModuleUnit?     @relation(fields: [moduleUnitId], references: [id], onDelete: SetNull)
+  question      QuestionUnit    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  student       User?           @relation(fields: [studentId], references: [id], onDelete: SetNull)
 
   // Supports first-correct lookups used by unit-progress aggregation on submit.
   @@index([moduleUnitId, studentId, questionId, isCorrect])
