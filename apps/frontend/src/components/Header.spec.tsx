@@ -84,8 +84,12 @@ describe('Header', () => {
       isVerified: true,
       avatar: {
         id: 10,
+        totalExp: 1000,
         level: 5,
-        currentExp: 500,
+        currentLevelExp: 200,
+        nextLevelExpRequired: 318,
+        xpToNextLevel: 118,
+        progressPercent: 62.89,
       },
     };
 
@@ -161,19 +165,20 @@ describe('Header', () => {
   <Header user={studentWithAvatar} />,
 );
 
-      // derivedExp = { current: 500, max: Math.max(500, 1000) = 1000 }
+      // derivedExp is mapped from account-progress fields.
       expect(mockUserBadgeProps.exp).toEqual({
-        current: 500,
-        max: 1000,
+        current: 200,
+        max: 318,
       });
     });
 
-    it('keeps max at STUDENT_EXP_MAX even if currentExp exceeds it to avoid totalExp calculation drift', () => {
+    it('uses next-level requirement as exp max for avatar-driven display', () => {
       const highExpStudent: AuthUser = {
         ...studentWithAvatar,
         avatar: {
           ...studentWithAvatar.avatar!,
-          currentExp: 2000, // Greater than STUDENT_EXP_MAX (1000)
+          currentLevelExp: 80,
+          nextLevelExpRequired: 120,
         },
       };
 
@@ -181,10 +186,9 @@ describe('Header', () => {
         <Header user={highExpStudent} />,
       );
 
-      // max = STUDENT_EXP_MAX (1000)
       expect(mockUserBadgeProps.exp).toEqual({
-        current: 2000,
-        max: 1000,
+        current: 80,
+        max: 120,
       });
     });
 
@@ -293,8 +297,12 @@ describe('Header', () => {
       isVerified: true,
       avatar: {
         id: 20,
+        totalExp: 3500,
         level: 10,
-        currentExp: 1000,
+        currentLevelExp: 50,
+        nextLevelExpRequired: 500,
+        xpToNextLevel: 450,
+        progressPercent: 10,
       },
     };
 
@@ -379,8 +387,12 @@ describe('Header', () => {
       isVerified: true,
       avatar: {
         id: 10,
+        totalExp: 1000,
         level: 5,
-        currentExp: 500,
+        currentLevelExp: 200,
+        nextLevelExpRequired: 318,
+        xpToNextLevel: 118,
+        progressPercent: 62.89,
       },
     };
 

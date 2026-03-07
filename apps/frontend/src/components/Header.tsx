@@ -4,7 +4,6 @@ import type { AuthUser } from '../types/auth';
 import logo from '../assets/logo.svg';
 import UserBadge from './UserBadge';
 import ThemeToggle from './ThemeToggle';
-import { STUDENT_EXP_MAX } from '@scholarxp/constants';
 import { useTodayQuestListQuery } from '../hooks/queries/useQuestsQueries';
 import { BsTrophyFill } from 'react-icons/bs';
 import TodayQuestPopover from './TodayQuestPopover';
@@ -34,8 +33,8 @@ export default function Header({
   const derivedExp =
     isStudent && user?.avatar
       ? {
-          current: user.avatar.currentExp,
-          max: STUDENT_EXP_MAX,
+          current: user.avatar.currentLevelExp,
+          max: user.avatar.nextLevelExpRequired,
         }
       : undefined;
 
