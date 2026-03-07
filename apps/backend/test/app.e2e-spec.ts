@@ -4,7 +4,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
 
-describe('AppController (e2e)', () => {
+describe('App bootstrap (e2e)', () => {
   let app: INestApplication<App>;
 
   beforeEach(async () => {
@@ -16,10 +16,22 @@ describe('AppController (e2e)', () => {
     await app.init();
   });
 
-  it('/ (GET)', () => {
+  it('returns 404 for GET / because no root route is registered', () => {
     return request(app.getHttpServer())
       .get('/')
+      .expect(404);
+  });
+
+  it('returns test diagnostics payload from GET /test', () => {
+    return request(app.getHttpServer())
+      .get('/test')
       .expect(200)
-      .expect('Hello World!');
+      .expect((response) => {
+        expect(response.body).toEqual(
+          expect.objectContaining({
+            users: expect.any(Number),
+          }),
+        );
+      });
   });
 });
