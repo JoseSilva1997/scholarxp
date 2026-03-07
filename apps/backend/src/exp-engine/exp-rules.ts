@@ -1,7 +1,7 @@
 /* 
     For module unit practice:
     - Every lesson give a baseline 1000 XP
-    - Each question gives 1000/number_of_questions XP
+    - Each question gives 1000/number_of_questions XP the first time it is answered correctly, 0 XP on retries
     - Students can earn up to 300 XP extra:
         - 150/number_of_questions XP for answering questions correctly on the first try
         - 150 XP for correct answer streaks:
