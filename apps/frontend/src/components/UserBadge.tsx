@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import type { AuthUser } from '../types/auth';
 import defaultAvatar from '../assets/default-profile-pic.png';
-import { STUDENT_EXP_MAX } from '@scholarxp/constants';
 import styles from './UserBadge.module.css';
 
 type UserBadgeProps = {
@@ -68,15 +67,17 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
       : defaultAvatar;
 
   const isStudent = user.globalRole === 'student';
-  const expMax = exp?.max && exp.max > 0 ? exp.max : STUDENT_EXP_MAX;
-  const targetTotalExp =
-    isStudent && level !== undefined && exp
-      ? toTotalExp(level, exp.current, expMax)
-      : null;
+  const targetTotalExp = isStudent
+    ? user.avatar
+      ? user.avatar.totalExp
+      : level !== undefined && exp
+        ? toLegacyTotalExp(level, exp.current)
+        : null
+    : null;
 
   const animatedProgress =
     targetTotalExp !== null
-      ? fromTotalExp(displayedTotalExp ?? targetTotalExp, expMax)
+      ? getProgressWithinLevel(displayedTotalExp ?? targetTotalExp)
       : null;
 
   useEffect(() => {
@@ -220,9 +221,7 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
   }, [targetTotalExp]); // Decoupled from displayedTotalExp to avoid frame-restarts.
 
   const expPercent =
-    animatedProgress && expMax > 0
-      ? Math.min(100, Math.round((animatedProgress.currentExp / expMax) * 100))
-      : 0;
+    animatedProgress ? Math.min(100, Math.round(animatedProgress.progressPercent)) : 0;
 
   return (
     <div
@@ -298,7 +297,7 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
               </span>
               <div className={styles.trackContainer}>
                 <div className={styles.expValueContainer}>
-                  <span className={styles.expLabel}>{animatedProgress.currentExp} xp</span>
+                  <span className={styles.expLabel}>{animatedProgress.currentLevelExp} xp</span>
                   <AnimatePresence>
                     {expGainIndicator ? (
                       <motion.span
@@ -445,7 +444,9 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
             <div className={styles.menuProgress}>
               <div className={styles.menuProgressHeader}>
                 <span className={styles.menuLevel}>Level {animatedProgress.level}</span>
-                <span className={styles.menuExp}>{animatedProgress.currentExp} / {expMax} XP</span>
+                <span className={styles.menuExp}>
+                  {animatedProgress.currentLevelExp} / {animatedProgress.nextLevelExpRequired} XP
+                </span>
               </div>
               <div className={styles.menuBarTrack}>
                 <div className={styles.menuBarFill} style={{ width: `${expPercent}%` }} />
@@ -511,22 +512,39 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
   );
 }
 
-function toTotalExp(level: number, currentExp: number, expMax: number) {
-  return Math.max(0, level - 1) * expMax + Math.max(0, currentExp);
+function toLegacyTotalExp(level: number, currentExp: number) {
+  return getLevelStartExp(level) + Math.max(0, currentExp);
 }
 
-function fromTotalExp(totalExp: number, expMax: number) {
-  if (expMax <= 0) {
-    return {
-      level: 1,
-      currentExp: 0,
-    };
-  }
+function getLevelStartExp(level: number) {
+  const normalizedLevel = Math.max(1, Math.floor(level));
+  return Math.floor(100 * Math.pow(normalizedLevel - 1, 1.5));
+}
 
+function getLevelFromTotalExp(totalExp: number) {
   const safeTotalExp = Math.max(0, totalExp);
+  return Math.floor(Math.pow(safeTotalExp / 100, 2 / 3)) + 1;
+}
+
+function getProgressWithinLevel(totalExp: number) {
+  const safeTotalExp = Math.max(0, totalExp);
+  const level = getLevelFromTotalExp(safeTotalExp);
+  const levelStartExp = getLevelStartExp(level);
+  const nextLevelStartExp = getLevelStartExp(level + 1);
+  const currentLevelExp = safeTotalExp - levelStartExp;
+  const nextLevelExpRequired = Math.max(1, nextLevelStartExp - levelStartExp);
+  const xpToNextLevel = Math.max(0, nextLevelStartExp - safeTotalExp);
+  const progressPercent = Math.max(
+    0,
+    Math.min(100, (currentLevelExp / nextLevelExpRequired) * 100),
+  );
+
   return {
-    level: Math.floor(safeTotalExp / expMax) + 1,
-    currentExp: safeTotalExp % expMax,
+    level,
+    currentLevelExp,
+    nextLevelExpRequired,
+    xpToNextLevel,
+    progressPercent,
   };
 }
 

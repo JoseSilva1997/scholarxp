@@ -29,17 +29,6 @@ export default function Header({
   const [isTodayPopoverOpen, setIsTodayPopoverOpen] = useState(false);
   const todayChipWrapperRef = useRef<HTMLDivElement | null>(null);
   const isStudent = user?.globalRole === 'student';
-  const derivedLevel = isStudent ? user?.avatar?.level : undefined;
-  const derivedExp =
-    isStudent && user?.avatar
-      ? {
-          current: user.avatar.currentLevelExp,
-          max: user.avatar.nextLevelExpRequired,
-        }
-      : undefined;
-
-  const levelToShow = studentLevel ?? derivedLevel;
-  const expToShow = studentExp ?? derivedExp;
   const todayQuestListQuery = useTodayQuestListQuery(
     Boolean(user && isStudent),
     user?.id,
@@ -126,7 +115,7 @@ export default function Header({
       <div className={styles.headerRight}>
         <ThemeToggle />
         {user ? (
-          <UserBadge user={user} level={levelToShow} exp={expToShow} onLogout={onLogout} />
+          <UserBadge user={user} level={studentLevel} exp={studentExp} onLogout={onLogout} />
         ) : (
           <div className={styles.actions}>
             <Link className={`${styles.btn} ${styles.btnGhost}`} to="/login">

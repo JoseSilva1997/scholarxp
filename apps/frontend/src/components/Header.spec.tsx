@@ -151,28 +151,23 @@ describe('Header', () => {
       expect(screen.queryByTestId('today-quest-popover')).not.toBeInTheDocument();
     });
 
-    it('derives level from avatar when no prop override (isStudent=true path)', () => {
+    it('does not pass derived level when no override is provided', () => {
       renderWithProviders(
   <Header user={studentWithAvatar} />,
 );
 
-      // derivedLevel = 5 (from avatar), levelToShow uses nullish coalescing: studentLevel ?? derivedLevel
-      expect(mockUserBadgeProps.level).toBe(5);
+      expect(mockUserBadgeProps.level).toBeUndefined();
     });
 
-    it('derives exp from avatar when no prop override (isStudent=true with avatar path)', () => {
+    it('does not pass derived exp when no override is provided', () => {
       renderWithProviders(
   <Header user={studentWithAvatar} />,
 );
 
-      // derivedExp is mapped from account-progress fields.
-      expect(mockUserBadgeProps.exp).toEqual({
-        current: 200,
-        max: 318,
-      });
+      expect(mockUserBadgeProps.exp).toBeUndefined();
     });
 
-    it('uses next-level requirement as exp max for avatar-driven display', () => {
+    it('still keeps avatar data on user prop while not forwarding exp overrides', () => {
       const highExpStudent: AuthUser = {
         ...studentWithAvatar,
         avatar: {
@@ -186,10 +181,8 @@ describe('Header', () => {
         <Header user={highExpStudent} />,
       );
 
-      expect(mockUserBadgeProps.exp).toEqual({
-        current: 80,
-        max: 120,
-      });
+      expect(mockUserBadgeProps.exp).toBeUndefined();
+      expect(mockUserBadgeProps.user).toEqual(highExpStudent);
     });
 
     it('overrides derived level with studentLevel prop (nullish coalescing)', () => {
@@ -250,8 +243,6 @@ describe('Header', () => {
   <Header user={studentNoAvatar} />,
 );
 
-      // derivedLevel = undefined (isStudent but no avatar)
-      // levelToShow = undefined ?? undefined = undefined
       expect(mockUserBadgeProps.level).toBeUndefined();
     });
 
@@ -260,7 +251,6 @@ describe('Header', () => {
   <Header user={studentNoAvatar} />,
 );
 
-      // derivedExp = undefined (isStudent but !avatar)
       expect(mockUserBadgeProps.exp).toBeUndefined();
     });
 
@@ -269,7 +259,6 @@ describe('Header', () => {
   <Header user={studentNoAvatar} studentLevel={3} />,
 );
 
-      // studentLevel (3) ?? undefined = 3
       expect(mockUserBadgeProps.level).toBe(3);
     });
 
@@ -320,8 +309,6 @@ describe('Header', () => {
   <Header user={teacherUser} />,
 );
 
-      // isStudent = false, so derivedLevel = undefined (ternary false branch)
-      // levelToShow = undefined ?? undefined = undefined
       expect(mockUserBadgeProps.level).toBeUndefined();
     });
 
@@ -330,7 +317,6 @@ describe('Header', () => {
   <Header user={teacherUser} />,
 );
 
-      // isStudent = false, so derivedExp = undefined
       expect(mockUserBadgeProps.exp).toBeUndefined();
     });
 
@@ -339,7 +325,6 @@ describe('Header', () => {
   <Header user={teacherUser} studentLevel={7} />,
 );
 
-      // studentLevel (7) ?? undefined = 7
       expect(mockUserBadgeProps.level).toBe(7);
     });
 
@@ -401,8 +386,6 @@ describe('Header', () => {
   <Header user={studentWithAvatar} studentLevel={0} />,
 );
 
-      // studentLevel (0) is falsy but defined, nullish coalescing passes it through
-      // 0 ?? 5 = 0
       expect(mockUserBadgeProps.level).toBe(0);
     });
 
