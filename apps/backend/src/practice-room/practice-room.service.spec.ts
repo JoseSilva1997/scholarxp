@@ -5,8 +5,6 @@ import { NotFoundException } from '@nestjs/common';
 import { PracticeRoomService } from './practice-room.service';
 import { PracticeRoomMapper } from './practice-room.mapper';
 import { StudentModuleUnitProgressService } from './student-module-unit-progress.service';
-import { UserModuleService } from '../db-entities/user-module/user-module.service';
-import { ExpLedgerService } from '../db-entities/exp-ledger/exp-ledger.service';
 import { PracticeRewardService } from '../exp-engine/practice-reward.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock, type PrismaMock } from '../test/test-helpers';
@@ -23,13 +21,8 @@ describe('PracticeRoomService', () => {
   let studentModuleUnitProgressService: {
     syncFromAttempts: jest.Mock;
   };
-  let userModuleService: {
-    addStudentModuleExp: jest.Mock;
-  };
-  let expLedgerService: {
-    recordEvent: jest.Mock;
-  };
   let practiceRewardService: {
+    awardAttemptModuleExp: jest.Mock;
     awardCompletionExp: jest.Mock;
   };
 
@@ -117,27 +110,25 @@ describe('PracticeRoomService', () => {
         lastPracticedAt: new Date('2026-02-12T10:00:00.000Z'),
       }),
     };
-    userModuleService = {
-      addStudentModuleExp: jest.fn().mockResolvedValue({
-        id: 700,
-        moduleId: 1,
-        userId: 100,
-        roleInModule: 'student',
-        userModuleLevel: 1,
-        currentExp: 50,
-        enrolledVia: 'invite',
-        createdAt: new Date('2026-02-12T10:00:00.000Z'),
-      }),
-    };
-    expLedgerService = {
-      // Default behavior creates fresh events so reward side effects apply in tests unless overridden.
-      recordEvent: jest
-        .fn()
-        .mockImplementation((params: { awardedExp: number }) =>
-          Promise.resolve({ created: true, awardedExp: params.awardedExp }),
-        ),
-    };
     practiceRewardService = {
+      awardAttemptModuleExp: jest.fn().mockResolvedValue({
+        moduleExpAwarded: 50,
+        updatedMembership: {
+          id: 700,
+          moduleId: 1,
+          userId: 100,
+          roleInModule: 'student',
+          userModuleLevel: 1,
+          currentExp: 50,
+          enrolledVia: 'invite',
+          createdAt: new Date('2026-02-12T10:00:00.000Z'),
+          module: {
+            id: 1,
+            title: 'Biology',
+            description: 'Study biology',
+          },
+        },
+      }),
       awardCompletionExp: jest.fn().mockResolvedValue(0),
     };
 
@@ -150,14 +141,6 @@ describe('PracticeRoomService', () => {
         {
           provide: StudentModuleUnitProgressService,
           useValue: studentModuleUnitProgressService,
-        },
-        {
-          provide: UserModuleService,
-          useValue: userModuleService,
-        },
-        {
-          provide: ExpLedgerService,
-          useValue: expLedgerService,
         },
         {
           provide: PracticeRewardService,
@@ -811,16 +794,28 @@ describe('PracticeRoomService', () => {
         }),
         prisma,
       );
-      expect(userModuleService.addStudentModuleExp).toHaveBeenCalledWith(
-        1,
-        100,
-        50,
-        prisma,
-      );
       expect(result).toEqual({
         moduleExpAwarded: 50,
         hasCorrectAttempt: true,
+        updatedModuleProgress: {
+          id: 1,
+          title: 'Biology',
+          description: 'Study biology',
+          userModuleLevel: 1,
+          currentExp: 50,
+          expMax: 1000,
+        },
       });
+      expect(practiceRewardService.awardAttemptModuleExp).toHaveBeenCalledWith(
+        {
+          studentId: 100,
+          moduleId: 1,
+          moduleUnitId: 10,
+          sessionId: '11111111-1111-4111-8111-111111111077',
+          attemptId: 999,
+        },
+        prisma,
+      );
       expect(practiceRewardService.awardCompletionExp).not.toHaveBeenCalled();
     });
 
@@ -979,9 +974,9 @@ describe('PracticeRoomService', () => {
       } as any);
       prisma.questionAttempt.findFirst.mockResolvedValue(null);
       prisma.questionAttempt.create.mockResolvedValue({ id: 999 } as any);
-      expLedgerService.recordEvent.mockResolvedValue({
-        created: false,
-        awardedExp: 0,
+      practiceRewardService.awardAttemptModuleExp.mockResolvedValue({
+        moduleExpAwarded: 0,
+        updatedMembership: null,
       });
 
       const result = await service.submitAttempt(1, 10, 100, {
@@ -994,7 +989,7 @@ describe('PracticeRoomService', () => {
         studentAnswer: { selectedOptionIndex: 2 } as any,
       });
 
-      expect(userModuleService.addStudentModuleExp).not.toHaveBeenCalled();
+      expect(practiceRewardService.awardAttemptModuleExp).toHaveBeenCalled();
       expect(result.moduleExpAwarded).toBe(0);
     });
   });

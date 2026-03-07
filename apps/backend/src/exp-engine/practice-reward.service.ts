@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { AvatarService } from '../db-entities/avatar/avatar.service';
 import { ExpLedgerService } from '../db-entities/exp-ledger/exp-ledger.service';
+import { UserModuleService } from '../db-entities/user-module/user-module.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ExpLedgerEventTypes } from '@scholarxp/constants';
 
@@ -15,8 +16,24 @@ type AwardCompletionExpParams = {
   sessionId: string;
   completedAt: Date;
 };
+type AwardAttemptModuleExpParams = {
+  studentId: number;
+  moduleId: number;
+  moduleUnitId: number;
+  sessionId: string;
+  attemptId: number;
+};
+
+export type AttemptModuleExpRewardResult = {
+  moduleExpAwarded: number;
+  updatedMembership: Prisma.UserModuleGetPayload<{
+    include: { module: true };
+  }> | null;
+};
+
 const FIRST_COMPLETION_REWARD = 100;
 const SECOND_COMPLETION_REWARD = 25;
+const MODULE_UNIT_EXP_REWARD = 50;
 
 @Injectable()
 export class PracticeRewardService {
@@ -24,7 +41,53 @@ export class PracticeRewardService {
     private readonly prisma: PrismaService,
     private readonly expLedgerService: ExpLedgerService,
     private readonly avatarService: AvatarService,
+    private readonly userModuleService: UserModuleService,
   ) {}
+
+  // Reward module XP for one persisted attempt via idempotent ledger write.
+  async awardAttemptModuleExp(
+    params: AwardAttemptModuleExpParams,
+    tx?: PrismaClientLike,
+  ): Promise<AttemptModuleExpRewardResult> {
+    const prismaClient = tx ?? this.prisma;
+    // Attempt-scoped key ensures retries do not duplicate XP for the same persisted attempt.
+    const idempotencyKey = `practice_attempt:${params.attemptId}:reward_v1:module`;
+    const moduleLedgerResult = await this.expLedgerService.recordEvent(
+      {
+        userId: params.studentId,
+        moduleId: params.moduleId,
+        moduleUnitId: params.moduleUnitId,
+        sessionId: params.sessionId,
+        questId: null,
+        eventType: ExpLedgerEventTypes.CORRECT_PRACTICE_ROOM_ANSWER,
+        awardedExp: MODULE_UNIT_EXP_REWARD,
+        idempotencyKey,
+      },
+      prismaClient,
+    );
+    if (!moduleLedgerResult.created) {
+      return {
+        moduleExpAwarded: 0,
+        updatedMembership: null,
+      };
+    }
+
+    const updatedMembership = await this.userModuleService.addStudentModuleExp(
+      params.moduleId,
+      params.studentId,
+      moduleLedgerResult.awardedExp,
+      prismaClient,
+    );
+    const membershipWithModule = await prismaClient.userModule.findUnique({
+      where: { id: updatedMembership.id },
+      include: { module: true },
+    });
+
+    return {
+      moduleExpAwarded: moduleLedgerResult.awardedExp,
+      updatedMembership: membershipWithModule,
+    };
+  }
 
   // Award account XP once when a unit is newly completed, with UTC-day diminishing returns (100/25/0).
   async awardCompletionExp(

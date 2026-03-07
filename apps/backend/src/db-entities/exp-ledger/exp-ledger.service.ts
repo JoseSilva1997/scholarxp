@@ -70,7 +70,6 @@ export class ExpLedgerService {
     }
   }
 
-
   async getTodaysNumberOfCompletedUnits(
     userId: number,
     tx?: PrismaClientLike,

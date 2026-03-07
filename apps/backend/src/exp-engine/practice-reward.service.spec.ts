@@ -2,6 +2,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AvatarService } from '../db-entities/avatar/avatar.service';
 import { ExpLedgerService } from '../db-entities/exp-ledger/exp-ledger.service';
+import { UserModuleService } from '../db-entities/user-module/user-module.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock, type PrismaMock } from '../test/test-helpers';
 import { PracticeRewardService } from './practice-reward.service';
@@ -10,8 +11,12 @@ import { ExpLedgerEventTypes } from '@scholarxp/constants';
 describe('PracticeRewardService', () => {
   let service: PracticeRewardService;
   let prisma: PrismaMock;
-  let expLedgerService: { recordEvent: jest.Mock; getTodaysNumberOfCompletedUnits: jest.Mock };
+  let expLedgerService: {
+    recordEvent: jest.Mock;
+    getTodaysNumberOfCompletedUnits: jest.Mock;
+  };
   let avatarService: { addStudentExp: jest.Mock };
+  let userModuleService: { addStudentModuleExp: jest.Mock };
 
   beforeEach(async () => {
     prisma = createPrismaMock();
@@ -26,6 +31,33 @@ describe('PracticeRewardService', () => {
     avatarService = {
       addStudentExp: jest.fn().mockResolvedValue(undefined),
     };
+    userModuleService = {
+      addStudentModuleExp: jest.fn().mockResolvedValue({
+        id: 701,
+        moduleId: 10,
+        userId: 100,
+        roleInModule: 'student',
+        userModuleLevel: 1,
+        currentExp: 40,
+        enrolledVia: 'invite',
+        createdAt: new Date('2026-03-07T10:00:00.000Z'),
+      }),
+    };
+    prisma.userModule.findUnique.mockResolvedValue({
+      id: 701,
+      moduleId: 10,
+      userId: 100,
+      roleInModule: 'student',
+      userModuleLevel: 1,
+      currentExp: 40,
+      enrolledVia: 'invite',
+      createdAt: new Date('2026-03-07T10:00:00.000Z'),
+      module: {
+        id: 10,
+        title: 'Biology',
+        description: 'Study biology',
+      },
+    } as never);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -33,6 +65,7 @@ describe('PracticeRewardService', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: ExpLedgerService, useValue: expLedgerService },
         { provide: AvatarService, useValue: avatarService },
+        { provide: UserModuleService, useValue: userModuleService },
       ],
     }).compile();
 
@@ -109,5 +142,59 @@ describe('PracticeRewardService', () => {
 
     expect(awarded).toBe(0);
     expect(avatarService.addStudentExp).not.toHaveBeenCalled();
+  });
+
+  it('awards module xp for a persisted practice attempt and returns updated membership snapshot', async () => {
+    const result = await service.awardAttemptModuleExp(
+      {
+        studentId: 100,
+        moduleId: 10,
+        moduleUnitId: 20,
+        sessionId: '11111111-1111-4111-8111-111111111111',
+        attemptId: 9001,
+      },
+      prisma,
+    );
+
+    expect(expLedgerService.recordEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: ExpLedgerEventTypes.CORRECT_PRACTICE_ROOM_ANSWER,
+        awardedExp: 50,
+        idempotencyKey: 'practice_attempt:9001:reward_v1:module',
+      }),
+      prisma,
+    );
+    expect(userModuleService.addStudentModuleExp).toHaveBeenCalledWith(
+      10,
+      100,
+      50,
+      prisma,
+    );
+    expect(result.moduleExpAwarded).toBe(50);
+    expect(result.updatedMembership?.module.title).toBe('Biology');
+  });
+
+  it('returns zero module xp when attempt ledger event already exists', async () => {
+    expLedgerService.recordEvent.mockResolvedValue({
+      created: false,
+      awardedExp: 0,
+    });
+
+    const result = await service.awardAttemptModuleExp(
+      {
+        studentId: 100,
+        moduleId: 10,
+        moduleUnitId: 20,
+        sessionId: '11111111-1111-4111-8111-111111111111',
+        attemptId: 9001,
+      },
+      prisma,
+    );
+
+    expect(result).toEqual({
+      moduleExpAwarded: 0,
+      updatedMembership: null,
+    });
+    expect(userModuleService.addStudentModuleExp).not.toHaveBeenCalled();
   });
 });
