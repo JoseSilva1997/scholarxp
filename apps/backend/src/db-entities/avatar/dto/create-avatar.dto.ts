@@ -7,9 +7,5 @@ export class CreateAvatarDto {
 
   @IsInt()
   @IsNotEmpty()
-  level: number;
-
-  @IsInt()
-  @IsNotEmpty()
-  currentExp: number;
+  totalExp: number;
 }

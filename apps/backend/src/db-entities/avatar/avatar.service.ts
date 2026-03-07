@@ -7,10 +7,6 @@ import type { Prisma } from '@prisma/client';
 import { CreateAvatarDto } from './dto/create-avatar.dto';
 import { UpdateAvatarDto } from './dto/update-avatar.dto';
 import { PrismaService } from '../../prisma/prisma.service';
-import {
-  getLevelStartExp,
-  getProgressWithinLevel,
-} from '../../exp-engine/level-rules';
 
 type PrismaClientLike = Prisma.TransactionClient | PrismaService;
 
@@ -43,8 +39,6 @@ export class AvatarService {
     return this.prisma.avatar.create({
       data: {
         ...createAvatarDto,
-        totalExp:
-          getLevelStartExp(createAvatarDto.level) + createAvatarDto.currentExp,
       },
     });
   }
@@ -92,21 +86,13 @@ export class AvatarService {
       throw new NotFoundException(`Avatar not found for user ${userId}`);
     }
 
-    // Recompute level snapshot from canonical totalExp so non-linear curves stay consistent.
     const updatedTotalExp = avatar.totalExp + expGained;
-    const progression = getProgressWithinLevel(updatedTotalExp);
 
     return prismaClient.avatar.update({
       where: { id: avatar.id },
       data: {
         totalExp: {
           set: updatedTotalExp,
-        },
-        currentExp: {
-          set: progression.currentLevelExp,
-        },
-        level: {
-          set: progression.level,
         },
       },
     });

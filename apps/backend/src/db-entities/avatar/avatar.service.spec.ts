@@ -10,7 +10,7 @@ describe('AvatarService', () => {
   let service: AvatarService;
 
   const userId = 1;
-  const createDto = { userId, level: 2, currentExp: 100 };
+  const createDto = { userId, totalExp: 100 };
   const now = new Date();
 
   beforeEach(async () => {
@@ -31,7 +31,6 @@ describe('AvatarService', () => {
     prisma.avatar.create.mockResolvedValue({
       id: 1,
       ...createDto,
-      totalExp: 200,
       createdAt: now,
     });
 
@@ -45,14 +44,9 @@ describe('AvatarService', () => {
       where: { userId },
     });
     expect(prisma.avatar.create).toHaveBeenCalledWith({
-      data: { ...createDto, totalExp: 200 },
+      data: createDto,
     });
-    expect(result).toEqual({
-      id: 1,
-      ...createDto,
-      totalExp: 200,
-      createdAt: now,
-    });
+    expect(result).toEqual({ id: 1, ...createDto, createdAt: now });
   });
 
   it('create rejects non-students', async () => {
@@ -113,7 +107,7 @@ describe('AvatarService', () => {
   });
 
   it('update checks existence then updates with DTO', async () => {
-    const updateDto = { level: 3 };
+    const updateDto = { totalExp: 300 };
     prisma.avatar.findUnique.mockResolvedValue({
       id: 1,
       ...createDto,
@@ -144,7 +138,7 @@ describe('AvatarService', () => {
   it('update rethrows NotFoundException when missing', async () => {
     prisma.avatar.findUnique.mockResolvedValue(null);
 
-    await expect(service.update(1, { level: 3 })).rejects.toThrow(
+    await expect(service.update(1, { totalExp: 300 })).rejects.toThrow(
       NotFoundException,
     );
   });
@@ -174,7 +168,7 @@ describe('AvatarService', () => {
     await expect(service.remove(1)).rejects.toThrow(NotFoundException);
   });
 
-  it('addStudentExp increments currentExp for an existing avatar', async () => {
+  it('addStudentExp increments totalExp for an existing avatar', async () => {
     prisma.avatar.findUnique.mockResolvedValue({
       id: 4,
       totalExp: 200,
@@ -182,8 +176,6 @@ describe('AvatarService', () => {
     prisma.avatar.update.mockResolvedValue({
       id: 4,
       userId,
-      level: 2,
-      currentExp: 125,
       totalExp: 225,
       createdAt: now,
     } as any);
@@ -200,19 +192,11 @@ describe('AvatarService', () => {
         totalExp: {
           set: 225,
         },
-        currentExp: {
-          set: 125,
-        },
-        level: {
-          set: 2,
-        },
       },
     });
     expect(result).toEqual({
       id: 4,
       userId,
-      level: 2,
-      currentExp: 125,
       totalExp: 225,
       createdAt: now,
     });

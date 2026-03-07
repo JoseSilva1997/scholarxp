@@ -81,8 +81,6 @@ export class UsersService {
           await tx.avatar.create({
             data: {
               userId: id,
-              level: 1,
-              currentExp: 0,
               totalExp: 0,
             },
           });
