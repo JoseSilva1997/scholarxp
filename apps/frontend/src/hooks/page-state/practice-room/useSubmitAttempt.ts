@@ -49,7 +49,6 @@ type UseSubmitAttemptParams = {
   // XP callbacks supplied by parent hooks.
   applyExpAward: (awarded: number, detail: ProgressModuleDetail | null) => void;
   moduleDetail: ProgressModuleDetail | null;
-  applyStudentExpReward: (exp: number) => void;
   // State setters for attempt tracking — also used by tryAgainActiveQuestion.
   setSubmittedAttemptByContentId: React.Dispatch<
     React.SetStateAction<Record<number, PracticeAttemptSnapshot | null>>
@@ -85,7 +84,6 @@ export function useSubmitAttempt({
   isPending,
   applyExpAward,
   moduleDetail,
-  applyStudentExpReward,
   setSubmittedAttemptByContentId,
   setSubmittedByContentIdBySessionId,
   parsedModuleId,
@@ -148,11 +146,6 @@ export function useSubmitAttempt({
         // celebration to the progress hook so this handler stays focused on
         // attempt business logic.
         applyExpAward(submitResponse.moduleExpAwarded, moduleDetail);
-      }
-      if (submitResponse.studentExpAwarded > 0) {
-        // Updating auth cache immediately keeps header avatar progress in sync
-        // with the in-room reward feedback.
-        applyStudentExpReward(submitResponse.studentExpAwarded);
       }
       setSubmittedAttemptByContentId((previous) => ({
         ...previous,
@@ -217,4 +210,3 @@ export function useSubmitAttempt({
     tryAgainActiveQuestion,
   };
 }
-

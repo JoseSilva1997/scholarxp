@@ -112,7 +112,6 @@ export interface SubmitAttemptPayload {
 // Response sent back to the frontend after submitting an attempt.
 export interface SubmitAttemptResponse {
   moduleExpAwarded: number;
-  studentExpAwarded: number;
   hasCorrectAttempt: boolean;
   // Returning the updated progress allows the frontend to synchronize XP bars without a separate refetch.
   updatedModuleProgress?: ModuleSummaryResponse;

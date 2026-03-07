@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from
 import { useQueryClient } from '@tanstack/react-query';
 import type { AuthUser, ModuleUnitStatus } from '@scholarxp/api-contracts';
 import type { ModuleSummary } from '../../types/module';
-import { MODULE_EXP_MAX } from '@scholarxp/constants';
+import { MODULE_UNIT_BASELINE_EXP } from '@scholarxp/constants';
 import { features } from '@scholarxp/permissions';
 import type { ModuleUnit } from '../../components/ModuleUnitCard';
 import {
@@ -162,9 +162,9 @@ export function useSingleModulePageState({
   // layer can render a percentage and cap even if backend data is
   // temporarily unavailable.
   const expMax = useMemo(() => {
-    if (!module) return MODULE_EXP_MAX;
+    if (!module) return MODULE_UNIT_BASELINE_EXP;
     // Prefer module-specific cap when backend provides it so future tuning is seamless.
-    return module.expMax && module.expMax > 0 ? module.expMax : MODULE_EXP_MAX;
+    return module.expMax && module.expMax > 0 ? module.expMax : MODULE_UNIT_BASELINE_EXP;
   }, [module]);
 
   const expPercent = useMemo(() => {

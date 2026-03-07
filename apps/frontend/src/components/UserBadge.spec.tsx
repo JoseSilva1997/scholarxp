@@ -32,6 +32,15 @@ describe('UserBadge', () => {
     globalRole: 'student' as const,
     isVerified: true,
     profilePictureUrl: '',
+    avatar: {
+      id: 1,
+      totalExp: 850,
+      level: 5,
+      currentLevelExp: 50,
+      nextLevelExpRequired: 318,
+      xpToNextLevel: 268,
+      progressPercent: 15.72,
+    },
   };
 
   const adminUser: AuthUser = {
@@ -49,7 +58,7 @@ describe('UserBadge', () => {
   });
 
   it('renders student progress correctly', async () => {
-    render(<UserBadge user={user} level={5} exp={{ current: 50, max: 100 }} />);
+    render(<UserBadge user={user} />);
 
     // Initial XP state is set after first rAF.
     await vi.advanceTimersByTimeAsync(1);
@@ -68,13 +77,27 @@ describe('UserBadge', () => {
   });
 
   it('triggers level-up animation when level increases', async () => {
-    const { rerender } = render(<UserBadge user={user} level={1} exp={{ current: 0, max: 100 }} />);
+    const levelTwoUser: AuthUser = {
+      ...user,
+      avatar: {
+        ...(user.avatar as NonNullable<AuthUser['avatar']>),
+        totalExp: 100,
+      },
+    };
+    const { rerender } = render(<UserBadge user={levelTwoUser} />);
     
     // Process initial set
     await vi.advanceTimersByTimeAsync(1);
 
     // Trigger level up
-    rerender(<UserBadge user={user} level={2} exp={{ current: 10, max: 100 }} />);
+    const levelThreeUser: AuthUser = {
+      ...user,
+      avatar: {
+        ...(user.avatar as NonNullable<AuthUser['avatar']>),
+        totalExp: 300,
+      },
+    };
+    rerender(<UserBadge user={levelThreeUser} />);
     
     // Advance time for the total exp animation to complete and trigger the check
     await vi.advanceTimersByTimeAsync(1000); 
@@ -85,12 +108,26 @@ describe('UserBadge', () => {
   });
 
   it('shows and clears exp gain indicator when exp increases', async () => {
-    const { rerender } = render(<UserBadge user={user} level={5} exp={{ current: 20, max: 100 }} />);
+    const startingUser: AuthUser = {
+      ...user,
+      avatar: {
+        ...(user.avatar as NonNullable<AuthUser['avatar']>),
+        totalExp: 850,
+      },
+    };
+    const { rerender } = render(<UserBadge user={startingUser} />);
 
     // Run enough fake time for the initial rAF sync so the next update is treated as a gain event.
     await vi.advanceTimersByTimeAsync(20);
 
-    rerender(<UserBadge user={user} level={5} exp={{ current: 60, max: 100 }} />);
+    const updatedUser: AuthUser = {
+      ...user,
+      avatar: {
+        ...(user.avatar as NonNullable<AuthUser['avatar']>),
+        totalExp: 890,
+      },
+    };
+    rerender(<UserBadge user={updatedUser} />);
     await vi.advanceTimersByTimeAsync(20);
 
     expect(screen.getByText('+40')).toBeInTheDocument();
@@ -123,7 +160,7 @@ describe('UserBadge', () => {
   });
 
   it('opens menu and navigates from action buttons', () => {
-    render(<UserBadge user={user} level={2} exp={{ current: 10, max: 100 }} />);
+    render(<UserBadge user={user} />);
 
     fireEvent.click(screen.getByRole('button', { name: /toggle user menu/i }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'My content' }));

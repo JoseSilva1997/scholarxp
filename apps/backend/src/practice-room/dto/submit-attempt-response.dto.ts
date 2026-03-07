@@ -6,7 +6,6 @@ import type {
 
 export class SubmitAttemptResponseDto implements SubmitAttemptResponse {
   moduleExpAwarded: number;
-  studentExpAwarded: number;
   hasCorrectAttempt: boolean;
   updatedModuleProgress?: ModuleSummaryResponse;
 }

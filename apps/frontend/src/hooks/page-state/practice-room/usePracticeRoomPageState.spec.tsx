@@ -14,9 +14,6 @@ vi.mock('../../queries/usePracticeRoomQueries', () => ({
 vi.mock('../../queries/useModulesQueries', () => ({
   useModuleDetailQuery: vi.fn(),
 }));
-vi.mock('../../../context/AuthContext', () => ({
-  useAuth: vi.fn(),
-}));
 vi.mock('../../../api/get-display-error', () => ({
   getDisplayErrorMessage: (err: unknown) => `display:${String(err)}`,
   shouldLogApiError: () => true,
@@ -30,7 +27,6 @@ import {
   useSubmitModuleUnitPracticeAttemptMutation,
 } from '../../queries/usePracticeRoomQueries';
 import { useModuleDetailQuery } from '../../queries/useModulesQueries';
-import { useAuth } from '../../../context/AuthContext';
 
 type PracticeRoomPageState = ReturnType<typeof usePracticeRoomPageState>;
 
@@ -68,16 +64,11 @@ describe('usePracticeRoomPageState (core-only)', () => {
     useSubmitModuleUnitPracticeAttemptMutation as unknown as Mock;
   const useCloseModuleUnitPracticeSessionMutationMock =
     useCloseModuleUnitPracticeSessionMutation as unknown as Mock;
-  const useAuthMock = useAuth as unknown as Mock;
-  const applyStudentExpRewardMock = vi.fn();
   const closeSessionMutateMock = vi.fn();
 
   beforeEach(() => {
     vi.resetAllMocks();
     localStorage.clear();
-    useAuthMock.mockReturnValue({
-      applyStudentExpReward: applyStudentExpRewardMock,
-    });
     useModuleUnitPracticeRoomQueryMock.mockReturnValue({
       isPending: false,
       data: null,
@@ -92,7 +83,6 @@ describe('usePracticeRoomPageState (core-only)', () => {
       isPending: false,
       mutateAsync: vi.fn().mockResolvedValue({
         moduleExpAwarded: 0,
-        studentExpAwarded: 0,
         hasCorrectAttempt: false,
       }),
     });
@@ -379,7 +369,6 @@ describe('usePracticeRoomPageState (core-only)', () => {
   it('persists submitted status on reload for the same session', async () => {
     const mutateAsync = vi.fn().mockResolvedValue({
       moduleExpAwarded: 0,
-      studentExpAwarded: 0,
       hasCorrectAttempt: false,
     });
     useSubmitModuleUnitPracticeAttemptMutationMock.mockReturnValue({
@@ -620,7 +609,6 @@ describe('usePracticeRoomPageState (core-only)', () => {
   it('shows try again after incorrect submit and clears submitted state when retried', async () => {
     const mutateAsync = vi.fn().mockResolvedValue({
       moduleExpAwarded: 0,
-      studentExpAwarded: 0,
       hasCorrectAttempt: false,
     });
     useSubmitModuleUnitPracticeAttemptMutationMock.mockReturnValue({
@@ -699,7 +687,6 @@ describe('usePracticeRoomPageState (core-only)', () => {
 
     const mutateAsync = vi.fn().mockResolvedValue({
       moduleExpAwarded: 50,
-      studentExpAwarded: 25,
       hasCorrectAttempt: true,
     });
     useSubmitModuleUnitPracticeAttemptMutationMock.mockReturnValue({
@@ -772,7 +759,6 @@ describe('usePracticeRoomPageState (core-only)', () => {
       currentExp: 30,
       expPercent: 3,
     });
-    expect(applyStudentExpRewardMock).toHaveBeenCalledWith(25);
 
     requestAnimationFrameSpy.mockRestore();
     cancelAnimationFrameSpy.mockRestore();

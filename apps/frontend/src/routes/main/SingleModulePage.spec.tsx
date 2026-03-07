@@ -146,7 +146,7 @@ describe('SingleModulePage route', () => {
       isStudentViewEnabled: false,
       showCreateUnit: false,
       isSettingsOpen: false,
-      expPercent: 40,
+      expPercent: 12,
       isCreatingUnit: false,
     };
 
@@ -201,10 +201,10 @@ describe('SingleModulePage route', () => {
   <SingleModulePage />,
 );
 
-    expect(screen.getByText('Level 3')).toBeInTheDocument();
-    // XP value/label are split across spans; assert against the progress region text content.
-    expect(screen.getByLabelText('Module progress')).toHaveTextContent('120');
-    expect(screen.getByLabelText('Module progress')).toHaveTextContent('XP');
+    expect(screen.getByText("Proficiency Level")).toBeInTheDocument();
+    expect(screen.getByText('3')).toBeInTheDocument();
+    expect(screen.getByText('120')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '12');
     expect(screen.getByText('student-unit-1')).toBeInTheDocument();
     expect(screen.queryByText('student-unit-2')).not.toBeInTheDocument();
   });

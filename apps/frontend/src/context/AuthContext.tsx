@@ -8,7 +8,7 @@ import {
 } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AuthResponse } from '@scholarxp/api-contracts';
-import { STUDENT_EXP_MAX } from '@scholarxp/constants';
+import { getProgressWithinLevel } from '@scholarxp/progression';
 import { getCurrentUser, logout as apiLogout } from '../api/auth';
 import { clearCsrfToken, refreshCsrfToken } from '../api/client';
 import { queryKeys } from '../hooks/query-keys';
@@ -66,9 +66,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
             return previousValue;
           }
 
-          const totalExp = avatar.currentExp + expGained;
-          const levelGain = Math.floor(totalExp / STUDENT_EXP_MAX);
-          const remainingExp = totalExp % STUDENT_EXP_MAX;
+          // Keep client-side reward preview aligned with backend level rules by deriving progression from totalExp.
+          const totalExp = avatar.totalExp + expGained;
+          const nextProgress = getProgressWithinLevel(totalExp);
 
           return {
             ...previousValue,
@@ -76,8 +76,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
               ...previousValue.user,
               avatar: {
                 ...avatar,
-                level: avatar.level + levelGain,
-                currentExp: remainingExp,
+                totalExp,
+                ...nextProgress,
               },
             },
           };

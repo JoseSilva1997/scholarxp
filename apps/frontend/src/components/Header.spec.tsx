@@ -17,11 +17,6 @@ vi.mock('../hooks/queries/useQuestsQueries', () => ({
 // Mock UserBadge to track props passed to it, allowing assertion on level/exp values
 type MockUserBadgeProps = {
   user?: AuthUser;
-  level?: number;
-  exp?: {
-    current: number;
-    max: number;
-  };
   onLogout?: () => Promise<void> | void;
 };
 
@@ -84,8 +79,12 @@ describe('Header', () => {
       isVerified: true,
       avatar: {
         id: 10,
+        totalExp: 1000,
         level: 5,
-        currentExp: 500,
+        currentLevelExp: 200,
+        nextLevelExpRequired: 318,
+        xpToNextLevel: 118,
+        progressPercent: 62.89,
       },
     };
 
@@ -147,74 +146,12 @@ describe('Header', () => {
       expect(screen.queryByTestId('today-quest-popover')).not.toBeInTheDocument();
     });
 
-    it('derives level from avatar when no prop override (isStudent=true path)', () => {
+    it('passes student avatar data to UserBadge through user prop', () => {
       renderWithProviders(
-  <Header user={studentWithAvatar} />,
-);
-
-      // derivedLevel = 5 (from avatar), levelToShow uses nullish coalescing: studentLevel ?? derivedLevel
-      expect(mockUserBadgeProps.level).toBe(5);
-    });
-
-    it('derives exp from avatar when no prop override (isStudent=true with avatar path)', () => {
-      renderWithProviders(
-  <Header user={studentWithAvatar} />,
-);
-
-      // derivedExp = { current: 500, max: Math.max(500, 1000) = 1000 }
-      expect(mockUserBadgeProps.exp).toEqual({
-        current: 500,
-        max: 1000,
-      });
-    });
-
-    it('keeps max at STUDENT_EXP_MAX even if currentExp exceeds it to avoid totalExp calculation drift', () => {
-      const highExpStudent: AuthUser = {
-        ...studentWithAvatar,
-        avatar: {
-          ...studentWithAvatar.avatar!,
-          currentExp: 2000, // Greater than STUDENT_EXP_MAX (1000)
-        },
-      };
-
-      renderWithProviders(
-        <Header user={highExpStudent} />,
+        <Header user={studentWithAvatar} />,
       );
 
-      // max = STUDENT_EXP_MAX (1000)
-      expect(mockUserBadgeProps.exp).toEqual({
-        current: 2000,
-        max: 1000,
-      });
-    });
-
-    it('overrides derived level with studentLevel prop (nullish coalescing)', () => {
-      renderWithProviders(
-  <Header user={studentWithAvatar} studentLevel={8} />,
-);
-
-      // studentLevel (8) ?? derivedLevel (5) = 8
-      expect(mockUserBadgeProps.level).toBe(8);
-    });
-
-    it('overrides derived exp with studentExp prop (nullish coalescing)', () => {
-      const customExp = { current: 300, max: 500 };
-      renderWithProviders(
-  <Header user={studentWithAvatar} studentExp={customExp} />,
-);
-
-      // studentExp ?? derivedExp
-      expect(mockUserBadgeProps.exp).toEqual(customExp);
-    });
-
-    it('overrides both level and exp with prop values', () => {
-      const customExp = { current: 100, max: 200 };
-      renderWithProviders(
-  <Header user={studentWithAvatar} studentLevel={12} studentExp={customExp} />,
-);
-
-      expect(mockUserBadgeProps.level).toBe(12);
-      expect(mockUserBadgeProps.exp).toEqual(customExp);
+      expect(mockUserBadgeProps.user).toEqual(studentWithAvatar);
     });
   });
 
@@ -241,41 +178,12 @@ describe('Header', () => {
       expect(screen.getByTestId('user-badge')).toBeInTheDocument();
     });
 
-    it('passes undefined level when student has no avatar (isStudent=true but !avatar path)', () => {
+    it('passes student without avatar to UserBadge', () => {
       renderWithProviders(
-  <Header user={studentNoAvatar} />,
-);
+        <Header user={studentNoAvatar} />,
+      );
 
-      // derivedLevel = undefined (isStudent but no avatar)
-      // levelToShow = undefined ?? undefined = undefined
-      expect(mockUserBadgeProps.level).toBeUndefined();
-    });
-
-    it('passes undefined exp when student has no avatar', () => {
-      renderWithProviders(
-  <Header user={studentNoAvatar} />,
-);
-
-      // derivedExp = undefined (isStudent but !avatar)
-      expect(mockUserBadgeProps.exp).toBeUndefined();
-    });
-
-    it('uses studentLevel prop even when student has no avatar', () => {
-      renderWithProviders(
-  <Header user={studentNoAvatar} studentLevel={3} />,
-);
-
-      // studentLevel (3) ?? undefined = 3
-      expect(mockUserBadgeProps.level).toBe(3);
-    });
-
-    it('uses studentExp prop even when student has no avatar', () => {
-      const customExp = { current: 50, max: 150 };
-      renderWithProviders(
-  <Header user={studentNoAvatar} studentExp={customExp} />,
-);
-
-      expect(mockUserBadgeProps.exp).toEqual(customExp);
+      expect(mockUserBadgeProps.user).toEqual(studentNoAvatar);
     });
   });
 
@@ -293,8 +201,12 @@ describe('Header', () => {
       isVerified: true,
       avatar: {
         id: 20,
+        totalExp: 3500,
         level: 10,
-        currentExp: 1000,
+        currentLevelExp: 50,
+        nextLevelExpRequired: 500,
+        xpToNextLevel: 450,
+        progressPercent: 10,
       },
     };
 
@@ -307,44 +219,7 @@ describe('Header', () => {
       expect(screen.queryByRole('button', { name: /today's quests/i })).not.toBeInTheDocument();
     });
 
-    it('does not derive level for non-student (isStudent=false path)', () => {
-      renderWithProviders(
-  <Header user={teacherUser} />,
-);
-
-      // isStudent = false, so derivedLevel = undefined (ternary false branch)
-      // levelToShow = undefined ?? undefined = undefined
-      expect(mockUserBadgeProps.level).toBeUndefined();
-    });
-
-    it('does not derive exp for non-student', () => {
-      renderWithProviders(
-  <Header user={teacherUser} />,
-);
-
-      // isStudent = false, so derivedExp = undefined
-      expect(mockUserBadgeProps.exp).toBeUndefined();
-    });
-
-    it('uses studentLevel prop override for non-student user', () => {
-      renderWithProviders(
-  <Header user={teacherUser} studentLevel={7} />,
-);
-
-      // studentLevel (7) ?? undefined = 7
-      expect(mockUserBadgeProps.level).toBe(7);
-    });
-
-    it('uses studentExp prop override for non-student user', () => {
-      const customExp = { current: 250, max: 750 };
-      renderWithProviders(
-  <Header user={teacherUser} studentExp={customExp} />,
-);
-
-      expect(mockUserBadgeProps.exp).toEqual(customExp);
-    });
-
-    it('admin user with no avatar uses prop overrides', () => {
+    it('passes non-student users to UserBadge unchanged', () => {
       const adminUser: AuthUser = {
         id: 4,
         firstName: 'Diana',
@@ -355,20 +230,15 @@ describe('Header', () => {
         isVerified: true,
       };
 
-      const customExp = { current: 0, max: 500 };
       renderWithProviders(
-  <Header user={adminUser} studentLevel={1} studentExp={customExp} />,
-);
+        <Header user={adminUser} />,
+      );
 
-      expect(mockUserBadgeProps.level).toBe(1);
-      expect(mockUserBadgeProps.exp).toEqual(customExp);
+      expect(mockUserBadgeProps.user).toEqual(adminUser);
     });
   });
 
-  // ============================================================================
-  // Edge case: zero/falsy values in props
-  // ============================================================================
-  describe('Edge cases with falsy values', () => {
+  describe('UserBadge props', () => {
     const studentWithAvatar: AuthUser = {
       id: 1,
       firstName: 'Alice',
@@ -379,20 +249,14 @@ describe('Header', () => {
       isVerified: true,
       avatar: {
         id: 10,
+        totalExp: 1000,
         level: 5,
-        currentExp: 500,
+        currentLevelExp: 200,
+        nextLevelExpRequired: 318,
+        xpToNextLevel: 118,
+        progressPercent: 62.89,
       },
     };
-
-    it('studentLevel=0 overrides derived level (falsy but defined value)', () => {
-      renderWithProviders(
-  <Header user={studentWithAvatar} studentLevel={0} />,
-);
-
-      // studentLevel (0) is falsy but defined, nullish coalescing passes it through
-      // 0 ?? 5 = 0
-      expect(mockUserBadgeProps.level).toBe(0);
-    });
 
     it('passes onLogout to UserBadge', () => {
       const mockLogout = vi.fn();

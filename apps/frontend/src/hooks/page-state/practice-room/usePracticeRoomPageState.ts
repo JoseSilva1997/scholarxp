@@ -15,7 +15,6 @@ import {
   getDisplayErrorMessage,
   shouldLogApiError,
 } from '../../../api/get-display-error';
-import { useAuth } from '../../../context/AuthContext';
 import { logError } from '../../../utils/logger';
 import {
   useCloseModuleUnitPracticeSessionMutation,
@@ -56,11 +55,6 @@ export function usePracticeRoomPageState({
   moduleIdParam,
   unitIdParam,
 }: UsePracticeRoomPageStateParams) {
-  // ─── Auth ──────────────────────────────────────────────────────────────────
-  // applyStudentExpReward updates the cached auth state after a correct attempt
-  // so the header avatar XP bar reflects the award without a full auth refetch.
-  const { applyStudentExpReward } = useAuth();
-
   // ─── URL / param parsing ───────────────────────────────────────────────────
   // Route params arrive as raw strings; parse and validate them once here so
   // every downstream consumer receives typed, range-checked values.
@@ -485,7 +479,6 @@ export function usePracticeRoomPageState({
     isPending: submitAttemptMutation.isPending,
     applyExpAward,
     moduleDetail,
-    applyStudentExpReward,
     setSubmittedAttemptByContentId,
     setSubmittedByContentIdBySessionId,
     parsedModuleId,

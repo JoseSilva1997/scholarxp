@@ -7,9 +7,9 @@ import type {
 
 export class QuestHistoryItemDto implements QuestView {
   id: number;
-  moduleId: number;
+  moduleId: number | null;
   moduleUnitId: number | null;
-  moduleTitle: string;
+  moduleTitle: string | null;
   moduleUnitTitle: string | null;
   type: QuestType;
   expGranted: number;

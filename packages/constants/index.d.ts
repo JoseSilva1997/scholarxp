@@ -28,4 +28,4 @@ export declare const MODULE_INVITE_DEFAULT_MAX_USES: number;
 
 // Progression caps
 export declare const STUDENT_EXP_MAX: number;
-export declare const MODULE_EXP_MAX: number;
+export declare const MODULE_UNIT_BASELINE_EXP: number;

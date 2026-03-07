@@ -10,10 +10,9 @@ import {
   type PracticeSessionType,
   type StudentAnswer,
 } from '@scholarxp/api-contracts';
-import { AvatarService } from '../db-entities/avatar/avatar.service';
-import { UserModuleService } from '../db-entities/user-module/user-module.service';
+import { ExpAwardingService } from '../exp-engine/exp-awarding.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { MODULE_EXP_MAX } from '@scholarxp/constants';
+import { MODULE_UNIT_BASELINE_EXP } from '@scholarxp/constants';
 import { ModuleUnitPracticeRoomResponseDto } from './dto/practice-room-response.dto';
 import { SubmitAttemptDto } from './dto/submit-attempt.dto';
 import { SubmitAttemptResponseDto } from './dto/submit-attempt-response.dto';
@@ -41,8 +40,6 @@ type RoomContext = {
   session: OwnedPracticeSession;
   questionUnitDrafts: RoomQuestionUnitDraft[];
 };
-const MODULE_UNIT_EXP_REWARD = 50;
-const STUDENT_EXP_REWARD = 25;
 const DEFAULT_STALE_SESSION_MINUTES = 60;
 
 // PracticeRoomService builds the page-load payload so the frontend can render core questions and latest attempts.
@@ -52,8 +49,7 @@ export class PracticeRoomService {
     private readonly prisma: PrismaService,
     private readonly practiceRoomMapper: PracticeRoomMapper,
     private readonly studentModuleUnitProgressService: StudentModuleUnitProgressService,
-    private readonly avatarService: AvatarService,
-    private readonly userModuleService: UserModuleService,
+    private readonly expAwardingService: ExpAwardingService,
   ) {}
 
   // Builds the initial room state for one student in one module unit and either resumes a provided session or opens a fresh one.
@@ -117,8 +113,14 @@ export class PracticeRoomService {
     );
 
     const attemptedAt = new Date();
-    const { alreadyHasCorrectAttempt, updatedMembership } =
+    const { alreadyHasCorrectAttempt, updatedMembership, moduleExpAwarded } =
       await this.prisma.$transaction(async (tx) => {
+        const hadAnyAttemptBeforeSubmit = await this.hasAnyAttempt(
+          moduleUnitId,
+          studentId,
+          payload.questionUnitId,
+          tx,
+        );
         const hadCorrectAttemptBeforeSubmit = await this.hasAnyCorrectAttempt(
           moduleUnitId,
           studentId,
@@ -149,22 +151,44 @@ export class PracticeRoomService {
           syncedProgress.isCompleted,
           tx,
         );
-        const updatedMembership = await this.persistAttemptExpRewards(
-          moduleId,
-          studentId,
-          tx,
-        );
+        const rewardPersistence =
+          await this.expAwardingService.awardAttemptModuleExp(
+            {
+              studentId,
+              moduleId,
+              moduleUnitId,
+              sessionId: payload.sessionId,
+              questionUnitId: payload.questionUnitId,
+              isCorrect,
+              hadCorrectAttemptBeforeSubmit,
+              hadAnyAttemptBeforeSubmit,
+            },
+            tx,
+          );
+        if (syncedProgress.isCompleted) {
+          // Completion account XP is policy-owned by the reward service to keep this orchestration thin.
+          await this.expAwardingService.awardCompletionExp(
+            {
+              studentId,
+              moduleId,
+              moduleUnitId,
+              sessionId: payload.sessionId,
+              completedAt: attemptedAt,
+            },
+            tx,
+          );
+        }
 
         return {
           alreadyHasCorrectAttempt: hadCorrectAttemptBeforeSubmit,
-          updatedMembership,
+          updatedMembership: rewardPersistence.updatedMembership,
+          moduleExpAwarded: rewardPersistence.moduleExpAwarded,
         };
       });
 
-    // Placeholder XP amounts unblock frontend progress until the real XP engine decides dynamic rewards.
+    // Reward values are ledger-backed so retries can safely return zero when the event was already applied.
     return {
-      moduleExpAwarded: MODULE_UNIT_EXP_REWARD,
-      studentExpAwarded: STUDENT_EXP_REWARD,
+      moduleExpAwarded,
       hasCorrectAttempt: alreadyHasCorrectAttempt || isCorrect,
       updatedModuleProgress: updatedMembership
         ? {
@@ -173,7 +197,7 @@ export class PracticeRoomService {
             description: updatedMembership.module.description,
             userModuleLevel: updatedMembership.userModuleLevel,
             currentExp: updatedMembership.currentExp,
-            expMax: MODULE_EXP_MAX,
+            expMax: MODULE_UNIT_BASELINE_EXP,
           }
         : undefined,
     };
@@ -393,7 +417,7 @@ export class PracticeRoomService {
       description: membership.module.description,
       userModuleLevel: membership.userModuleLevel,
       currentExp: membership.currentExp,
-      expMax: MODULE_EXP_MAX, // Default module expansion ceiling from global gamification rules.
+      expMax: MODULE_UNIT_BASELINE_EXP, // Default module expansion ceiling from global gamification rules.
     };
   }
 
@@ -454,27 +478,6 @@ export class PracticeRoomService {
       isCorrect: attempt.isCorrect,
       attemptedAt: attempt.attemptedAt,
     }));
-  }
-
-  // Reward persistence stays in the same transaction as attempt creation to avoid partially applied progress.
-  private async persistAttemptExpRewards(
-    moduleId: number,
-    studentId: number,
-    tx: Prisma.TransactionClient,
-  ) {
-    const updatedMembership = await this.userModuleService.addStudentModuleExp(
-      moduleId,
-      studentId,
-      MODULE_UNIT_EXP_REWARD,
-      tx,
-    );
-    await this.avatarService.addStudentExp(studentId, STUDENT_EXP_REWARD, tx);
-
-    // Reload with module include so we have title/description for the response mapper without extra queries.
-    return tx.userModule.findUnique({
-      where: { id: updatedMembership.id },
-      include: { module: true },
-    });
   }
 
   // Route params remain the source of truth, so payload moduleUnitId must match to prevent accidental cross-unit writes.
@@ -704,6 +707,26 @@ export class PracticeRoomService {
     });
 
     return Boolean(correctAttempt);
+  }
+
+  // First-attempt bonus needs to know whether the student has attempted the question before this submission.
+  private async hasAnyAttempt(
+    moduleUnitId: number,
+    studentId: number,
+    questionUnitId: number,
+    tx?: PrismaClientLike,
+  ): Promise<boolean> {
+    const prismaClient = tx ?? this.prisma;
+    const existingAttempt = await prismaClient.questionAttempt.findFirst({
+      where: {
+        moduleUnitId,
+        studentId,
+        questionId: questionUnitId,
+      },
+      select: { id: true },
+    });
+
+    return Boolean(existingAttempt);
   }
 
   // Keeping attempt persistence isolated makes it easier to swap in a transaction once XP/difficulty writes are added.

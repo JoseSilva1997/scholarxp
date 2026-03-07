@@ -16,6 +16,7 @@ import {
   type FeatureKey,
   type Role as PermissionRole,
 } from '@scholarxp/permissions';
+import { getProgressWithinLevel } from '@scholarxp/progression';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailVerificationTokenService } from '../db-entities/email-verification-token/email-verification-token.service';
 import { MailDeliveryError, MailerService } from '../mailer/mailer.service';
@@ -391,7 +392,7 @@ export class AuthService {
     }
     return this.prisma.avatar.findUnique({
       where: { userId: user.id },
-      select: { id: true, level: true, currentExp: true },
+      select: { id: true, totalExp: true },
     });
   }
 
@@ -405,7 +406,7 @@ export class AuthService {
       globalRole: GlobalRole;
       isVerified?: boolean;
     },
-    avatar?: { id: number; level: number; currentExp: number } | null,
+    avatar?: { id: number; totalExp: number } | null,
     membership?: {
       institutionIds?: number[];
       hasInstitutionMembership?: boolean;
@@ -414,6 +415,14 @@ export class AuthService {
     },
     requireVerification?: boolean,
   ): AuthUser {
+    const mappedAvatar = avatar
+      ? {
+          id: avatar.id,
+          totalExp: avatar.totalExp,
+          ...getProgressWithinLevel(avatar.totalExp),
+        }
+      : null;
+
     return {
       id: user.id,
       firstName: user.firstName,
@@ -425,7 +434,7 @@ export class AuthService {
       // Caller can flag that email verification is still pending for UX hints.
       requiresEmailVerification:
         requireVerification || !(user.isVerified ?? false),
-      avatar: avatar ?? null,
+      avatar: mappedAvatar,
       institutionIds: membership?.institutionIds ?? [],
       hasInstitutionMembership: membership?.hasInstitutionMembership ?? false,
       ltiIdentities: membership?.ltiIdentities ?? [],

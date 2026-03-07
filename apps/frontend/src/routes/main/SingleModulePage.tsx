@@ -17,6 +17,7 @@ import StudentModuleUnitCard from '../../components/StudentModuleUnitCard';
 import { useSingleModulePageState } from '../../hooks/page-state/useSingleModulePageState';
 import { useTheme } from '../../context/useTheme';
 import styles from './SingleModulePage.module.css';
+import { ProficiencyLevelBadge } from '../../components/SingleModulePage/ProficiencyLevelBadge';
 
 export default function SingleModulePage() {
   const { moduleId } = useParams<{ moduleId: string }>();
@@ -128,11 +129,20 @@ export default function SingleModulePage() {
             <div className={styles.contentWrapper}>
               {user?.globalRole === 'student' && module.userModuleLevel !== undefined ? (
                 <div className={styles.progressContainer}>
-                  <div className={styles.progressRow} aria-label="Module progress">
-                    <div className={styles.levelBadge}>
-                      <img src={expIcon} alt="" aria-hidden="true" className={styles.levelIcon} />
-                      <span>Level {module.userModuleLevel}</span>
+                  <div className={styles.badgeSection}>
+                    <ProficiencyLevelBadge level={module.userModuleLevel} />
+                  </div>
+
+                  <div className={styles.progressData}>
+                    <div className={styles.progressHeader}>
+                      <span className={styles.progressTitle}>Proficiency Level</span>
+                      <div className={styles.expGroup}>
+                        <img src={expIcon} alt="" aria-hidden="true" className={styles.expIconSmall} />
+                        <span className={styles.expLabel}>{module.currentExp ?? 0}</span>
+                        <span className={styles.expTotal}>/ {expMax} XP</span>
+                      </div>
                     </div>
+                    
                     <div
                       className={styles.barTrack}
                       role="progressbar"
@@ -142,19 +152,18 @@ export default function SingleModulePage() {
                     >
                       <div className={styles.barFill} style={{ width: `${expPercent}%` }} />
                     </div>
-                    <div className={styles.expGroup}>
-                      <span className={styles.expLabel}>{module.currentExp ?? 0}</span>
-                      <span className={styles.expTotal}>/ {expMax} XP</span>
-                    </div>
                   </div>
-                  <button
-                    type="button"
-                    className={styles.dailyRevisionButton}
-                    onClick={() => alert('Daily revision coming soon! 🎯')}
-                  >
-                    <span className={styles.dailyRevisionIcon}>⚡</span>
-                    <span>Daily Revision</span>
-                  </button>
+
+                  <div className={styles.progressActions}>
+                    <button
+                      type="button"
+                      className={styles.dailyRevisionButton}
+                      onClick={() => alert('Daily revision coming soon! 🎯')}
+                    >
+                      <span className={styles.dailyRevisionIcon}>⚡</span>
+                      <span>Daily Revision</span>
+                    </button>
+                  </div>
                 </div>
               ) : null}
 

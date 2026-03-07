@@ -80,13 +80,11 @@ function buildParams(overrides: Partial<BaseParams> = {}): BaseParams {
     activeContentViewStartMsRef: buildRef(null),
     mutateAsync: vi.fn().mockResolvedValue({
       moduleExpAwarded: 0,
-      studentExpAwarded: 0,
       hasCorrectAttempt: true,
     } satisfies SubmitAttemptResponse),
     isPending: false,
     applyExpAward: vi.fn(),
     moduleDetail: null,
-    applyStudentExpReward: vi.fn(),
     setSubmittedAttemptByContentId: vi.fn(),
     setSubmittedByContentIdBySessionId: vi.fn(),
     parsedModuleId: 1,
@@ -175,7 +173,6 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — payload', () => {
   it('builds the correct payload with required fields', async () => {
     const mutateAsync = vi.fn().mockResolvedValue({
       moduleExpAwarded: 0,
-      studentExpAwarded: 0,
       hasCorrectAttempt: false,
     } satisfies SubmitAttemptResponse);
     const { result } = renderHook(() =>
@@ -195,7 +192,6 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — payload', () => {
   it('uses view-start ref for timeTakenMs when the ref tracks the active question', async () => {
     const mutateAsync = vi.fn().mockResolvedValue({
       moduleExpAwarded: 0,
-      studentExpAwarded: 0,
       hasCorrectAttempt: false,
     } satisfies SubmitAttemptResponse);
     const viewStartMs = Date.now() - 3000;
@@ -219,7 +215,6 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — payload', () => {
   it('falls back to timeTakenMs of 0 when the view-start ref does not match the active question', async () => {
     const mutateAsync = vi.fn().mockResolvedValue({
       moduleExpAwarded: 0,
-      studentExpAwarded: 0,
       hasCorrectAttempt: false,
     } satisfies SubmitAttemptResponse);
     const { result } = renderHook(() =>
@@ -241,7 +236,6 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — payload', () => {
   it('includes hintUnlocked: true when the hint was unlocked before submitting', async () => {
     const mutateAsync = vi.fn().mockResolvedValue({
       moduleExpAwarded: 0,
-      studentExpAwarded: 0,
       hasCorrectAttempt: true,
     } satisfies SubmitAttemptResponse);
     const { result } = renderHook(() =>
@@ -260,7 +254,6 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
     const moduleDetail = { userModuleLevel: 1, currentExp: 50, expMax: 100 };
     const mutateAsync = vi.fn().mockResolvedValue({
       moduleExpAwarded: 25,
-      studentExpAwarded: 0,
       hasCorrectAttempt: true,
     } satisfies SubmitAttemptResponse);
     const { result } = renderHook(() =>
@@ -274,7 +267,6 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
     const applyExpAward = vi.fn();
     const mutateAsync = vi.fn().mockResolvedValue({
       moduleExpAwarded: 0,
-      studentExpAwarded: 0,
       hasCorrectAttempt: true,
     } satisfies SubmitAttemptResponse);
     const { result } = renderHook(() =>
@@ -284,39 +276,10 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
     expect(applyExpAward).not.toHaveBeenCalled();
   });
 
-  it('calls applyStudentExpReward when studentExpAwarded is greater than 0', async () => {
-    const applyStudentExpReward = vi.fn();
-    const mutateAsync = vi.fn().mockResolvedValue({
-      moduleExpAwarded: 0,
-      studentExpAwarded: 10,
-      hasCorrectAttempt: true,
-    } satisfies SubmitAttemptResponse);
-    const { result } = renderHook(() =>
-      useSubmitAttempt(buildParams({ mutateAsync, applyStudentExpReward })),
-    );
-    await act(() => result.current.submitActiveQuestionAttempt());
-    expect(applyStudentExpReward).toHaveBeenCalledWith(10);
-  });
-
-  it('does not call applyStudentExpReward when studentExpAwarded is 0', async () => {
-    const applyStudentExpReward = vi.fn();
-    const mutateAsync = vi.fn().mockResolvedValue({
-      moduleExpAwarded: 0,
-      studentExpAwarded: 0,
-      hasCorrectAttempt: false,
-    } satisfies SubmitAttemptResponse);
-    const { result } = renderHook(() =>
-      useSubmitAttempt(buildParams({ mutateAsync, applyStudentExpReward })),
-    );
-    await act(() => result.current.submitActiveQuestionAttempt());
-    expect(applyStudentExpReward).not.toHaveBeenCalled();
-  });
-
   it('stores the backend hasCorrectAttempt value in submittedAttemptByContentId', async () => {
     const setSubmittedAttemptByContentId = vi.fn();
     const mutateAsync = vi.fn().mockResolvedValue({
       moduleExpAwarded: 0,
-      studentExpAwarded: 0,
       hasCorrectAttempt: false,
     } satisfies SubmitAttemptResponse);
     const { result } = renderHook(() =>
@@ -339,7 +302,6 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
     const setSubmittedByContentIdBySessionId = vi.fn();
     const mutateAsync = vi.fn().mockResolvedValue({
       moduleExpAwarded: 0,
-      studentExpAwarded: 0,
       hasCorrectAttempt: true,
     } satisfies SubmitAttemptResponse);
     const { result } = renderHook(() =>
@@ -402,7 +364,6 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — error', () => {
       .mockRejectedValueOnce(new Error('First'))
       .mockResolvedValueOnce({
         moduleExpAwarded: 0,
-        studentExpAwarded: 0,
         hasCorrectAttempt: true,
       } satisfies SubmitAttemptResponse);
     const { result } = renderHook(() =>

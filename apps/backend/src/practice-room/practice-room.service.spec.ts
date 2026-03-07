@@ -5,8 +5,7 @@ import { NotFoundException } from '@nestjs/common';
 import { PracticeRoomService } from './practice-room.service';
 import { PracticeRoomMapper } from './practice-room.mapper';
 import { StudentModuleUnitProgressService } from './student-module-unit-progress.service';
-import { AvatarService } from '../db-entities/avatar/avatar.service';
-import { UserModuleService } from '../db-entities/user-module/user-module.service';
+import { ExpAwardingService } from '../exp-engine/exp-awarding.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock, type PrismaMock } from '../test/test-helpers';
 import type {
@@ -22,11 +21,9 @@ describe('PracticeRoomService', () => {
   let studentModuleUnitProgressService: {
     syncFromAttempts: jest.Mock;
   };
-  let avatarService: {
-    addStudentExp: jest.Mock;
-  };
-  let userModuleService: {
-    addStudentModuleExp: jest.Mock;
+  let practiceRewardService: {
+    awardAttemptModuleExp: jest.Mock;
+    awardCompletionExp: jest.Mock;
   };
 
   // Mock data builders for consistent test setup
@@ -113,26 +110,26 @@ describe('PracticeRoomService', () => {
         lastPracticedAt: new Date('2026-02-12T10:00:00.000Z'),
       }),
     };
-    avatarService = {
-      addStudentExp: jest.fn().mockResolvedValue({
-        id: 15,
-        userId: 100,
-        level: 1,
-        currentExp: 25,
-        createdAt: new Date('2026-02-12T10:00:00.000Z'),
+    practiceRewardService = {
+      awardAttemptModuleExp: jest.fn().mockResolvedValue({
+        moduleExpAwarded: 50,
+        updatedMembership: {
+          id: 700,
+          moduleId: 1,
+          userId: 100,
+          roleInModule: 'student',
+          userModuleLevel: 1,
+          currentExp: 50,
+          enrolledVia: 'invite',
+          createdAt: new Date('2026-02-12T10:00:00.000Z'),
+          module: {
+            id: 1,
+            title: 'Biology',
+            description: 'Study biology',
+          },
+        },
       }),
-    };
-    userModuleService = {
-      addStudentModuleExp: jest.fn().mockResolvedValue({
-        id: 700,
-        moduleId: 1,
-        userId: 100,
-        roleInModule: 'student',
-        userModuleLevel: 1,
-        currentExp: 50,
-        enrolledVia: 'invite',
-        createdAt: new Date('2026-02-12T10:00:00.000Z'),
-      }),
+      awardCompletionExp: jest.fn().mockResolvedValue(0),
     };
 
     // Build test module with mocked dependencies
@@ -146,12 +143,8 @@ describe('PracticeRoomService', () => {
           useValue: studentModuleUnitProgressService,
         },
         {
-          provide: AvatarService,
-          useValue: avatarService,
-        },
-        {
-          provide: UserModuleService,
-          useValue: userModuleService,
+          provide: ExpAwardingService,
+          useValue: practiceRewardService,
         },
       ],
     }).compile();
@@ -801,18 +794,32 @@ describe('PracticeRoomService', () => {
         }),
         prisma,
       );
-      expect(userModuleService.addStudentModuleExp).toHaveBeenCalledWith(
-        1,
-        100,
-        50,
-        prisma,
-      );
-      expect(avatarService.addStudentExp).toHaveBeenCalledWith(100, 25, prisma);
       expect(result).toEqual({
         moduleExpAwarded: 50,
-        studentExpAwarded: 25,
         hasCorrectAttempt: true,
+        updatedModuleProgress: {
+          id: 1,
+          title: 'Biology',
+          description: 'Study biology',
+          userModuleLevel: 1,
+          currentExp: 50,
+          expMax: 1000,
+        },
       });
+      expect(practiceRewardService.awardAttemptModuleExp).toHaveBeenCalledWith(
+        {
+          studentId: 100,
+          moduleId: 1,
+          moduleUnitId: 10,
+          sessionId: '11111111-1111-4111-8111-111111111077',
+          questionUnitId: 201,
+          isCorrect: true,
+          hadCorrectAttemptBeforeSubmit: false,
+          hadAnyAttemptBeforeSubmit: false,
+        },
+        prisma,
+      );
+      expect(practiceRewardService.awardCompletionExp).not.toHaveBeenCalled();
     });
 
     it('throws when payload module unit does not match route module unit', async () => {
@@ -940,6 +947,53 @@ describe('PracticeRoomService', () => {
         where: { id: '11111111-1111-4111-8111-111111111077', endTime: null },
         data: { endTime: expect.any(Date) },
       });
+      expect(practiceRewardService.awardCompletionExp).toHaveBeenCalledWith(
+        {
+          studentId: 100,
+          moduleId: 1,
+          moduleUnitId: 10,
+          sessionId: '11111111-1111-4111-8111-111111111077',
+          completedAt: expect.any(Date),
+        },
+        prisma,
+      );
+    });
+
+    it('does not re-apply XP when ledger events already exist', async () => {
+      prisma.practiceSession.findFirst.mockResolvedValue({
+        id: '11111111-1111-4111-8111-111111111077',
+        sessionType: 'practice_room',
+        endTime: null,
+      } as any);
+      prisma.questionUnit.findFirst.mockResolvedValue({
+        id: 201,
+        contents: [
+          {
+            id: 301,
+            type: 'mcq',
+            questionData: { correctOptionIndex: 2 },
+          },
+        ],
+      } as any);
+      prisma.questionAttempt.findFirst.mockResolvedValue(null);
+      prisma.questionAttempt.create.mockResolvedValue({ id: 999 } as any);
+      practiceRewardService.awardAttemptModuleExp.mockResolvedValue({
+        moduleExpAwarded: 0,
+        updatedMembership: null,
+      });
+
+      const result = await service.submitAttempt(1, 10, 100, {
+        moduleUnitId: 10,
+        questionUnitId: 201,
+        questionContentId: 301,
+        sessionId: '11111111-1111-4111-8111-111111111077',
+        timeTakenMs: 1200,
+        hintUnlocked: false,
+        studentAnswer: { selectedOptionIndex: 2 } as any,
+      });
+
+      expect(practiceRewardService.awardAttemptModuleExp).toHaveBeenCalled();
+      expect(result.moduleExpAwarded).toBe(0);
     });
   });
 

@@ -9,8 +9,8 @@ import {
 
 export class CreateDailyQuestDto {
   @IsInt()
-  @IsNotEmpty()
-  moduleId: number;
+  @IsOptional()
+  moduleId: number | null;
 
   @IsInt()
   @IsOptional()

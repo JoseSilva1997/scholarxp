@@ -2,7 +2,7 @@
 // smooth bar animation, XP gain chip, and level-up celebration. Isolated here so the
 // main page-state hook only has to pass in server data and call applyExpAward on submit.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { MODULE_EXP_MAX } from '@scholarxp/constants';
+import { MODULE_UNIT_BASELINE_EXP } from '@scholarxp/constants';
 
 // Minimal slice of the module detail query result that this hook needs — avoids
 // importing the full response type just for three fields.
@@ -112,7 +112,7 @@ export function useModuleProgressAnimation({
     }
 
     const expMax =
-      moduleDetail.expMax && moduleDetail.expMax > 0 ? moduleDetail.expMax : MODULE_EXP_MAX;
+      moduleDetail.expMax && moduleDetail.expMax > 0 ? moduleDetail.expMax : MODULE_UNIT_BASELINE_EXP;
     const currentExp = moduleDetail.currentExp ?? 0;
     const level = moduleDetail.userModuleLevel;
 
@@ -234,7 +234,7 @@ export function useModuleProgressAnimation({
     }
 
     const expMax =
-      moduleDetail.expMax && moduleDetail.expMax > 0 ? moduleDetail.expMax : MODULE_EXP_MAX;
+      moduleDetail.expMax && moduleDetail.expMax > 0 ? moduleDetail.expMax : MODULE_UNIT_BASELINE_EXP;
     const fallbackTotalExp = toModuleTotalExp(
       moduleDetail.userModuleLevel,
       moduleDetail.currentExp ?? 0,
@@ -268,7 +268,7 @@ export function useModuleProgressAnimation({
       const currentExpMax =
         currentModuleDetail?.expMax && currentModuleDetail.expMax > 0
           ? currentModuleDetail.expMax
-          : MODULE_EXP_MAX;
+          : MODULE_UNIT_BASELINE_EXP;
 
       // Compute the server baseline before the mutation so the animation target lands
       // at exactly the right value even if the background refetch races the optimistic update.

@@ -1,19 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
+import { getProgressWithinLevel } from '@scholarxp/progression';
 import type { AuthUser } from '../types/auth';
 import defaultAvatar from '../assets/default-profile-pic.png';
-import { STUDENT_EXP_MAX } from '@scholarxp/constants';
-import expIcon from '../assets/exp_icon.svg';
 import styles from './UserBadge.module.css';
 
 type UserBadgeProps = {
   user: AuthUser;
-  level?: number;
-  exp?: {
-    current: number;
-    max: number;
-  };
   onLogout?: () => Promise<void> | void;
 };
 
@@ -33,7 +27,7 @@ const LEVEL_UP_PARTICLE_OFFSETS = [
   { x: -50, y: -5, delay: 0.14 }
 ];
 
-export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps) {
+export default function UserBadge({ user, onLogout }: UserBadgeProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [displayedTotalExp, setDisplayedTotalExp] = useState<number | null>(null);
   const [expGainIndicator, setExpGainIndicator] = useState<number | null>(null);
@@ -69,15 +63,11 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
       : defaultAvatar;
 
   const isStudent = user.globalRole === 'student';
-  const expMax = exp?.max && exp.max > 0 ? exp.max : STUDENT_EXP_MAX;
-  const targetTotalExp =
-    isStudent && level !== undefined && exp
-      ? toTotalExp(level, exp.current, expMax)
-      : null;
+  const targetTotalExp = isStudent && user.avatar ? user.avatar.totalExp : null;
 
   const animatedProgress =
     targetTotalExp !== null
-      ? fromTotalExp(displayedTotalExp ?? targetTotalExp, expMax)
+      ? getProgressWithinLevel(displayedTotalExp ?? targetTotalExp)
       : null;
 
   useEffect(() => {
@@ -221,9 +211,7 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
   }, [targetTotalExp]); // Decoupled from displayedTotalExp to avoid frame-restarts.
 
   const expPercent =
-    animatedProgress && expMax > 0
-      ? Math.min(100, Math.round((animatedProgress.currentExp / expMax) * 100))
-      : 0;
+    animatedProgress ? Math.min(100, Math.round(animatedProgress.progressPercent)) : 0;
 
   return (
     <div
@@ -244,7 +232,6 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
           <div className={styles.progress}>
             <div className={styles.barRow}>
               <span className={styles.level}>
-                <img src={expIcon} alt="" aria-hidden="true" className={styles.levelIcon} />
                 Level{' '}
                 <span className={styles.levelValueWrap}>
                   <AnimatePresence mode="popLayout" initial={false}>
@@ -300,7 +287,7 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
               </span>
               <div className={styles.trackContainer}>
                 <div className={styles.expValueContainer}>
-                  <span className={styles.expLabel}>{animatedProgress.currentExp} xp</span>
+                  <span className={styles.expLabel}>{animatedProgress.currentLevelExp} xp</span>
                   <AnimatePresence>
                     {expGainIndicator ? (
                       <motion.span
@@ -447,7 +434,9 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
             <div className={styles.menuProgress}>
               <div className={styles.menuProgressHeader}>
                 <span className={styles.menuLevel}>Level {animatedProgress.level}</span>
-                <span className={styles.menuExp}>{animatedProgress.currentExp} / {expMax} XP</span>
+                <span className={styles.menuExp}>
+                  {animatedProgress.currentLevelExp} / {animatedProgress.nextLevelExpRequired} XP
+                </span>
               </div>
               <div className={styles.menuBarTrack}>
                 <div className={styles.menuBarFill} style={{ width: `${expPercent}%` }} />
@@ -511,25 +500,6 @@ export default function UserBadge({ user, level, exp, onLogout }: UserBadgeProps
       ) : null}
     </div>
   );
-}
-
-function toTotalExp(level: number, currentExp: number, expMax: number) {
-  return Math.max(0, level - 1) * expMax + Math.max(0, currentExp);
-}
-
-function fromTotalExp(totalExp: number, expMax: number) {
-  if (expMax <= 0) {
-    return {
-      level: 1,
-      currentExp: 0,
-    };
-  }
-
-  const safeTotalExp = Math.max(0, totalExp);
-  return {
-    level: Math.floor(safeTotalExp / expMax) + 1,
-    currentExp: safeTotalExp % expMax,
-  };
 }
 
 function easeOutCubic(progress: number) {

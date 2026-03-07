@@ -5,9 +5,7 @@ import {
 } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { CreateAvatarDto } from './dto/create-avatar.dto';
-import { UpdateAvatarDto } from './dto/update-avatar.dto';
 import { PrismaService } from '../../prisma/prisma.service';
-import { STUDENT_EXP_MAX } from '@scholarxp/constants';
 
 type PrismaClientLike = Prisma.TransactionClient | PrismaService;
 
@@ -36,7 +34,14 @@ export class AvatarService {
       );
     }
 
-    return this.prisma.avatar.create({ data: createAvatarDto });
+    // Persist canonical totalExp so account progression is always derived from one source of truth.
+    return this.prisma.avatar.create({
+      data: {
+        userId: createAvatarDto.userId,
+        // Avatar creation is initialization-only; XP accrual happens exclusively through reward awarding paths.
+        totalExp: 0,
+      },
+    });
   }
 
   findAll() {
@@ -45,19 +50,6 @@ export class AvatarService {
 
   async findOne(id: number) {
     return this.getOrThrow(id);
-  }
-
-  async update(id: number, updateAvatarDto: UpdateAvatarDto) {
-    await this.getOrThrow(id);
-    return this.prisma.avatar.update({
-      where: { id },
-      data: updateAvatarDto,
-    });
-  }
-
-  async remove(id: number) {
-    await this.getOrThrow(id);
-    return this.prisma.avatar.delete({ where: { id } });
   }
 
   // Practice flows award student XP through this helper so avatar progression writes stay centralized.
@@ -75,26 +67,20 @@ export class AvatarService {
     const prismaClient = tx ?? this.prisma;
     const avatar = await prismaClient.avatar.findUnique({
       where: { userId },
-      select: { id: true, currentExp: true, level: true },
+      select: { id: true, totalExp: true },
     });
 
     if (!avatar) {
       throw new NotFoundException(`Avatar not found for user ${userId}`);
     }
 
-    // Calculate new XP and level, ensuring XP wraps around at the max threshold.
-    const totalExp = avatar.currentExp + expGained;
-    const levelGain = Math.floor(totalExp / STUDENT_EXP_MAX);
-    const remainingExp = totalExp % STUDENT_EXP_MAX;
+    const updatedTotalExp = avatar.totalExp + expGained;
 
     return prismaClient.avatar.update({
       where: { id: avatar.id },
       data: {
-        currentExp: {
-          set: remainingExp,
-        },
-        level: {
-          set: avatar.level + levelGain,
+        totalExp: {
+          set: updatedTotalExp,
         },
       },
     });

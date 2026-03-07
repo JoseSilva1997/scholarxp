@@ -41,7 +41,32 @@ export const MODULE_INVITE_DEFAULT_EXPIRY_HOURS = 48;
 export const MODULE_INVITE_DEFAULT_MAX_USES = 100;
 
 /*
-    PROGRESSION SYSTEM (GAMIFICATION) RULES
+    PROGRESSION SYSTEM EXP (GAMIFICATION) RULES
 */
 export const STUDENT_EXP_MAX = 1000;
-export const MODULE_EXP_MAX = 1000;
+export const MODULE_UNIT_BASELINE_EXP = 1000;
+// XP awarded when reachin a new streak tier (e.g. streak length 30% = 50XP, 50% = 100XP, 100% = 150XP).
+export const STREAK_BONUS_EXP_PER_DELTA = 50;
+ // Potential maximum bonus for first-attempt correctness across all questions in a module unit.
+export const MAXIMUM_FIRST_ATTEMPT_BONUS_EXP = 150;
+
+// Module Unit completion rewards with deminishing returs per completion per UTC day
+export const MODULE_UNIT_COMPLETION_REWARDS = {
+  FIRST_COMPLETION: 100,
+  SECOND_COMPLETION: 25,
+  SUBSEQUENT_COMPLETIONS: 0,
+}
+
+export type MODULE_UNIT_COMPLETION_REWARD = typeof MODULE_UNIT_COMPLETION_REWARDS[keyof typeof MODULE_UNIT_COMPLETION_REWARDS];
+
+// Centralised definitions of event types.
+export const ExpLedgerEventTypes = {
+    COMPLETE_MODULE_UNIT: 'module_unit_completed',
+    COMPLETE_QUEST: 'quest_completed',
+    CORRECT_PRACTICE_ROOM_ANSWER: 'practice_room_answer_correct',
+    PRACTICE_ROOM_STREAK: 'practice_room_streak',
+    PRACTICE_ROOM_CORRECT_AT_FIRST_ATTEMPT: 'practice_room_correct_at_first_attempt',
+    // Add more event types as needed
+} as const
+
+export type ExpLedgerEventType = typeof ExpLedgerEventTypes[keyof typeof ExpLedgerEventTypes];

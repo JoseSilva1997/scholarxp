@@ -10,7 +10,7 @@ describe('AvatarService', () => {
   let service: AvatarService;
 
   const userId = 1;
-  const createDto = { userId, level: 2, currentExp: 100 };
+  const createDto = { userId };
   const now = new Date();
 
   beforeEach(async () => {
@@ -30,7 +30,8 @@ describe('AvatarService', () => {
     prisma.avatar.findUnique.mockResolvedValue(null);
     prisma.avatar.create.mockResolvedValue({
       id: 1,
-      ...createDto,
+      userId,
+      totalExp: 0,
       createdAt: now,
     });
 
@@ -43,8 +44,10 @@ describe('AvatarService', () => {
     expect(prisma.avatar.findUnique).toHaveBeenCalledWith({
       where: { userId },
     });
-    expect(prisma.avatar.create).toHaveBeenCalledWith({ data: createDto });
-    expect(result).toEqual({ id: 1, ...createDto, createdAt: now });
+    expect(prisma.avatar.create).toHaveBeenCalledWith({
+      data: { userId, totalExp: 0 },
+    });
+    expect(result).toEqual({ id: 1, userId, totalExp: 0, createdAt: now });
   });
 
   it('create rejects non-students', async () => {
@@ -74,8 +77,8 @@ describe('AvatarService', () => {
 
   it('findAll delegates to Prisma model', async () => {
     const rows = [
-      { id: 1, ...createDto, createdAt: now },
-      { id: 2, ...createDto, createdAt: now },
+      { id: 1, userId, totalExp: 0, createdAt: now },
+      { id: 2, userId: 2, totalExp: 0, createdAt: now },
     ];
     prisma.avatar.findMany.mockResolvedValue(rows);
 
@@ -88,14 +91,15 @@ describe('AvatarService', () => {
   it('findOne returns the record when found', async () => {
     prisma.avatar.findUnique.mockResolvedValue({
       id: 1,
-      ...createDto,
+      userId,
+      totalExp: 0,
       createdAt: now,
     });
 
     const result = await service.findOne(1);
 
     expect(prisma.avatar.findUnique).toHaveBeenCalledWith({ where: { id: 1 } });
-    expect(result).toEqual({ id: 1, ...createDto, createdAt: now });
+    expect(result).toEqual({ id: 1, userId, totalExp: 0, createdAt: now });
   });
 
   it('findOne throws NotFoundException when missing', async () => {
@@ -104,79 +108,15 @@ describe('AvatarService', () => {
     await expect(service.findOne(1)).rejects.toThrow(NotFoundException);
   });
 
-  it('update checks existence then updates with DTO', async () => {
-    const updateDto = { level: 3 };
-    prisma.avatar.findUnique.mockResolvedValue({
-      id: 1,
-      ...createDto,
-      createdAt: now,
-    });
-    prisma.avatar.update.mockResolvedValue({
-      id: 1,
-      ...createDto,
-      ...updateDto,
-      createdAt: now,
-    });
-
-    const result = await service.update(1, updateDto);
-
-    expect(prisma.avatar.findUnique).toHaveBeenCalledWith({ where: { id: 1 } });
-    expect(prisma.avatar.update).toHaveBeenCalledWith({
-      where: { id: 1 },
-      data: updateDto,
-    });
-    expect(result).toEqual({
-      id: 1,
-      ...createDto,
-      ...updateDto,
-      createdAt: now,
-    });
-  });
-
-  it('update rethrows NotFoundException when missing', async () => {
-    prisma.avatar.findUnique.mockResolvedValue(null);
-
-    await expect(service.update(1, { level: 3 })).rejects.toThrow(
-      NotFoundException,
-    );
-  });
-
-  it('remove checks existence then deletes', async () => {
-    prisma.avatar.findUnique.mockResolvedValue({
-      id: 1,
-      ...createDto,
-      createdAt: now,
-    });
-    prisma.avatar.delete.mockResolvedValue({
-      id: 1,
-      ...createDto,
-      createdAt: now,
-    });
-
-    const result = await service.remove(1);
-
-    expect(prisma.avatar.findUnique).toHaveBeenCalledWith({ where: { id: 1 } });
-    expect(prisma.avatar.delete).toHaveBeenCalledWith({ where: { id: 1 } });
-    expect(result).toEqual({ id: 1, ...createDto, createdAt: now });
-  });
-
-  it('remove rethrows NotFoundException when missing', async () => {
-    prisma.avatar.findUnique.mockResolvedValue(null);
-
-    await expect(service.remove(1)).rejects.toThrow(NotFoundException);
-  });
-
-  it('addStudentExp increments currentExp for an existing avatar', async () => {
+  it('addStudentExp increments totalExp for an existing avatar', async () => {
     prisma.avatar.findUnique.mockResolvedValue({
       id: 4,
-      currentExp: 200,
-      level: 1,
+      totalExp: 200,
     } as any);
     prisma.avatar.update.mockResolvedValue({
       id: 4,
       userId,
-      level: 1,
-      currentExp: 225,
+      totalExp: 225,
       createdAt: now,
     } as any);
 
@@ -184,24 +124,20 @@ describe('AvatarService', () => {
 
     expect(prisma.avatar.findUnique).toHaveBeenCalledWith({
       where: { userId },
-      select: { id: true, currentExp: true, level: true },
+      select: { id: true, totalExp: true },
     });
     expect(prisma.avatar.update).toHaveBeenCalledWith({
       where: { id: 4 },
       data: {
-        currentExp: {
+        totalExp: {
           set: 225,
-        },
-        level: {
-          set: 1,
         },
       },
     });
     expect(result).toEqual({
       id: 4,
       userId,
-      level: 1,
-      currentExp: 225,
+      totalExp: 225,
       createdAt: now,
     });
   });

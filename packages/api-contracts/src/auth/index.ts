@@ -6,6 +6,17 @@ import type { FeatureKey } from '@scholarxp/permissions';
 
 export type GlobalRole = 'pending' | 'admin' | 'institution_admin' | 'teacher' | 'student';
 
+// Account progression view derived from canonical totalExp.
+export interface AccountProgress {
+  id: number;
+  totalExp: number;
+  level: number;
+  currentLevelExp: number;
+  nextLevelExpRequired: number;
+  xpToNextLevel: number;
+  progressPercent: number;
+}
+
 export interface AuthUser {
   id: number;
   firstName: string;
@@ -19,11 +30,7 @@ export interface AuthUser {
   ltiIdentities?: { institutionId: number; ltiUserId: string }[];
   hasLtiIdentity?: boolean;
   requiresEmailVerification?: boolean;
-  avatar?: {
-    id: number;
-    level: number;
-    currentExp: number;
-  } | null;
+  avatar?: AccountProgress | null;
   capabilities?: FeatureKey[];
 }
 
