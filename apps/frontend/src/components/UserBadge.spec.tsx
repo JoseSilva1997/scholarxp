@@ -65,7 +65,6 @@ describe('UserBadge', () => {
 
     expect(screen.getByText(/Level/)).toBeInTheDocument();
     expect(screen.getByText('5')).toBeInTheDocument();
-    expect(screen.getByText('50 xp')).toBeInTheDocument();
     expect(screen.getByText('Jane Doe')).toBeInTheDocument();
   });
 
@@ -158,7 +157,7 @@ describe('UserBadge', () => {
     rerender(<UserBadge user={updatedUser} />);
     await vi.advanceTimersByTimeAsync(20);
 
-    expect(screen.getByText('+40')).toBeInTheDocument();
+    expect(screen.getByText('+40 XP')).toBeInTheDocument();
   });
 
   it('handles avatar image load errors by falling back to default', () => {

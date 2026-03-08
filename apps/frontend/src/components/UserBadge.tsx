@@ -295,23 +295,23 @@ export default function UserBadge({ user, onLogout }: UserBadgeProps) {
                 </span>
               </span>
               <div className={styles.trackContainer}>
-                <div className={styles.expValueContainer}>
-                  <span className={styles.expLabel}>{animatedProgress.currentLevelExp} xp</span>
-                  <AnimatePresence>
-                    {expGainIndicator ? (
-                      <motion.span
-                        key="exp-gain-indicator"
-                        initial={{ y: 10, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.4, ease: 'easeOut' }}
-                        className={styles.expGain}
-                      >
-                        +{expGainIndicator}
-                      </motion.span>
-                    ) : null}
-                  </AnimatePresence>
-                </div>
+                <AnimatePresence>
+                  {expGainIndicator ? (
+                    <motion.div
+                      key="exp-gain-indicator"
+                      initial={{ y: 2, opacity: 0, scale: 0.8 }}
+                      animate={{ y: 0, opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 1.1 }}
+                      transition={{ 
+                        duration: 1, 
+                        ease: [0.175, 0.885, 0.32, 1.275] // Custom back-out for a small "pop"
+                      }}
+                      className={styles.expGainFloating}
+                    >
+                      +{expGainIndicator} XP
+                    </motion.div>
+                  ) : null}
+                </AnimatePresence>
                 <div className={styles.barTrack} role="progressbar" aria-valuenow={expPercent} aria-valuemin={0} aria-valuemax={100}>
                   <div className={styles.barFill} style={{ width: `${expPercent}%` }} />
                 </div>
@@ -419,39 +419,43 @@ export default function UserBadge({ user, onLogout }: UserBadgeProps) {
         <div className={styles.menu} role="menu">
           {/* Panel Header with Profile Preview */}
           <div className={styles.menuHeader}>
-            <img
-              src={avatarSrc}
-              alt=""
-              className={styles.menuHeaderAvatar}
-              crossOrigin="anonymous"
-              referrerPolicy="no-referrer"
-              onError={(event) => {
-                event.currentTarget.onerror = null;
-                event.currentTarget.src = defaultAvatar;
-              }}
-            />
+            <div className={styles.menuHeaderProfileSide}>
+              <img
+                src={avatarSrc}
+                alt=""
+                className={styles.menuHeaderAvatar}
+                crossOrigin="anonymous"
+                referrerPolicy="no-referrer"
+                onError={(event) => {
+                  event.currentTarget.onerror = null;
+                  event.currentTarget.src = defaultAvatar;
+                }}
+              />
+              {user.globalRole === 'student' && animatedProgress && (
+                <div className={styles.menuHeaderLevelBadge}>
+                  {animatedProgress.level}
+                </div>
+              )}
+            </div>
             <div className={styles.menuHeaderInfo}>
               <div className={styles.menuHeaderName}>{formatName(user) || 'User'}</div>
               <div className={styles.menuHeaderRole}>
                 {user.globalRole === 'student' ? 'Student' : 'Teacher'}
               </div>
+
+              {/* Student Progress (Integrated into Header Info) */}
+              {user.globalRole === 'student' && animatedProgress ? (
+                <div className={styles.menuProgressIntegrated}>
+                  <div className={styles.menuExpLabel}>
+                    {animatedProgress.currentLevelExp} / {animatedProgress.nextLevelExpRequired} XP
+                  </div>
+                  <div className={styles.menuBarTrack}>
+                    <div className={styles.menuBarFill} style={{ width: `${expPercent}%` }} />
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
-
-          {/* Student Progress (Mobile Fallback) */}
-          {user.globalRole === 'student' && animatedProgress ? (
-            <div className={styles.menuProgress}>
-              <div className={styles.menuProgressHeader}>
-                <span className={styles.menuLevel}>Level {animatedProgress.level}</span>
-                <span className={styles.menuExp}>
-                  {animatedProgress.currentLevelExp} / {animatedProgress.nextLevelExpRequired} XP
-                </span>
-              </div>
-              <div className={styles.menuBarTrack}>
-                <div className={styles.menuBarFill} style={{ width: `${expPercent}%` }} />
-              </div>
-            </div>
-          ) : null}
 
           {/* Panel Content */}
           <div className={styles.menuContent}>
