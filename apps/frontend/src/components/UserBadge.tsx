@@ -33,7 +33,7 @@ export default function UserBadge({ user, onLogout }: UserBadgeProps) {
   const [expGainIndicator, setExpGainIndicator] = useState<number | null>(null);
   const [isLevelingUp, setIsLevelingUp] = useState(false);
   const [isBadgeCrashing, setIsBadgeCrashing] = useState(false);
-  const prevLevelRef = useRef<number | null>(null);
+  const prevTargetLevelRef = useRef<number | null>(null);
   const levelingUpTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const crashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const uncrashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -71,9 +71,18 @@ export default function UserBadge({ user, onLogout }: UserBadgeProps) {
       : null;
 
   useEffect(() => {
-    const currentLevel = animatedProgress?.level;
-    if (currentLevel !== undefined) {
-      if (prevLevelRef.current !== null && currentLevel > prevLevelRef.current) {
+    if (targetTotalExp === null) {
+      return;
+    }
+
+    // Drive celebration from canonical account XP snapshots (server/cache target),
+    // not animated in-between values, so regular XP gains inside the same level
+    // cannot accidentally retrigger level-up effects.
+    const nextTargetLevel = getProgressWithinLevel(targetTotalExp).level;
+    if (
+      prevTargetLevelRef.current !== null &&
+      nextTargetLevel > prevTargetLevelRef.current
+    ) {
         // Clear any previous queued level-up check to avoid duplicate animations.
         if (levelingUpRafRef.current) cancelAnimationFrame(levelingUpRafRef.current);
 
@@ -102,16 +111,16 @@ export default function UserBadge({ user, onLogout }: UserBadgeProps) {
           
           levelingUpRafRef.current = null;
         });
-      }
-      prevLevelRef.current = currentLevel;
     }
+
+    prevTargetLevelRef.current = nextTargetLevel;
     return () => {
       if (levelingUpRafRef.current) cancelAnimationFrame(levelingUpRafRef.current);
       if (levelingUpTimerRef.current) clearTimeout(levelingUpTimerRef.current);
       if (crashTimerRef.current) clearTimeout(crashTimerRef.current);
       if (uncrashTimerRef.current) clearTimeout(uncrashTimerRef.current);
     };
-  }, [animatedProgress?.level]); // Ref is stable, only dependency is the derived level.
+  }, [targetTotalExp]);
 
   useEffect(
     () => () => {
