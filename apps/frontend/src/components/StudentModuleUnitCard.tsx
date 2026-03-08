@@ -20,6 +20,8 @@ type StudentModuleUnitCardProps = {
 export default function StudentModuleUnitCard({ unit }: StudentModuleUnitCardProps) {
   // Practice-room reward design currently has three streak thresholds; keep this explicit constant-driven total in one place.
   const maximumStreakBonusExp = STREAK_BONUS_EXP_PER_DELTA * 3;
+  // Units with fewer than 4 questions don't qualify for streak bonuses (mirrors backend policy).
+  const hasStreakBonus = unit.questionCount >= 4;
   const isLocked = unit.status === 'locked';
   // Store the initial completion state to prevent label flip-flops when refetching after navigation.
   // This ensures the button shows "View answers" for units that were completed at mount time,
@@ -99,7 +101,7 @@ export default function StudentModuleUnitCard({ unit }: StudentModuleUnitCardPro
                    <div className={styles.xpSummary} aria-label="Possible XP rewards">
                      <span className={styles.xpMainTotal}>
                        <span className={styles.xpSymbol}>⚡</span>
-                       Up to {MODULE_UNIT_BASELINE_EXP + MAXIMUM_FIRST_ATTEMPT_BONUS_EXP + maximumStreakBonusExp} XP
+                       Up to {MODULE_UNIT_BASELINE_EXP + MAXIMUM_FIRST_ATTEMPT_BONUS_EXP + (hasStreakBonus ? maximumStreakBonusExp : 0)} XP
                      </span>
                      <div className={styles.xpBreakdown}>
                        <span className={styles.xpBreakdownItem} title="Guaranteed baseline for completing all questions">
@@ -108,9 +110,11 @@ export default function StudentModuleUnitCard({ unit }: StudentModuleUnitCardPro
                        <span className={styles.xpBreakdownItem} title="Bonus for answering questions correctly on the first try">
                          +{MAXIMUM_FIRST_ATTEMPT_BONUS_EXP} first try
                        </span>
-                       <span className={styles.xpBreakdownItem} title="Bonus for reaching streak thresholds">
-                         +{maximumStreakBonusExp} streaks
-                       </span>
+                       {hasStreakBonus && (
+                         <span className={styles.xpBreakdownItem} title="Bonus for reaching streak thresholds">
+                           +{maximumStreakBonusExp} streaks
+                         </span>
+                       )}
                      </div>
                    </div>
                 )}

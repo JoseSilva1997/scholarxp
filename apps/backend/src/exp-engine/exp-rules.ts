@@ -8,7 +8,7 @@
             - 50 XP for the highest streak >= 30% number_of_questions
             - 100 XP for the highest streak >= 50% number_of_questions
             - 150 XP for the highest streak = 100% number_of_questions
-            A streak must be 3 or more correct answer in a row to start earning the streak bonus.
+            Module Units with fewer than 4 questions are ineligible for streak rewards to keep incentives fair across unit sizes.
             Streaks start at 0 and reset to 0 on a wrong answer.
             Retrying a question does not increment the streak.
     - Completing the unit awards 100 ACCOUNT XP

@@ -29,27 +29,27 @@
 
 /* Tier 1: warm — accent amber, subtle pulse; corresponds to ≥ 30 % threshold */
 .tier1 {
-  --streak-color: var(--color-accent);
-  --streak-glow: rgba(245, 158, 11, 0.35);
-  border-color: var(--color-accent-soft);
+  --streak-color: var(--color-flame-tier1);
+  --streak-glow: var(--color-flame-tier1-glow);
+  border-color: var(--color-flame-tier1-border);
   box-shadow: var(--shadow-md), 0 0 10px var(--streak-glow);
   animation: streakPulse 2.4s ease-in-out infinite;
 }
 
 /* Tier 2: hot — deeper orange/red, stronger glow + faster pulse; ≥ 50 % */
 .tier2 {
-  --streak-color: #f97316; /* orange-500: between accent and error */
-  --streak-glow: rgba(249, 115, 22, 0.45);
-  border-color: rgba(249, 115, 22, 0.3);
+  --streak-color: var(--color-flame-tier2);
+  --streak-glow: var(--color-flame-tier2-glow);
+  border-color: var(--color-flame-tier2-border);
   box-shadow: var(--shadow-md), 0 0 14px var(--streak-glow);
   animation: streakPulse 1.8s ease-in-out infinite;
 }
 
 /* Tier 3: blaze — full red, brightest glow + fast pulse; 100 % clean run */
 .tier3 {
-  --streak-color: var(--color-error);
-  --streak-glow: rgba(239, 68, 68, 0.5);
-  border-color: rgba(239, 68, 68, 0.3);
+  --streak-color: var(--color-flame-tier3);
+  --streak-glow: var(--color-flame-tier3-glow);
+  border-color: var(--color-flame-tier3-border);
   box-shadow: var(--shadow-md), 0 0 18px var(--streak-glow);
   animation: streakPulse 1.2s ease-in-out infinite;
 }

@@ -26,8 +26,9 @@ function resolveStreakTier(
   currentStreak: number,
   totalQuestions: number,
 ): StreakTier {
-  // Backend minimum is 3 correct answers before any tier is reachable.
-  if (totalQuestions <= 0 || currentStreak < 3) {
+  // Mirrors backend ExpCalculationService: units with fewer than 4 questions
+  // don't participate in the streak mechanic so the icon stays dormant.
+  if (totalQuestions < 4) {
     return 0;
   }
   // Thresholds are intentionally identical to backend's ExpCalculationService.
@@ -63,13 +64,14 @@ export default function StreakIndicator({
   totalQuestions,
 }: StreakIndicatorProps) {
   const tier = resolveStreakTier(currentStreak, totalQuestions);
-  const isActive = tier > 0;
+  // Show the count badge on any eligible unit.
+  const showBadge = totalQuestions >= 4;
 
   return (
     <div
       className={`${styles.container} ${TIER_CLASS[tier]}`}
-      aria-label={`${TIER_LABEL[tier]}${isActive ? ` — ${currentStreak} in a row` : ''}`}
-      title={`${TIER_LABEL[tier]}${isActive ? ` (${currentStreak})` : ''}`}
+      aria-label={`${TIER_LABEL[tier]}${showBadge ? ` — ${currentStreak} in a row` : ''}`}
+      title={`${TIER_LABEL[tier]}${showBadge ? ` (${currentStreak})` : ''}`}
     >
       {/* Scale the icon upward as tier grows to give a "growing flame" feel */}
       <motion.span
@@ -81,16 +83,16 @@ export default function StreakIndicator({
         <FaFire className={styles.icon} />
       </motion.span>
 
-      {/* Badge showing the streak count, only visible when streak is active */}
+      {/* Badge showing the streak count, visible on eligible units */}
       <AnimatePresence mode="wait">
-        {isActive && (
+        {showBadge && (
           <motion.span
             key={currentStreak}
             className={styles.badge}
-            initial={{ scale: 0.6, opacity: 0 }}
+            initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.6, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+            exit={{ scale: 0.5, opacity: 0 }}
+            transition={{ duration: 0.1, ease: 'easeOut' }}
             aria-hidden="true"
           >
             {currentStreak}

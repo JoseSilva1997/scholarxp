@@ -25,22 +25,46 @@ const baseUnit = {
 
 describe('StudentModuleUnitCard', () => {
   const maximumStreakBonusExp = STREAK_BONUS_EXP_PER_DELTA * 3;
-  const totalPossibleExp = MODULE_UNIT_BASELINE_EXP + MAXIMUM_FIRST_ATTEMPT_BONUS_EXP + maximumStreakBonusExp;
+  // Base XP without streak — used when the unit has < 4 questions.
+  const baseOnlyExp = MODULE_UNIT_BASELINE_EXP + MAXIMUM_FIRST_ATTEMPT_BONUS_EXP;
+  // Full XP including streak — used when the unit has >= 4 questions.
+  const fullExp = baseOnlyExp + maximumStreakBonusExp;
 
   beforeEach(() => {
     window.history.pushState({}, '', '/main/modules/9');
   });
 
   it('shows question count for live lessons and toggles detail panel', () => {
+    // baseUnit has questionCount: 2 (< 4) so streak bonus must not appear.
     render(<StudentModuleUnitCard unit={baseUnit} />);
 
     expect(screen.getByText('0/2 Questions')).toBeInTheDocument();
-    expect(screen.getByText(`Up to ${totalPossibleExp} XP`)).toBeInTheDocument();
+    expect(screen.getByText(`Up to ${baseOnlyExp} XP`)).toBeInTheDocument();
     expect(screen.getByText(`+${MODULE_UNIT_BASELINE_EXP} base`)).toBeInTheDocument();
     expect(screen.getByText(`+${MAXIMUM_FIRST_ATTEMPT_BONUS_EXP} first try`)).toBeInTheDocument();
-    expect(screen.getByText(`+${maximumStreakBonusExp} streaks`)).toBeInTheDocument();
+    expect(screen.queryByText(`+${maximumStreakBonusExp} streaks`)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Expand lesson details' }));
     expect(screen.getByRole('button', { name: 'Practice Q1' })).toBeInTheDocument();
+  });
+
+  it('hides streak bonus display for units with fewer than 4 questions', () => {
+    // Units with questionCount 1, 2, 3 should never show streak rewards.
+    for (const questionCount of [1, 2, 3]) {
+      const { unmount } = render(
+        <StudentModuleUnitCard unit={{ ...baseUnit, questionCount }} />,
+      );
+      expect(screen.queryByText(`+${maximumStreakBonusExp} streaks`)).not.toBeInTheDocument();
+      expect(screen.getByText(`Up to ${baseOnlyExp} XP`)).toBeInTheDocument();
+      unmount();
+    }
+  });
+
+  it('shows streak bonus display for units with 4 or more questions', () => {
+    // 4 is the minimum unit size that participates in the streak mechanic.
+    render(<StudentModuleUnitCard unit={{ ...baseUnit, questionCount: 4 }} />);
+
+    expect(screen.getByText(`+${maximumStreakBonusExp} streaks`)).toBeInTheDocument();
+    expect(screen.getByText(`Up to ${fullExp} XP`)).toBeInTheDocument();
   });
 
   it('disables practice button for locked lessons', () => {

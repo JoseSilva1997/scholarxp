@@ -60,8 +60,9 @@ export class ExpCalculationService {
     highestStreak: number,
     totalQuestions: number,
   ): number {
-    // Streak rewards only start at 3 correct answers by policy.
-    if (totalQuestions <= 0 || highestStreak < 3) {
+    // Units with fewer than 4 questions are too short to have a meaningful streak
+    // mechanic; suppressing the bonus here keeps incentives fair across unit sizes.
+    if (totalQuestions < 4) {
       return 0;
     }
     // Percent thresholds scale with lesson size and clamp to minimum streak size.

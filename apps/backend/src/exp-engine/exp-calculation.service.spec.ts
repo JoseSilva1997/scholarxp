@@ -59,33 +59,52 @@ describe('ExpCalculationService', () => {
   });
 
   describe('resolveReachedStreakTier', () => {
-    it('returns 0 for streak under 3 or no questions', () => {
-      expect(service.resolveReachedStreakTier(2, 10)).toBe(0);
-      expect(service.resolveReachedStreakTier(5, 0)).toBe(0);
+    it('returns 0 for units with fewer than 4 questions regardless of streak', () => {
+      // Policy: units that are too short don't participate in the streak mechanic.
+      expect(service.resolveReachedStreakTier(0, 0)).toBe(0);
+      expect(service.resolveReachedStreakTier(3, 1)).toBe(0);
+      expect(service.resolveReachedStreakTier(3, 2)).toBe(0);
+      // 3-question perfect run — previously this collapsed all tiers to 3, now correctly suppressed.
+      expect(service.resolveReachedStreakTier(3, 3)).toBe(0);
     });
 
-    it('calculates tier 1 (>= 30% or 3 max)', () => {
-      // 30% of 10 is 3
+    it('returns 0 when streak has not reached any tier threshold', () => {
+      // 30% of 10 = 3; streak of 2 is below tier-1 threshold.
+      expect(service.resolveReachedStreakTier(2, 10)).toBe(0);
+    });
+
+    it('returns 0 for the first valid unit size (4 questions) when streak is below tier-1 threshold', () => {
+      // 30% of 4 = 1.2 → ceil = 2 → Math.max(3, 2) = 3; streak of 2 is below 3.
+      expect(service.resolveReachedStreakTier(2, 4)).toBe(0);
+    });
+
+    it('calculates tier 1 (>= 30% of total, minimum 3) starting at 4-question units', () => {
+      // 4-question unit: tier-1 = Math.max(3, ceil(4*0.3)=2) = 3,
+      //                  tier-2 = Math.max(3, ceil(4*0.5)=2) = 3  → both collapse to 3.
+      // Streak of 3 therefore hits tier 2 directly (same min-clamp behaviour as 5-question units).
+      expect(service.resolveReachedStreakTier(3, 4)).toBe(2);
+      // 10-question unit: tier-1 threshold = Math.max(3, ceil(10*0.3)) = 3.
       expect(service.resolveReachedStreakTier(3, 10)).toBe(1);
       expect(service.resolveReachedStreakTier(4, 10)).toBe(1);
     });
 
-    it('calculates tier 2 (>= 50% or 3 max)', () => {
-      // 50% of 10 is 5
+    it('calculates tier 2 (>= 50% of total, minimum 3)', () => {
+      // 10-question unit: tier-2 threshold = Math.max(3, ceil(10 * 0.5)) = 5.
       expect(service.resolveReachedStreakTier(5, 10)).toBe(2);
       expect(service.resolveReachedStreakTier(9, 10)).toBe(2);
     });
 
-    it('calculates tier 3 (100% or 3 max)', () => {
+    it('calculates tier 3 (100% of total)', () => {
       expect(service.resolveReachedStreakTier(10, 10)).toBe(3);
     });
 
-    it('handles small lessons (e.g. 5 questions) with minimum clamps correctly', () => {
-      // 30% of 5 = 1.5 -> Math.max(3, 2) = 3
-      // 50% of 5 = 2.5 -> Math.max(3, 3) = 3
-      // 100% of 5 = 5  -> Math.max(3, 5) = 5
-      expect(service.resolveReachedStreakTier(3, 5)).toBe(2); // Since 30% is clamped to 3 and 50% is clamped to 3, it hits tier 2
+    it('handles small eligible lessons (5 questions) with minimum threshold clamps correctly', () => {
+      // 30% of 5 = 1.5 → ceil = 2 → Math.max(3, 2) = 3
+      // 50% of 5 = 2.5 → ceil = 3 → Math.max(3, 3) = 3  (same as tier-1 threshold)
+      // So streak of 3 reaches both tier-1 and tier-2 simultaneously → tier 2.
+      expect(service.resolveReachedStreakTier(3, 5)).toBe(2);
       expect(service.resolveReachedStreakTier(4, 5)).toBe(2);
+      // 100% threshold = Math.max(3, 5) = 5 → tier 3.
       expect(service.resolveReachedStreakTier(5, 5)).toBe(3);
     });
   });

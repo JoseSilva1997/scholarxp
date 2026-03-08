@@ -110,6 +110,17 @@
   /* Specialty Graphics */
   --color-success-rays: rgba(76, 175, 80, 0.95);
 
+  /* Streak Flame — tier color scale used by StreakIndicator */
+  --color-flame-tier1: var(--color-accent);            /* warm amber  — ≥ 30 % threshold */
+  --color-flame-tier1-glow: rgba(245, 158, 11, 0.35);
+  --color-flame-tier1-border: var(--color-accent-soft);
+  --color-flame-tier2: #f97316;                        /* hot orange  — ≥ 50 % threshold */
+  --color-flame-tier2-glow: rgba(249, 115, 22, 0.45);
+  --color-flame-tier2-border: rgba(249, 115, 22, 0.3);
+  --color-flame-tier3: var(--color-error);             /* blaze red   — 100 % clean run  */
+  --color-flame-tier3-glow: rgba(239, 68, 68, 0.5);
+  --color-flame-tier3-border: rgba(239, 68, 68, 0.3);
+
   /* Page-level Overlays (Modals, etc.) */
   --color-overlay-dark: rgba(0, 0, 0, 0.45);
   --color-overlay-dark-blur: rgba(15, 23, 42, 0.6);
@@ -237,7 +248,7 @@
     --color-text: #e2e8f0; /* Slate 200 - Less harsh than Slate 100 */
     --color-text-soft: #94a3b8; /* Slate 400 */
     --color-text-muted: #64748b; /* Slate 500 */
-    --color-text-dim: #475569; /* Slate 600 */
+    --color-text-dim: #8393AA; /* Slate 600 */
     --color-border: #2d3748; /* Muted border */
     --color-border-hover: #3b4759;
     --color-border-subtle: rgba(255, 255, 255, 0.05);
