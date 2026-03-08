@@ -2,6 +2,11 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import StudentModuleUnitCard from './StudentModuleUnitCard';
+import {
+  MAXIMUM_FIRST_ATTEMPT_BONUS_EXP,
+  MODULE_UNIT_BASELINE_EXP,
+  STREAK_BONUS_EXP_PER_DELTA,
+} from '@scholarxp/constants';
 
 const baseUnit = {
   id: '11',
@@ -19,6 +24,9 @@ const baseUnit = {
 };
 
 describe('StudentModuleUnitCard', () => {
+  const maximumStreakBonusExp = STREAK_BONUS_EXP_PER_DELTA * 3;
+  const totalPossibleExp = MODULE_UNIT_BASELINE_EXP + MAXIMUM_FIRST_ATTEMPT_BONUS_EXP + maximumStreakBonusExp;
+
   beforeEach(() => {
     window.history.pushState({}, '', '/main/modules/9');
   });
@@ -27,6 +35,10 @@ describe('StudentModuleUnitCard', () => {
     render(<StudentModuleUnitCard unit={baseUnit} />);
 
     expect(screen.getByText('0/2 Questions')).toBeInTheDocument();
+    expect(screen.getByText(`Up to ${totalPossibleExp} XP`)).toBeInTheDocument();
+    expect(screen.getByText(`+${MODULE_UNIT_BASELINE_EXP} base`)).toBeInTheDocument();
+    expect(screen.getByText(`+${MAXIMUM_FIRST_ATTEMPT_BONUS_EXP} first try`)).toBeInTheDocument();
+    expect(screen.getByText(`+${maximumStreakBonusExp} streaks`)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Expand lesson details' }));
     expect(screen.getByRole('button', { name: 'Practice Q1' })).toBeInTheDocument();
   });

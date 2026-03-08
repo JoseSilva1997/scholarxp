@@ -5,6 +5,11 @@ import completionMedalIcon from '../assets/module-unit/module-unit-completed-med
 import { FaCheck, FaMinus, FaXmark } from 'react-icons/fa6';
 import { IoMdLock } from "react-icons/io"
 import type { QuestionAttemptResult } from '@scholarxp/api-contracts';
+import {
+  MAXIMUM_FIRST_ATTEMPT_BONUS_EXP,
+  MODULE_UNIT_BASELINE_EXP,
+  STREAK_BONUS_EXP_PER_DELTA,
+} from '@scholarxp/constants';
 
 import type { ModuleUnit } from './ModuleUnitCard';
 
@@ -13,6 +18,8 @@ type StudentModuleUnitCardProps = {
 };
 
 export default function StudentModuleUnitCard({ unit }: StudentModuleUnitCardProps) {
+  // Practice-room reward design currently has three streak thresholds; keep this explicit constant-driven total in one place.
+  const maximumStreakBonusExp = STREAK_BONUS_EXP_PER_DELTA * 3;
   const isLocked = unit.status === 'locked';
   // Store the initial completion state to prevent label flip-flops when refetching after navigation.
   // This ensures the button shows "View answers" for units that were completed at mount time,
@@ -84,15 +91,29 @@ export default function StudentModuleUnitCard({ unit }: StudentModuleUnitCardPro
                      {completedQuestionsCount}/{unit.questionCount} Questions
                    </span>
                 ) : null}
-                {!isLocked ? (
-                   <span className={styles.xpReward}>
-                     <span className={styles.xpSymbol}>⚡</span>
-                     +2000 XP Possible
-                   </span>
-                ) : (
-                   <span className={styles.lockedText}>Unlocks soon...</span>
-                )}
+                {isLocked && <span className={styles.lockedText}>Unlocks soon...</span>}
               </div>
+            </div>
+            <div className={styles.middleMeta}>
+                {!isLocked && (
+                   <div className={styles.xpSummary} aria-label="Possible XP rewards">
+                     <span className={styles.xpMainTotal}>
+                       <span className={styles.xpSymbol}>⚡</span>
+                       Up to {MODULE_UNIT_BASELINE_EXP + MAXIMUM_FIRST_ATTEMPT_BONUS_EXP + maximumStreakBonusExp} XP
+                     </span>
+                     <div className={styles.xpBreakdown}>
+                       <span className={styles.xpBreakdownItem} title="Guaranteed baseline for completing all questions">
+                         +{MODULE_UNIT_BASELINE_EXP} base
+                       </span>
+                       <span className={styles.xpBreakdownItem} title="Bonus for answering questions correctly on the first try">
+                         +{MAXIMUM_FIRST_ATTEMPT_BONUS_EXP} first try
+                       </span>
+                       <span className={styles.xpBreakdownItem} title="Bonus for reaching streak thresholds">
+                         +{maximumStreakBonusExp} streaks
+                       </span>
+                     </div>
+                   </div>
+                )}
             </div>
             <div className={styles.actions}>
               <button 
