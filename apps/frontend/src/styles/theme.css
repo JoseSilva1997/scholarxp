@@ -121,6 +121,18 @@
   --color-flame-tier3-glow: rgba(239, 68, 68, 0.5);
   --color-flame-tier3-border: rgba(239, 68, 68, 0.3);
 
+  /* Streak Pip indicators — small circles beside the fire showing bonus tier status */
+  /* inactive: threshold not yet reached (dim outline only)                           */
+  /* active:   first time reaching threshold this session — bonus will be awarded      */
+  /* claimed:  bonus already collected; re-reaching this tier won't grant more XP      */
+  --color-pip-inactive: var(--color-text-dim);
+  --color-pip-tier1-active: var(--color-flame-tier1);
+  --color-pip-tier1-active-glow: rgba(245, 158, 11, 0.5);
+  --color-pip-tier1-claimed: rgba(245, 158, 11, 0.35);
+  --color-pip-tier2-active: var(--color-flame-tier2);
+  --color-pip-tier2-active-glow: rgba(249, 115, 22, 0.55);
+  --color-pip-tier2-claimed: rgba(249, 115, 22, 0.35);
+
   /* Page-level Overlays (Modals, etc.) */
   --color-overlay-dark: rgba(0, 0, 0, 0.45);
   --color-overlay-dark-blur: rgba(15, 23, 42, 0.6);

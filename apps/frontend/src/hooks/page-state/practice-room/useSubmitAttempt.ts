@@ -49,9 +49,9 @@ type UseSubmitAttemptParams = {
   // XP callbacks supplied by parent hooks.
   applyExpAward: (awarded: number, detail: ProgressModuleDetail | null) => void;
   moduleDetail: ProgressModuleDetail | null;
-  // Streak callback: called after every successful submission with the live session streak.
-  // Optional so callers that don't display streak don't have to provide it.
-  updateCurrentStreak?: (streak: number) => void;
+  // Streak callback: called after every successful submission with both the live streak
+  // and the all-time session high. Optional so callers that don't display streak can omit it.
+  updateCurrentStreak?: (currentStreak: number, highestStreak: number) => void;
   // State setters for attempt tracking — also used by tryAgainActiveQuestion.
   setSubmittedAttemptByContentId: React.Dispatch<
     React.SetStateAction<Record<number, PracticeAttemptSnapshot | null>>
@@ -158,10 +158,15 @@ export function useSubmitAttempt({
         // attempt business logic.
         applyExpAward(moduleExpAwarded, moduleDetail);
       }
-      // Relay the server-computed streak to the parent so it can update the
-      // StreakIndicator without maintaining a separate server call.
-      if (updateCurrentStreak !== undefined && submitResponse.currentStreak !== undefined) {
-        updateCurrentStreak(submitResponse.currentStreak);
+      // Relay both streak values to the parent so StreakIndicator can show
+      // pip state without a separate server call. Both values must be present;
+      // if either is absent (e.g. older API version) the callback is skipped.
+      if (
+        updateCurrentStreak !== undefined &&
+        submitResponse.currentStreak !== undefined &&
+        submitResponse.highestStreak !== undefined
+      ) {
+        updateCurrentStreak(submitResponse.currentStreak, submitResponse.highestStreak);
       }
       setSubmittedAttemptByContentId((previous) => ({
         ...previous,

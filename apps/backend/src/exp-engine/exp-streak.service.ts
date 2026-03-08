@@ -60,21 +60,22 @@ export class ExpStreakService {
     return awarded;
   }
 
-  // Returns the live streak for a session so callers can relay it to the client
-  // without re-running streak logic in unrelated services. currentStreak resets
-  // to 0 when the student answers incorrectly, matching the visual feedback rule.
+  // Returns the live streak snapshot for a session so callers can relay both
+  // values to the client without re-running streak logic in unrelated services.
+  // highestStreak is the authoritative value for determining which tier bonuses
+  // have already been claimed (via idempotency keys); currentStreak drives the
+  // live visual state.
   async getSessionStreak(
     moduleUnitId: number,
     studentId: number,
     sessionId: string,
-  ): Promise<number> {
-    const snapshot = await this.computeStreakSnapshot(
+  ): Promise<{ currentStreak: number; highestStreak: number }> {
+    return this.computeStreakSnapshot(
       moduleUnitId,
       studentId,
       sessionId,
       this.prisma,
     );
-    return snapshot.currentStreak;
   }
 
   private async computeStreakSnapshot(

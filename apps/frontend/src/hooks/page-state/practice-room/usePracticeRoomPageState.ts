@@ -172,10 +172,16 @@ export function usePracticeRoomPageState({
     Record<number, PracticeAttemptSnapshot | null>
   >({});
 
-  // Session-keyed streak count relayed from the backend after each submission.
+  // Session-keyed streak counts relayed from the backend after each submission.
   // Keyed by sessionId so multiple sessions stay independent (same pattern as
   // submittedByContentIdBySessionId).
   const [currentStreakBySessionId, setCurrentStreakBySessionId] = useState<
+    Record<string, number>
+  >({});
+
+  // Highest streak reached per session; updated alongside currentStreak so the
+  // StreakIndicator pips know which tier bonuses have already been claimed.
+  const [highestStreakBySessionId, setHighestStreakBySessionId] = useState<
     Record<string, number>
   >({});
 
@@ -467,14 +473,18 @@ export function usePracticeRoomPageState({
   // Payload building, mutation call, optimistic state, and error handling are
   // all owned by useSubmitAttempt; this hook only wires the required context.
 
-  // Called by useSubmitAttempt after each successful submission to keep the
-  // streak indicator in sync without an extra query round-trip.
-  const updateCurrentStreak = (streak: number) => {
+  // Called by useSubmitAttempt after each successful submission to keep both
+  // streak indicators in sync without an extra query round-trip.
+  const updateCurrentStreak = (currentStreak: number, highestStreak: number) => {
     if (!roomWithLocalAttempts) return;
     const { sessionId } = roomWithLocalAttempts;
     setCurrentStreakBySessionId((previous) => ({
       ...previous,
-      [sessionId]: streak,
+      [sessionId]: currentStreak,
+    }));
+    setHighestStreakBySessionId((previous) => ({
+      ...previous,
+      [sessionId]: highestStreak,
     }));
   };
 
@@ -617,9 +627,13 @@ export function usePracticeRoomPageState({
     hasSubmittedActiveQuestion,
     hasActiveOptionOverride,
     showTryAgainButton,
-    // Streak count for the current session, relayed from the backend after each submission.
+    // Streak counts for the current session, relayed from the backend after each submission.
     currentStreak: roomWithLocalAttempts
       ? (currentStreakBySessionId[roomWithLocalAttempts.sessionId] ?? 0)
+      : 0,
+    // Session all-time high streak, used by pip indicators to show which tier bonuses are re-earnable.
+    highestStreak: roomWithLocalAttempts
+      ? (highestStreakBySessionId[roomWithLocalAttempts.sessionId] ?? 0)
       : 0,
     selectQuestionUnit,
     selectOption,

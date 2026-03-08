@@ -11,4 +11,7 @@ export class SubmitAttemptResponseDto implements SubmitAttemptResponse {
   updatedModuleProgress?: ModuleSummaryResponse;
   // Live session streak relayed from ExpStreakService after each submission.
   currentStreak?: number;
+  // Highest streak reached so far in the session; used to determine which
+  // tier bonuses are available again vs already claimed (idempotency guard).
+  highestStreak?: number;
 }

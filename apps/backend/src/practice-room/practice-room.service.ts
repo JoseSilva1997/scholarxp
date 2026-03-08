@@ -196,11 +196,12 @@ export class PracticeRoomService {
 
     // Reward values are ledger-backed so retries can safely return zero when the event was already applied.
     // Streak is read after the transaction so it reflects the attempt we just persisted.
-    const currentStreak = await this.expStreakService.getSessionStreak(
-      moduleUnitId,
-      studentId,
-      payload.sessionId,
-    );
+    const { currentStreak, highestStreak } =
+      await this.expStreakService.getSessionStreak(
+        moduleUnitId,
+        studentId,
+        payload.sessionId,
+      );
 
     return {
       awards: {
@@ -221,6 +222,7 @@ export class PracticeRoomService {
           }
         : undefined,
       currentStreak,
+      highestStreak,
     };
   }
 

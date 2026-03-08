@@ -50,6 +50,7 @@ export default function PracticeRoomPage() {
     goToPreviousQuestionUnit,
     goToNextQuestionUnit,
     currentStreak,
+    highestStreak,
   } = usePracticeRoomPageState({
     moduleIdParam: moduleId,
     unitIdParam: unitId,
@@ -101,6 +102,7 @@ export default function PracticeRoomPage() {
               {/* Streak indicator sits left of the XP bar so progress metrics are grouped */}
               <StreakIndicator
                 currentStreak={currentStreak}
+                highestStreak={highestStreak}
                 totalQuestions={room?.questions.length ?? 0}
               />
               <div className={styles.levelIndicatorMini}>

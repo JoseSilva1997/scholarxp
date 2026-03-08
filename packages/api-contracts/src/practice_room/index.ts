@@ -120,6 +120,11 @@ export interface SubmitAttemptResponse {
   // Live streak count for the current session: consecutive first-attempt correct answers.
   // Resets to 0 on any incorrect answer. Omitted by older API versions (defaults to 0).
   currentStreak?: number;
+  // All-time highest consecutive correct streak reached during the session.
+  // Used by the client to determine which tier bonuses have already been claimed
+  // (via idempotency keys) so the UI can show whether re-reaching a tier will
+  // award a bonus or not.
+  highestStreak?: number;
 }
 
 // Response returned when a practice session is explicitly closed; closedAt is always an ISO UTC timestamp.

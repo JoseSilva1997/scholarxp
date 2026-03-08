@@ -13,9 +13,16 @@ import styles from './StreakIndicator.module.css';
 // 3 = blaze (≥ 100 % of total questions — full clean run)
 type StreakTier = 0 | 1 | 2 | 3;
 
+// A pip maps to one XP bonus tier and shows whether the student is about to earn
+// the bonus for the first time (active) or has already claimed it (claimed).
+type PipState = 'inactive' | 'active' | 'claimed';
+
 type StreakIndicatorProps = {
   // Live count of consecutive first-attempt correct answers for this session.
   currentStreak: number;
+  // All-time highest streak in this session; determines which tier bonuses are
+  // already claimed via idempotency keys vs still earnable.
+  highestStreak: number;
   // Total number of questions in the unit; needed to compute relative thresholds.
   totalQuestions: number;
 };
@@ -42,6 +49,22 @@ function resolveStreakTier(
   return 0;
 }
 
+// Returns the pip state for a single bonus tier threshold.
+// - active:   currentStreak just reached the threshold and highestStreak hasn't yet
+//             → bonus will be awarded on this run (first time hitting this tier)
+// - claimed:  highestStreak is already at or above the threshold
+//             → bonus was already collected; re-reaching this tier won't give more XP
+// - inactive: threshold not yet reached by the current streak
+function resolvePipState(
+  currentStreak: number,
+  highestStreak: number,
+  tierThreshold: number,
+): PipState {
+  if (highestStreak >= tierThreshold) return 'claimed';
+  if (currentStreak >= tierThreshold) return 'active';
+  return 'inactive';
+}
+
 // CSS module class names per tier; dormant coloring uses `tier0` to indicate
 // the fire hasn't been "lit" yet.
 const TIER_CLASS: Record<StreakTier, string> = {
@@ -59,13 +82,41 @@ const TIER_LABEL: Record<StreakTier, string> = {
   3: 'Streak: blazing',
 };
 
+// Pip tier index → CSS class for the tier-specific color.
+const PIP_TIER_CLASS: Record<1 | 2, string> = {
+  1: styles.pipTier1,
+  2: styles.pipTier2,
+};
+
+// Pip state → CSS class.
+const PIP_STATE_CLASS: Record<PipState, string> = {
+  inactive: styles.pipInactive,
+  active: styles.pipActive,
+  claimed: styles.pipClaimed,
+};
+
+// Human-readable accessible label for each pip state so screen readers announce bonus status.
+function pipAriaLabel(tierIndex: 1 | 2, state: PipState): string {
+  const tierName = tierIndex === 1 ? '30%' : '50%';
+  if (state === 'active') return `${tierName} streak bonus: will be awarded`;
+  if (state === 'claimed') return `${tierName} streak bonus: already earned`;
+  return `${tierName} streak bonus: not reached`;
+}
+
 export default function StreakIndicator({
   currentStreak,
+  highestStreak,
   totalQuestions,
 }: StreakIndicatorProps) {
   const tier = resolveStreakTier(currentStreak, totalQuestions);
-  // Show the count badge on any eligible unit.
+  // Show the count badge and pips on any eligible unit.
   const showBadge = totalQuestions >= 4;
+
+  // Compute pip states only for eligible units; thresholds mirror resolveStreakTier.
+  const tierOneThreshold = totalQuestions >= 4 ? Math.max(3, Math.ceil(totalQuestions * 0.3)) : Infinity;
+  const tierTwoThreshold = totalQuestions >= 4 ? Math.max(3, Math.ceil(totalQuestions * 0.5)) : Infinity;
+  const pip1State = showBadge ? resolvePipState(currentStreak, highestStreak, tierOneThreshold) : 'inactive';
+  const pip2State = showBadge ? resolvePipState(currentStreak, highestStreak, tierTwoThreshold) : 'inactive';
 
   return (
     <div
@@ -73,6 +124,24 @@ export default function StreakIndicator({
       aria-label={`${TIER_LABEL[tier]}${showBadge ? ` — ${currentStreak} in a row` : ''}`}
       title={`${TIER_LABEL[tier]}${showBadge ? ` (${currentStreak})` : ''}`}
     >
+        {/* Pip column: pip 1 = 30% threshold, pip 2 = 50% threshold.
+          Inactive pips still render as dim outlines so the layout is stable
+          and the student can see what's coming. Pips only appear on eligible
+          units (4+ questions) where the streak mechanic is active. */}
+      {showBadge && (
+        <span className={styles.pips} aria-hidden="true">
+          <span
+            data-testid="pip-tier1"
+            className={`${styles.pip} ${PIP_STATE_CLASS[pip1State]} ${PIP_TIER_CLASS[1]}`}
+            aria-label={pipAriaLabel(1, pip1State)}
+          />
+          <span
+            data-testid="pip-tier2"
+            className={`${styles.pip} ${PIP_STATE_CLASS[pip2State]} ${PIP_TIER_CLASS[2]}`}
+            aria-label={pipAriaLabel(2, pip2State)}
+          />
+        </span>
+      )}
       {/* Scale the icon upward as tier grows to give a "growing flame" feel */}
       <motion.span
         className={styles.iconWrapper}

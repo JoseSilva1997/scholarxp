@@ -6,6 +6,7 @@ import { PracticeRoomService } from './practice-room.service';
 import { PracticeRoomMapper } from './practice-room.mapper';
 import { StudentModuleUnitProgressService } from './student-module-unit-progress.service';
 import { ExpAwardingService } from '../exp-engine/exp-awarding.service';
+import { ExpStreakService } from '../exp-engine/exp-streak.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock, type PrismaMock } from '../test/test-helpers';
 import type {
@@ -24,6 +25,9 @@ describe('PracticeRoomService', () => {
   let practiceRewardService: {
     awardAttemptModuleExp: jest.Mock;
     awardCompletionExp: jest.Mock;
+  };
+  let expStreakService: {
+    getSessionStreak: jest.Mock;
   };
 
   // Mock data builders for consistent test setup
@@ -110,6 +114,11 @@ describe('PracticeRoomService', () => {
         lastPracticedAt: new Date('2026-02-12T10:00:00.000Z'),
       }),
     };
+    // getSessionStreak returns both counts so the response can show pip state.
+    expStreakService = {
+      getSessionStreak: jest.fn().mockResolvedValue({ currentStreak: 0, highestStreak: 0 }),
+    };
+
     practiceRewardService = {
       awardAttemptModuleExp: jest.fn().mockResolvedValue({
         moduleExpAwarded: 50,
@@ -150,6 +159,10 @@ describe('PracticeRoomService', () => {
         {
           provide: ExpAwardingService,
           useValue: practiceRewardService,
+        },
+        {
+          provide: ExpStreakService,
+          useValue: expStreakService,
         },
       ],
     }).compile();
@@ -815,6 +828,8 @@ describe('PracticeRoomService', () => {
           currentExp: 50,
           expMax: 1000,
         },
+        currentStreak: 0,
+        highestStreak: 0,
       });
       expect(practiceRewardService.awardAttemptModuleExp).toHaveBeenCalledWith(
         {
