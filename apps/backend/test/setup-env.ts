@@ -7,8 +7,10 @@ const resolvedEnvironmentPath = resolve(
   `../.env.${runtimeEnvironment}`,
 );
 
+const isE2ETestRun = process.env.E2E_TEST_RUN === 'true';
+
 // E2E runs execute destructive cleanup, so they must never inherit development DB credentials by fallback.
-if (runtimeEnvironment === 'test') {
+if (isE2ETestRun) {
   config({ path: resolvedEnvironmentPath });
 } else {
   // Non-test runs keep the development fallback to preserve existing local workflows.
@@ -27,7 +29,7 @@ function isLikelyTestDatabaseUrl(databaseUrl: string): boolean {
   }
 }
 
-if (runtimeEnvironment === 'test') {
+if (isE2ETestRun) {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) {
     throw new Error(
