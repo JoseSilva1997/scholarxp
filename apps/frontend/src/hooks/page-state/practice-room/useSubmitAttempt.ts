@@ -89,6 +89,12 @@ export function useSubmitAttempt({
   parsedModuleId,
   parsedUnitId,
 }: UseSubmitAttemptParams): UseSubmitAttemptResult {
+  // Keep module progression updates derived from a single rewards payload contract.
+  const getModuleExpFromAwards = (response: SubmitAttemptResponse): number =>
+    response.awards.baseQuestionExp +
+    response.awards.firstAttemptBonus +
+    response.awards.streakBonus;
+
   // holds any error returned when the submission fails; surfaced to UI.
   const [submitErrorMessage, setSubmitErrorMessage] = useState<string | null>(null);
 
@@ -141,11 +147,12 @@ export function useSubmitAttempt({
 
     try {
       const submitResponse = await mutateAsync(payload);
-      if (submitResponse.moduleExpAwarded > 0) {
+      const moduleExpAwarded = getModuleExpFromAwards(submitResponse);
+      if (moduleExpAwarded > 0) {
         // Delegate the animation target update, double-count guard, and level-up
         // celebration to the progress hook so this handler stays focused on
         // attempt business logic.
-        applyExpAward(submitResponse.moduleExpAwarded, moduleDetail);
+        applyExpAward(moduleExpAwarded, moduleDetail);
       }
       setSubmittedAttemptByContentId((previous) => ({
         ...previous,

@@ -113,6 +113,11 @@ describe('PracticeRoomService', () => {
     practiceRewardService = {
       awardAttemptModuleExp: jest.fn().mockResolvedValue({
         moduleExpAwarded: 50,
+        moduleAwards: {
+          baseQuestionExp: 33,
+          firstAttemptBonus: 17,
+          streakBonus: 0,
+        },
         updatedMembership: {
           id: 700,
           moduleId: 1,
@@ -795,7 +800,12 @@ describe('PracticeRoomService', () => {
         prisma,
       );
       expect(result).toEqual({
-        moduleExpAwarded: 50,
+        awards: {
+          baseQuestionExp: 33,
+          firstAttemptBonus: 17,
+          streakBonus: 0,
+          accountExp: 0,
+        },
         hasCorrectAttempt: true,
         updatedModuleProgress: {
           id: 1,
@@ -979,6 +989,11 @@ describe('PracticeRoomService', () => {
       prisma.questionAttempt.create.mockResolvedValue({ id: 999 } as any);
       practiceRewardService.awardAttemptModuleExp.mockResolvedValue({
         moduleExpAwarded: 0,
+        moduleAwards: {
+          baseQuestionExp: 0,
+          firstAttemptBonus: 0,
+          streakBonus: 0,
+        },
         updatedMembership: null,
       });
 
@@ -993,7 +1008,12 @@ describe('PracticeRoomService', () => {
       });
 
       expect(practiceRewardService.awardAttemptModuleExp).toHaveBeenCalled();
-      expect(result.moduleExpAwarded).toBe(0);
+      expect(result.awards).toEqual({
+        baseQuestionExp: 0,
+        firstAttemptBonus: 0,
+        streakBonus: 0,
+        accountExp: 0,
+      });
     });
   });
 

@@ -113,82 +113,93 @@ export class PracticeRoomService {
     );
 
     const attemptedAt = new Date();
-    const { alreadyHasCorrectAttempt, updatedMembership, moduleExpAwarded } =
-      await this.prisma.$transaction(async (tx) => {
-        const hadAnyAttemptBeforeSubmit = await this.hasAnyAttempt(
-          moduleUnitId,
-          studentId,
-          payload.questionUnitId,
-          tx,
-        );
-        const hadCorrectAttemptBeforeSubmit = await this.hasAnyCorrectAttempt(
-          moduleUnitId,
-          studentId,
-          payload.questionUnitId,
-          tx,
-        );
+    const {
+      alreadyHasCorrectAttempt,
+      updatedMembership,
+      moduleAwards,
+      awardedAccountExp,
+    } = await this.prisma.$transaction(async (tx) => {
+      const hadAnyAttemptBeforeSubmit = await this.hasAnyAttempt(
+        moduleUnitId,
+        studentId,
+        payload.questionUnitId,
+        tx,
+      );
+      const hadCorrectAttemptBeforeSubmit = await this.hasAnyCorrectAttempt(
+        moduleUnitId,
+        studentId,
+        payload.questionUnitId,
+        tx,
+      );
 
-        await this.createAttemptRecord(
-          moduleUnitId,
-          studentId,
-          payload,
-          isCorrect,
-          attemptedAt,
+      await this.createAttemptRecord(
+        moduleUnitId,
+        studentId,
+        payload,
+        isCorrect,
+        attemptedAt,
+        tx,
+      );
+      const syncedProgress =
+        await this.studentModuleUnitProgressService.syncFromAttempts(
+          {
+            moduleUnitId,
+            studentId,
+            attemptedAt,
+          },
           tx,
         );
-        const syncedProgress =
-          await this.studentModuleUnitProgressService.syncFromAttempts(
-            {
-              moduleUnitId,
-              studentId,
-              attemptedAt,
-            },
-            tx,
-          );
-        await this.closeSessionOnCompletionIfNeeded(
-          payload.sessionId,
-          attemptedAt,
-          syncedProgress.isCompleted,
+      await this.closeSessionOnCompletionIfNeeded(
+        payload.sessionId,
+        attemptedAt,
+        syncedProgress.isCompleted,
+        tx,
+      );
+      const rewardPersistence =
+        await this.expAwardingService.awardAttemptModuleExp(
+          {
+            studentId,
+            moduleId,
+            moduleUnitId,
+            sessionId: payload.sessionId,
+            questionUnitId: payload.questionUnitId,
+            isCorrect,
+            hadCorrectAttemptBeforeSubmit,
+            hadAnyAttemptBeforeSubmit,
+          },
           tx,
         );
-        const rewardPersistence =
-          await this.expAwardingService.awardAttemptModuleExp(
-            {
-              studentId,
-              moduleId,
-              moduleUnitId,
-              sessionId: payload.sessionId,
-              questionUnitId: payload.questionUnitId,
-              isCorrect,
-              hadCorrectAttemptBeforeSubmit,
-              hadAnyAttemptBeforeSubmit,
-            },
-            tx,
-          );
-        if (syncedProgress.isCompleted) {
-          // Completion account XP is policy-owned by the reward service to keep this orchestration thin.
-          await this.expAwardingService.awardCompletionExp(
-            {
-              studentId,
-              moduleId,
-              moduleUnitId,
-              sessionId: payload.sessionId,
-              completedAt: attemptedAt,
-            },
-            tx,
-          );
-        }
+      let awardedAccountExp = 0;
+      if (syncedProgress.isCompleted) {
+        // Completion account XP is policy-owned by the reward service to keep this orchestration thin.
+        awardedAccountExp = await this.expAwardingService.awardCompletionExp(
+          {
+            studentId,
+            moduleId,
+            moduleUnitId,
+            sessionId: payload.sessionId,
+            completedAt: attemptedAt,
+          },
+          tx,
+        );
+      }
 
-        return {
-          alreadyHasCorrectAttempt: hadCorrectAttemptBeforeSubmit,
-          updatedMembership: rewardPersistence.updatedMembership,
-          moduleExpAwarded: rewardPersistence.moduleExpAwarded,
-        };
-      });
+      return {
+        alreadyHasCorrectAttempt: hadCorrectAttemptBeforeSubmit,
+        updatedMembership: rewardPersistence.updatedMembership,
+        moduleAwards: rewardPersistence.moduleAwards,
+        awardedAccountExp,
+      };
+    });
 
     // Reward values are ledger-backed so retries can safely return zero when the event was already applied.
     return {
-      moduleExpAwarded,
+      awards: {
+        baseQuestionExp: moduleAwards.baseQuestionExp,
+        firstAttemptBonus: moduleAwards.firstAttemptBonus,
+        streakBonus: moduleAwards.streakBonus,
+        accountExp: awardedAccountExp,
+      },
       hasCorrectAttempt: alreadyHasCorrectAttempt || isCorrect,
       updatedModuleProgress: updatedMembership
         ? {

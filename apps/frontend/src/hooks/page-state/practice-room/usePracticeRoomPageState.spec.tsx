@@ -82,7 +82,7 @@ describe('usePracticeRoomPageState (core-only)', () => {
     useSubmitModuleUnitPracticeAttemptMutationMock.mockReturnValue({
       isPending: false,
       mutateAsync: vi.fn().mockResolvedValue({
-        moduleExpAwarded: 0,
+        awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
         hasCorrectAttempt: false,
       }),
     });
@@ -368,7 +368,7 @@ describe('usePracticeRoomPageState (core-only)', () => {
 
   it('persists submitted status on reload for the same session', async () => {
     const mutateAsync = vi.fn().mockResolvedValue({
-      moduleExpAwarded: 0,
+      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: false,
     });
     useSubmitModuleUnitPracticeAttemptMutationMock.mockReturnValue({
@@ -608,7 +608,7 @@ describe('usePracticeRoomPageState (core-only)', () => {
 
   it('shows try again after incorrect submit and clears submitted state when retried', async () => {
     const mutateAsync = vi.fn().mockResolvedValue({
-      moduleExpAwarded: 0,
+      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: false,
     });
     useSubmitModuleUnitPracticeAttemptMutationMock.mockReturnValue({
@@ -686,7 +686,7 @@ describe('usePracticeRoomPageState (core-only)', () => {
       .mockImplementation(() => undefined);
 
     const mutateAsync = vi.fn().mockResolvedValue({
-      moduleExpAwarded: 50,
+      awards: { baseQuestionExp: 50, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: true,
     });
     useSubmitModuleUnitPracticeAttemptMutationMock.mockReturnValue({

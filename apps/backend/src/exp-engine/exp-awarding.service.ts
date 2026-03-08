@@ -38,6 +38,11 @@ export class ExpAwardingService {
     if (!params.isCorrect || params.hadCorrectAttemptBeforeSubmit) {
       return {
         moduleExpAwarded: 0,
+        moduleAwards: {
+          baseQuestionExp: 0,
+          firstAttemptBonus: 0,
+          streakBonus: 0,
+        },
         updatedMembership: null,
       };
     }
@@ -52,11 +57,19 @@ export class ExpAwardingService {
     if (questionContext.totalQuestions <= 0) {
       return {
         moduleExpAwarded: 0,
+        moduleAwards: {
+          baseQuestionExp: 0,
+          firstAttemptBonus: 0,
+          streakBonus: 0,
+        },
         updatedMembership: null,
       };
     }
 
     let totalAwardedExp = 0;
+    let baseQuestionExpAwarded = 0;
+    let firstAttemptBonusAwarded = 0;
+    let streakBonusExpAwarded = 0;
     // Keep last updated membership id to return a response-ready snapshot.
     let updatedMembershipId: number | null = null;
 
@@ -82,6 +95,7 @@ export class ExpAwardingService {
     if (baselineEvent.created) {
       // Apply module XP only after ledger confirms this event is newly recorded.
       totalAwardedExp += baselineEvent.awardedExp;
+      baseQuestionExpAwarded += baselineEvent.awardedExp;
       updatedMembershipId = (
         await this.userModuleService.addStudentModuleExp(
           params.moduleId,
@@ -116,6 +130,7 @@ export class ExpAwardingService {
       if (firstAttemptEvent.created) {
         // Apply first-attempt delta as regular module XP so level math stays centralized.
         totalAwardedExp += firstAttemptEvent.awardedExp;
+        firstAttemptBonusAwarded += firstAttemptEvent.awardedExp;
         updatedMembershipId = (
           await this.userModuleService.addStudentModuleExp(
             params.moduleId,
@@ -131,6 +146,11 @@ export class ExpAwardingService {
     if (totalAwardedExp <= 0) {
       return {
         moduleExpAwarded: 0,
+        moduleAwards: {
+          baseQuestionExp: 0,
+          firstAttemptBonus: 0,
+          streakBonus: 0,
+        },
         updatedMembership: null,
       };
     }
@@ -149,6 +169,7 @@ export class ExpAwardingService {
     if (streakBonusAward > 0) {
       // Add streak delta to module XP through the same service path.
       totalAwardedExp += streakBonusAward;
+      streakBonusExpAwarded += streakBonusAward;
       updatedMembershipId = (
         await this.userModuleService.addStudentModuleExp(
           params.moduleId,
@@ -163,6 +184,11 @@ export class ExpAwardingService {
     if (!updatedMembershipId || totalAwardedExp <= 0) {
       return {
         moduleExpAwarded: 0,
+        moduleAwards: {
+          baseQuestionExp: 0,
+          firstAttemptBonus: 0,
+          streakBonus: 0,
+        },
         updatedMembership: null,
       };
     }
@@ -175,6 +201,11 @@ export class ExpAwardingService {
 
     return {
       moduleExpAwarded: totalAwardedExp,
+      moduleAwards: {
+        baseQuestionExp: baseQuestionExpAwarded,
+        firstAttemptBonus: firstAttemptBonusAwarded,
+        streakBonus: streakBonusExpAwarded,
+      },
       updatedMembership: membershipWithModule,
     };
   }

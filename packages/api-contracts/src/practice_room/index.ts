@@ -1,5 +1,6 @@
 import type { QuestionData, questionType } from '@scholarxp/question-type-dtos';
 import type { ModuleSummaryResponse } from '../modules';
+import type { Awards } from '../rewards';
 
 // Session type values are contract-owned so backend/frontend can evolve behavior without DB enum coupling.
 export const PracticeSessionTypeValues = {
@@ -111,7 +112,8 @@ export interface SubmitAttemptPayload {
 
 // Response sent back to the frontend after submitting an attempt.
 export interface SubmitAttemptResponse {
-  moduleExpAwarded: number;
+  // Structured reward payload allows the UI to display each XP source independently.
+  awards: Awards;
   hasCorrectAttempt: boolean;
   // Returning the updated progress allows the frontend to synchronize XP bars without a separate refetch.
   updatedModuleProgress?: ModuleSummaryResponse;

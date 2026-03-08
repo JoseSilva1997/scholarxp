@@ -79,7 +79,7 @@ function buildParams(overrides: Partial<BaseParams> = {}): BaseParams {
     activeContentIdRef: buildRef(QUESTION_ID),
     activeContentViewStartMsRef: buildRef(null),
     mutateAsync: vi.fn().mockResolvedValue({
-      moduleExpAwarded: 0,
+      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: true,
     } satisfies SubmitAttemptResponse),
     isPending: false,
@@ -172,7 +172,7 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — payload', () => {
 
   it('builds the correct payload with required fields', async () => {
     const mutateAsync = vi.fn().mockResolvedValue({
-      moduleExpAwarded: 0,
+      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: false,
     } satisfies SubmitAttemptResponse);
     const { result } = renderHook(() =>
@@ -191,7 +191,7 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — payload', () => {
 
   it('uses view-start ref for timeTakenMs when the ref tracks the active question', async () => {
     const mutateAsync = vi.fn().mockResolvedValue({
-      moduleExpAwarded: 0,
+      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: false,
     } satisfies SubmitAttemptResponse);
     const viewStartMs = Date.now() - 3000;
@@ -214,7 +214,7 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — payload', () => {
 
   it('falls back to timeTakenMs of 0 when the view-start ref does not match the active question', async () => {
     const mutateAsync = vi.fn().mockResolvedValue({
-      moduleExpAwarded: 0,
+      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: false,
     } satisfies SubmitAttemptResponse);
     const { result } = renderHook(() =>
@@ -235,7 +235,7 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — payload', () => {
 
   it('includes hintUnlocked: true when the hint was unlocked before submitting', async () => {
     const mutateAsync = vi.fn().mockResolvedValue({
-      moduleExpAwarded: 0,
+      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: true,
     } satisfies SubmitAttemptResponse);
     const { result } = renderHook(() =>
@@ -249,11 +249,11 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — payload', () => {
 // ─── submitActiveQuestionAttempt — success callbacks ─────────────────────────
 
 describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
-  it('calls applyExpAward when moduleExpAwarded is greater than 0', async () => {
+  it('calls applyExpAward when awarded module XP is greater than 0', async () => {
     const applyExpAward = vi.fn();
     const moduleDetail = { userModuleLevel: 1, currentExp: 50, expMax: 100 };
     const mutateAsync = vi.fn().mockResolvedValue({
-      moduleExpAwarded: 25,
+      awards: { baseQuestionExp: 10, firstAttemptBonus: 15, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: true,
     } satisfies SubmitAttemptResponse);
     const { result } = renderHook(() =>
@@ -263,10 +263,10 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
     expect(applyExpAward).toHaveBeenCalledWith(25, moduleDetail);
   });
 
-  it('does not call applyExpAward when moduleExpAwarded is 0', async () => {
+  it('does not call applyExpAward when awarded module XP is 0', async () => {
     const applyExpAward = vi.fn();
     const mutateAsync = vi.fn().mockResolvedValue({
-      moduleExpAwarded: 0,
+      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: true,
     } satisfies SubmitAttemptResponse);
     const { result } = renderHook(() =>
@@ -279,7 +279,7 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
   it('stores the backend hasCorrectAttempt value in submittedAttemptByContentId', async () => {
     const setSubmittedAttemptByContentId = vi.fn();
     const mutateAsync = vi.fn().mockResolvedValue({
-      moduleExpAwarded: 0,
+      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: false,
     } satisfies SubmitAttemptResponse);
     const { result } = renderHook(() =>
@@ -301,7 +301,7 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
   it('marks the active question as submitted in setSubmittedByContentIdBySessionId', async () => {
     const setSubmittedByContentIdBySessionId = vi.fn();
     const mutateAsync = vi.fn().mockResolvedValue({
-      moduleExpAwarded: 0,
+      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: true,
     } satisfies SubmitAttemptResponse);
     const { result } = renderHook(() =>
@@ -363,7 +363,7 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — error', () => {
     const mutateAsync = vi.fn()
       .mockRejectedValueOnce(new Error('First'))
       .mockResolvedValueOnce({
-        moduleExpAwarded: 0,
+        awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
         hasCorrectAttempt: true,
       } satisfies SubmitAttemptResponse);
     const { result } = renderHook(() =>

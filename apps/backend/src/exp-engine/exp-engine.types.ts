@@ -26,6 +26,11 @@ export type AwardAttemptModuleExpParams = {
 
 export type AttemptModuleExpRewardResult = {
   moduleExpAwarded: number;
+  moduleAwards: {
+    baseQuestionExp: number;
+    firstAttemptBonus: number;
+    streakBonus: number;
+  };
   updatedMembership: Prisma.UserModuleGetPayload<{
     include: { module: true };
   }> | null;

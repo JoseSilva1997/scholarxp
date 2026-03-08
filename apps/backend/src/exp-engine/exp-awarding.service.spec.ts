@@ -264,6 +264,11 @@ describe('ExpAwardingService', () => {
 
     expect(result).toEqual({
       moduleExpAwarded: 0,
+      moduleAwards: {
+        baseQuestionExp: 0,
+        firstAttemptBonus: 0,
+        streakBonus: 0,
+      },
       updatedMembership: null,
     });
     expect(userModuleService.addStudentModuleExp).not.toHaveBeenCalled();
@@ -286,6 +291,11 @@ describe('ExpAwardingService', () => {
 
     expect(result).toEqual({
       moduleExpAwarded: 0,
+      moduleAwards: {
+        baseQuestionExp: 0,
+        firstAttemptBonus: 0,
+        streakBonus: 0,
+      },
       updatedMembership: null,
     });
     expect(expLedgerService.recordEvent).not.toHaveBeenCalled();
