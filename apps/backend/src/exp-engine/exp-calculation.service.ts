@@ -1,4 +1,4 @@
-// Service role: encapsulates calculation and rules for XP rewards to simplify orchestration logic and enable dedicated unit testing.
+// Service role: encapsulates calculation and rules for XP rewards to simplify orchestration logic.
 import { Injectable } from '@nestjs/common';
 import {
   MODULE_UNIT_COMPLETION_REWARDS,

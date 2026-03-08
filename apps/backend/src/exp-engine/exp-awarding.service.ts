@@ -5,11 +5,10 @@ import { AvatarService } from '../db-entities/avatar/avatar.service';
 import { ExpLedgerService } from '../db-entities/exp-ledger/exp-ledger.service';
 import { UserModuleService } from '../db-entities/user-module/user-module.service';
 import { PrismaService } from '../prisma/prisma.service';
-import {
-  ExpLedgerEventTypes,
-  STREAK_BONUS_EXP_PER_DELTA,
-} from '@scholarxp/constants';
+import { ExpLedgerEventTypes } from '@scholarxp/constants';
 import { ExpCalculationService } from './exp-calculation.service';
+import { ExpQuestionContextService } from './exp-question-context.service';
+import { ExpStreakService } from './exp-streak.service';
 
 type PrismaClientLike = Prisma.TransactionClient | PrismaService;
 
@@ -46,6 +45,8 @@ export class ExpAwardingService {
     private readonly avatarService: AvatarService,
     private readonly userModuleService: UserModuleService,
     private readonly expCalculationService: ExpCalculationService,
+    private readonly expQuestionContextService: ExpQuestionContextService,
+    private readonly expStreakService: ExpStreakService,
   ) {}
 
   // Reward module XP for one persisted attempt via idempotent ledger write.
@@ -64,10 +65,11 @@ export class ExpAwardingService {
     }
 
     // Compute question-count context once; all per-question pools depend on this.
-    const questionContext = await this.loadQuestionContext(
-      params.moduleUnitId,
-      prismaClient,
-    );
+    const questionContext =
+      await this.expQuestionContextService.getPracticeQuestionContext(
+        params.moduleUnitId,
+        prismaClient,
+      );
     // No eligible questions means no baseline/bonus payout.
     if (questionContext.totalQuestions <= 0) {
       return {
@@ -156,14 +158,16 @@ export class ExpAwardingService {
     }
 
     // Streak bonus is computed from session history and awarded as tier deltas.
-    const streakBonusAward = await this.awardStreakBonus({
-      studentId: params.studentId,
-      moduleId: params.moduleId,
-      moduleUnitId: params.moduleUnitId,
-      sessionId: params.sessionId,
-      totalQuestions: questionContext.totalQuestions,
+    const streakBonusAward = await this.expStreakService.awardStreakBonus(
+      {
+        studentId: params.studentId,
+        moduleId: params.moduleId,
+        moduleUnitId: params.moduleUnitId,
+        sessionId: params.sessionId,
+        totalQuestions: questionContext.totalQuestions,
+      },
       prismaClient,
-    });
+    );
     if (streakBonusAward > 0) {
       // Add streak delta to module XP through the same service path.
       totalAwardedExp += streakBonusAward;
@@ -250,126 +254,5 @@ export class ExpAwardingService {
       prismaClient,
     );
     return ledgerResult.awardedExp;
-  }
-
-  private async loadQuestionContext(
-    moduleUnitId: number,
-    prismaClient: PrismaClientLike,
-  ) {
-    // Match practice eligibility rules so XP math aligns with active core questions only.
-    const eligibleQuestions = await prismaClient.questionUnit.findMany({
-      where: {
-        moduleUnitId,
-        isArchived: false,
-        contents: {
-          some: {
-            isCore: true,
-            isArchived: false,
-          },
-        },
-      },
-      orderBy: [{ questionGroupId: 'asc' }, { id: 'asc' }],
-      select: { id: true },
-    });
-    // Last question id is used for remainder allocation in per-question pools.
-    return {
-      totalQuestions: eligibleQuestions.length,
-      lastQuestionId: eligibleQuestions.at(-1)?.id ?? null,
-    };
-  }
-
-  private async awardStreakBonus(input: {
-    studentId: number;
-    moduleId: number;
-    moduleUnitId: number;
-    sessionId: string;
-    totalQuestions: number;
-    prismaClient: PrismaClientLike;
-  }) {
-    // Build streak snapshot from chronological attempts in the current session.
-    const streakSnapshot = await this.computeStreakSnapshot(
-      input.moduleUnitId,
-      input.studentId,
-      input.sessionId,
-      input.prismaClient,
-    );
-    const reachedTier = this.expCalculationService.resolveReachedStreakTier(
-      streakSnapshot.highestStreak,
-      input.totalQuestions,
-    );
-    // Not enough streak means no streak reward.
-    if (reachedTier <= 0) {
-      return 0;
-    }
-
-    let awarded = 0;
-    // Persist each achieved tier as an idempotent delta event (50 each).
-    for (let tier = 1; tier <= reachedTier; tier += 1) {
-      const tierResult = await this.expLedgerService.recordEvent(
-        {
-          userId: input.studentId,
-          moduleId: input.moduleId,
-          moduleUnitId: input.moduleUnitId,
-          sessionId: input.sessionId,
-          questId: null,
-          eventType: ExpLedgerEventTypes.PRACTICE_ROOM_STREAK,
-          awardedExp: STREAK_BONUS_EXP_PER_DELTA,
-          idempotencyKey: `practice_streak:user:${input.studentId}:unit:${input.moduleUnitId}:tier:${tier}`,
-        },
-        input.prismaClient,
-      );
-      if (tierResult.created) {
-        // Sum only new tiers; previously-awarded tiers remain no-ops on retries.
-        awarded += tierResult.awardedExp;
-      }
-    }
-
-    return awarded;
-  }
-
-  private async computeStreakSnapshot(
-    moduleUnitId: number,
-    studentId: number,
-    sessionId: string,
-    prismaClient: PrismaClientLike,
-  ) {
-    // Read attempts in submit order so streak progression reflects actual play sequence.
-    const attempts = await prismaClient.questionAttempt.findMany({
-      where: {
-        moduleUnitId,
-        studentId,
-        sessionId,
-      },
-      orderBy: [{ attemptedAt: 'asc' }, { id: 'asc' }],
-      select: {
-        questionId: true,
-        isCorrect: true,
-      },
-    });
-
-    // Keep track of questions already credited as correct to ignore retry-correct inflation.
-    const alreadyCorrectQuestions = new Set<number>();
-    let currentStreak = 0;
-    let highestStreak = 0;
-
-    for (const attempt of attempts) {
-      // Any wrong answer resets the running streak immediately.
-      if (!attempt.isCorrect) {
-        currentStreak = 0;
-        continue;
-      }
-      // Retries on previously corrected questions do not increment streak.
-      if (alreadyCorrectQuestions.has(attempt.questionId)) {
-        continue;
-      }
-      alreadyCorrectQuestions.add(attempt.questionId);
-      currentStreak += 1;
-      // Preserve max streak reached; tiers are based on this peak.
-      highestStreak = Math.max(highestStreak, currentStreak);
-    }
-
-    return {
-      highestStreak,
-    };
   }
 }

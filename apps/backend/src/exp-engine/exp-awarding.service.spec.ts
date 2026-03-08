@@ -8,6 +8,8 @@ import { createPrismaMock, type PrismaMock } from '../test/test-helpers';
 import { ExpAwardingService } from './exp-awarding.service';
 import { ExpCalculationService } from './exp-calculation.service';
 import { ExpLedgerEventTypes } from '@scholarxp/constants';
+import { ExpQuestionContextService } from './exp-question-context.service';
+import { ExpStreakService } from './exp-streak.service';
 
 describe('ExpAwardingService', () => {
   let service: ExpAwardingService;
@@ -63,6 +65,8 @@ describe('ExpAwardingService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ExpCalculationService,
+        ExpQuestionContextService,
+        ExpStreakService,
         ExpAwardingService,
         { provide: PrismaService, useValue: prisma },
         { provide: ExpLedgerService, useValue: expLedgerService },
