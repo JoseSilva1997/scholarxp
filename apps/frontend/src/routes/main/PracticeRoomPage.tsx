@@ -32,6 +32,7 @@ export default function PracticeRoomPage() {
     submitErrorMessage,
     isSubmittingAttempt,
     isRoomReadOnly,
+    isActiveQuestionLockedCorrect,
     canSubmitAttempt,
     selectedQuestionUnitIndex,
     activeQuestionUnit,
@@ -293,7 +294,11 @@ export default function PracticeRoomPage() {
                         }`}
                         onClick={() => selectOption(activeQuestion.question.id, optionIndex)}
                         aria-pressed={isSelected}
-                        disabled={hasSubmittedActiveQuestion || isRoomReadOnly}
+                        disabled={
+                          hasSubmittedActiveQuestion ||
+                          isRoomReadOnly ||
+                          isActiveQuestionLockedCorrect
+                        }
                       >
                         <div className={styles.optionContentWrapper}>
                           <span className={styles.optionLetter}>
@@ -392,6 +397,8 @@ export default function PracticeRoomPage() {
                 >
                   {isSubmittingAttempt
                     ? 'Submitting…'
+                    : isActiveQuestionLockedCorrect
+                      ? 'Correct'
                     : hasSubmittedActiveQuestion
                       ? 'Submitted'
                       : 'Submit answer'}

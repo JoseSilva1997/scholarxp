@@ -63,6 +63,7 @@ type MockPageState = {
   submitErrorMessage: string | null;
   isSubmittingAttempt: boolean;
   isRoomReadOnly: boolean;
+  isActiveQuestionLockedCorrect: boolean;
   canSubmitAttempt: boolean;
   selectedQuestionUnitIndex: number;
   activeQuestionUnit: PracticeQuestionUnit | null;
@@ -87,6 +88,7 @@ let pageState: MockPageState = {
   submitErrorMessage: null,
   isSubmittingAttempt: false,
   isRoomReadOnly: false,
+  isActiveQuestionLockedCorrect: false,
   canSubmitAttempt: false,
   selectedQuestionUnitIndex: 0,
   activeQuestionUnit: null,
@@ -141,6 +143,7 @@ describe('PracticeRoomPage route (core-only)', () => {
       submitErrorMessage: null,
       isSubmittingAttempt: false,
       isRoomReadOnly: false,
+      isActiveQuestionLockedCorrect: false,
       canSubmitAttempt: false,
       selectedQuestionUnitIndex: 0,
       activeQuestionUnit: null,
@@ -233,6 +236,31 @@ describe('PracticeRoomPage route (core-only)', () => {
 
     expect(screen.getByRole('button', { name: 'A A' })).toBeDisabled();
     expect(screen.getByRole('button', { name: /Submit answer/i })).toBeDisabled();
+  });
+
+  it('disables option and submit actions when active question is already correct', () => {
+    const question = createMockQuestionUnit({
+      coreQuestion: {
+        ...createMockQuestionUnit().coreQuestion,
+        lastAttempt: { studentAnswer: { selectedOptionIndex: 0 }, isCorrect: true },
+      },
+    });
+    pageState.isLoading = false;
+    pageState.isActiveQuestionLockedCorrect = true;
+    pageState.canSubmitAttempt = false;
+    pageState.room = { moduleUnitTitle: 'Unit 1', questions: [question] };
+    pageState.activeQuestionUnit = question;
+    pageState.activeQuestion = { question: question.coreQuestion.questionContent };
+    pageState.activeQuestionOptions = [{ optionText: 'A' }, { optionText: 'B' }];
+
+    render(
+      <MemoryRouter>
+        <PracticeRoomPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('button', { name: 'A A' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Correct/i })).toBeDisabled();
   });
 
   it('renders try again button before submit when question is incorrect and submitted', () => {

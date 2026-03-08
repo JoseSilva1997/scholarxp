@@ -606,6 +606,91 @@ describe('usePracticeRoomPageState (core-only)', () => {
     expect(state.canSubmitAttempt).toBe(false);
   });
 
+  it('locks already-correct questions and keeps incorrect revisits retryable', () => {
+    useModuleUnitPracticeRoomQueryMock.mockReturnValue({
+      isPending: false,
+      error: null,
+      data: {
+        practiceRoom: {
+          sessionId: '11111111-1111-4111-8111-111111111012',
+          moduleUnitId: 3,
+          moduleUnitTitle: 'Unit',
+          questions: [
+            {
+              questionUnitId: 31,
+              position: 1,
+              hasCorrectAttempt: true,
+              coreQuestion: {
+                questionId: 31,
+                questionContent: {
+                  id: 301,
+                  type: 'mcq',
+                  questionStem: 'Already correct',
+                  questionData: {
+                    options: [{ optionText: 'A' }, { optionText: 'B' }],
+                    correctOptionIndex: 0,
+                  },
+                  hint: null,
+                  difficultyScore: 1,
+                },
+                lastAttempt: { studentAnswer: { selectedOptionIndex: 0 }, isCorrect: true },
+              },
+            },
+            {
+              questionUnitId: 32,
+              position: 2,
+              hasCorrectAttempt: false,
+              coreQuestion: {
+                questionId: 32,
+                questionContent: {
+                  id: 302,
+                  type: 'mcq',
+                  questionStem: 'Previously incorrect',
+                  questionData: {
+                    options: [{ optionText: 'C' }, { optionText: 'D' }],
+                    correctOptionIndex: 1,
+                  },
+                  hint: null,
+                  difficultyScore: 1,
+                },
+                lastAttempt: { studentAnswer: { selectedOptionIndex: 0 }, isCorrect: false },
+              },
+            },
+          ],
+        },
+      },
+    });
+
+    const rendered = renderHookWithParams('1', '1');
+    let state = rendered.getState();
+
+    expect(state.isActiveQuestionLockedCorrect).toBe(true);
+    expect(state.canSubmitAttempt).toBe(false);
+    expect(state.selectedOptionIndex).toBe(0);
+
+    act(() => {
+      state.selectOption(301, 1);
+    });
+
+    state = rendered.getState();
+    expect(state.selectedOptionIndex).toBe(0);
+
+    act(() => {
+      state.selectQuestionUnit(1);
+    });
+
+    state = rendered.getState();
+    expect(state.isActiveQuestionLockedCorrect).toBe(false);
+
+    act(() => {
+      state.selectOption(302, 1);
+    });
+
+    state = rendered.getState();
+    expect(state.selectedOptionIndex).toBe(1);
+    expect(state.canSubmitAttempt).toBe(true);
+  });
+
   it('shows try again after incorrect submit and clears submitted state when retried', async () => {
     const mutateAsync = vi.fn().mockResolvedValue({
       awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },

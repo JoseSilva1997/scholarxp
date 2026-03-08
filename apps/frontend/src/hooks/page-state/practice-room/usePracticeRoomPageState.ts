@@ -498,6 +498,10 @@ export function usePracticeRoomPageState({
   const hasSubmittedActiveQuestion = activeQuestion
     ? Boolean(submittedByContentId[activeQuestion.question.id])
     : false;
+  // Product decision for MVP: once a question is correct, keep it immutable in
+  // practice-room revisits so backend score and in-room UI stay consistent.
+  const isActiveQuestionLockedCorrect =
+    activeQuestionUnit?.coreQuestion.lastAttempt?.isCorrect === true;
   // Persisted feedback is suppressed once the learner starts a new draft selection.
   const hasActiveOptionOverride = activeQuestion
     ? Object.prototype.hasOwnProperty.call(
@@ -560,6 +564,7 @@ export function usePracticeRoomPageState({
     activeQuestionUnit,
     activeQuestion,
     isRoomReadOnly,
+    isActiveQuestionLockedCorrect,
     selectedOptionIndex,
     hasSubmittedActiveQuestion,
     isActiveHintUnlocked,
@@ -619,7 +624,7 @@ export function usePracticeRoomPageState({
   };
 
   const selectOption = (contentId: number, optionIndex: number) => {
-    if (isRoomReadOnly) {
+    if (isRoomReadOnly || isActiveQuestionLockedCorrect) {
       return;
     }
     setSelectedOptionOverrideByContentId((previousValue) => ({
@@ -680,6 +685,7 @@ export function usePracticeRoomPageState({
     submitErrorMessage,
     isSubmittingAttempt,
     isRoomReadOnly,
+    isActiveQuestionLockedCorrect,
     canSubmitAttempt,
     selectedQuestionUnitIndex,
     activeQuestionUnit,
