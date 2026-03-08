@@ -77,6 +77,7 @@ describe('Practice room XP policy (e2e)', () => {
   });
 
   beforeEach(async () => {
+    assertSafeE2eDatabaseUrl();
     await clearDatabase(prisma);
   });
 
@@ -351,6 +352,23 @@ describe('Practice room XP policy (e2e)', () => {
     expect(firstAttemptEvents).toHaveLength(1);
   });
 });
+
+function assertSafeE2eDatabaseUrl() {
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    throw new Error(
+      'E2E safety check failed: DATABASE_URL is not defined before destructive cleanup.',
+    );
+  }
+
+  // This suite clears many tables; enforce a second local guard even if setup-env is bypassed.
+  const isLikelyTestDb = /(test|e2e)/i.test(databaseUrl);
+  if (process.env.E2E_ALLOW_NON_TEST_DATABASE !== 'true' && !isLikelyTestDb) {
+    throw new Error(
+      'E2E safety check failed: refusing destructive cleanup on a non-test DATABASE_URL.',
+    );
+  }
+}
 
 // Creates one student with avatar + module enrollment so reward writes have all required persistence rows.
 async function seedStudentModuleScenario(prisma: PrismaService) {
