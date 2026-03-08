@@ -9,7 +9,10 @@
   padding: 0 1.5rem 3rem;
   min-height: 100vh;
   position: relative;
-  overflow: clip;
+  /* overflow-x: clip prevents horizontal scrollbar from wide content.
+     Using the longhand (not `overflow: clip`) so chips animated upward
+     out of the header are not clipped off at the top of the page. */
+  overflow-x: clip;
 }
 
 .header {
@@ -178,16 +181,36 @@
   align-items: center;
 }
 
-.miniExpGain {
+/* Each XP source chip is positioned absolutely above the XP label and shares the same
+   spawn point.  Framer Motion keyframes move it upward while fading it in then out, so
+   chips float through the same vertical lane one after another without stacking. */
+.xpFloatChip {
   position: absolute;
-  top: -1.2rem;
+  bottom: calc(100% + 2px);
   right: 0;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   font-weight: 800;
   color: var(--color-secondary);
   text-shadow: 0 0 4px var(--color-secondary-soft);
-  pointer-events: none;
   white-space: nowrap;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  line-height: 1.4;
+  font-family: var(--font-display);
+  letter-spacing: 0.02em;
+  pointer-events: none;
+}
+
+/* First-attempt bonus variant — amber/gold to signal a precision award. */
+.xpFloatChipFirstAttempt {
+  color: var(--color-accent-light);
+  text-shadow: 0 0 4px var(--color-accent-soft);
+}
+
+/* Streak bonus variant — orange flame colour to reinforce the fire metaphor. */
+.xpFloatChipStreak {
+  color: var(--color-flame-tier2);
+  text-shadow: 0 0 4px var(--color-flame-tier2-glow);
 }
 
 .headerBottom {

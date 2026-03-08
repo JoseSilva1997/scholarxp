@@ -18,7 +18,7 @@ import {
   shouldLogApiError,
 } from '../../../api/get-display-error';
 import { logError } from '../../../utils/logger';
-import type { ProgressModuleDetail } from './useModuleProgressAnimation';
+import type { ProgressModuleDetail, ExpBreakdown } from './useModuleProgressAnimation';
 
 // lightweight wrapper so callers only need to provide the question
 // itself (not the entire unit).
@@ -47,7 +47,7 @@ type UseSubmitAttemptParams = {
   mutateAsync: (payload: SubmitAttemptPayload) => Promise<SubmitAttemptResponse>;
   isPending: boolean;
   // XP callbacks supplied by parent hooks.
-  applyExpAward: (awarded: number, detail: ProgressModuleDetail | null) => void;
+  applyExpAward: (breakdown: ExpBreakdown, detail: ProgressModuleDetail | null) => void;
   moduleDetail: ProgressModuleDetail | null;
   // Streak callback: called after every successful submission with both the live streak
   // and the all-time session high. Optional so callers that don't display streak can omit it.
@@ -93,11 +93,17 @@ export function useSubmitAttempt({
   parsedModuleId,
   parsedUnitId,
 }: UseSubmitAttemptParams): UseSubmitAttemptResult {
-  // Keep module progression updates derived from a single rewards payload contract.
-  const getModuleExpFromAwards = (response: SubmitAttemptResponse): number =>
-    response.awards.baseQuestionExp +
-    response.awards.firstAttemptBonus +
-    response.awards.streakBonus;
+  // Build a structured XP breakdown from the awards payload so `applyExpAward` can
+  // expose each source (base, first-attempt, streak) to the indicator UI.
+  const buildExpBreakdown = (response: SubmitAttemptResponse): ExpBreakdown => {
+    const { baseQuestionExp, firstAttemptBonus, streakBonus } = response.awards;
+    return {
+      base: baseQuestionExp,
+      firstAttemptBonus,
+      streakBonus,
+      total: baseQuestionExp + firstAttemptBonus + streakBonus,
+    };
+  };
 
   // holds any error returned when the submission fails; surfaced to UI.
   const [submitErrorMessage, setSubmitErrorMessage] = useState<string | null>(null);
@@ -151,12 +157,12 @@ export function useSubmitAttempt({
 
     try {
       const submitResponse = await mutateAsync(payload);
-      const moduleExpAwarded = getModuleExpFromAwards(submitResponse);
-      if (moduleExpAwarded > 0) {
+      const breakdown = buildExpBreakdown(submitResponse);
+      if (breakdown.total > 0) {
         // Delegate the animation target update, double-count guard, and level-up
         // celebration to the progress hook so this handler stays focused on
         // attempt business logic.
-        applyExpAward(moduleExpAwarded, moduleDetail);
+        applyExpAward(breakdown, moduleDetail);
       }
       // Relay both streak values to the parent so StreakIndicator can show
       // pip state without a separate server call. Both values must be present;

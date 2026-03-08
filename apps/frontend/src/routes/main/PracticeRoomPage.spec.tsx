@@ -57,7 +57,7 @@ type MockPageState = {
   parsedUnitId: number | null;
   room: { moduleUnitTitle: string; questions: PracticeQuestionUnit[] } | null;
   moduleProgress: { level: number; currentExp: number; expPercent: number } | null;
-  moduleExpGainIndicator: number | null;
+  moduleExpGainIndicator: { base: number; firstAttemptBonus: number; streakBonus: number; total: number; awardId?: number } | null;
   isLoading: boolean;
   pageError: string | null;
   submitErrorMessage: string | null;
@@ -159,7 +159,7 @@ describe('PracticeRoomPage route (core-only)', () => {
   it('renders module exp gain indicator when present', () => {
     pageState.isLoading = false;
     pageState.moduleProgress = { level: 2, currentExp: 120, expPercent: 12 };
-    pageState.moduleExpGainIndicator = 50;
+    pageState.moduleExpGainIndicator = { base: 50, firstAttemptBonus: 0, streakBonus: 0, total: 50 };
     pageState.room = { moduleUnitTitle: 'Unit 1', questions: [] };
 
     render(
@@ -168,7 +168,7 @@ describe('PracticeRoomPage route (core-only)', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('+50')).toBeInTheDocument();
+    expect(screen.getByText('+50 xp')).toBeInTheDocument();
     expect(screen.getByText('120 xp')).toBeInTheDocument();
   });
 

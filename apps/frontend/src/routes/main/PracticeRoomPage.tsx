@@ -134,20 +134,58 @@ export default function PracticeRoomPage() {
                 </div>
                 <div className={styles.xpValueContainer}>
                   <span className={styles.miniExpLabel}>{moduleProgress.currentExp} xp</span>
-                  <AnimatePresence>
-                    {moduleExpGainIndicator ? (
-                      <motion.span
-                        key="xp-gain"
-                        initial={{ y: 10, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.4, ease: 'easeOut' }}
-                        className={styles.miniExpGain}
-                      >
-                        +{moduleExpGainIndicator}
-                      </motion.span>
-                    ) : null}
-                  </AnimatePresence>
+                  {/* Escalator animation: all chips share the same spawn point and move upward
+                      at constant speed, staggered so they space out naturally on the track.
+                      Opacity holds while readable then fades as chips approach the top.
+                      awardId keys ensure chips remount on every new award. */}
+                  {moduleExpGainIndicator && (
+                    <>
+                      {moduleExpGainIndicator.base > 0 && (
+                        <motion.span
+                          key={`${moduleExpGainIndicator.awardId}-base`}
+                          initial={{ y: 0, opacity: 0 }}
+                          animate={{ y: -40, opacity: [0, 1, 1, 0] }}
+                          transition={{
+                            // y starts 0.2s before opacity so the chip is already
+                            // moving when it fades in — no visible pause at spawn.
+                            y: { ease: 'linear', duration: 2.5, delay: 0 },
+                            opacity: { duration: 2.5, times: [0, 0.04, 0.6, 1], delay: 0.2 },
+                          }}
+                          className={styles.xpFloatChip}
+                        >
+                          +{moduleExpGainIndicator.base} xp
+                        </motion.span>
+                      )}
+                      {moduleExpGainIndicator.firstAttemptBonus > 0 && (
+                        <motion.span
+                          key={`${moduleExpGainIndicator.awardId}-1st`}
+                          initial={{ y: 0, opacity: 0 }}
+                          animate={{ y: -40, opacity: [0, 1, 1, 0] }}
+                          transition={{
+                            y: { ease: 'linear', duration: 2.5, delay: 0.8 },
+                            opacity: { duration: 2.5, times: [0, 0.04, 0.6, 1], delay: 1.0 },
+                          }}
+                          className={`${styles.xpFloatChip} ${styles.xpFloatChipFirstAttempt}`}
+                        >
+                          +{moduleExpGainIndicator.firstAttemptBonus} 🎯
+                        </motion.span>
+                      )}
+                      {moduleExpGainIndicator.streakBonus > 0 && (
+                        <motion.span
+                          key={`${moduleExpGainIndicator.awardId}-streak`}
+                          initial={{ y: 0, opacity: 0 }}
+                          animate={{ y: -40, opacity: [0, 1, 1, 0] }}
+                          transition={{
+                            y: { ease: 'linear', duration: 2.5, delay: 1.6 },
+                            opacity: { duration: 2.5, times: [0, 0.04, 0.6, 1], delay: 1.8 },
+                          }}
+                          className={`${styles.xpFloatChip} ${styles.xpFloatChipStreak}`}
+                        >
+                          +{moduleExpGainIndicator.streakBonus} 🔥
+                        </motion.span>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
             </div>

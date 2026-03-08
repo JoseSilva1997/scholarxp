@@ -260,7 +260,10 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
       useSubmitAttempt(buildParams({ mutateAsync, applyExpAward, moduleDetail })),
     );
     await act(() => result.current.submitActiveQuestionAttempt());
-    expect(applyExpAward).toHaveBeenCalledWith(25, moduleDetail);
+    expect(applyExpAward).toHaveBeenCalledWith(
+      { base: 10, firstAttemptBonus: 15, streakBonus: 0, total: 25 },
+      moduleDetail,
+    );
   });
 
   it('does not call applyExpAward when awarded module XP is 0', async () => {
