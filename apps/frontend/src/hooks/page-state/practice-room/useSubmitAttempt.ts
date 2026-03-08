@@ -52,6 +52,13 @@ type UseSubmitAttemptParams = {
   // Streak callback: called after every successful submission with both the live streak
   // and the all-time session high. Optional so callers that don't display streak can omit it.
   updateCurrentStreak?: (currentStreak: number, highestStreak: number) => void;
+  // Accuracy callback: called after every submission to update the first-try accuracy indicator.
+  // 'first-try-correct' when firstAttemptBonus > 0, 'incorrect' when the attempt was wrong.
+  // Optional so callers that don't show the indicator can omit it.
+  updateLastAttemptResult?: (contentId: number, result: 'first-try-correct' | 'incorrect') => void;
+  // Called by tryAgainActiveQuestion to clear the last-attempt result so the indicator
+  // returns to neutral while the student retries — prevents a stale red/green from persisting.
+  clearLastAttemptResult?: (contentId: number) => void;
   // State setters for attempt tracking — also used by tryAgainActiveQuestion.
   setSubmittedAttemptByContentId: React.Dispatch<
     React.SetStateAction<Record<number, PracticeAttemptSnapshot | null>>
@@ -88,6 +95,8 @@ export function useSubmitAttempt({
   applyExpAward,
   moduleDetail,
   updateCurrentStreak,
+  updateLastAttemptResult,
+  clearLastAttemptResult,
   setSubmittedAttemptByContentId,
   setSubmittedByContentIdBySessionId,
   parsedModuleId,
@@ -174,6 +183,16 @@ export function useSubmitAttempt({
       ) {
         updateCurrentStreak(submitResponse.currentStreak, submitResponse.highestStreak);
       }
+      // Inform the accuracy indicator: green if firstAttemptBonus was awarded (first-try
+      // correct), red if the attempt was wrong. Correct retries are not reported so the
+      // indicator stays neutral — it only ever turns green on a genuine first-try win.
+      if (updateLastAttemptResult !== undefined) {
+        if (submitResponse.awards.firstAttemptBonus > 0) {
+          updateLastAttemptResult(activeQuestion.question.id, 'first-try-correct');
+        } else if (!submitResponse.hasCorrectAttempt) {
+          updateLastAttemptResult(activeQuestion.question.id, 'incorrect');
+        }
+      }
       setSubmittedAttemptByContentId((previous) => ({
         ...previous,
         [activeQuestion.question.id]: {
@@ -216,6 +235,9 @@ export function useSubmitAttempt({
     const { sessionId } = room;
     // Clearing local submit locks lets students immediately retry after an
     // incorrect attempt while preserving seeded selection.
+    // clearLastAttemptResult preserves 'incorrect' state so the red target
+    // persists through retries; it only resets 'first-try-correct' to neutral.
+    clearLastAttemptResult?.(activeQuestion.question.id);
     setSubmittedByContentIdBySessionId((previous) => {
       const nextSessionValue = { ...(previous[sessionId] ?? {}) };
       delete nextSessionValue[activeQuestion.question.id];

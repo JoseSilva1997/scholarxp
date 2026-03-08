@@ -11,6 +11,7 @@ import {
 import expIcon from '../../assets/exp_icon.svg';
 import MainSection from '../../components/MainSection';
 import StreakIndicator from '../../components/StreakIndicator';
+import FirstTryAccuracyIndicator from '../../components/FirstTryAccuracyIndicator';
 import { usePracticeRoomPageState } from '../../hooks/page-state/practice-room/usePracticeRoomPageState';
 import styles from './PracticeRoomPage.module.css';
 import { getQuestionUnitStatusClass } from './practice-room-status';
@@ -52,6 +53,7 @@ export default function PracticeRoomPage() {
     currentStreak,
     highestStreak,
     isStreakInitialized,
+    lastAttemptResult,
   } = usePracticeRoomPageState({
     moduleIdParam: moduleId,
     unitIdParam: unitId,
@@ -100,6 +102,10 @@ export default function PracticeRoomPage() {
 
           {moduleProgress && (
             <div className={styles.headerProgress}>
+              {/* Accuracy indicator (bullseye) sits to the left of the streak
+                  indicator so both live-feedback pills are grouped together.
+                  Green = first-try bonus earned, red = wrong, neutral = unanswered. */}
+              <FirstTryAccuracyIndicator result={lastAttemptResult} />
               {/* Streak indicator sits left of the XP bar so progress metrics are grouped */}
               <StreakIndicator
                 currentStreak={currentStreak}

@@ -185,6 +185,14 @@ export function usePracticeRoomPageState({
     Record<string, number>
   >({});
 
+  // Tracks the first-try accuracy result for each question content id.
+  // 'first-try-correct' when the student earned a firstAttemptBonus,
+  // 'incorrect' when the attempt was wrong. Keyed by content id so navigating
+  // back to a question restores the indicator without a fresh API call.
+  const [lastAttemptResultByContentId, setLastAttemptResultByContentId] = useState<
+    Record<number, 'first-try-correct' | 'incorrect'>
+  >({});
+
   // Tracks which content id is currently in view and when the student first saw
   // it, giving the submit handler accurate view-duration data without extra state.
   const activeContentIdRef = useRef<number | null>(null);
@@ -520,6 +528,27 @@ export function usePracticeRoomPageState({
     }));
   };
 
+  // Updates the first-try accuracy indicator result after a submission.
+  const updateLastAttemptResult = (contentId: number, result: 'first-try-correct' | 'incorrect') => {
+    setLastAttemptResultByContentId((previous) => ({ ...previous, [contentId]: result }));
+  };
+
+  // Resets the accuracy indicator to neutral for the given content id — but only
+  // if the result was 'first-try-correct'. An 'incorrect' result is intentionally
+  // preserved across retry attempts so the student can see they already got it wrong
+  // and are trying again; clearing it would lose that visual context.
+  const clearLastAttemptResult = (contentId: number) => {
+    setLastAttemptResultByContentId((previous) => {
+      if (previous[contentId] === 'incorrect') {
+        // Keep red — don't wipe it when the student clicks "Try Again".
+        return previous;
+      }
+      const next = { ...previous };
+      delete next[contentId];
+      return next;
+    });
+  };
+
   const {
     submitErrorMessage,
     isSubmittingAttempt,
@@ -541,6 +570,8 @@ export function usePracticeRoomPageState({
     applyExpAward,
     moduleDetail,
     updateCurrentStreak,
+    updateLastAttemptResult,
+    clearLastAttemptResult,
     setSubmittedAttemptByContentId,
     setSubmittedByContentIdBySessionId,
     parsedModuleId,
@@ -673,6 +704,11 @@ export function usePracticeRoomPageState({
     isStreakInitialized: roomWithLocalAttempts
       ? highestStreakBySessionId[roomWithLocalAttempts.sessionId] !== undefined
       : false,
+    // The first-try accuracy result for the currently active question, or null if the
+    // question hasn't been answered yet or the student clicked "Try Again".
+    lastAttemptResult: activeQuestion
+      ? (lastAttemptResultByContentId[activeQuestion.question.id] ?? null)
+      : null,
     selectQuestionUnit,
     selectOption,
     isActiveHintUnlocked,

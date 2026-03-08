@@ -1,0 +1,64 @@
+/* Styles for the FirstTryAccuracyIndicator component.
+   The pill shape and state-driven CSS custom properties deliberately mirror
+   StreakIndicator so the two indicators look like a matched pair in the header. */
+
+.container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface);
+  padding: 0.5rem;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-md);
+  /* Base colour token overridden per state below */
+  --indicator-color: var(--color-text-dim);
+  --indicator-glow: transparent;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* ── State styling ─────────────────────────────────────────────────────────── */
+
+/* Neutral: no answer yet — icon stays muted, no glow */
+.stateNone {
+  --indicator-color: var(--color-text-dim);
+  --indicator-glow: transparent;
+}
+
+/* Correct first try: success green glow, pulsing border to celebrate the earn */
+.stateCorrect {
+  --indicator-color: var(--color-success);
+  border-color: var(--color-success-border);
+  box-shadow: var(--shadow-md), 0 0 10px var(--indicator-glow);
+  animation: accuracyPulse 2s ease-in-out infinite;
+}
+
+/* Incorrect: error red tint; no pulse — keeps attention on fixing the attempt */
+.stateIncorrect {
+  --indicator-color: var(--color-error);
+  --indicator-glow: rgba(239, 68, 68, 0.3);
+  border-color: var(--color-error-border);
+  box-shadow: var(--shadow-md), 0 0 8px var(--indicator-glow);
+}
+
+/* ── Icon ──────────────────────────────────────────────────────────────────── */
+
+.iconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon {
+  width: 1.4rem;
+  height: 1.4rem;
+  /* Colour inherits from the active state token */
+  color: var(--indicator-color);
+  transition: color 0.3s ease;
+}
+
+/* Gentle glow pulse when correct — mirrors StreakIndicator's streakPulse animation */
+@keyframes accuracyPulse {
+  0%, 100% { box-shadow: var(--shadow-md), 0 0 6px var(--indicator-glow); }
+  50%       { box-shadow: var(--shadow-md), 0 0 14px var(--indicator-glow); }
+}
