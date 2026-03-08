@@ -17,12 +17,22 @@ describe('ExpAwardingService', () => {
   let expLedgerService: {
     recordEvent: jest.Mock;
     getTodaysNumberOfCompletedUnits: jest.Mock;
+    acquireDailyCompletionLock: jest.Mock;
   };
   let avatarService: { addStudentExp: jest.Mock };
   let userModuleService: { addStudentModuleExp: jest.Mock };
 
   beforeEach(async () => {
     prisma = createPrismaMock();
+    prisma.$transaction.mockImplementation(
+      async (...args: unknown[]): Promise<unknown> => {
+        const [firstArg] = args;
+        if (typeof firstArg === 'function') {
+          return (firstArg as (client: PrismaMock) => Promise<unknown>)(prisma);
+        }
+        return firstArg;
+      },
+    );
     expLedgerService = {
       recordEvent: jest
         .fn()
@@ -30,6 +40,7 @@ describe('ExpAwardingService', () => {
           Promise.resolve({ created: true, awardedExp: params.awardedExp }),
         ),
       getTodaysNumberOfCompletedUnits: jest.fn(),
+      acquireDailyCompletionLock: jest.fn().mockResolvedValue(undefined),
     };
     avatarService = {
       addStudentExp: jest.fn().mockResolvedValue(undefined),
@@ -90,14 +101,23 @@ describe('ExpAwardingService', () => {
     });
 
     expect(awarded).toBe(100);
-    expect(expLedgerService.recordEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        eventType: ExpLedgerEventTypes.COMPLETE_MODULE_UNIT,
-        awardedExp: 100,
-      }),
-      prisma,
+    const completionEventCall = expLedgerService.recordEvent.mock.calls.find(
+      ([params]) =>
+        params.eventType === ExpLedgerEventTypes.COMPLETE_MODULE_UNIT,
     );
-    expect(avatarService.addStudentExp).toHaveBeenCalledWith(100, 100, prisma);
+    expect(completionEventCall?.[0].awardedExp).toBe(100);
+    const firstCompletionLockCall =
+      expLedgerService.acquireDailyCompletionLock.mock.calls.find(
+        ([userId, completedAt]) =>
+          userId === 100 &&
+          completedAt?.toISOString?.() === '2026-03-07T15:40:00.000Z',
+      );
+    expect(firstCompletionLockCall).toBeDefined();
+    const firstCompletionAvatarCall =
+      avatarService.addStudentExp.mock.calls.find(
+        ([userId, awardedExp]) => userId === 100 && awardedExp === 100,
+      );
+    expect(firstCompletionAvatarCall).toBeDefined();
   });
 
   it('awards 25 account xp on second completion of UTC day', async () => {
@@ -112,7 +132,18 @@ describe('ExpAwardingService', () => {
     });
 
     expect(awarded).toBe(25);
-    expect(avatarService.addStudentExp).toHaveBeenCalledWith(100, 25, prisma);
+    const secondCompletionLockCall =
+      expLedgerService.acquireDailyCompletionLock.mock.calls.find(
+        ([userId, completedAt]) =>
+          userId === 100 &&
+          completedAt?.toISOString?.() === '2026-03-07T16:40:00.000Z',
+      );
+    expect(secondCompletionLockCall).toBeDefined();
+    const secondCompletionAvatarCall =
+      avatarService.addStudentExp.mock.calls.find(
+        ([userId, awardedExp]) => userId === 100 && awardedExp === 25,
+      );
+    expect(secondCompletionAvatarCall).toBeDefined();
   });
 
   it('awards 0 account xp from third completion onward in same UTC day', async () => {
@@ -129,6 +160,7 @@ describe('ExpAwardingService', () => {
     expect(awarded).toBe(0);
     expect(expLedgerService.recordEvent).not.toHaveBeenCalled();
     expect(avatarService.addStudentExp).not.toHaveBeenCalled();
+    expect(expLedgerService.acquireDailyCompletionLock).toHaveBeenCalled();
   });
 
   it('does not apply account xp when completion event was already recorded', async () => {
@@ -148,6 +180,7 @@ describe('ExpAwardingService', () => {
 
     expect(awarded).toBe(0);
     expect(avatarService.addStudentExp).not.toHaveBeenCalled();
+    expect(expLedgerService.acquireDailyCompletionLock).toHaveBeenCalled();
   });
 
   it('awards module xp for a persisted practice attempt and returns updated membership snapshot', async () => {

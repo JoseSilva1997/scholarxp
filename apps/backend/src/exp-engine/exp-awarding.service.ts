@@ -206,9 +206,31 @@ export class ExpAwardingService {
     params: AwardCompletionExpParams,
     tx?: PrismaClientLike,
   ): Promise<number> {
-    // Share transaction with caller so completion state and rewards commit together.
-    const prismaClient = tx ?? this.prisma;
+    // If a caller transaction exists, use it so completion state + rewards remain atomic.
+    if (tx) {
+      await this.expLedgerService.acquireDailyCompletionLock(
+        params.studentId,
+        params.completedAt,
+        tx,
+      );
+      return this.awardCompletionExpWithinTx(params, tx);
+    }
 
+    // Open a transaction when called standalone so lock + count + ledger write are serialized together.
+    return this.prisma.$transaction(async (prismaTx) => {
+      await this.expLedgerService.acquireDailyCompletionLock(
+        params.studentId,
+        params.completedAt,
+        prismaTx,
+      );
+      return this.awardCompletionExpWithinTx(params, prismaTx);
+    });
+  }
+
+  private async awardCompletionExpWithinTx(
+    params: AwardCompletionExpParams,
+    prismaClient: PrismaClientLike,
+  ): Promise<number> {
     // Count today's completion-reward events to enforce diminishing daily returns.
     const completionCountToday =
       await this.expLedgerService.getTodaysNumberOfCompletedUnits(
