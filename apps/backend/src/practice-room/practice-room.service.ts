@@ -11,6 +11,7 @@ import {
   type StudentAnswer,
 } from '@scholarxp/api-contracts';
 import { ExpAwardingService } from '../exp-engine/exp-awarding.service';
+import { ExpStreakService } from '../exp-engine/exp-streak.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { MODULE_UNIT_BASELINE_EXP } from '@scholarxp/constants';
 import { ModuleUnitPracticeRoomResponseDto } from './dto/practice-room-response.dto';
@@ -50,6 +51,7 @@ export class PracticeRoomService {
     private readonly practiceRoomMapper: PracticeRoomMapper,
     private readonly studentModuleUnitProgressService: StudentModuleUnitProgressService,
     private readonly expAwardingService: ExpAwardingService,
+    private readonly expStreakService: ExpStreakService,
   ) {}
 
   // Builds the initial room state for one student in one module unit and either resumes a provided session or opens a fresh one.
@@ -193,6 +195,13 @@ export class PracticeRoomService {
     });
 
     // Reward values are ledger-backed so retries can safely return zero when the event was already applied.
+    // Streak is read after the transaction so it reflects the attempt we just persisted.
+    const currentStreak = await this.expStreakService.getSessionStreak(
+      moduleUnitId,
+      studentId,
+      payload.sessionId,
+    );
+
     return {
       awards: {
         baseQuestionExp: moduleAwards.baseQuestionExp,
@@ -211,6 +220,7 @@ export class PracticeRoomService {
             expMax: MODULE_UNIT_BASELINE_EXP,
           }
         : undefined,
+      currentStreak,
     };
   }
 

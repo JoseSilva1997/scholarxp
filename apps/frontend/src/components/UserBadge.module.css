@@ -336,7 +336,7 @@
 }
 
 .menuBarTrack {
-  height: 8px;
+  height: 10px;
   background: var(--color-glass-bg-deep);
   border-radius: var(--radius-full);
   overflow: hidden;

@@ -9,4 +9,6 @@ export class SubmitAttemptResponseDto implements SubmitAttemptResponse {
   awards: Awards;
   hasCorrectAttempt: boolean;
   updatedModuleProgress?: ModuleSummaryResponse;
+  // Live session streak relayed from ExpStreakService after each submission.
+  currentStreak?: number;
 }

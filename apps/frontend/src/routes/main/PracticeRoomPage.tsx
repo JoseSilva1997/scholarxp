@@ -10,6 +10,7 @@ import {
 } from 'react-icons/fa6';
 import expIcon from '../../assets/exp_icon.svg';
 import MainSection from '../../components/MainSection';
+import StreakIndicator from '../../components/StreakIndicator';
 import { usePracticeRoomPageState } from '../../hooks/page-state/practice-room/usePracticeRoomPageState';
 import styles from './PracticeRoomPage.module.css';
 import { getQuestionUnitStatusClass } from './practice-room-status';
@@ -48,6 +49,7 @@ export default function PracticeRoomPage() {
     submitActiveQuestionAttempt,
     goToPreviousQuestionUnit,
     goToNextQuestionUnit,
+    currentStreak,
   } = usePracticeRoomPageState({
     moduleIdParam: moduleId,
     unitIdParam: unitId,
@@ -96,6 +98,11 @@ export default function PracticeRoomPage() {
 
           {moduleProgress && (
             <div className={styles.headerProgress}>
+              {/* Streak indicator sits left of the XP bar so progress metrics are grouped */}
+              <StreakIndicator
+                currentStreak={currentStreak}
+                totalQuestions={room?.questions.length ?? 0}
+              />
               <div className={styles.levelIndicatorMini}>
                 <img src={expIcon} alt="" aria-hidden="true" className={styles.miniLevelIcon} />
                 <div className={styles.levelTextWrapper}>

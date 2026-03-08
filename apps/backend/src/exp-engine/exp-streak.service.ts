@@ -60,12 +60,29 @@ export class ExpStreakService {
     return awarded;
   }
 
+  // Returns the live streak for a session so callers can relay it to the client
+  // without re-running streak logic in unrelated services. currentStreak resets
+  // to 0 when the student answers incorrectly, matching the visual feedback rule.
+  async getSessionStreak(
+    moduleUnitId: number,
+    studentId: number,
+    sessionId: string,
+  ): Promise<number> {
+    const snapshot = await this.computeStreakSnapshot(
+      moduleUnitId,
+      studentId,
+      sessionId,
+      this.prisma,
+    );
+    return snapshot.currentStreak;
+  }
+
   private async computeStreakSnapshot(
     moduleUnitId: number,
     studentId: number,
     sessionId: string,
     prismaClient: PrismaClientLike,
-  ): Promise<{ highestStreak: number }> {
+  ): Promise<{ highestStreak: number; currentStreak: number }> {
     // Rebuild the streak from persisted attempts so rewards are based on canonical history.
     const attempts = await prismaClient.questionAttempt.findMany({
       where: {
@@ -107,6 +124,6 @@ export class ExpStreakService {
       highestStreak = Math.max(highestStreak, currentStreak);
     }
 
-    return { highestStreak };
+    return { highestStreak, currentStreak };
   }
 }

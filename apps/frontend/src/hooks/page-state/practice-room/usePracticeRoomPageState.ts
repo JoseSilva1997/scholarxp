@@ -172,6 +172,13 @@ export function usePracticeRoomPageState({
     Record<number, PracticeAttemptSnapshot | null>
   >({});
 
+  // Session-keyed streak count relayed from the backend after each submission.
+  // Keyed by sessionId so multiple sessions stay independent (same pattern as
+  // submittedByContentIdBySessionId).
+  const [currentStreakBySessionId, setCurrentStreakBySessionId] = useState<
+    Record<string, number>
+  >({});
+
   // Tracks which content id is currently in view and when the student first saw
   // it, giving the submit handler accurate view-duration data without extra state.
   const activeContentIdRef = useRef<number | null>(null);
@@ -459,6 +466,18 @@ export function usePracticeRoomPageState({
   // ─── Submit attempt ────────────────────────────────────────────────────────
   // Payload building, mutation call, optimistic state, and error handling are
   // all owned by useSubmitAttempt; this hook only wires the required context.
+
+  // Called by useSubmitAttempt after each successful submission to keep the
+  // streak indicator in sync without an extra query round-trip.
+  const updateCurrentStreak = (streak: number) => {
+    if (!roomWithLocalAttempts) return;
+    const { sessionId } = roomWithLocalAttempts;
+    setCurrentStreakBySessionId((previous) => ({
+      ...previous,
+      [sessionId]: streak,
+    }));
+  };
+
   const {
     submitErrorMessage,
     isSubmittingAttempt,
@@ -479,6 +498,7 @@ export function usePracticeRoomPageState({
     isPending: submitAttemptMutation.isPending,
     applyExpAward,
     moduleDetail,
+    updateCurrentStreak,
     setSubmittedAttemptByContentId,
     setSubmittedByContentIdBySessionId,
     parsedModuleId,
@@ -597,6 +617,10 @@ export function usePracticeRoomPageState({
     hasSubmittedActiveQuestion,
     hasActiveOptionOverride,
     showTryAgainButton,
+    // Streak count for the current session, relayed from the backend after each submission.
+    currentStreak: roomWithLocalAttempts
+      ? (currentStreakBySessionId[roomWithLocalAttempts.sessionId] ?? 0)
+      : 0,
     selectQuestionUnit,
     selectOption,
     isActiveHintUnlocked,

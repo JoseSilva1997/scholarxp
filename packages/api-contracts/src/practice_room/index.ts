@@ -117,6 +117,9 @@ export interface SubmitAttemptResponse {
   hasCorrectAttempt: boolean;
   // Returning the updated progress allows the frontend to synchronize XP bars without a separate refetch.
   updatedModuleProgress?: ModuleSummaryResponse;
+  // Live streak count for the current session: consecutive first-attempt correct answers.
+  // Resets to 0 on any incorrect answer. Omitted by older API versions (defaults to 0).
+  currentStreak?: number;
 }
 
 // Response returned when a practice session is explicitly closed; closedAt is always an ISO UTC timestamp.

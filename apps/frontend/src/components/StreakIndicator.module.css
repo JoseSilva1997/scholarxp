@@ -1,0 +1,113 @@
+/* Styles for the StreakIndicator component. Visual intensity scales with tier
+   using CSS custom-property overrides so a single animation rule covers all
+   states; tier classes override --streak-color and --streak-glow only. */
+
+.container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-surface);
+  padding: 0.5rem 0.9rem;
+  border-radius: 20px;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-md);
+  /* Base streak color token overridden per tier below */
+  --streak-color: var(--color-text-dim);
+  --streak-glow: transparent;
+  position: relative;
+  overflow: visible;
+  transition: border-color 0.4s ease, box-shadow 0.4s ease;
+}
+
+/* ── Tier styling ──────────────────────────────────────────────────────────── */
+
+/* Tier 0: dormant — muted icon, no glow, no pulse */
+.tier0 {
+  --streak-color: var(--color-text-dim);
+  --streak-glow: transparent;
+}
+
+/* Tier 1: warm — accent amber, subtle pulse; corresponds to ≥ 30 % threshold */
+.tier1 {
+  --streak-color: var(--color-accent);
+  --streak-glow: rgba(245, 158, 11, 0.35);
+  border-color: var(--color-accent-soft);
+  box-shadow: var(--shadow-md), 0 0 10px var(--streak-glow);
+  animation: streakPulse 2.4s ease-in-out infinite;
+}
+
+/* Tier 2: hot — deeper orange/red, stronger glow + faster pulse; ≥ 50 % */
+.tier2 {
+  --streak-color: #f97316; /* orange-500: between accent and error */
+  --streak-glow: rgba(249, 115, 22, 0.45);
+  border-color: rgba(249, 115, 22, 0.3);
+  box-shadow: var(--shadow-md), 0 0 14px var(--streak-glow);
+  animation: streakPulse 1.8s ease-in-out infinite;
+}
+
+/* Tier 3: blaze — full red, brightest glow + fast pulse; 100 % clean run */
+.tier3 {
+  --streak-color: var(--color-error);
+  --streak-glow: rgba(239, 68, 68, 0.5);
+  border-color: rgba(239, 68, 68, 0.3);
+  box-shadow: var(--shadow-md), 0 0 18px var(--streak-glow);
+  animation: streakPulse 1.2s ease-in-out infinite;
+}
+
+/* ── Glow pulse animation (intensity is tuned by animation-duration per tier) */
+@keyframes streakPulse {
+  0%, 100% {
+    box-shadow: var(--shadow-md), 0 0 8px var(--streak-glow);
+  }
+  50% {
+    box-shadow: var(--shadow-md), 0 0 20px var(--streak-glow);
+  }
+}
+
+/* ── Icon ──────────────────────────────────────────────────────────────────── */
+
+.iconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: bottom center;
+}
+
+.icon {
+  /* Inherits --streak-color so one rule drives all tier colors */
+  color: var(--streak-color);
+  width: 16px;
+  height: 16px;
+  transition: color 0.35s ease;
+}
+
+/* ── Badge ─────────────────────────────────────────────────────────────────── */
+
+.badge {
+  font-size: 0.8rem;
+  font-weight: 800;
+  font-family: var(--font-display);
+  color: var(--streak-color);
+  transition: color 0.35s ease;
+  line-height: 1;
+  min-width: 1ch;
+  text-align: center;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .container {
+    padding: 0.45rem 0.7rem;
+    gap: 4px;
+  }
+
+  .icon {
+    width: 14px;
+    height: 14px;
+  }
+
+  .badge {
+    font-size: 0.75rem;
+  }
+}

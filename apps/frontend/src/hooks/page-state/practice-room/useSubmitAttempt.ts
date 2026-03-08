@@ -49,6 +49,9 @@ type UseSubmitAttemptParams = {
   // XP callbacks supplied by parent hooks.
   applyExpAward: (awarded: number, detail: ProgressModuleDetail | null) => void;
   moduleDetail: ProgressModuleDetail | null;
+  // Streak callback: called after every successful submission with the live session streak.
+  // Optional so callers that don't display streak don't have to provide it.
+  updateCurrentStreak?: (streak: number) => void;
   // State setters for attempt tracking — also used by tryAgainActiveQuestion.
   setSubmittedAttemptByContentId: React.Dispatch<
     React.SetStateAction<Record<number, PracticeAttemptSnapshot | null>>
@@ -84,6 +87,7 @@ export function useSubmitAttempt({
   isPending,
   applyExpAward,
   moduleDetail,
+  updateCurrentStreak,
   setSubmittedAttemptByContentId,
   setSubmittedByContentIdBySessionId,
   parsedModuleId,
@@ -153,6 +157,11 @@ export function useSubmitAttempt({
         // celebration to the progress hook so this handler stays focused on
         // attempt business logic.
         applyExpAward(moduleExpAwarded, moduleDetail);
+      }
+      // Relay the server-computed streak to the parent so it can update the
+      // StreakIndicator without maintaining a separate server call.
+      if (updateCurrentStreak !== undefined && submitResponse.currentStreak !== undefined) {
+        updateCurrentStreak(submitResponse.currentStreak);
       }
       setSubmittedAttemptByContentId((previous) => ({
         ...previous,
