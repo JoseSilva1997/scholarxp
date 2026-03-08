@@ -340,4 +340,42 @@ describe('ExpAwardingService', () => {
     );
     expect(streakEventCalls).toHaveLength(0);
   });
+
+  it('does not increment streak on retry-correct answers', async () => {
+    prisma.questionUnit.findMany.mockResolvedValue([
+      { id: 201 },
+      { id: 202 },
+      { id: 203 },
+      { id: 204 },
+      { id: 205 },
+    ] as never);
+    // q1 is corrected on retry (after wrong), then q2/q3 are first-attempt correct.
+    // Retry-correct on q1 must not count toward streak progression.
+    prisma.questionAttempt.findMany.mockResolvedValue([
+      { questionId: 201, isCorrect: false },
+      { questionId: 201, isCorrect: true },
+      { questionId: 202, isCorrect: true },
+      { questionId: 203, isCorrect: true },
+    ] as never);
+
+    await service.awardAttemptModuleExp(
+      {
+        studentId: 100,
+        moduleId: 10,
+        moduleUnitId: 20,
+        sessionId: '33333333-3333-4333-8333-333333333333',
+        questionUnitId: 203,
+        isCorrect: true,
+        hadCorrectAttemptBeforeSubmit: false,
+        hadAnyAttemptBeforeSubmit: false,
+      },
+      prisma,
+    );
+
+    const streakEventCalls = expLedgerService.recordEvent.mock.calls.filter(
+      ([params]) =>
+        params.eventType === ExpLedgerEventTypes.PRACTICE_ROOM_STREAK,
+    );
+    expect(streakEventCalls).toHaveLength(0);
+  });
 });
