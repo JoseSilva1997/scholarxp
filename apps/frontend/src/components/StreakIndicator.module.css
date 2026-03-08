@@ -7,7 +7,7 @@
   align-items: center;
   gap: 6px;
   background: var(--color-surface);
-  padding: 0.65rem 0.9rem;
+  padding: 0.5rem 0.9rem;
   border-radius: 20px;
   border: 1px solid var(--color-border);
   box-shadow: var(--shadow-md);
@@ -17,6 +17,14 @@
   position: relative;
   overflow: visible;
   transition: border-color 0.4s ease, box-shadow 0.4s ease;
+}
+
+/* Wrapper for flame and pips, stacked vertically */
+.iconPipGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
 }
 
 /* ── Tier styling ──────────────────────────────────────────────────────────── */
@@ -96,14 +104,14 @@
 
 /* ── Pip row ────────────────────────────────────────────────────────────────── */
 
-/* Pips live to the right of the badge as a vertical column, small enough not
-   to distract but clearly readable. Each pip maps to one XP bonus tier:
+/* Pips arranged horizontally below the flame, small enough not to distract
+   but clearly readable. Each pip maps to one XP bonus tier:
    pip 1 = 30 % threshold, pip 2 = 50 % threshold. Tier 3 (100 %) is implicit
    and needs no pip because completing the unit is already self-evident. */
 .pips {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
+  flex-direction: row;
+  gap: 4px;
   align-items: center;
   justify-content: center;
 }
@@ -135,6 +143,12 @@
   animation: pipPulse 1.1s ease-in-out infinite;
 }
 
+.pipActive.pipTier3 {
+  background-color: var(--color-pip-tier2-active);
+  box-shadow: 0 0 5px var(--color-pip-tier2-active-glow);
+  animation: pipPulse 0.9s ease-in-out infinite;
+}
+
 /* claimed: bonus already collected for this tier; re-reaching it won't give XP.
    Filled but muted to signal "earned but spent". */
 .pipClaimed.pipTier1 {
@@ -147,9 +161,28 @@
   box-shadow: none;
 }
 
-@keyframes pipPulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.5; }
+.pipClaimed.pipTier3 {
+  background-color: var(--color-pip-tier2-claimed);
+  box-shadow: none;
+}
+
+/* ── Floating Bonus ─────────────────────────────────────────────────────────── */
+
+/* Floating "Bonus!" text that animates upward when a streak bonus is earned.
+   Positioned absolutely above the container so it floats without pushing layout. */
+.floatingBonus {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-48%) translateY(-200%);
+  font-weight: 800;
+  font-size: 1rem;
+  line-height: 1;
+  /* Use a vibrant color that pairs well with the achievement: golden yellow */
+  color: var(--color-success);
+  text-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 10;
 }
 
 /* ── Responsive ─────────────────────────────────────────────────────────────── */

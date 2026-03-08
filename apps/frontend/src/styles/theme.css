@@ -127,11 +127,11 @@
   /* claimed:  bonus already collected; re-reaching this tier won't grant more XP      */
   --color-pip-inactive: var(--color-text-dim);
   --color-pip-tier1-active: var(--color-flame-tier1);
-  --color-pip-tier1-active-glow: rgba(245, 158, 11, 0.5);
-  --color-pip-tier1-claimed: rgba(245, 158, 11, 0.35);
+  --color-pip-tier1-active-glow: rgb(245, 158, 11);
+  --color-pip-tier1-claimed: rgb(245, 158, 11);
   --color-pip-tier2-active: var(--color-flame-tier2);
-  --color-pip-tier2-active-glow: rgba(249, 115, 22, 0.55);
-  --color-pip-tier2-claimed: rgba(249, 115, 22, 0.35);
+  --color-pip-tier2-active-glow: rgb(249, 115, 22);
+  --color-pip-tier2-claimed: rgb(249, 115, 22);
 
   /* Page-level Overlays (Modals, etc.) */
   --color-overlay-dark: rgba(0, 0, 0, 0.45);

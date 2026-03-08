@@ -18,6 +18,10 @@ import type { QuestionData, questionType } from '@scholarxp/question-type-dtos';
 export class ModuleUnitPracticeRoomResponseDto implements ModuleUnitPracticeRoomResponse {
   practiceRoom!: ModuleUnitPracticeRoomDto;
   moduleProgress?: ModuleSummaryResponse;
+  // Live streak count for the current session; persisted on initial load.
+  currentStreak?: number;
+  // All-time highest streak in this session.
+  highestStreak?: number;
 }
 
 export class ModuleUnitPracticeRoomDto implements ModuleUnitPracticeRoom {

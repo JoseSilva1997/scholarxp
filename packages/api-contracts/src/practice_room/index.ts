@@ -97,6 +97,11 @@ export interface ModuleUnitPracticeRoomResponse {
   practiceRoom: ModuleUnitPracticeRoom;
   // Included module progress avoids extra round-trips for XP/level display during active practice.
   moduleProgress?: ModuleSummaryResponse;
+  // Live streak count for the current session: consecutive first-attempt correct answers.
+  // Resets to 0 on any incorrect answer.
+  currentStreak?: number;
+  // All-time highest consecutive correct streak reached during the session.
+  highestStreak?: number;
 }
 
 // Payload user for submitting an attempt

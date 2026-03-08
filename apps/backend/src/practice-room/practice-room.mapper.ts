@@ -22,6 +22,10 @@ type BuildResponseInput = {
   questionUnitDrafts: RoomQuestionUnitDraft[];
   latestAttemptByKey: Map<string, LatestAttemptSnapshot>;
   moduleProgress?: ModuleSummaryResponse;
+  // Live streak for this session passed from service to include in initial response.
+  currentStreak?: number;
+  // All-time highest streak in this session.
+  highestStreak?: number;
 };
 
 @Injectable()
@@ -88,6 +92,8 @@ export class PracticeRoomMapper {
       ),
     };
     response.moduleProgress = input.moduleProgress;
+    response.currentStreak = input.currentStreak;
+    response.highestStreak = input.highestStreak;
     return response;
   }
 

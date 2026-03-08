@@ -51,6 +51,7 @@ export default function PracticeRoomPage() {
     goToNextQuestionUnit,
     currentStreak,
     highestStreak,
+    isStreakInitialized,
   } = usePracticeRoomPageState({
     moduleIdParam: moduleId,
     unitIdParam: unitId,
@@ -104,6 +105,7 @@ export default function PracticeRoomPage() {
                 currentStreak={currentStreak}
                 highestStreak={highestStreak}
                 totalQuestions={room?.questions.length ?? 0}
+                isStreakInitialized={isStreakInitialized}
               />
               <div className={styles.levelIndicatorMini}>
                 <img src={expIcon} alt="" aria-hidden="true" className={styles.miniLevelIcon} />

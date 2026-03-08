@@ -76,6 +76,13 @@ export class PracticeRoomService {
       moduleId,
       studentId,
     );
+    // Fetch current and highest streak for this session so UI shows correct state on page load/refresh.
+    const { currentStreak, highestStreak } =
+      await this.expStreakService.getSessionStreak(
+        moduleUnitId,
+        studentId,
+        roomContext.session.id,
+      );
 
     return this.practiceRoomMapper.buildResponse({
       sessionId: roomContext.session.id,
@@ -86,6 +93,8 @@ export class PracticeRoomService {
       questionUnitDrafts: roomContext.questionUnitDrafts,
       latestAttemptByKey,
       moduleProgress,
+      currentStreak,
+      highestStreak,
     });
   }
 

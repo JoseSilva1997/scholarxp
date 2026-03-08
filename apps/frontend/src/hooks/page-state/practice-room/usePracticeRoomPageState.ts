@@ -273,6 +273,38 @@ export function usePracticeRoomPageState({
     };
   }, [moduleUnitRoom, requestedQuestionUnitId]);
 
+  // Initialize streak state from the initial API response so the StreakIndicator
+  // shows the correct value on page load/refresh instead of defaulting to 0.
+  useEffect(() => {
+    if (!practiceRoomQuery.data) {
+      return;
+    }
+    const { currentStreak = 0, highestStreak = 0, practiceRoom } =
+      practiceRoomQuery.data;
+    if (!practiceRoom) {
+      return;
+    }
+    // Seed streak state from API response if this is the first time loading this session.
+    setCurrentStreakBySessionId((previous) => {
+      if (previous[practiceRoom.sessionId] !== undefined) {
+        return previous; // Already initialized, keep existing state.
+      }
+      return {
+        ...previous,
+        [practiceRoom.sessionId]: currentStreak,
+      };
+    });
+    setHighestStreakBySessionId((previous) => {
+      if (previous[practiceRoom.sessionId] !== undefined) {
+        return previous;
+      }
+      return {
+        ...previous,
+        [practiceRoom.sessionId]: highestStreak,
+      };
+    });
+  }, [practiceRoomQuery.data?.practiceRoom?.sessionId]);
+
   // Write question-selection progress to localStorage after every relevant
   // change so the student can resume mid-session after a page refresh.
   useEffect(() => {
@@ -635,6 +667,12 @@ export function usePracticeRoomPageState({
     highestStreak: roomWithLocalAttempts
       ? (highestStreakBySessionId[roomWithLocalAttempts.sessionId] ?? 0)
       : 0,
+    // True once the seeding effect has written the initial API values into the streak
+    // state maps. The StreakIndicator uses this to suppress the "Bonus!" animation
+    // on the async transition from pre-load 0 → actual value (which is not a real earn).
+    isStreakInitialized: roomWithLocalAttempts
+      ? highestStreakBySessionId[roomWithLocalAttempts.sessionId] !== undefined
+      : false,
     selectQuestionUnit,
     selectOption,
     isActiveHintUnlocked,
