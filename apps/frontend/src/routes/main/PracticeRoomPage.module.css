@@ -321,18 +321,34 @@
 }
 
 .stemHeader {
-  display: flex;
+  /* Use a block flow container and clearfix so a floated nav can sit
+     on the right and the stem text wraps around it. This avoids absolute
+     positioning and prevents the nav from being pushed off-screen. */
+  display: block;
   gap: 1.5rem;
-  align-items: flex-start;
-  justify-content: space-between;
+  /* Clearfix to contain floated children */
+}
+
+.stemHeader::after {
+  content: '';
+  display: table;
+  clear: both;
 }
 
 .questionStem {
-  margin: 0;
+  margin: 0 0 0 0;
   font-size: 1.2rem;
   font-weight: 700;
   color: var(--color-text);
   line-height: 1.4;
+  /* Let the heading be a normal block so its inline text wraps around
+     the floated nav. Use word-break rules to avoid overflow for long
+     unbroken strings. */
+  display: block;
+  overflow-wrap: anywhere;
+  word-wrap: break-word;
+  hyphens: auto;
+  margin-right: 0.5rem;
 }
 
 .optionsList {
@@ -560,9 +576,35 @@
   cursor: not-allowed; 
 }
 
-.questionNavButtons { 
-  display: flex; 
-  gap: 1rem; 
+.questionNavButtons {
+  /* Float the nav to the right so the stem text wraps around it. Keep
+     a consistent gap and prevent line-wrapping inside the nav. */
+  display: flex;
+  gap: 1rem;
+  float: right;
+  margin-left: 1rem;
+  max-width: 14rem;
+  white-space: nowrap;
+  z-index: 6;
+}
+
+@media (max-width: 640px) {
+  /* On small screens, revert to normal flow so buttons stack below the stem
+     and remain accessible without overlapping content. Also reduce the
+     stem padding so it uses available width. */
+  .questionNavButtons {
+      float: none;
+      display: flex;
+      width: 100%;
+      justify-content: flex-end;
+      max-width: none;
+      margin-left: 0;
+      white-space: normal;
+  }
+
+    .questionStem {
+      margin-right: 0;
+    }
 }
 
 .questionUnitNavButton {

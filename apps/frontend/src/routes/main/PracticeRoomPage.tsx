@@ -239,7 +239,6 @@ export default function PracticeRoomPage() {
           {activeQuestionUnit && activeQuestion ? (
             <section className={styles.questionPanel}>
               <div className={styles.stemHeader}>
-                <h2 className={styles.questionStem}>{activeQuestion.question.questionStem}</h2>
                 <div className={styles.questionNavButtons}>
                   <button
                     type="button"
@@ -266,6 +265,7 @@ export default function PracticeRoomPage() {
                     </IconContext.Provider>
                   </button>
                 </div>
+                <h2 className={styles.questionStem}>{activeQuestion.question.questionStem}</h2>
               </div>
 
               <div className={styles.questionContent}>
