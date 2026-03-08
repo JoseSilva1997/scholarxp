@@ -1,41 +1,19 @@
 // Service role: owns practice-room reward policy so route orchestration stays thin and reward rules stay testable.
 import { Injectable } from '@nestjs/common';
-import type { Prisma } from '@prisma/client';
 import { AvatarService } from '../db-entities/avatar/avatar.service';
 import { ExpLedgerService } from '../db-entities/exp-ledger/exp-ledger.service';
 import { UserModuleService } from '../db-entities/user-module/user-module.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ExpLedgerEventTypes } from '@scholarxp/constants';
 import { ExpCalculationService } from './exp-calculation.service';
+import {
+  AttemptModuleExpRewardResult,
+  AwardAttemptModuleExpParams,
+  AwardCompletionExpParams,
+  PrismaClientLike,
+} from './exp-engine.types';
 import { ExpQuestionContextService } from './exp-question-context.service';
 import { ExpStreakService } from './exp-streak.service';
-
-type PrismaClientLike = Prisma.TransactionClient | PrismaService;
-
-type AwardCompletionExpParams = {
-  studentId: number;
-  moduleId: number;
-  moduleUnitId: number;
-  sessionId: string;
-  completedAt: Date;
-};
-type AwardAttemptModuleExpParams = {
-  studentId: number;
-  moduleId: number;
-  moduleUnitId: number;
-  sessionId: string;
-  questionUnitId: number;
-  isCorrect: boolean;
-  hadCorrectAttemptBeforeSubmit: boolean;
-  hadAnyAttemptBeforeSubmit: boolean;
-};
-
-export type AttemptModuleExpRewardResult = {
-  moduleExpAwarded: number;
-  updatedMembership: Prisma.UserModuleGetPayload<{
-    include: { module: true };
-  }> | null;
-};
 
 @Injectable()
 export class ExpAwardingService {

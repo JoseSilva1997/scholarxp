@@ -1,14 +1,7 @@
 // Service role: centralizes practice-question eligibility so XP distribution uses one consistent source.
 import { Injectable } from '@nestjs/common';
-import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-
-type PrismaClientLike = Prisma.TransactionClient | PrismaService;
-
-export type PracticeQuestionContext = {
-  totalQuestions: number;
-  lastQuestionId: number | null;
-};
+import { PracticeQuestionContext, PrismaClientLike } from './exp-engine.types';
 
 @Injectable()
 export class ExpQuestionContextService {

@@ -1,6 +1,5 @@
 // Service role: owns streak reconstruction and ledger writes.
 import { Injectable } from '@nestjs/common';
-import type { Prisma } from '@prisma/client';
 import {
   STREAK_BONUS_EXP_PER_DELTA,
   ExpLedgerEventTypes,
@@ -8,16 +7,7 @@ import {
 import { ExpLedgerService } from '../db-entities/exp-ledger/exp-ledger.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ExpCalculationService } from './exp-calculation.service';
-
-type PrismaClientLike = Prisma.TransactionClient | PrismaService;
-
-type AwardStreakBonusParams = {
-  studentId: number;
-  moduleId: number;
-  moduleUnitId: number;
-  sessionId: string;
-  totalQuestions: number;
-};
+import { AwardStreakBonusParams, PrismaClientLike } from './exp-engine.types';
 
 @Injectable()
 export class ExpStreakService {
