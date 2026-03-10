@@ -116,7 +116,9 @@ describe('PracticeRoomService', () => {
     };
     // getSessionStreak returns both counts so the response can show pip state.
     expStreakService = {
-      getSessionStreak: jest.fn().mockResolvedValue({ currentStreak: 0, highestStreak: 0 }),
+      getSessionStreak: jest
+        .fn()
+        .mockResolvedValue({ currentStreak: 0, highestStreak: 0 }),
     };
 
     practiceRewardService = {

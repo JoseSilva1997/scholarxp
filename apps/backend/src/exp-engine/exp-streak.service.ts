@@ -98,15 +98,12 @@ export class ExpStreakService {
       },
     });
 
-    const attemptedQuestions = new Set<number>();
     const alreadyCorrectQuestions = new Set<number>();
     let currentStreak = 0;
     let highestStreak = 0;
 
     for (const attempt of attempts) {
       if (!attempt.isCorrect) {
-        // Track that this question has already consumed its "first-attempt correctness" chance.
-        attemptedQuestions.add(attempt.questionId);
         currentStreak = 0;
         continue;
       }
@@ -114,12 +111,8 @@ export class ExpStreakService {
       if (alreadyCorrectQuestions.has(attempt.questionId)) {
         continue;
       }
-      // Correctness earned on a retry never contributes to streak progression.
-      if (attemptedQuestions.has(attempt.questionId)) {
-        alreadyCorrectQuestions.add(attempt.questionId);
-        continue;
-      }
-      attemptedQuestions.add(attempt.questionId);
+      // Product rule: a correct retry after a miss still rebuilds streak, but
+      // duplicate-correct submissions on the same question are ignored.
       alreadyCorrectQuestions.add(attempt.questionId);
       currentStreak += 1;
       highestStreak = Math.max(highestStreak, currentStreak);
