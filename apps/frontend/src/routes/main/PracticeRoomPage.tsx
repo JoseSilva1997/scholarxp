@@ -11,7 +11,7 @@ import {
 } from 'react-icons/fa6';
 import expIcon from '../../assets/exp_icon.svg';
 import MainSection from '../../components/MainSection';
-import StreakIndicator from '../../components/StreakIndicator';
+import StreakIndicator from '../../components/StreakTrackerIndicator';
 import FirstTryAccuracyIndicator from '../../components/FirstTryAccuracyIndicator';
 import { usePracticeRoomPageState } from '../../hooks/page-state/practice-room/usePracticeRoomPageState';
 import styles from './PracticeRoomPage.module.css';
@@ -115,6 +115,7 @@ export default function PracticeRoomPage() {
                 highestStreak={highestStreak}
                 totalQuestions={room?.questions.length ?? 0}
                 isStreakInitialized={isStreakInitialized}
+                claimedTiers={rewardIndicators.streak.claimedTiers}
               />
               <div className={styles.levelIndicatorMini}>
                 <img src={expIcon} alt="" aria-hidden="true" className={styles.miniLevelIcon} />
@@ -356,47 +357,6 @@ export default function PracticeRoomPage() {
                         </span>
                       </span>
 
-                      <div
-                        className={`${styles.rewardChip} ${styles.rewardChipStreak} ${
-                          rewardIndicators.streak.isEligibleForStreakRewards
-                            ? styles.rewardChipNeutral
-                            : styles.rewardChipDisabled
-                        }`}
-                        title={
-                          rewardIndicators.streak.isEligibleForStreakRewards
-                            ? 'Streak bonus tiers (30%, 50%, 100%) for this unit.'
-                            : 'Streak bonuses require at least 4 questions in this unit.'
-                        }
-                      >
-                        <span aria-hidden="true" className={styles.rewardChipIcon}>
-                          🔥
-                        </span>
-                        <span className={styles.rewardChipLabel}>Streak tiers</span>
-                        <span className={styles.streakTierDots} aria-hidden="true">
-                          {(['tier1', 'tier2', 'tier3'] as const).map((tierKey, index) => {
-                            const tierState = rewardIndicators.streak.tierStates[tierKey];
-                            return (
-                              <span
-                                key={tierKey}
-                                className={`${styles.streakTierDot} ${
-                                  tierState === 'claimed'
-                                    ? styles.streakTierDotClaimed
-                                    : tierState === 'active'
-                                      ? styles.streakTierDotActive
-                                      : styles.streakTierDotInactive
-                                }`}
-                                title={
-                                  tierState === 'claimed'
-                                    ? `${[30, 50, 100][index]}% tier already claimed`
-                                    : tierState === 'active'
-                                      ? `${[30, 50, 100][index]}% tier currently reachable`
-                                      : `${[30, 50, 100][index]}% tier not reached`
-                                }
-                              />
-                            );
-                          })}
-                        </span>
-                      </div>
                     </div>
 
                     <details className={styles.rewardHelp}>

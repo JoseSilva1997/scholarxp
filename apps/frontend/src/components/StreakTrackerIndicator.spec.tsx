@@ -2,7 +2,7 @@
 // states for each tier boundary, and that the dormant state has no count badge.
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import StreakIndicator from './StreakIndicator';
+import StreakIndicator from './StreakTrackerIndicator';
 
 describe('StreakIndicator', () => {
   describe('units with fewer than 4 questions (streak mechanic suppressed)', () => {

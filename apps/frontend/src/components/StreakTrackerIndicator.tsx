@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { FaFire } from 'react-icons/fa6';
-import styles from './StreakIndicator.module.css';
+import styles from './StreakTrackerIndicator.module.css';
 
 // Streak tier mirrors the backend ExpCalculationService.resolveReachedStreakTier thresholds.
 // 0 = dormant (< 3 correct or no valid streak yet)
@@ -32,6 +32,11 @@ type StreakIndicatorProps = {
   // Defaults to true so uses outside the practice-room page state (e.g. tests,
   // Storybook) don't need to supply it.
   isStreakInitialized?: boolean;
+  // Lifetime-claimed tier numbers from the backend (1, 2, or 3). Populated on
+  // room load so pips reflect the student's all-time achievements from the very
+  // first render — before any new streak is built in the current session.
+  // Defaults to [] so callers outside the practice room don't need to supply it.
+  claimedTiers?: number[];
 };
 
 // Determines which visual tier to render based on the same percentage thresholds
@@ -59,15 +64,19 @@ function resolveStreakTier(
 // Returns the pip state for a single bonus tier threshold.
 // - active:   currentStreak just reached the threshold and highestStreak hasn't yet
 //             → bonus will be awarded on this run (first time hitting this tier)
-// - claimed:  highestStreak is already at or above the threshold
-//             → bonus was already collected; re-reaching this tier won't give more XP
+// - claimed:  tier is lifetime-claimed (backend idempotency key already used) OR
+//             highestStreak reached the threshold this session; either way the
+//             bonus XP won't be awarded again for this tier.
 // - inactive: threshold not yet reached by the current streak
 function resolvePipState(
   currentStreak: number,
   highestStreak: number,
   tierThreshold: number,
+  // True when the backend confirms this tier's bonus has been issued in a prior
+  // session. Showing it as claimed on room load is the whole point of this param.
+  isLifetimeClaimed: boolean,
 ): PipState {
-  if (highestStreak >= tierThreshold) return 'claimed';
+  if (isLifetimeClaimed || highestStreak >= tierThreshold) return 'claimed';
   if (currentStreak >= tierThreshold) return 'active';
   return 'inactive';
 }
@@ -116,6 +125,7 @@ export default function StreakIndicator({
   highestStreak,
   totalQuestions,
   isStreakInitialized = true,
+  claimedTiers = [],
 }: StreakIndicatorProps) {
   const tier = resolveStreakTier(currentStreak, totalQuestions);
   // Show the count badge and pips on any eligible unit.
@@ -125,9 +135,11 @@ export default function StreakIndicator({
   const tierOneThreshold = totalQuestions >= 4 ? Math.max(3, Math.ceil(totalQuestions * 0.3)) : Infinity;
   const tierTwoThreshold = totalQuestions >= 4 ? Math.max(3, Math.ceil(totalQuestions * 0.5)) : Infinity;
   const tierThreeThreshold = totalQuestions >= 4 ? totalQuestions : Infinity;
-  const pip1State = showBadge ? resolvePipState(currentStreak, highestStreak, tierOneThreshold) : 'inactive';
-  const pip2State = showBadge ? resolvePipState(currentStreak, highestStreak, tierTwoThreshold) : 'inactive';
-  const pip3State = showBadge ? resolvePipState(currentStreak, highestStreak, tierThreeThreshold) : 'inactive';
+  // Pass lifetime-claimed status so entering the room pre-populates claimed pips
+  // from the backend's streakRewardState, not just this session's highestStreak.
+  const pip1State = showBadge ? resolvePipState(currentStreak, highestStreak, tierOneThreshold, claimedTiers.includes(1)) : 'inactive';
+  const pip2State = showBadge ? resolvePipState(currentStreak, highestStreak, tierTwoThreshold, claimedTiers.includes(2)) : 'inactive';
+  const pip3State = showBadge ? resolvePipState(currentStreak, highestStreak, tierThreeThreshold, claimedTiers.includes(3)) : 'inactive';
 
   // Track the previous highestStreak for threshold-crossing detection.
   const prevHighestStreakRef = useRef(highestStreak);
