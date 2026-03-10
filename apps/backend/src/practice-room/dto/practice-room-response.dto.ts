@@ -8,6 +8,7 @@ import type {
   PracticeSessionType,
   PracticeAttemptSnapshot,
   PracticeQuestion,
+  PracticeQuestionRewardState,
   PracticeQuestionUnit,
   PracticeQuestionWithLatestAttempt,
   StudentAnswer,
@@ -18,6 +19,7 @@ import type { QuestionData, questionType } from '@scholarxp/question-type-dtos';
 export class ModuleUnitPracticeRoomResponseDto implements ModuleUnitPracticeRoomResponse {
   practiceRoom!: ModuleUnitPracticeRoomDto;
   moduleProgress?: ModuleSummaryResponse;
+  streakRewardState?: ModuleUnitPracticeRoomResponse['streakRewardState'];
   // Live streak count for the current session; persisted on initial load.
   currentStreak?: number;
   // All-time highest streak in this session.
@@ -37,7 +39,13 @@ export class PracticeQuestionUnitDto implements PracticeQuestionUnit {
   questionUnitId!: number;
   position!: number;
   hasCorrectAttempt!: boolean | null;
+  rewardState?: PracticeQuestionRewardStateDto;
   coreQuestion!: PracticeQuestionWithLatestAttemptDto;
+}
+
+export class PracticeQuestionRewardStateDto implements PracticeQuestionRewardState {
+  baseQuestionExpStatus!: 'available' | 'already_earned';
+  firstAttemptBonusStatus!: 'available' | 'already_earned' | 'lost';
 }
 
 export class PracticeQuestionWithLatestAttemptDto implements PracticeQuestionWithLatestAttempt {

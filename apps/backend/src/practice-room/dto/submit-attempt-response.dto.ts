@@ -7,6 +7,7 @@ import type {
 
 export class SubmitAttemptResponseDto implements SubmitAttemptResponse {
   awards: Awards;
+  awardReasons?: SubmitAttemptResponse['awardReasons'];
   hasCorrectAttempt: boolean;
   updatedModuleProgress?: ModuleSummaryResponse;
   // Live session streak relayed from ExpStreakService after each submission.

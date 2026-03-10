@@ -31,7 +31,21 @@ export interface PracticeQuestionUnit {
   questionUnitId: number;
   position: number;
   hasCorrectAttempt: boolean | null;
+  // Backend-derived reward availability snapshot so UI can explain XP outcomes
+  // before the learner submits another attempt.
+  rewardState?: PracticeQuestionRewardState;
   coreQuestion: PracticeQuestionWithLatestAttempt;
+}
+
+// Per-question reward eligibility state computed from persisted attempt history.
+export interface PracticeQuestionRewardState {
+  // Base question XP is available until the learner has at least one correct
+  // attempt for this question, then becomes already_earned permanently.
+  baseQuestionExpStatus: 'available' | 'already_earned';
+  // First-attempt bonus is available only before any attempt exists. Once the
+  // first attempt occurs it becomes either already_earned (first attempt correct)
+  // or lost (first attempt incorrect).
+  firstAttemptBonusStatus: 'available' | 'already_earned' | 'lost';
 }
 
 
@@ -97,6 +111,11 @@ export interface ModuleUnitPracticeRoomResponse {
   practiceRoom: ModuleUnitPracticeRoom;
   // Included module progress avoids extra round-trips for XP/level display during active practice.
   moduleProgress?: ModuleSummaryResponse;
+  // Lifetime streak-tier claim snapshot for this user+unit. Used by UI to
+  // explain why a re-reached threshold may not grant bonus XP.
+  streakRewardState?: {
+    claimedTiers: number[];
+  };
   // Live streak count for the current session: consecutive first-attempt correct answers.
   // Resets to 0 on any incorrect answer.
   currentStreak?: number;
@@ -119,6 +138,9 @@ export interface SubmitAttemptPayload {
 export interface SubmitAttemptResponse {
   // Structured reward payload allows the UI to display each XP source independently.
   awards: Awards;
+  // Reason codes explain why each reward bucket was or was not granted so the UI
+  // can show clear, backend-owned messaging without re-implementing reward rules.
+  awardReasons?: AwardReasons;
   hasCorrectAttempt: boolean;
   // Returning the updated progress allows the frontend to synchronize XP bars without a separate refetch.
   updatedModuleProgress?: ModuleSummaryResponse;
@@ -130,6 +152,17 @@ export interface SubmitAttemptResponse {
   // (via idempotency keys) so the UI can show whether re-reaching a tier will
   // award a bonus or not.
   highestStreak?: number;
+}
+
+export type AwardReasons = {
+  // Correct first-solves award XP; wrong submissions and repeat-correct submissions do not.
+  baseQuestionExp: 'awarded' | 'incorrect' | 'already_earned';
+  // First-try bonus only applies on a correct first attempt for that question.
+  firstAttemptBonus:
+    | 'awarded'
+    | 'incorrect'
+    | 'not_first_try'
+    | 'already_earned';
 }
 
 // Response returned when a practice session is explicitly closed; closedAt is always an ISO UTC timestamp.

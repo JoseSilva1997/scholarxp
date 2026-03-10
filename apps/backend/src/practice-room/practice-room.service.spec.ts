@@ -98,6 +98,8 @@ describe('PracticeRoomService', () => {
   beforeEach(async () => {
     // Create mocks for dependencies
     prisma = createPrismaMock();
+    // Practice-room load now queries streak-claim ledger rows; default to none.
+    prisma.expLedger.findMany.mockResolvedValue([]);
     // Transaction callback mode keeps submit-attempt tests deterministic without a real database transaction.
     (prisma.$transaction as jest.Mock).mockImplementation(async (callback) =>
       callback(prisma),
@@ -820,6 +822,10 @@ describe('PracticeRoomService', () => {
           firstAttemptBonus: 17,
           streakBonus: 0,
           accountExp: 0,
+        },
+        awardReasons: {
+          baseQuestionExp: 'awarded',
+          firstAttemptBonus: 'awarded',
         },
         hasCorrectAttempt: true,
         updatedModuleProgress: {
