@@ -1,0 +1,86 @@
+/* Styles for the BaseXpIndicator component.
+   Mirrors the circular pill shape of FirstTryAccuracyIndicator so all three
+   per-question reward indicators (XP, first-try, streak) feel like a matched set.
+   Two states:
+     available — amber/glowing bolt, "this question's base XP is still earnable"
+     claimed   — dimmed bolt, "base XP already collected for this question" */
+
+.container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface);
+  padding: 0.5rem;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-md);
+  /* Base colour token overridden per state below */
+  --indicator-color: var(--color-text-dim);
+  --indicator-glow: transparent;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* ── State styling ─────────────────────────────────────────────────────────── */
+
+/* Available: amber/gamification accent — mirrors FirstTryAccuracyIndicator's
+   stateAvailable so all "still earnable" indicators pulse in sync. */
+.stateAvailable {
+  --indicator-color: var(--color-accent);
+  --indicator-glow: rgba(245, 158, 11, 0.35);
+  border-color: var(--color-accent-soft);
+  box-shadow: var(--shadow-md), 0 0 10px var(--indicator-glow);
+  animation: xpPulse 2.4s ease-in-out infinite;
+}
+
+/* Claimed: muted — the XP opportunity is spent, no need to draw attention. */
+.stateClaimed {
+  --indicator-color: var(--color-text-dim);
+  --indicator-glow: transparent;
+}
+
+/* ── Icon ──────────────────────────────────────────────────────────────────── */
+
+/* Wrapper is relative so the overlay badge can be positioned inside it. */
+.iconWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon {
+  width: 1.2rem;
+  height: 1.2rem;
+  color: var(--indicator-color);
+  transition: color 0.3s ease;
+}
+
+/* Gentle glow pulse when the bonus is available — mirrors stateAvailable pulse */
+@keyframes xpPulse {
+  0%, 100% { box-shadow: var(--shadow-md), 0 0 6px var(--indicator-glow); }
+  50%       { box-shadow: var(--shadow-md), 0 0 14px var(--indicator-glow); }
+}
+
+/* ── Overlay badge ─────────────────────────────────────────────────────────── */
+
+/* Small circular green checkmark anchored to the bottom-right of the bolt icon;
+   mirrors FirstTryAccuracyIndicator's overlayBadgeEarned style. */
+.overlayBadge {
+  position: absolute;
+  bottom: -3px;
+  right: -4px;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: var(--color-success);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--color-surface);
+}
+
+.overlayIcon {
+  width: 0.45rem;
+  height: 0.45rem;
+  color: #fff;
+}

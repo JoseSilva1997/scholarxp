@@ -1,0 +1,50 @@
+// Displays the base XP availability for the currently active question.
+// Two states are shown:
+//   available — amber/glowing bolt, "you can still earn base XP for this question"
+//   claimed   — dimmed bolt, "base XP was already earned for this question"
+// Placed in the practice-room header alongside FirstTryAccuracyIndicator and
+// StreakIndicator so all per-question reward signals are grouped together.
+import { FaBolt, FaCheck } from 'react-icons/fa6';
+import styles from './BaseXpIndicator.module.css';
+
+// Two-value status driven by the server-side rewardState snapshot on room load;
+// updates in response to a successful submission via re-derived indicator data.
+export type BaseXpStatus = 'available' | 'claimed';
+
+type BaseXpIndicatorProps = {
+  // Whether base XP can still be earned for the active question.
+  status: BaseXpStatus;
+};
+
+// CSS class applied to the container per status.
+const STATE_CLASS: Record<BaseXpStatus, string> = {
+  available: styles.stateAvailable,
+  claimed: styles.stateClaimed,
+};
+
+// Accessible labels announced to screen readers.
+const STATE_ARIA_LABEL: Record<BaseXpStatus, string> = {
+  available: 'Base XP: still available',
+  claimed: 'Base XP: already earned',
+};
+
+export default function BaseXpIndicator({ status }: BaseXpIndicatorProps) {
+  return (
+    <div
+      className={`${styles.container} ${STATE_CLASS[status]}`}
+      aria-label={STATE_ARIA_LABEL[status]}
+      title={STATE_ARIA_LABEL[status]}
+    >
+      {/* Bolt icon at base; checkmark badge overlaid bottom-right when claimed
+          so the bolt shape remains visible as context. */}
+      <span className={styles.iconWrapper} aria-hidden="true">
+        <FaBolt className={styles.icon} />
+        {status === 'claimed' && (
+          <span className={styles.overlayBadge}>
+            <FaCheck className={styles.overlayIcon} />
+          </span>
+        )}
+      </span>
+    </div>
+  );
+}

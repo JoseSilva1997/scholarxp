@@ -13,6 +13,7 @@ import expIcon from '../../assets/exp_icon.svg';
 import MainSection from '../../components/MainSection';
 import StreakIndicator from '../../components/StreakTrackerIndicator';
 import FirstTryAccuracyIndicator from '../../components/FirstTryAccuracyIndicator';
+import BaseXpIndicator from '../../components/BaseXpIndicator';
 import { usePracticeRoomPageState } from '../../hooks/page-state/practice-room/usePracticeRoomPageState';
 import styles from './PracticeRoomPage.module.css';
 import { getQuestionUnitStatusClass } from './practice-room-status';
@@ -77,6 +78,14 @@ export default function PracticeRoomPage() {
     : [];
   const activeQuestionRewardIndicators = rewardIndicators.activeQuestion;
 
+  // Resolve base XP status into a two-value signal for the header indicator.
+  // The server snapshot is sufficient here: base XP can only move from
+  // 'available' → 'already_earned' and never resets, so no live override needed.
+  const baseXpStatus: 'available' | 'claimed' =
+    activeQuestionRewardIndicators?.baseQuestionExpStatus === 'already_earned'
+      ? 'claimed'
+      : 'available';
+
   // Resolve the first-try bonus status for the active question into a single
   // three-value signal for the header indicator. Live session results (from the
   // submit mutation) take priority since the server snapshot only updates on
@@ -118,9 +127,10 @@ export default function PracticeRoomPage() {
 
           {moduleProgress && (
             <div className={styles.headerProgress}>
+              {/* XP indicator: amber when base XP is still earnable, dimmed once claimed. */}
+              <BaseXpIndicator status={baseXpStatus} />
               {/* Accuracy indicator (bullseye) sits to the left of the streak
-                  indicator so both live-feedback pills are grouped together.
-                  Green = first-try bonus earned, red = wrong, neutral = unanswered. */}
+                  indicator so all per-question reward pills are grouped together. */}
               <FirstTryAccuracyIndicator status={firstTryStatus} />
               {/* Streak indicator sits left of the XP bar so progress metrics are grouped */}
               <StreakIndicator
@@ -319,30 +329,6 @@ export default function PracticeRoomPage() {
               <div className={styles.stickyFooter}>
                 {activeQuestionRewardIndicators && (
                   <section className={styles.rewardStatusSection} aria-label="Reward status">
-                    <div className={styles.rewardChipRow}>
-                      <span
-                        className={`${styles.rewardChip} ${
-                          activeQuestionRewardIndicators.isBaseQuestionExpAvailable
-                            ? styles.rewardChipAvailable
-                            : styles.rewardChipClaimed
-                        }`}
-                        title={
-                          activeQuestionRewardIndicators.isBaseQuestionExpAvailable
-                            ? 'Base XP is available for this question.'
-                            : 'Base XP was already earned for this question.'
-                        }
-                      >
-                        <span aria-hidden="true" className={styles.rewardChipIcon}>
-                          ⚡
-                        </span>
-                        <span className={styles.rewardChipLabel}>
-                          {activeQuestionRewardIndicators.isBaseQuestionExpAvailable
-                            ? 'Base XP available'
-                            : 'Base XP claimed'}
-                        </span>
-                      </span>
-                    </div>
-
                     <details className={styles.rewardHelp}>
                       <summary className={styles.rewardHelpSummary}>
                         <FaCircleInfo aria-hidden="true" />
