@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Link, useParams } from 'react-router-dom';
 import { IconContext } from 'react-icons';
 import {
-  FaChevronRight,
+  FaChevronDown,
   FaCircleChevronLeft,
   FaCircleChevronRight,
   FaLightbulb,
@@ -300,7 +300,8 @@ export default function PracticeRoomPage() {
                     );
                   })}
                 </div>
-
+              </div>
+              <div className={styles.stickyFooter}>
                 {activeQuestion.question.hint ? (
                   <div className={styles.hintSection}>
                     <div
@@ -335,7 +336,7 @@ export default function PracticeRoomPage() {
                         }`}
                         aria-hidden="true"
                       >
-                        <FaChevronRight />
+                        <FaChevronDown />
                       </span>
                     </div>
                     {isActiveHintUnlocked ? (
@@ -343,8 +344,7 @@ export default function PracticeRoomPage() {
                     ) : null}
                   </div>
                 ) : null}
-              </div>
-
+                
               {submitErrorMessage ? (
                 <div className={styles.submitError} role="alert">
                   {submitErrorMessage}
@@ -406,6 +406,7 @@ export default function PracticeRoomPage() {
                   </button>
                 </div>
               </div>
+            </div>
             </section>
           ) : (
             <div className={styles.statusCard}>
