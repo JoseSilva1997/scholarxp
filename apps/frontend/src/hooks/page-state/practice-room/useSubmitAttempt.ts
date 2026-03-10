@@ -37,9 +37,6 @@ type UseSubmitAttemptParams = {
   activeQuestionUnit: PracticeQuestionUnit | null;
   activeQuestion: ActiveQuestion | null;
   isRoomReadOnly: boolean;
-  // True when the backend already marks the active question correct.
-  // Correct answers are locked until a future "Retry Unit" reset flow exists.
-  isActiveQuestionLockedCorrect: boolean;
   selectedOptionIndex: number | null;
   hasSubmittedActiveQuestion: boolean;
   isActiveHintUnlocked: boolean;
@@ -88,7 +85,6 @@ export function useSubmitAttempt({
   activeQuestionUnit,
   activeQuestion,
   isRoomReadOnly,
-  isActiveQuestionLockedCorrect,
   selectedOptionIndex,
   hasSubmittedActiveQuestion,
   isActiveHintUnlocked,
@@ -127,7 +123,6 @@ export function useSubmitAttempt({
   const canSubmitAttempt =
     Boolean(room && activeQuestionUnit && activeQuestion) &&
     !isRoomReadOnly &&
-    !isActiveQuestionLockedCorrect &&
     selectedOptionIndex !== null &&
     !hasSubmittedActiveQuestion &&
     !isPending;
@@ -141,7 +136,6 @@ export function useSubmitAttempt({
       !activeQuestionUnit ||
       !activeQuestion ||
       isRoomReadOnly ||
-      isActiveQuestionLockedCorrect ||
       selectedOptionIndex === null ||
       hasSubmittedActiveQuestion
     ) {

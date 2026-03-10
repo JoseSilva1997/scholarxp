@@ -482,6 +482,134 @@
   flex-direction: column;
 }
 
+.rewardStatusSection {
+  margin-top: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.rewardChipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.rewardChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  padding: 0.3rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.rewardChipIcon {
+  line-height: 1;
+  font-size: 0.82rem;
+}
+
+.rewardChipLabel {
+  line-height: 1;
+}
+
+.rewardChipAvailable {
+  border-color: var(--color-secondary);
+  background: var(--color-secondary-soft);
+  color: var(--color-secondary-dark);
+}
+
+.rewardChipClaimed {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+}
+
+.rewardChipLost {
+  border-color: var(--color-error);
+  background: var(--color-error-soft);
+  color: var(--color-error);
+}
+
+.rewardChipNeutral {
+  border-color: var(--color-border-hover);
+}
+
+.rewardChipDisabled {
+  opacity: 0.65;
+}
+
+.rewardChipStreak {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.streakTierDots {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+}
+
+.streakTierDot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+
+.streakTierDotInactive {
+  background: var(--color-border);
+}
+
+.streakTierDotActive {
+  background: var(--color-flame-tier1);
+  box-shadow: 0 0 6px var(--color-flame-tier1-glow);
+}
+
+.streakTierDotClaimed {
+  background: var(--color-flame-tier2);
+  box-shadow: 0 0 6px var(--color-flame-tier2-glow);
+}
+
+.rewardHelp {
+  width: fit-content;
+}
+
+.rewardHelpSummary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  list-style: none;
+}
+
+.rewardHelpSummary::-webkit-details-marker {
+  display: none;
+}
+
+.rewardHelpBody {
+  margin-top: 0.35rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.55rem;
+  padding: 0.45rem 0.6rem;
+  max-width: 28rem;
+}
+
+.rewardHelpBody p {
+  margin: 0.2rem 0;
+  font-size: 0.74rem;
+  color: var(--color-text-muted);
+}
+
 /* Hint & Status */
 .hintSection { 
   margin-top: auto; 
@@ -697,4 +825,6 @@
   .submitRow { flex-direction: column-reverse; }
   .submitButton, .tryAgainButton { width: 100%; }
   .submitControls { margin-left: 0; width: 100%; justify-content: flex-end; }
+  .rewardChipRow { width: 100%; }
+  .rewardChip { flex: 1 1 auto; justify-content: center; }
 }

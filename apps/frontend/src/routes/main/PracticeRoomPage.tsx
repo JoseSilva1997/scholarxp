@@ -6,6 +6,7 @@ import {
   FaChevronDown,
   FaCircleChevronLeft,
   FaCircleChevronRight,
+  FaCircleInfo,
   FaLightbulb,
 } from 'react-icons/fa6';
 import expIcon from '../../assets/exp_icon.svg';
@@ -32,7 +33,6 @@ export default function PracticeRoomPage() {
     submitErrorMessage,
     isSubmittingAttempt,
     isRoomReadOnly,
-    isActiveQuestionLockedCorrect,
     canSubmitAttempt,
     selectedQuestionUnitIndex,
     activeQuestionUnit,
@@ -43,6 +43,7 @@ export default function PracticeRoomPage() {
     hasSubmittedActiveQuestion,
     hasActiveOptionOverride,
     showTryAgainButton,
+    rewardIndicators,
     selectQuestionUnit,
     selectOption,
     isActiveHintUnlocked,
@@ -74,6 +75,7 @@ export default function PracticeRoomPage() {
         optionCount: activeQuestionOptions.length,
       })
     : [];
+  const activeQuestionRewardIndicators = rewardIndicators.activeQuestion;
 
   if (!parsedModuleId || !parsedUnitId) {
     return (
@@ -270,8 +272,7 @@ export default function PracticeRoomPage() {
                         aria-pressed={isSelected}
                         disabled={
                           hasSubmittedActiveQuestion ||
-                          isRoomReadOnly ||
-                          isActiveQuestionLockedCorrect
+                          isRoomReadOnly
                         }
                       >
                         <div className={styles.optionContentWrapper}>
@@ -302,6 +303,125 @@ export default function PracticeRoomPage() {
                 </div>
               </div>
               <div className={styles.stickyFooter}>
+                {activeQuestionRewardIndicators && (
+                  <section className={styles.rewardStatusSection} aria-label="Reward status">
+                    <div className={styles.rewardChipRow}>
+                      <span
+                        className={`${styles.rewardChip} ${
+                          activeQuestionRewardIndicators.isBaseQuestionExpAvailable
+                            ? styles.rewardChipAvailable
+                            : styles.rewardChipClaimed
+                        }`}
+                        title={
+                          activeQuestionRewardIndicators.isBaseQuestionExpAvailable
+                            ? 'Base XP is available for this question.'
+                            : 'Base XP was already earned for this question.'
+                        }
+                      >
+                        <span aria-hidden="true" className={styles.rewardChipIcon}>
+                          ⚡
+                        </span>
+                        <span className={styles.rewardChipLabel}>
+                          {activeQuestionRewardIndicators.isBaseQuestionExpAvailable
+                            ? 'Base XP available'
+                            : 'Base XP claimed'}
+                        </span>
+                      </span>
+
+                      <span
+                        className={`${styles.rewardChip} ${
+                          activeQuestionRewardIndicators.isFirstAttemptBonusAvailable
+                            ? styles.rewardChipAvailable
+                            : activeQuestionRewardIndicators.isFirstAttemptBonusLost
+                              ? styles.rewardChipLost
+                              : styles.rewardChipClaimed
+                        }`}
+                        title={
+                          activeQuestionRewardIndicators.isFirstAttemptBonusAvailable
+                            ? 'First-try bonus is still available on this question.'
+                            : activeQuestionRewardIndicators.isFirstAttemptBonusLost
+                              ? 'First-try bonus was lost earlier on this question.'
+                              : 'First-try bonus was already earned on this question.'
+                        }
+                      >
+                        <span aria-hidden="true" className={styles.rewardChipIcon}>
+                          🎯
+                        </span>
+                        <span className={styles.rewardChipLabel}>
+                          {activeQuestionRewardIndicators.isFirstAttemptBonusAvailable
+                            ? 'First-try open'
+                            : activeQuestionRewardIndicators.isFirstAttemptBonusLost
+                              ? 'First-try lost'
+                              : 'First-try earned'}
+                        </span>
+                      </span>
+
+                      <div
+                        className={`${styles.rewardChip} ${styles.rewardChipStreak} ${
+                          rewardIndicators.streak.isEligibleForStreakRewards
+                            ? styles.rewardChipNeutral
+                            : styles.rewardChipDisabled
+                        }`}
+                        title={
+                          rewardIndicators.streak.isEligibleForStreakRewards
+                            ? 'Streak bonus tiers (30%, 50%, 100%) for this unit.'
+                            : 'Streak bonuses require at least 4 questions in this unit.'
+                        }
+                      >
+                        <span aria-hidden="true" className={styles.rewardChipIcon}>
+                          🔥
+                        </span>
+                        <span className={styles.rewardChipLabel}>Streak tiers</span>
+                        <span className={styles.streakTierDots} aria-hidden="true">
+                          {(['tier1', 'tier2', 'tier3'] as const).map((tierKey, index) => {
+                            const tierState = rewardIndicators.streak.tierStates[tierKey];
+                            return (
+                              <span
+                                key={tierKey}
+                                className={`${styles.streakTierDot} ${
+                                  tierState === 'claimed'
+                                    ? styles.streakTierDotClaimed
+                                    : tierState === 'active'
+                                      ? styles.streakTierDotActive
+                                      : styles.streakTierDotInactive
+                                }`}
+                                title={
+                                  tierState === 'claimed'
+                                    ? `${[30, 50, 100][index]}% tier already claimed`
+                                    : tierState === 'active'
+                                      ? `${[30, 50, 100][index]}% tier currently reachable`
+                                      : `${[30, 50, 100][index]}% tier not reached`
+                                }
+                              />
+                            );
+                          })}
+                        </span>
+                      </div>
+                    </div>
+
+                    <details className={styles.rewardHelp}>
+                      <summary className={styles.rewardHelpSummary}>
+                        <FaCircleInfo aria-hidden="true" />
+                        Rewards guide
+                      </summary>
+                      <div className={styles.rewardHelpBody}>
+                        <p>
+                          <strong>⚡ Base XP</strong>: awarded the first time this question is
+                          answered correctly.
+                        </p>
+                        <p>
+                          <strong>🎯 First-try</strong>: available only before any attempt on this
+                          question.
+                        </p>
+                        <p>
+                          <strong>🔥 Streak tiers</strong>: dots track 30%, 50%, and 100% tier
+                          states for this unit.
+                        </p>
+                      </div>
+                    </details>
+                  </section>
+                )}
+
                 {activeQuestion.question.hint ? (
                   <div className={styles.hintSection}>
                     <div
