@@ -388,4 +388,42 @@ describe('ExpAwardingService', () => {
       }),
     );
   });
+
+  it('resets streak on wrong retries for already-solved questions', async () => {
+    prisma.questionUnit.findMany.mockResolvedValue([
+      { id: 201 },
+      { id: 202 },
+      { id: 203 },
+      { id: 204 },
+      { id: 205 },
+    ] as never);
+    // Product caveat: once q1 is solved, a later wrong retry on q1 should still
+    // break the live streak. That wrong retry should never increment streak on its own.
+    prisma.questionAttempt.findMany.mockResolvedValue([
+      { questionId: 201, isCorrect: true },
+      { questionId: 201, isCorrect: false },
+      { questionId: 202, isCorrect: true },
+      { questionId: 203, isCorrect: true },
+    ] as never);
+
+    await service.awardAttemptModuleExp(
+      {
+        studentId: 100,
+        moduleId: 10,
+        moduleUnitId: 20,
+        sessionId: '44444444-4444-4444-8444-444444444444',
+        questionUnitId: 203,
+        isCorrect: true,
+        hadCorrectAttemptBeforeSubmit: false,
+        hadAnyAttemptBeforeSubmit: false,
+      },
+      prisma,
+    );
+
+    const streakEventCalls = expLedgerService.recordEvent.mock.calls.filter(
+      ([params]) =>
+        params.eventType === ExpLedgerEventTypes.PRACTICE_ROOM_STREAK,
+    );
+    expect(streakEventCalls).toHaveLength(0);
+  });
 });

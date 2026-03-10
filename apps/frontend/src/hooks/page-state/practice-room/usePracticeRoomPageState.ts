@@ -9,6 +9,7 @@ import type {
   PracticeAttemptSnapshot,
   PracticeQuestion,
   PracticeQuestionUnit,
+  PracticeQuestionRewardState,
 } from '@scholarxp/api-contracts';
 import { PracticeSessionTypeValues } from '@scholarxp/api-contracts';
 import {
@@ -49,6 +50,31 @@ type QuestionDataWithOptions = {
 type QuestionUnitNav = {
   canGoPrevious: boolean;
   canGoNext: boolean;
+};
+
+type QuestionRewardIndicator = {
+  baseQuestionExpStatus: 'available' | 'already_earned';
+  firstAttemptBonusStatus: 'available' | 'already_earned' | 'lost';
+  isBaseQuestionExpAvailable: boolean;
+  isFirstAttemptBonusAvailable: boolean;
+  isFirstAttemptBonusLost: boolean;
+};
+
+type StreakTierIndicatorState = 'inactive' | 'active' | 'claimed';
+
+type StreakRewardIndicators = {
+  isEligibleForStreakRewards: boolean;
+  thresholds: {
+    tier1: number;
+    tier2: number;
+    tier3: number;
+  };
+  claimedTiers: number[];
+  tierStates: {
+    tier1: StreakTierIndicatorState;
+    tier2: StreakTierIndicatorState;
+    tier3: StreakTierIndicatorState;
+  };
 };
 
 export function usePracticeRoomPageState({
@@ -513,6 +539,51 @@ export function usePracticeRoomPageState({
     activeQuestionUnit?.coreQuestion.lastAttempt?.isCorrect === false;
   const showTryAgainButton = hasSubmittedActiveQuestion && isActiveQuestionIncorrect;
 
+  // Compute static reward availability from backend room-load payload so UI can
+  // render icons/tooltips before the learner submits another attempt.
+  const questionRewardIndicatorsByQuestionUnitId = useMemo(
+    () =>
+      buildQuestionRewardIndicatorMap(roomWithLocalAttempts?.questions ?? []),
+    [roomWithLocalAttempts?.questions],
+  );
+
+  // Active question indicator is looked up by questionUnit id so the page can
+  // render concise per-question metadata without re-walking the room array.
+  const activeQuestionRewardIndicator = useMemo(() => {
+    if (!activeQuestionUnit) {
+      return null;
+    }
+    return (
+      questionRewardIndicatorsByQuestionUnitId[activeQuestionUnit.questionUnitId] ??
+      buildQuestionRewardIndicator(undefined)
+    );
+  }, [activeQuestionUnit, questionRewardIndicatorsByQuestionUnitId]);
+
+  // Lifetime claimed streak tiers come from room-load response and can differ
+  // from current session streak; this powers "already claimed" UI affordances.
+  const claimedStreakTiers = useMemo(
+    () => practiceRoomQuery.data?.streakRewardState?.claimedTiers ?? [],
+    [practiceRoomQuery.data?.streakRewardState?.claimedTiers],
+  );
+
+  // Session streak values drive "active vs inactive" tier state while claimed
+  // tiers mark historical bonuses as already earned.
+  const currentStreak = roomWithLocalAttempts
+    ? (currentStreakBySessionId[roomWithLocalAttempts.sessionId] ?? 0)
+    : 0;
+  const highestStreak = roomWithLocalAttempts
+    ? (highestStreakBySessionId[roomWithLocalAttempts.sessionId] ?? 0)
+    : 0;
+  const streakRewardIndicators = useMemo(
+    () =>
+      buildStreakRewardIndicators({
+        totalQuestions: roomWithLocalAttempts?.questions.length ?? 0,
+        currentStreak,
+        claimedTiers: claimedStreakTiers,
+      }),
+    [claimedStreakTiers, currentStreak, roomWithLocalAttempts?.questions.length],
+  );
+
   // ─── Submit attempt ────────────────────────────────────────────────────────
   // Payload building, mutation call, optimistic state, and error handling are
   // all owned by useSubmitAttempt; this hook only wires the required context.
@@ -696,14 +767,15 @@ export function usePracticeRoomPageState({
     hasSubmittedActiveQuestion,
     hasActiveOptionOverride,
     showTryAgainButton,
+    rewardIndicators: {
+      activeQuestion: activeQuestionRewardIndicator,
+      byQuestionUnitId: questionRewardIndicatorsByQuestionUnitId,
+      streak: streakRewardIndicators,
+    },
     // Streak counts for the current session, relayed from the backend after each submission.
-    currentStreak: roomWithLocalAttempts
-      ? (currentStreakBySessionId[roomWithLocalAttempts.sessionId] ?? 0)
-      : 0,
+    currentStreak,
     // Session all-time high streak, used by pip indicators to show which tier bonuses are re-earnable.
-    highestStreak: roomWithLocalAttempts
-      ? (highestStreakBySessionId[roomWithLocalAttempts.sessionId] ?? 0)
-      : 0,
+    highestStreak,
     // True once the seeding effect has written the initial API values into the streak
     // state maps. The StreakIndicator uses this to suppress the "Bonus!" animation
     // on the async transition from pre-load 0 → actual value (which is not a real earn).
@@ -828,4 +900,109 @@ function parsePracticeRoomQuestionUnitIdQuery(
     return null;
   }
   return parsedQuestionId;
+}
+
+// Reward-state defaults keep UI indicator rendering deterministic even when
+// older API responses omit the new rewardState field.
+function buildQuestionRewardIndicator(
+  rewardState: PracticeQuestionRewardState | undefined,
+): QuestionRewardIndicator {
+  const normalizedRewardState = rewardState ?? {
+    baseQuestionExpStatus: 'available',
+    firstAttemptBonusStatus: 'available',
+  };
+  return {
+    ...normalizedRewardState,
+    isBaseQuestionExpAvailable:
+      normalizedRewardState.baseQuestionExpStatus === 'available',
+    isFirstAttemptBonusAvailable:
+      normalizedRewardState.firstAttemptBonusStatus === 'available',
+    isFirstAttemptBonusLost:
+      normalizedRewardState.firstAttemptBonusStatus === 'lost',
+  };
+}
+
+// Mapping once by question-unit id avoids repeated array scans when page code
+// needs both active-question and nav-level indicator lookups.
+function buildQuestionRewardIndicatorMap(
+  questions: PracticeQuestionUnit[],
+): Record<number, QuestionRewardIndicator> {
+  const result: Record<number, QuestionRewardIndicator> = {};
+  for (const question of questions) {
+    result[question.questionUnitId] = buildQuestionRewardIndicator(
+      question.rewardState,
+    );
+  }
+  return result;
+}
+
+// Keep thresholds aligned with backend ExpCalculationService so indicator states
+// and reward behavior remain consistent.
+function resolveStreakThresholds(totalQuestions: number) {
+  return {
+    tier1: Math.max(3, Math.ceil(totalQuestions * 0.3)),
+    tier2: Math.max(3, Math.ceil(totalQuestions * 0.5)),
+    tier3: Math.max(3, totalQuestions),
+  };
+}
+
+// Derives UI-tier state from session streak + lifetime claim state without
+// requiring the UI layer to duplicate reward math.
+function buildStreakRewardIndicators(input: {
+  totalQuestions: number;
+  currentStreak: number;
+  claimedTiers: number[];
+}): StreakRewardIndicators {
+  const isEligibleForStreakRewards = input.totalQuestions >= 4;
+  const thresholds = resolveStreakThresholds(input.totalQuestions);
+  if (!isEligibleForStreakRewards) {
+    return {
+      isEligibleForStreakRewards: false,
+      thresholds,
+      claimedTiers: input.claimedTiers,
+      tierStates: {
+        tier1: 'inactive',
+        tier2: 'inactive',
+        tier3: 'inactive',
+      },
+    };
+  }
+
+  const claimedTierSet = new Set(input.claimedTiers);
+  return {
+    isEligibleForStreakRewards: true,
+    thresholds,
+    claimedTiers: input.claimedTiers,
+    tierStates: {
+      tier1: resolveStreakTierIndicatorState(
+        input.currentStreak,
+        thresholds.tier1,
+        claimedTierSet.has(1),
+      ),
+      tier2: resolveStreakTierIndicatorState(
+        input.currentStreak,
+        thresholds.tier2,
+        claimedTierSet.has(2),
+      ),
+      tier3: resolveStreakTierIndicatorState(
+        input.currentStreak,
+        thresholds.tier3,
+        claimedTierSet.has(3),
+      ),
+    },
+  };
+}
+
+function resolveStreakTierIndicatorState(
+  currentStreak: number,
+  threshold: number,
+  isClaimed: boolean,
+): StreakTierIndicatorState {
+  if (isClaimed) {
+    return 'claimed';
+  }
+  if (currentStreak >= threshold) {
+    return 'active';
+  }
+  return 'inactive';
 }
