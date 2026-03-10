@@ -84,6 +84,14 @@ export class ExpStreakService {
     sessionId: string,
     prismaClient: PrismaClientLike,
   ): Promise<{ highestStreak: number; currentStreak: number }> {
+    const historicallySolvedQuestionIds =
+      await this.getHistoricallySolvedQuestionIds({
+        moduleUnitId,
+        studentId,
+        sessionId,
+        prismaClient,
+      });
+
     // Rebuild the streak from persisted attempts so rewards are based on canonical history.
     const attempts = await prismaClient.questionAttempt.findMany({
       where: {
@@ -98,7 +106,9 @@ export class ExpStreakService {
       },
     });
 
-    const alreadyCorrectQuestions = new Set<number>();
+    // Seed with previously solved questions from other sessions so repeat-correct
+    // answers on return sessions never inflate streak progression.
+    const alreadyCorrectQuestions = new Set<number>(historicallySolvedQuestionIds);
     let currentStreak = 0;
     let highestStreak = 0;
 
@@ -119,5 +129,28 @@ export class ExpStreakService {
     }
 
     return { highestStreak, currentStreak };
+  }
+
+  // Cross-session solved history prevents "return and re-answer solved question"
+  // from counting as new streak progress while still allowing wrong retries to reset streak.
+  private async getHistoricallySolvedQuestionIds(input: {
+    moduleUnitId: number;
+    studentId: number;
+    sessionId: string;
+    prismaClient: PrismaClientLike;
+  }): Promise<number[]> {
+    const solvedAttempts = await input.prismaClient.questionAttempt.findMany({
+      where: {
+        moduleUnitId: input.moduleUnitId,
+        studentId: input.studentId,
+        isCorrect: true,
+        sessionId: { not: input.sessionId },
+      },
+      select: {
+        questionId: true,
+      },
+      distinct: ['questionId'],
+    });
+    return solvedAttempts.map((attempt) => attempt.questionId);
   }
 }

@@ -189,9 +189,11 @@ describe('ExpAwardingService', () => {
       { id: 202 },
       { id: 203 },
     ] as never);
-    prisma.questionAttempt.findMany.mockResolvedValue([
-      { questionId: 201, isCorrect: true },
-    ] as never);
+    prisma.questionAttempt.findMany
+      // Historically solved outside this session.
+      .mockResolvedValueOnce([])
+      // Attempts in this session.
+      .mockResolvedValueOnce([{ questionId: 201, isCorrect: true }] as never);
 
     const result = await service.awardAttemptModuleExp(
       {
@@ -309,9 +311,11 @@ describe('ExpAwardingService', () => {
       { id: 204 },
     ] as never);
     // Only one correct attempt exists in this session, so streak rewards should not trigger.
-    prisma.questionAttempt.findMany.mockResolvedValue([
-      { questionId: 201, isCorrect: true },
-    ] as never);
+    prisma.questionAttempt.findMany
+      // Solved attempts from other sessions are excluded by query; no historical solves here.
+      .mockResolvedValueOnce([])
+      // One correct attempt in the current session.
+      .mockResolvedValueOnce([{ questionId: 201, isCorrect: true }] as never);
 
     await service.awardAttemptModuleExp(
       {
@@ -351,12 +355,16 @@ describe('ExpAwardingService', () => {
     ] as never);
     // q1 is corrected on retry (after wrong), then q2/q3 are correct.
     // Product rule: retry-correct answers still contribute to streak rebuilding.
-    prisma.questionAttempt.findMany.mockResolvedValue([
-      { questionId: 201, isCorrect: false },
-      { questionId: 201, isCorrect: true },
-      { questionId: 202, isCorrect: true },
-      { questionId: 203, isCorrect: true },
-    ] as never);
+    prisma.questionAttempt.findMany
+      // No historically solved questions in prior sessions.
+      .mockResolvedValueOnce([])
+      // Current session timeline.
+      .mockResolvedValueOnce([
+        { questionId: 201, isCorrect: false },
+        { questionId: 201, isCorrect: true },
+        { questionId: 202, isCorrect: true },
+        { questionId: 203, isCorrect: true },
+      ] as never);
 
     await service.awardAttemptModuleExp(
       {
@@ -399,12 +407,17 @@ describe('ExpAwardingService', () => {
     ] as never);
     // Product caveat: once q1 is solved, a later wrong retry on q1 should still
     // break the live streak. That wrong retry should never increment streak on its own.
-    prisma.questionAttempt.findMany.mockResolvedValue([
-      { questionId: 201, isCorrect: true },
-      { questionId: 201, isCorrect: false },
-      { questionId: 202, isCorrect: true },
-      { questionId: 203, isCorrect: true },
-    ] as never);
+    prisma.questionAttempt.findMany
+      // q201 was solved in a previous session, so this session should not
+      // gain streak progress from q201 correct retries.
+      .mockResolvedValueOnce([{ questionId: 201 }] as never)
+      // Current session timeline includes wrong retry that must reset streak.
+      .mockResolvedValueOnce([
+        { questionId: 201, isCorrect: true },
+        { questionId: 201, isCorrect: false },
+        { questionId: 202, isCorrect: true },
+        { questionId: 203, isCorrect: true },
+      ] as never);
 
     await service.awardAttemptModuleExp(
       {
