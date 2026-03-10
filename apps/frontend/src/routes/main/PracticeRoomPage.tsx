@@ -240,32 +240,6 @@ export default function PracticeRoomPage() {
           {activeQuestionUnit && activeQuestion ? (
             <section className={styles.questionPanel}>
               <div className={styles.stemHeader}>
-                <div className={styles.questionNavButtons}>
-                  <button
-                    type="button"
-                    className={styles.questionUnitNavButton}
-                    onClick={goToPreviousQuestionUnit}
-                    disabled={!questionUnitNav.canGoPrevious}
-                    aria-label="Previous question"
-                  >
-                    <IconContext.Provider value={{ className: styles.navIcon }}>
-                      <FaCircleChevronLeft />
-                    </IconContext.Provider>
-                    <span className={styles.questionUnitNavLabel}>Prev</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.questionUnitNavButton}
-                    onClick={goToNextQuestionUnit}
-                    disabled={!questionUnitNav.canGoNext}
-                    aria-label="Next question"
-                  >
-                    <span className={styles.questionUnitNavLabel}>Next</span>
-                    <IconContext.Provider value={{ className: styles.navIcon }}>
-                      <FaCircleChevronRight />
-                    </IconContext.Provider>
-                  </button>
-                </div>
                 <h2 className={styles.questionStem}>{activeQuestion.question.questionStem}</h2>
               </div>
 
@@ -387,22 +361,50 @@ export default function PracticeRoomPage() {
                     Try again
                   </button>
                 ) : null}
-                <button
-                  type="button"
-                  className={styles.submitButton}
-                  onClick={() => {
-                    void submitActiveQuestionAttempt();
-                  }}
-                  disabled={!canSubmitAttempt}
-                >
-                  {isSubmittingAttempt
-                    ? 'Submitting…'
-                    : isActiveQuestionLockedCorrect
-                      ? 'Correct'
-                    : hasSubmittedActiveQuestion
-                      ? 'Submitted'
-                      : 'Submit answer'}
-                </button>
+
+                <div className={styles.submitControls}>
+                  <div className={styles.questionNavButtons}>
+                    <button
+                      type="button"
+                      className={styles.questionUnitNavButton}
+                      onClick={goToPreviousQuestionUnit}
+                      disabled={!questionUnitNav.canGoPrevious}
+                      aria-label="Previous question"
+                    >
+                      <IconContext.Provider value={{ className: styles.navIcon }}>
+                        <FaCircleChevronLeft />
+                      </IconContext.Provider>
+                      <span className={styles.questionUnitNavLabel}>Prev</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.questionUnitNavButton}
+                      onClick={goToNextQuestionUnit}
+                      disabled={!questionUnitNav.canGoNext}
+                      aria-label="Next question"
+                    >
+                      <span className={styles.questionUnitNavLabel}>Next</span>
+                      <IconContext.Provider value={{ className: styles.navIcon }}>
+                        <FaCircleChevronRight />
+                      </IconContext.Provider>
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    className={styles.submitButton}
+                    onClick={() => {
+                      void submitActiveQuestionAttempt();
+                    }}
+                    disabled={!canSubmitAttempt}
+                  >
+                    {isSubmittingAttempt
+                      ? 'Submitting…'
+                      : hasSubmittedActiveQuestion
+                        ? 'Submitted'
+                        : "Submit"}
+                  </button>
+                </div>
               </div>
             </section>
           ) : (
