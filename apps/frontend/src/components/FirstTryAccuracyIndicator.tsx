@@ -1,54 +1,58 @@
-// Displays a visual cue for the student's first-try accuracy on the currently active
-// question. Lights up green when the backend awards a firstAttemptBonus (question answered
-// correctly on the very first attempt), turns red on an incorrect answer, and stays neutral
-// when the question hasn't been answered yet or the student is retrying.
-// Placed to the left of StreakIndicator in the practice-room header so both live-feedback
-// indicators are grouped together.
+// Displays the first-try bonus availability for the currently active question.
+// Three states are shown:
+//   available — amber target, "you can still earn the first-try bonus"
+//   earned    — dimmed target + green checkmark, "you already earned it"
+//   lost      — dimmed target + red cross, "you missed your chance"
+// Placed to the left of StreakIndicator in the practice-room header so both
+// per-question reward indicators are grouped together.
+import { FaCheck, FaXmark } from 'react-icons/fa6';
 import { TbTargetArrow } from "react-icons/tb";
 import styles from './FirstTryAccuracyIndicator.module.css';
 
-// Mirrors the string literals used in usePracticeRoomPageState / useSubmitAttempt so
-// callers share a single contract without importing from hook files.
-export type FirstTryAccuracyResult = 'first-try-correct' | 'incorrect' | null;
+// Explicit three-value status driven by combined live + server-snapshot data;
+// callers resolve which state is active and pass a single clean value.
+export type FirstTryBonusStatus = 'available' | 'earned' | 'lost';
 
 type FirstTryAccuracyIndicatorProps = {
-  // The outcome of the last submitted attempt for the active question.
-  // null = not yet answered (or student just clicked "Try Again").
-  result: FirstTryAccuracyResult;
+  // The resolved first-try bonus status for the active question.
+  status: FirstTryBonusStatus;
 };
 
-// CSS class applied to the container per result state; controls the indicator colour
-// and optional glow animation without duplicating variables in the component.
-const STATE_CLASS: Record<'none' | 'first-try-correct' | 'incorrect', string> = {
-  none: styles.stateNone,
-  'first-try-correct': styles.stateCorrect,
-  incorrect: styles.stateIncorrect,
+// CSS class applied to the container per status; controls icon colour and glow.
+const STATE_CLASS: Record<FirstTryBonusStatus, string> = {
+  available: styles.stateAvailable,
+  earned: styles.stateEarned,
+  lost: styles.stateLost,
 };
 
-// Human-readable label surfaced to screen readers so the indicator's meaning
-// is announced without requiring the user to interpret colour alone.
-const STATE_ARIA_LABEL: Record<'none' | 'first-try-correct' | 'incorrect', string> = {
-  none: 'First-try accuracy: no answer yet',
-  'first-try-correct': 'First try! Bonus XP earned',
-  incorrect: 'Incorrect answer',
+// Human-readable label surfaced to screen readers.
+const STATE_ARIA_LABEL: Record<FirstTryBonusStatus, string> = {
+  available: 'First-try bonus: still available',
+  earned: 'First-try bonus: already earned',
+  lost: 'First-try bonus: lost',
 };
 
-export default function FirstTryAccuracyIndicator({ result }: FirstTryAccuracyIndicatorProps) {
-  // Normalise null to the string key 'none' so the record lookups above stay exhaustive.
-  const stateKey = result ?? 'none';
-
+export default function FirstTryAccuracyIndicator({ status }: FirstTryAccuracyIndicatorProps) {
   return (
     <div
-      className={`${styles.container} ${STATE_CLASS[stateKey]}`}
-      aria-label={STATE_ARIA_LABEL[stateKey]}
-      title={STATE_ARIA_LABEL[stateKey]}
+      className={`${styles.container} ${STATE_CLASS[status]}`}
+      aria-label={STATE_ARIA_LABEL[status]}
+      title={STATE_ARIA_LABEL[status]}
     >
-      {/* AnimatePresence re-mounts the icon whenever the result changes so the
-          spring entrance animation plays on every state transition, giving a
-          satisfying "snap" that draws the student's attention to the feedback. */}
-      {/* No entrance animation — instant colour switch keeps feedback snappy */}
+      {/* Target icon sits at the base; overlay badge is positioned on top of it in the
+          bottom-right corner so the base shape is still readable in all states. */}
       <span className={styles.iconWrapper} aria-hidden="true">
         <TbTargetArrow className={styles.icon} />
+        {status === 'earned' && (
+          <span className={`${styles.overlayBadge} ${styles.overlayBadgeEarned}`}>
+            <FaCheck className={styles.overlayIcon} />
+          </span>
+        )}
+        {status === 'lost' && (
+          <span className={`${styles.overlayBadge} ${styles.overlayBadgeLost}`}>
+            <FaXmark className={styles.overlayIcon} />
+          </span>
+        )}
       </span>
     </div>
   );

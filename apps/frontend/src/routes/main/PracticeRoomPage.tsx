@@ -77,6 +77,19 @@ export default function PracticeRoomPage() {
     : [];
   const activeQuestionRewardIndicators = rewardIndicators.activeQuestion;
 
+  // Resolve the first-try bonus status for the active question into a single
+  // three-value signal for the header indicator. Live session results (from the
+  // submit mutation) take priority since the server snapshot only updates on
+  // refetch; fall back to the server snapshot for returning students where no
+  // new attempt has been made yet in this session.
+  const firstTryStatus = (() => {
+    if (lastAttemptResult === 'first-try-correct') return 'earned' as const;
+    if (lastAttemptResult === 'incorrect') return 'lost' as const;
+    if (activeQuestionRewardIndicators?.firstAttemptBonusStatus === 'already_earned') return 'earned' as const;
+    if (activeQuestionRewardIndicators?.firstAttemptBonusStatus === 'lost') return 'lost' as const;
+    return 'available' as const;
+  })();
+
   if (!parsedModuleId || !parsedUnitId) {
     return (
       <MainSection className={styles.page}>
@@ -108,7 +121,7 @@ export default function PracticeRoomPage() {
               {/* Accuracy indicator (bullseye) sits to the left of the streak
                   indicator so both live-feedback pills are grouped together.
                   Green = first-try bonus earned, red = wrong, neutral = unanswered. */}
-              <FirstTryAccuracyIndicator result={lastAttemptResult} />
+              <FirstTryAccuracyIndicator status={firstTryStatus} />
               {/* Streak indicator sits left of the XP bar so progress metrics are grouped */}
               <StreakIndicator
                 currentStreak={currentStreak}
@@ -328,35 +341,6 @@ export default function PracticeRoomPage() {
                             : 'Base XP claimed'}
                         </span>
                       </span>
-
-                      <span
-                        className={`${styles.rewardChip} ${
-                          activeQuestionRewardIndicators.isFirstAttemptBonusAvailable
-                            ? styles.rewardChipAvailable
-                            : activeQuestionRewardIndicators.isFirstAttemptBonusLost
-                              ? styles.rewardChipLost
-                              : styles.rewardChipClaimed
-                        }`}
-                        title={
-                          activeQuestionRewardIndicators.isFirstAttemptBonusAvailable
-                            ? 'First-try bonus is still available on this question.'
-                            : activeQuestionRewardIndicators.isFirstAttemptBonusLost
-                              ? 'First-try bonus was lost earlier on this question.'
-                              : 'First-try bonus was already earned on this question.'
-                        }
-                      >
-                        <span aria-hidden="true" className={styles.rewardChipIcon}>
-                          🎯
-                        </span>
-                        <span className={styles.rewardChipLabel}>
-                          {activeQuestionRewardIndicators.isFirstAttemptBonusAvailable
-                            ? 'First-try open'
-                            : activeQuestionRewardIndicators.isFirstAttemptBonusLost
-                              ? 'First-try lost'
-                              : 'First-try earned'}
-                        </span>
-                      </span>
-
                     </div>
 
                     <details className={styles.rewardHelp}>
