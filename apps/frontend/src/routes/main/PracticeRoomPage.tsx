@@ -14,6 +14,7 @@ import MainSection from '../../components/MainSection';
 import StreakIndicator from '../../components/StreakTrackerIndicator';
 import FirstTryAccuracyIndicator from '../../components/FirstTryAccuracyIndicator';
 import BaseXpIndicator from '../../components/BaseXpIndicator';
+import QuestionStreakIndicator from '../../components/QuestionStreakIndicator';
 import { usePracticeRoomPageState } from '../../hooks/page-state/practice-room/usePracticeRoomPageState';
 import styles from './PracticeRoomPage.module.css';
 import { getQuestionUnitStatusClass } from './practice-room-status';
@@ -99,6 +100,13 @@ export default function PracticeRoomPage() {
     return 'available' as const;
   })();
 
+  // Per-question streak eligibility: a question can increment the streak as long
+  // as it has never been answered correctly. Once hasCorrectAttempt is true
+  // (regardless of first-try or retry), answering correctly again will not
+  // increment the counter — so the indicator goes ineligible.
+  const questionStreakStatus: 'eligible' | 'ineligible' =
+    activeQuestionUnit?.hasCorrectAttempt === true ? 'ineligible' : 'eligible';
+
   if (!parsedModuleId || !parsedUnitId) {
     return (
       <MainSection className={styles.page}>
@@ -127,6 +135,12 @@ export default function PracticeRoomPage() {
 
           {moduleProgress && (
             <div className={styles.headerProgress}>
+              {/* Per-question streak indicator: shown only on units where the streak
+                  mechanic is active (≥ 4 questions). Amber when this question can
+                  still extend the streak, dimmed once it has contributed or broken it. */}
+              {rewardIndicators.streak.isEligibleForStreakRewards && (
+                <QuestionStreakIndicator status={questionStreakStatus} />
+              )}
               {/* XP indicator: amber when base XP is still earnable, dimmed once claimed. */}
               <BaseXpIndicator status={baseXpStatus} />
               {/* Accuracy indicator (bullseye) sits to the left of the streak

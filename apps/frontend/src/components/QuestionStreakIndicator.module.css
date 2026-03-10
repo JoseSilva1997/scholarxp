@@ -1,0 +1,94 @@
+/* Styles for the QuestionStreakIndicator component.
+   Circular pill that mirrors BaseXpIndicator and FirstTryAccuracyIndicator so
+   all three per-question reward indicators look like a matched set in the header.
+   Three states:
+     eligible    — amber trending-up arrow with glow pulse, "streak still earnable"
+     contributed — dimmed arrow + green checkmark badge, "already contributed"
+     broken      — dimmed arrow + red X badge, "broke the streak" */
+
+.container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface);
+  padding: 0.5rem;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-md);
+  --indicator-color: var(--color-text-dim);
+  --indicator-glow: transparent;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* ── State styling ─────────────────────────────────────────────────────────── */
+
+/* Eligible: amber — mirrors BaseXpIndicator/FirstTryAccuracyIndicator stateAvailable
+   so all "still earnable" indicators pulse together in the header. */
+.stateEligible {
+  --indicator-color: var(--color-accent);
+  --indicator-glow: rgba(245, 158, 11, 0.35);
+  border-color: var(--color-accent-soft);
+  box-shadow: var(--shadow-md), 0 0 10px var(--indicator-glow);
+  animation: streakEligiblePulse 2.4s ease-in-out infinite;
+}
+
+/* Contributed and broken: both muted — only the badge conveys the distinction. */
+.stateContributed,
+.stateBroken {
+  --indicator-color: var(--color-text-dim);
+  --indicator-glow: transparent;
+}
+
+/* ── Icon ──────────────────────────────────────────────────────────────────── */
+
+/* Relative so the overlay badge can be anchored inside. */
+.iconWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon {
+  width: 1.2rem;
+  height: 1.2rem;
+  color: var(--indicator-color);
+  transition: color 0.3s ease;
+}
+
+/* ── Overlay badge ─────────────────────────────────────────────────────────── */
+
+/* Bottom-right mini badge — identical sizing/positioning to BaseXpIndicator and
+   FirstTryAccuracyIndicator so badges line up visually across all indicators. */
+.overlayBadge {
+  position: absolute;
+  bottom: -3px;
+  right: -4px;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--color-surface);
+}
+
+.overlayBadgeContributed {
+  background: var(--color-success);
+}
+
+.overlayBadgeBroken {
+  background: var(--color-error);
+}
+
+.overlayIcon {
+  width: 0.45rem;
+  height: 0.45rem;
+  color: #fff;
+}
+
+/* Glow pulse mirrors the other "available" indicators so all three pulse in sync */
+@keyframes streakEligiblePulse {
+  0%, 100% { box-shadow: var(--shadow-md), 0 0 6px var(--indicator-glow); }
+  50%       { box-shadow: var(--shadow-md), 0 0 14px var(--indicator-glow); }
+}
