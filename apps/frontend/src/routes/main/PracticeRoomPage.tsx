@@ -10,11 +10,11 @@ import {
 } from 'react-icons/fa6';
 import expIcon from '../../assets/exp_icon.svg';
 import MainSection from '../../components/MainSection';
-import StreakIndicator from '../../components/StreakTrackerIndicator';
-import FirstTryAccuracyIndicator from '../../components/FirstTryAccuracyIndicator';
-import BaseXpIndicator from '../../components/BaseXpIndicator';
-import QuestionStreakIndicator from '../../components/QuestionStreakIndicator';
-import RewardsGuideTooltip from '../../components/RewardsGuideTooltip';
+import StreakIndicator from '../../components/PracticeRoom/StreakTrackerIndicator';
+import FirstTryAccuracyIndicator from '../../components/PracticeRoom/FirstTryAccuracyIndicator';
+import BaseXpIndicator from '../../components/PracticeRoom/BaseXpIndicator';
+import QuestionStreakIndicator from '../../components/PracticeRoom/QuestionStreakIndicator';
+import RewardsGuideTooltip from '../../components/PracticeRoom/RewardsGuideTooltip';
 import { usePracticeRoomPageState } from '../../hooks/page-state/practice-room/usePracticeRoomPageState';
 import styles from './PracticeRoomPage.module.css';
 import { getQuestionUnitStatusClass } from './practice-room-status';

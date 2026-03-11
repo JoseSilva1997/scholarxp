@@ -34,13 +34,14 @@ const STATE_ARIA_LABEL: Record<FirstTryBonusStatus, string> = {
 
 export default function FirstTryAccuracyIndicator({ status }: FirstTryAccuracyIndicatorProps) {
   return (
-    <div
+    // Wrapper carries the state class so the CSS descendant selector (.stateX .icon)
+    // can target the icon without extra class juggling on the SVG element.
+    <span
       className={`${styles.container} ${STATE_CLASS[status]}`}
       aria-label={STATE_ARIA_LABEL[status]}
       title={STATE_ARIA_LABEL[status]}
     >
-      {/* Target icon sits at the base; overlay badge is positioned on top of it in the
-          bottom-right corner so the base shape is still readable in all states. */}
+      {/* iconWrapper keeps relative positioning for the overlay badge. */}
       <span className={styles.iconWrapper} aria-hidden="true">
         <TbTargetArrow className={styles.icon} />
         {status === 'earned' && (
@@ -54,6 +55,6 @@ export default function FirstTryAccuracyIndicator({ status }: FirstTryAccuracyIn
           </span>
         )}
       </span>
-    </div>
+    </span>
   );
 }

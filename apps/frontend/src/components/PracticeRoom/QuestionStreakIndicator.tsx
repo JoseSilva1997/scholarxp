@@ -32,14 +32,14 @@ const STATE_ARIA_LABEL: Record<QuestionStreakStatus, string> = {
 
 export default function QuestionStreakIndicator({ status }: QuestionStreakIndicatorProps) {
   return (
-    <div
+    // Wrapper carries the state class so the CSS descendant selector (.stateX .icon)
+    // can target the icon without extra class juggling on the SVG element.
+    <span
       className={`${styles.container} ${STATE_CLASS[status]}`}
       aria-label={STATE_ARIA_LABEL[status]}
       title={STATE_ARIA_LABEL[status]}
     >
-      <span className={styles.iconWrapper} aria-hidden="true">
-        <FaFire className={styles.icon} />
-      </span>
-    </div>
+      <FaFire className={styles.icon} aria-hidden="true" />
+    </span>
   );
 }

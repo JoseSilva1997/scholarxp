@@ -1,0 +1,39 @@
+/* Styles for the QuestionStreakIndicator component.
+   Bare icon — no circular container. The flame icon itself glows when the
+   question is still eligible to increment the streak.
+   States:
+     eligible   — amber flame with a drop-shadow glow that pulses
+     ineligible — dimmed flame, no glow */
+
+/* Minimal wrapper; exists only to flex-center the icon. */
+.container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Icon ──────────────────────────────────────────────────────────────────── */
+
+.icon {
+  width: 1.2rem;
+  height: 1.2rem;
+  transition: color 0.3s ease, filter 0.3s ease;
+}
+
+/* Eligible: amber flame with pulsing drop-shadow glow. */
+.stateEligible .icon {
+  color: var(--color-accent);
+  animation: streakEligiblePulse 2.4s ease-in-out infinite;
+}
+
+/* Ineligible: muted, no glow. */
+.stateIneligible .icon {
+  color: var(--color-text-dim);
+  filter: none;
+}
+
+/* Pulse animates the drop-shadow on the icon itself so the flame appears to flicker. */
+@keyframes streakEligiblePulse {
+  0%, 100% { filter: drop-shadow(0 0 3px rgba(245, 158, 11, 0.4)); }
+  50%       { filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.75)); }
+}

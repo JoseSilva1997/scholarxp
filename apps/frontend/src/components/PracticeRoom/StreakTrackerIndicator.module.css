@@ -31,7 +31,7 @@
 
 /* Tier 0: dormant — muted icon, no glow, no pulse */
 .tier0 {
-  --streak-color: var(--color-text-dim);
+  --streak-color: var(--color-primary-subtle);
   --streak-glow: transparent;
 }
 

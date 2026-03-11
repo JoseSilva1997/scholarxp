@@ -30,13 +30,14 @@ const STATE_ARIA_LABEL: Record<BaseXpStatus, string> = {
 
 export default function BaseXpIndicator({ status }: BaseXpIndicatorProps) {
   return (
-    <div
+    // Wrapper carries the state class so the CSS descendant selector (.stateX .icon)
+    // can target the icon without extra class juggling on the SVG element.
+    <span
       className={`${styles.container} ${STATE_CLASS[status]}`}
       aria-label={STATE_ARIA_LABEL[status]}
       title={STATE_ARIA_LABEL[status]}
     >
-      {/* Bolt icon at base; checkmark badge overlaid bottom-right when claimed
-          so the bolt shape remains visible as context. */}
+      {/* iconWrapper keeps relative positioning for the overlay badge. */}
       <span className={styles.iconWrapper} aria-hidden="true">
         <FaBolt className={styles.icon} />
         {status === 'claimed' && (
@@ -45,6 +46,6 @@ export default function BaseXpIndicator({ status }: BaseXpIndicatorProps) {
           </span>
         )}
       </span>
-    </div>
+    </span>
   );
 }
