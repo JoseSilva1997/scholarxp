@@ -21,7 +21,10 @@
   gap: 1.5rem;
   padding: 1.5rem 0 1rem;
   position: relative;
-  z-index: 5;
+  /* Must be above questionPanel (5) and stickyFooter (20) so that the
+     RewardsGuideTooltip bubble, which extends downward from the header,
+     is never obscured by content rendered later in the DOM. */
+  z-index: 25;
 }
 
 .headerTop {

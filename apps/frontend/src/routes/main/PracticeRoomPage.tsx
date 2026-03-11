@@ -6,7 +6,6 @@ import {
   FaChevronDown,
   FaCircleChevronLeft,
   FaCircleChevronRight,
-  FaCircleInfo,
   FaLightbulb,
 } from 'react-icons/fa6';
 import expIcon from '../../assets/exp_icon.svg';
@@ -15,6 +14,7 @@ import StreakIndicator from '../../components/StreakTrackerIndicator';
 import FirstTryAccuracyIndicator from '../../components/FirstTryAccuracyIndicator';
 import BaseXpIndicator from '../../components/BaseXpIndicator';
 import QuestionStreakIndicator from '../../components/QuestionStreakIndicator';
+import RewardsGuideTooltip from '../../components/RewardsGuideTooltip';
 import { usePracticeRoomPageState } from '../../hooks/page-state/practice-room/usePracticeRoomPageState';
 import styles from './PracticeRoomPage.module.css';
 import { getQuestionUnitStatusClass } from './practice-room-status';
@@ -135,6 +135,8 @@ export default function PracticeRoomPage() {
 
           {moduleProgress && (
             <div className={styles.headerProgress}>
+              {/* Info icon: hover reveals a speech-bubble explaining all reward indicators */}
+                <RewardsGuideTooltip />
               {/* Per-question streak indicator: shown only on units where the streak
                   mechanic is active (≥ 4 questions). Amber when this question can
                   still extend the streak, dimmed once it has contributed or broken it. */}
@@ -341,30 +343,6 @@ export default function PracticeRoomPage() {
                 </div>
               </div>
               <div className={styles.stickyFooter}>
-                {activeQuestionRewardIndicators && (
-                  <section className={styles.rewardStatusSection} aria-label="Reward status">
-                    <details className={styles.rewardHelp}>
-                      <summary className={styles.rewardHelpSummary}>
-                        <FaCircleInfo aria-hidden="true" />
-                        Rewards guide
-                      </summary>
-                      <div className={styles.rewardHelpBody}>
-                        <p>
-                          <strong>⚡ Base XP</strong>: awarded the first time this question is
-                          answered correctly.
-                        </p>
-                        <p>
-                          <strong>🎯 First-try</strong>: available only before any attempt on this
-                          question.
-                        </p>
-                        <p>
-                          <strong>🔥 Streak tiers</strong>: dots track 30%, 50%, and 100% tier
-                          states for this unit.
-                        </p>
-                      </div>
-                    </details>
-                  </section>
-                )}
 
                 {activeQuestion.question.hint ? (
                   <div className={styles.hintSection}>
