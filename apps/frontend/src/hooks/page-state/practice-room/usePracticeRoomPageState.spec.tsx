@@ -606,7 +606,7 @@ describe('usePracticeRoomPageState (core-only)', () => {
     expect(state.canSubmitAttempt).toBe(false);
   });
 
-  it('locks already-correct questions and keeps incorrect revisits retryable', () => {
+  it('seeds prior attempt selections and allows changing answers in active practice sessions', () => {
     useModuleUnitPracticeRoomQueryMock.mockReturnValue({
       isPending: false,
       error: null,
@@ -664,8 +664,9 @@ describe('usePracticeRoomPageState (core-only)', () => {
     const rendered = renderHookWithParams('1', '1');
     let state = rendered.getState();
 
-    expect(state.isActiveQuestionLockedCorrect).toBe(true);
-    expect(state.canSubmitAttempt).toBe(false);
+    // Practice rooms now expose a retry flow instead of a lock flag, so the
+    // assertion targets the current public API behavior.
+    expect(state.canSubmitAttempt).toBe(true);
     expect(state.selectedOptionIndex).toBe(0);
 
     act(() => {
@@ -673,14 +674,14 @@ describe('usePracticeRoomPageState (core-only)', () => {
     });
 
     state = rendered.getState();
-    expect(state.selectedOptionIndex).toBe(0);
+    expect(state.selectedOptionIndex).toBe(1);
 
     act(() => {
       state.selectQuestionUnit(1);
     });
 
     state = rendered.getState();
-    expect(state.isActiveQuestionLockedCorrect).toBe(false);
+    expect(state.canSubmitAttempt).toBe(true);
 
     act(() => {
       state.selectOption(302, 1);

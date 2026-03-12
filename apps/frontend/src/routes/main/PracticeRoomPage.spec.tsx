@@ -58,12 +58,12 @@ type MockPageState = {
   room: { moduleUnitTitle: string; questions: PracticeQuestionUnit[] } | null;
   moduleProgress: { level: number; currentExp: number; expPercent: number } | null;
   moduleExpGainIndicator: { base: number; firstAttemptBonus: number; streakBonus: number; total: number; awardId?: number } | null;
+  showLevelUp: boolean;
   isLoading: boolean;
   pageError: string | null;
   submitErrorMessage: string | null;
   isSubmittingAttempt: boolean;
   isRoomReadOnly: boolean;
-  isActiveQuestionLockedCorrect: boolean;
   canSubmitAttempt: boolean;
   selectedQuestionUnitIndex: number;
   activeQuestionUnit: PracticeQuestionUnit | null;
@@ -74,6 +74,21 @@ type MockPageState = {
   hasSubmittedActiveQuestion: boolean;
   hasActiveOptionOverride: boolean;
   showTryAgainButton: boolean;
+  rewardIndicators: {
+    activeQuestion: {
+      baseQuestionExpStatus: 'available' | 'already_earned';
+      firstAttemptBonusStatus: 'available' | 'already_earned' | 'lost';
+    } | null;
+    byQuestionUnitId: Record<number, unknown>;
+    streak: {
+      isEligibleForStreakRewards: boolean;
+      claimedTiers: number[];
+    };
+  };
+  currentStreak: number;
+  highestStreak: number;
+  isStreakInitialized: boolean;
+  lastAttemptResult: 'first-try-correct' | 'incorrect' | null;
   isActiveHintUnlocked: boolean;
 };
 
@@ -83,12 +98,12 @@ let pageState: MockPageState = {
   room: null,
   moduleProgress: null,
   moduleExpGainIndicator: null,
+  showLevelUp: false,
   isLoading: true,
   pageError: null,
   submitErrorMessage: null,
   isSubmittingAttempt: false,
   isRoomReadOnly: false,
-  isActiveQuestionLockedCorrect: false,
   canSubmitAttempt: false,
   selectedQuestionUnitIndex: 0,
   activeQuestionUnit: null,
@@ -99,6 +114,15 @@ let pageState: MockPageState = {
   hasSubmittedActiveQuestion: false,
   hasActiveOptionOverride: false,
   showTryAgainButton: false,
+  rewardIndicators: {
+    activeQuestion: null,
+    byQuestionUnitId: {},
+    streak: { isEligibleForStreakRewards: false, claimedTiers: [] },
+  },
+  currentStreak: 0,
+  highestStreak: 0,
+  isStreakInitialized: false,
+  lastAttemptResult: null,
   isActiveHintUnlocked: false,
 };
 
@@ -138,12 +162,12 @@ describe('PracticeRoomPage route (core-only)', () => {
       room: null,
       moduleProgress: null,
       moduleExpGainIndicator: null,
+      showLevelUp: false,
       isLoading: true,
       pageError: null,
       submitErrorMessage: null,
       isSubmittingAttempt: false,
       isRoomReadOnly: false,
-      isActiveQuestionLockedCorrect: false,
       canSubmitAttempt: false,
       selectedQuestionUnitIndex: 0,
       activeQuestionUnit: null,
@@ -154,6 +178,15 @@ describe('PracticeRoomPage route (core-only)', () => {
       hasSubmittedActiveQuestion: false,
       hasActiveOptionOverride: false,
       showTryAgainButton: false,
+      rewardIndicators: {
+        activeQuestion: null,
+        byQuestionUnitId: {},
+        streak: { isEligibleForStreakRewards: false, claimedTiers: [] },
+      },
+      currentStreak: 0,
+      highestStreak: 0,
+      isStreakInitialized: false,
+      lastAttemptResult: null,
       isActiveHintUnlocked: false,
     };
     vi.clearAllMocks();
@@ -214,7 +247,7 @@ describe('PracticeRoomPage route (core-only)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Question 1' }));
     expect(mocks.selectQuestionUnit).toHaveBeenCalledWith(0);
 
-    fireEvent.click(screen.getByRole('button', { name: /Submit answer/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Submit/i }));
     expect(mocks.submitActiveQuestionAttempt).toHaveBeenCalled();
   });
 
@@ -235,10 +268,10 @@ describe('PracticeRoomPage route (core-only)', () => {
     );
 
     expect(screen.getByRole('button', { name: 'A A' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: /Submit answer/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /^Submit$/i })).toBeDisabled();
   });
 
-  it('disables option and submit actions when active question is already correct', () => {
+  it('keeps prior-correct questions interactive during active practice sessions', () => {
     const question = createMockQuestionUnit({
       coreQuestion: {
         ...createMockQuestionUnit().coreQuestion,
@@ -246,8 +279,7 @@ describe('PracticeRoomPage route (core-only)', () => {
       },
     });
     pageState.isLoading = false;
-    pageState.isActiveQuestionLockedCorrect = true;
-    pageState.canSubmitAttempt = false;
+    pageState.canSubmitAttempt = true;
     pageState.room = { moduleUnitTitle: 'Unit 1', questions: [question] };
     pageState.activeQuestionUnit = question;
     pageState.activeQuestion = { question: question.coreQuestion.questionContent };
@@ -259,8 +291,8 @@ describe('PracticeRoomPage route (core-only)', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('button', { name: 'A A' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: /Correct/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'A A' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /^Submit$/i })).toBeEnabled();
   });
 
   it('renders try again button before submit when question is incorrect and submitted', () => {

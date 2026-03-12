@@ -181,11 +181,20 @@ export default function StreakIndicator({
     prevHighestStreakRef.current = highestStreak;
 
     if (bonusEarned) {
-      // Trigger the floating bonus animation.
-      setShowFloatingBonus(true);
-      // Auto-hide after animation completes (800ms).
-      const timer = setTimeout(() => setShowFloatingBonus(false), 800);
-      return () => clearTimeout(timer);
+      let hideTimer: ReturnType<typeof setTimeout> | null = null;
+      // Defer state writes to the next frame to satisfy hook linting and keep
+      // animation timing aligned with the rendered streak update.
+      const frameId = requestAnimationFrame(() => {
+        setShowFloatingBonus(true);
+        // Auto-hide after animation completes (800ms).
+        hideTimer = setTimeout(() => setShowFloatingBonus(false), 800);
+      });
+      return () => {
+        cancelAnimationFrame(frameId);
+        if (hideTimer !== null) {
+          clearTimeout(hideTimer);
+        }
+      };
     }
   }, [highestStreak, totalQuestions, isStreakInitialized])
 

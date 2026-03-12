@@ -318,26 +318,32 @@ export function usePracticeRoomPageState({
     if (!practiceRoom) {
       return;
     }
-    // Seed streak state from API response if this is the first time loading this session.
-    setCurrentStreakBySessionId((previous) => {
-      if (previous[practiceRoom.sessionId] !== undefined) {
-        return previous; // Already initialized, keep existing state.
-      }
-      return {
-        ...previous,
-        [practiceRoom.sessionId]: currentStreak,
-      };
+    const frameId = requestAnimationFrame(() => {
+      // Defer seeding to the next frame to avoid synchronous state writes in effects,
+      // while still initializing immediately after room data arrives.
+      setCurrentStreakBySessionId((previous) => {
+        if (previous[practiceRoom.sessionId] !== undefined) {
+          return previous; // Already initialized, keep existing state.
+        }
+        return {
+          ...previous,
+          [practiceRoom.sessionId]: currentStreak,
+        };
+      });
+      setHighestStreakBySessionId((previous) => {
+        if (previous[practiceRoom.sessionId] !== undefined) {
+          return previous;
+        }
+        return {
+          ...previous,
+          [practiceRoom.sessionId]: highestStreak,
+        };
+      });
     });
-    setHighestStreakBySessionId((previous) => {
-      if (previous[practiceRoom.sessionId] !== undefined) {
-        return previous;
-      }
-      return {
-        ...previous,
-        [practiceRoom.sessionId]: highestStreak,
-      };
-    });
-  }, [practiceRoomQuery.data?.practiceRoom?.sessionId]);
+    return () => {
+      cancelAnimationFrame(frameId);
+    };
+  }, [practiceRoomQuery.data]);
 
   // Write question-selection progress to localStorage after every relevant
   // change so the student can resume mid-session after a page refresh.
