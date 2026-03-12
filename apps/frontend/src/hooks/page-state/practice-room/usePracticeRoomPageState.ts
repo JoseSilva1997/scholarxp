@@ -30,6 +30,16 @@ import {
   isUuidString,
 } from './usePracticeRoomPersistence';
 import { useSubmitAttempt } from './useSubmitAttempt';
+import {
+  buildInitialSessionScopedState,
+  hasSessionScopedValue,
+  parsePositiveIntegerParam,
+  readSessionScopedValue,
+  seedSessionScopedValue,
+  setSessionScopedBooleanValue,
+  setSessionScopedValue,
+  updateSessionScopedValue,
+} from './practiceRoomPageStateUtils';
 
 type UsePracticeRoomPageStateParams = {
   moduleIdParam: string | undefined;
@@ -78,6 +88,7 @@ type StreakRewardIndicators = {
 };
 
 type FirstTryBonusStatus = 'available' | 'earned' | 'lost';
+const EMPTY_BOOLEAN_BY_CONTENT_ID: Record<number, boolean> = {};
 
 export function usePracticeRoomPageState({
   moduleIdParam,
@@ -89,17 +100,14 @@ export function usePracticeRoomPageState({
   const [searchParams, setSearchParams] = useSearchParams();
   const searchParamsString = searchParams.toString();
 
-  const parsedModuleId = useMemo(() => {
-    if (!moduleIdParam) return null;
-    const value = Number(moduleIdParam);
-    return Number.isFinite(value) && value > 0 ? value : null;
-  }, [moduleIdParam]);
-
-  const parsedUnitId = useMemo(() => {
-    if (!unitIdParam) return null;
-    const value = Number(unitIdParam);
-    return Number.isFinite(value) && value > 0 ? value : null;
-  }, [unitIdParam]);
+  const parsedModuleId = useMemo(
+    () => parsePositiveIntegerParam(moduleIdParam),
+    [moduleIdParam],
+  );
+  const parsedUnitId = useMemo(
+    () => parsePositiveIntegerParam(unitIdParam),
+    [unitIdParam],
+  );
 
   // Session id and question id come from the URL so rooms survive hard reloads
   // and a ?questionId= deep-link jumps straight to the right question.
@@ -159,36 +167,29 @@ export function usePracticeRoomPageState({
   const [selectedQuestionUnitIndexBySessionId, setSelectedQuestionUnitIndexBySessionId] =
     useState<Record<string, number>>(
       () =>
-        initialSelection
-          ? {
-              [initialSelection.sessionId]:
-                initialSelection.selectedQuestionUnitIndex,
-            }
-          : {},
+        buildInitialSessionScopedState(initialSelection, (selection) =>
+          selection.selectedQuestionUnitIndex,
+        ),
     );
 
   // Hint-unlock status per content id, per session.
   const [unlockedHintByContentIdBySessionId, setUnlockedHintByContentIdBySessionId] =
     useState<Record<string, Record<number, boolean>>>(
       () =>
-        initialSelection
-          ? {
-              [initialSelection.sessionId]:
-                initialSelection.unlockedHintByContentId,
-            }
-          : {},
+        buildInitialSessionScopedState(
+          initialSelection,
+          (selection) => selection.unlockedHintByContentId,
+        ),
     );
 
   // Which content ids have been submitted this session (used to lock re-submission).
   const [submittedByContentIdBySessionId, setSubmittedByContentIdBySessionId] =
     useState<Record<string, Record<number, boolean>>>(
       () =>
-        initialSelection
-          ? {
-              [initialSelection.sessionId]:
-                initialSelection.submittedByContentId,
-            }
-          : {},
+        buildInitialSessionScopedState(
+          initialSelection,
+          (selection) => selection.submittedByContentId,
+        ),
     );
 
   // In-flight option selections the student has tapped but not yet submitted.
@@ -234,10 +235,12 @@ export function usePracticeRoomPageState({
   const activeSessionId = moduleUnitRoom?.sessionId ?? null;
   const selectedQuestionUnitIndex = useMemo(
     () =>
-      moduleUnitRoom
-        ? selectedQuestionUnitIndexBySessionId[moduleUnitRoom.sessionId] ?? 0
-        : 0,
-    [moduleUnitRoom, selectedQuestionUnitIndexBySessionId],
+      readSessionScopedValue<number>(
+        activeSessionId,
+        selectedQuestionUnitIndexBySessionId,
+        0,
+      ),
+    [activeSessionId, selectedQuestionUnitIndexBySessionId],
   );
 
   // ─── Side effects ──────────────────────────────────────────────────────────
@@ -299,13 +302,11 @@ export function usePracticeRoomPageState({
     }
     const frameId = requestAnimationFrame(() => {
       setSelectedQuestionUnitIndexBySessionId((previousValue) => {
-        if (previousValue[moduleUnitRoom.sessionId] === targetQuestionIndex) {
-          return previousValue;
-        }
-        return {
-          ...previousValue,
-          [moduleUnitRoom.sessionId]: targetQuestionIndex,
-        };
+        return setSessionScopedValue(
+          previousValue,
+          moduleUnitRoom.sessionId,
+          targetQuestionIndex,
+        );
       });
       // Consume the one-time deep-link after applying the jump so future
       // refetches don't re-force this navigation.
@@ -361,22 +362,11 @@ export function usePracticeRoomPageState({
       // Defer seeding to the next frame to avoid synchronous state writes in effects,
       // while still initializing immediately after room data arrives.
       setCurrentStreakBySessionId((previous) => {
-        if (previous[practiceRoom.sessionId] !== undefined) {
-          return previous; // Already initialized, keep existing state.
-        }
-        return {
-          ...previous,
-          [practiceRoom.sessionId]: currentStreak,
-        };
+        // Seed exactly once per session id so explicit local updates remain authoritative.
+        return seedSessionScopedValue(previous, practiceRoom.sessionId, currentStreak);
       });
       setHighestStreakBySessionId((previous) => {
-        if (previous[practiceRoom.sessionId] !== undefined) {
-          return previous;
-        }
-        return {
-          ...previous,
-          [practiceRoom.sessionId]: highestStreak,
-        };
+        return seedSessionScopedValue(previous, practiceRoom.sessionId, highestStreak);
       });
     });
     return () => {
@@ -530,17 +520,21 @@ export function usePracticeRoomPageState({
   // receive flat maps without needing to know the sessionId.
   const unlockedHintByContentId = useMemo(
     () =>
-      moduleUnitRoom
-        ? unlockedHintByContentIdBySessionId[moduleUnitRoom.sessionId] ?? {}
-        : {},
-    [moduleUnitRoom, unlockedHintByContentIdBySessionId],
+      readSessionScopedValue<Record<number, boolean>>(
+        activeSessionId,
+        unlockedHintByContentIdBySessionId,
+        EMPTY_BOOLEAN_BY_CONTENT_ID,
+      ),
+    [activeSessionId, unlockedHintByContentIdBySessionId],
   );
   const submittedByContentId = useMemo(
     () =>
-      moduleUnitRoom
-        ? submittedByContentIdBySessionId[moduleUnitRoom.sessionId] ?? {}
-        : {},
-    [moduleUnitRoom, submittedByContentIdBySessionId],
+      readSessionScopedValue<Record<number, boolean>>(
+        activeSessionId,
+        submittedByContentIdBySessionId,
+        EMPTY_BOOLEAN_BY_CONTENT_ID,
+      ),
+    [activeSessionId, submittedByContentIdBySessionId],
   );
 
   // ─── Active question flags ─────────────────────────────────────────────────
@@ -635,12 +629,16 @@ export function usePracticeRoomPageState({
 
   // Session streak values drive "active vs inactive" tier state while claimed
   // tiers mark historical bonuses as already earned.
-  const currentStreak = roomWithLocalAttempts
-    ? (currentStreakBySessionId[roomWithLocalAttempts.sessionId] ?? 0)
-    : 0;
-  const highestStreak = roomWithLocalAttempts
-    ? (highestStreakBySessionId[roomWithLocalAttempts.sessionId] ?? 0)
-    : 0;
+  const currentStreak = readSessionScopedValue<number>(
+    roomWithLocalAttempts?.sessionId ?? null,
+    currentStreakBySessionId,
+    0,
+  );
+  const highestStreak = readSessionScopedValue<number>(
+    roomWithLocalAttempts?.sessionId ?? null,
+    highestStreakBySessionId,
+    0,
+  );
   const streakRewardIndicators = useMemo(
     () =>
       buildStreakRewardIndicators({
@@ -660,14 +658,12 @@ export function usePracticeRoomPageState({
   const updateCurrentStreak = (currentStreak: number, highestStreak: number) => {
     if (!roomWithLocalAttempts) return;
     const { sessionId } = roomWithLocalAttempts;
-    setCurrentStreakBySessionId((previous) => ({
-      ...previous,
-      [sessionId]: currentStreak,
-    }));
-    setHighestStreakBySessionId((previous) => ({
-      ...previous,
-      [sessionId]: highestStreak,
-    }));
+    setCurrentStreakBySessionId((previous) =>
+      setSessionScopedValue(previous, sessionId, currentStreak),
+    );
+    setHighestStreakBySessionId((previous) =>
+      setSessionScopedValue(previous, sessionId, highestStreak),
+    );
   };
 
   // Updates the first-try accuracy indicator result after a submission.
@@ -765,10 +761,13 @@ export function usePracticeRoomPageState({
       0,
       Math.min(index, roomWithLocalAttempts.questions.length - 1),
     );
-    setSelectedQuestionUnitIndexBySessionId((previousValue) => ({
-      ...previousValue,
-      [roomWithLocalAttempts.sessionId]: clampedIndex,
-    }));
+    setSelectedQuestionUnitIndexBySessionId((previousValue) =>
+      setSessionScopedValue(
+        previousValue,
+        roomWithLocalAttempts.sessionId,
+        clampedIndex,
+      ),
+    );
   };
 
   const selectOption = (contentId: number, optionIndex: number) => {
@@ -787,35 +786,33 @@ export function usePracticeRoomPageState({
     }
     const sessionId = roomWithLocalAttempts.sessionId;
     // Hints unlock once per content id and remain available so XP rules can treat unlock as a single event.
-    setUnlockedHintByContentIdBySessionId((previousValue) => ({
-      ...previousValue,
-      [sessionId]: {
-        ...(previousValue[sessionId] ?? {}),
-        [contentId]: true,
-      },
-    }));
+    setUnlockedHintByContentIdBySessionId((previousValue) =>
+      setSessionScopedBooleanValue(previousValue, sessionId, contentId, true),
+    );
   };
 
   const goToPreviousQuestionUnit = () => {
     if (!questionUnitNav.canGoPrevious) return;
     if (!roomWithLocalAttempts) return;
     const sessionId = roomWithLocalAttempts.sessionId;
-    setSelectedQuestionUnitIndexBySessionId((previousValue) => ({
-      ...previousValue,
-      [sessionId]: Math.max(0, (previousValue[sessionId] ?? 0) - 1),
-    }));
+    setSelectedQuestionUnitIndexBySessionId((previousValue) =>
+      updateSessionScopedValue(previousValue, sessionId, (currentValue) =>
+        Math.max(0, (currentValue ?? 0) - 1),
+      ),
+    );
   };
 
   const goToNextQuestionUnit = () => {
     if (!roomWithLocalAttempts || !questionUnitNav.canGoNext) return;
     const sessionId = roomWithLocalAttempts.sessionId;
-    setSelectedQuestionUnitIndexBySessionId((previousValue) => ({
-      ...previousValue,
-      [sessionId]: Math.min(
-        roomWithLocalAttempts.questions.length - 1,
-        (previousValue[sessionId] ?? 0) + 1,
+    setSelectedQuestionUnitIndexBySessionId((previousValue) =>
+      updateSessionScopedValue(previousValue, sessionId, (currentValue) =>
+        Math.min(
+          roomWithLocalAttempts.questions.length - 1,
+          (currentValue ?? 0) + 1,
+        ),
       ),
-    }));
+    );
   };
 
   return {
@@ -855,9 +852,10 @@ export function usePracticeRoomPageState({
     // True once the seeding effect has written the initial API values into the streak
     // state maps. The StreakIndicator uses this to suppress the "Bonus!" animation
     // on the async transition from pre-load 0 → actual value (which is not a real earn).
-    isStreakInitialized: roomWithLocalAttempts
-      ? highestStreakBySessionId[roomWithLocalAttempts.sessionId] !== undefined
-      : false,
+    isStreakInitialized: hasSessionScopedValue(
+      roomWithLocalAttempts?.sessionId ?? null,
+      highestStreakBySessionId,
+    ),
     // The first-try accuracy result for the currently active question, or null if the
     // question hasn't been answered yet or the student clicked "Try Again".
     lastAttemptResult: activeQuestion

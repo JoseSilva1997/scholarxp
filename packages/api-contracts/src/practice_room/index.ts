@@ -145,7 +145,7 @@ export interface SubmitAttemptResponse {
   // Returning the updated progress allows the frontend to synchronize XP bars without a separate refetch.
   updatedModuleProgress?: ModuleSummaryResponse;
   // Live streak count for the current session: consecutive first-attempt correct answers.
-  // Resets to 0 on any incorrect answer. Omitted by older API versions (defaults to 0).
+  // Resets to 0 on any incorrect answer.
   currentStreak?: number;
   // All-time highest consecutive correct streak reached during the session.
   // Used by the client to determine which tier bonuses have already been claimed

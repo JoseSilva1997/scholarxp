@@ -136,7 +136,7 @@ function resolveNextFirstTryLocalResult(input: {
     return mapFirstTryStatusToLocalResult(input.currentStatus);
   }
 
-  // Backward-compatible fallback for older payloads without award reasons.
+  // Fallback for payloads without award reasons.
   if (input.response.awards.firstAttemptBonus > 0) {
     return 'first-try-correct';
   }
