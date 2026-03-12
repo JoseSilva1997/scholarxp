@@ -3,10 +3,10 @@
 //   eligible   — amber flame, "a correct answer here will extend your streak"
 //   ineligible — dimmed flame, "this question can no longer increment the streak"
 //
-// A question becomes ineligible once it has ever been answered correctly:
+// A question becomes ineligible once base question XP is already earned:
 // answering it correctly again will not increment the streak counter. Getting
 // it wrong first and then right on retry still counts, which is why eligibility
-// is based on hasCorrectAttempt (ever correct) not the first-try bonus.
+// is based on persistent reward eligibility, not latest attempt correctness.
 //
 // Only renders in units with ≥ 4 questions where the streak mechanic is active.
 import { FaFire } from 'react-icons/fa6';

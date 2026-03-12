@@ -298,6 +298,37 @@ describe('PracticeRoomPage route (core-only)', () => {
     expect(screen.getByRole('button', { name: /^Submit$/i })).toBeEnabled();
   });
 
+  it('keeps streak indicator ineligible for previously-solved questions after incorrect retries', () => {
+    const question = createMockQuestionUnit({
+      hasCorrectAttempt: null,
+      coreQuestion: {
+        ...createMockQuestionUnit().coreQuestion,
+        lastAttempt: { studentAnswer: { selectedOptionIndex: 1 }, isCorrect: false },
+      },
+    });
+    pageState.isLoading = false;
+    pageState.moduleProgress = { level: 1, currentExp: 0, expPercent: 0 };
+    pageState.room = { moduleUnitTitle: 'Unit 1', questions: [question] };
+    pageState.activeQuestionUnit = question;
+    pageState.activeQuestion = { question: question.coreQuestion.questionContent };
+    pageState.activeQuestionOptions = [{ optionText: 'A' }, { optionText: 'B' }];
+    pageState.rewardIndicators.streak.isEligibleForStreakRewards = true;
+    pageState.rewardIndicators.activeQuestion = {
+      baseQuestionExpStatus: 'already_earned',
+      firstAttemptBonusStatus: 'lost',
+    };
+
+    render(
+      <MemoryRouter>
+        <PracticeRoomPage />
+      </MemoryRouter>,
+    );
+
+    expect(
+      screen.getByLabelText('Streak: this question can no longer increment the streak'),
+    ).toBeInTheDocument();
+  });
+
   it('renders try again button before submit when question is incorrect and submitted', () => {
     const question = createMockQuestionUnit();
     pageState.isLoading = false;

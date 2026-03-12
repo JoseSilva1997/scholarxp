@@ -87,12 +87,14 @@ export default function PracticeRoomPage() {
       ? 'claimed'
       : 'available';
 
-  // Per-question streak eligibility: a question can increment the streak as long
-  // as it has never been answered correctly. Once hasCorrectAttempt is true
-  // (regardless of first-try or retry), answering correctly again will not
-  // increment the counter — so the indicator goes ineligible.
+  // Per-question streak eligibility is tied to permanent base-XP eligibility,
+  // not latest-attempt correctness. Once base XP is already earned, this question
+  // can no longer contribute to streak gains even if the learner later answers it
+  // incorrectly on a retry.
   const questionStreakStatus: 'eligible' | 'ineligible' =
-    activeQuestionUnit?.hasCorrectAttempt === true ? 'ineligible' : 'eligible';
+    activeQuestionRewardIndicators?.baseQuestionExpStatus === 'already_earned'
+      ? 'ineligible'
+      : 'eligible';
 
   if (!parsedModuleId || !parsedUnitId) {
     return (
