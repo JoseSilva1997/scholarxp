@@ -298,7 +298,7 @@ describe('PracticeRoomPage route (core-only)', () => {
     expect(screen.getByRole('button', { name: /^Submit$/i })).toBeEnabled();
   });
 
-  it('keeps streak indicator ineligible for previously-solved questions after incorrect retries', () => {
+  it('surfaces solved-question streak ineligibility through the base XP indicator copy', () => {
     const question = createMockQuestionUnit({
       hasCorrectAttempt: null,
       coreQuestion: {
@@ -325,7 +325,7 @@ describe('PracticeRoomPage route (core-only)', () => {
     );
 
     expect(
-      screen.getByLabelText('Streak: this question can no longer increment the streak'),
+      screen.getByLabelText('Base XP: already earned (not streak-eligible)'),
     ).toBeInTheDocument();
   });
 

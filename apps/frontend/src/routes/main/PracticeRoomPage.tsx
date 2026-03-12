@@ -13,7 +13,6 @@ import MainSection from '../../components/MainSection';
 import StreakIndicator from '../../components/PracticeRoom/StreakTrackerIndicator';
 import FirstTryAccuracyIndicator from '../../components/PracticeRoom/FirstTryAccuracyIndicator';
 import BaseXpIndicator from '../../components/PracticeRoom/BaseXpIndicator';
-import QuestionStreakIndicator from '../../components/PracticeRoom/QuestionStreakIndicator';
 import RewardsGuideTooltip from '../../components/PracticeRoom/RewardsGuideTooltip';
 import { usePracticeRoomPageState } from '../../hooks/page-state/practice-room/usePracticeRoomPageState';
 import styles from './PracticeRoomPage.module.css';
@@ -87,15 +86,6 @@ export default function PracticeRoomPage() {
       ? 'claimed'
       : 'available';
 
-  // Per-question streak eligibility is tied to permanent base-XP eligibility,
-  // not latest-attempt correctness. Once base XP is already earned, this question
-  // can no longer contribute to streak gains even if the learner later answers it
-  // incorrectly on a retry.
-  const questionStreakStatus: 'eligible' | 'ineligible' =
-    activeQuestionRewardIndicators?.baseQuestionExpStatus === 'already_earned'
-      ? 'ineligible'
-      : 'eligible';
-
   if (!parsedModuleId || !parsedUnitId) {
     return (
       <MainSection className={styles.page}>
@@ -126,12 +116,6 @@ export default function PracticeRoomPage() {
             <div className={styles.headerProgress}>
               {/* Info icon: hover reveals a speech-bubble explaining all reward indicators */}
                 <RewardsGuideTooltip />
-              {/* Per-question streak indicator: shown only on units where the streak
-                  mechanic is active (≥ 4 questions). Amber when this question can
-                  still extend the streak, dimmed once it has contributed or broken it. */}
-              {rewardIndicators.streak.isEligibleForStreakRewards && (
-                <QuestionStreakIndicator status={questionStreakStatus} />
-              )}
               {/* XP indicator: amber when base XP is still earnable, dimmed once claimed. */}
               <BaseXpIndicator status={baseXpStatus} />
               {/* Accuracy indicator (bullseye) sits to the left of the streak

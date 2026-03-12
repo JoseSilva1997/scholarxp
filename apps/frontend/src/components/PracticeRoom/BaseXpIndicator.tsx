@@ -2,6 +2,8 @@
 // Two states are shown:
 //   available — amber/glowing bolt, "you can still earn base XP for this question"
 //   claimed   — dimmed bolt, "base XP was already earned for this question"
+// Base XP status is also the user-facing proxy for per-question streak eligibility:
+// if base XP is still available, this question can still contribute to streak growth.
 // Placed in the practice-room header alongside FirstTryAccuracyIndicator and
 // StreakIndicator so all per-question reward signals are grouped together.
 import { FaBolt, FaCheck } from 'react-icons/fa6';
@@ -24,8 +26,8 @@ const STATE_CLASS: Record<BaseXpStatus, string> = {
 
 // Accessible labels announced to screen readers.
 const STATE_ARIA_LABEL: Record<BaseXpStatus, string> = {
-  available: 'Base XP: still available',
-  claimed: 'Base XP: already earned',
+  available: 'Base XP: still available (can contribute to streak)',
+  claimed: 'Base XP: already earned (cannot contribute to streak)',
 };
 
 export default function BaseXpIndicator({ status }: BaseXpIndicatorProps) {
