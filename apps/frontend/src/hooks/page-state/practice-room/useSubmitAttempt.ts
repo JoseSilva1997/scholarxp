@@ -80,6 +80,21 @@ type UseSubmitAttemptResult = {
   tryAgainActiveQuestion: () => void;
 };
 
+// `hasCorrectAttempt` is historical ("ever correct") and can stay true after a new
+// incorrect retry. For UI that reflects the latest submission, derive correctness
+// from backend-owned award reasons when available.
+function resolveLatestAttemptCorrectness(response: SubmitAttemptResponse): boolean {
+  const baseReason = response.awardReasons?.baseQuestionExp;
+  if (baseReason === 'incorrect') {
+    return false;
+  }
+  if (baseReason === 'awarded' || baseReason === 'already_earned') {
+    return true;
+  }
+  // Backward-compatible fallback for payloads that do not include award reasons.
+  return response.hasCorrectAttempt;
+}
+
 export function useSubmitAttempt({
   room,
   activeQuestionUnit,
@@ -166,6 +181,8 @@ export function useSubmitAttempt({
 
     try {
       const submitResponse = await mutateAsync(payload);
+      const latestAttemptIsCorrect =
+        resolveLatestAttemptCorrectness(submitResponse);
       const breakdown = buildExpBreakdown(submitResponse);
       if (breakdown.total > 0) {
         // Delegate the animation target update, double-count guard, and level-up
@@ -189,7 +206,7 @@ export function useSubmitAttempt({
       if (updateLastAttemptResult !== undefined) {
         if (submitResponse.awards.firstAttemptBonus > 0) {
           updateLastAttemptResult(activeQuestion.question.id, 'first-try-correct');
-        } else if (!submitResponse.hasCorrectAttempt) {
+        } else if (!latestAttemptIsCorrect) {
           updateLastAttemptResult(activeQuestion.question.id, 'incorrect');
         }
       }
@@ -197,8 +214,8 @@ export function useSubmitAttempt({
         ...previous,
         [activeQuestion.question.id]: {
           studentAnswer,
-          // Use backend-returned correctness as the authoritative value;
-          isCorrect: submitResponse.hasCorrectAttempt,
+          // Track latest-attempt correctness so nav/status UI reflects this submit.
+          isCorrect: latestAttemptIsCorrect,
         },
       }));
       setSubmittedByContentIdBySessionId((previous) => ({

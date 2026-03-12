@@ -279,11 +279,17 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
     expect(applyExpAward).not.toHaveBeenCalled();
   });
 
-  it('stores the backend hasCorrectAttempt value in submittedAttemptByContentId', async () => {
+  it('stores latest-attempt correctness from awardReasons in submittedAttemptByContentId', async () => {
     const setSubmittedAttemptByContentId = vi.fn();
     const mutateAsync = vi.fn().mockResolvedValue({
       awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
-      hasCorrectAttempt: false,
+      // `hasCorrectAttempt` stays true once a question has ever been solved;
+      // awardReasons carries this specific submission outcome.
+      hasCorrectAttempt: true,
+      awardReasons: {
+        baseQuestionExp: 'incorrect',
+        firstAttemptBonus: 'incorrect',
+      },
     } satisfies SubmitAttemptResponse);
     const { result } = renderHook(() =>
       useSubmitAttempt(buildParams({ mutateAsync, setSubmittedAttemptByContentId })),
@@ -298,6 +304,27 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
     expect(next[QUESTION_ID]).toEqual({
       studentAnswer: { selectedOptionIndex: 0 },
       isCorrect: false,
+    });
+  });
+
+  it('falls back to hasCorrectAttempt when awardReasons is missing', async () => {
+    const setSubmittedAttemptByContentId = vi.fn();
+    const mutateAsync = vi.fn().mockResolvedValue({
+      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
+      hasCorrectAttempt: true,
+    } satisfies SubmitAttemptResponse);
+    const { result } = renderHook(() =>
+      useSubmitAttempt(buildParams({ mutateAsync, setSubmittedAttemptByContentId })),
+    );
+    await act(() => result.current.submitActiveQuestionAttempt());
+
+    const updater = setSubmittedAttemptByContentId.mock.calls[0][0] as (
+      prev: Record<number, unknown>,
+    ) => Record<number, unknown>;
+    const next = updater({});
+    expect(next[QUESTION_ID]).toEqual({
+      studentAnswer: { selectedOptionIndex: 0 },
+      isCorrect: true,
     });
   });
 
