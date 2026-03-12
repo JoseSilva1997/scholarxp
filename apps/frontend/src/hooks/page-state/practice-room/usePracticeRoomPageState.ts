@@ -77,6 +77,8 @@ type StreakRewardIndicators = {
   };
 };
 
+type FirstTryBonusStatus = 'available' | 'earned' | 'lost';
+
 export function usePracticeRoomPageState({
   moduleIdParam,
   unitIdParam,
@@ -223,9 +225,13 @@ export function usePracticeRoomPageState({
   // it, giving the submit handler accurate view-duration data without extra state.
   const activeContentIdRef = useRef<number | null>(null);
   const activeContentViewStartMsRef = useRef<number | null>(null);
+  // Tracks the previous backend session id so transient in-memory maps can be
+  // reset when the server rotates the active session.
+  const previousSessionIdRef = useRef<string | null>(null);
 
   // Derived here (before the effects section) because the persistence write-effect
   // below depends on it; it cannot be deferred to the derived-state section.
+  const activeSessionId = moduleUnitRoom?.sessionId ?? null;
   const selectedQuestionUnitIndex = useMemo(
     () =>
       moduleUnitRoom
@@ -301,11 +307,44 @@ export function usePracticeRoomPageState({
           [moduleUnitRoom.sessionId]: targetQuestionIndex,
         };
       });
+      // Consume the one-time deep-link after applying the jump so future
+      // refetches don't re-force this navigation.
+      const nextSearchParams = new URLSearchParams(searchParamsString);
+      if (nextSearchParams.has('questionId')) {
+        nextSearchParams.delete('questionId');
+        setSearchParams(nextSearchParams, { replace: true });
+      }
     });
     return () => {
       cancelAnimationFrame(frameId);
     };
-  }, [moduleUnitRoom, requestedQuestionUnitId]);
+  }, [moduleUnitRoom, requestedQuestionUnitId, searchParamsString, setSearchParams]);
+
+  useEffect(() => {
+    if (activeSessionId === null) {
+      return;
+    }
+    const previousSessionId = previousSessionIdRef.current;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    if (
+      previousSessionId !== null &&
+      previousSessionId !== activeSessionId
+    ) {
+      // These maps are optimistic/transient view state, not persisted source-of-truth;
+      // clear them when backend starts a new session to avoid cross-session leakage.
+      timeoutId = setTimeout(() => {
+        setSelectedOptionOverrideByContentId({});
+        setSubmittedAttemptByContentId({});
+        setLastAttemptResultByContentId({});
+      }, 0);
+    }
+    previousSessionIdRef.current = activeSessionId;
+    return () => {
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [activeSessionId]);
 
   // Initialize streak state from the initial API response so the StreakIndicator
   // shows the correct value on page load/refresh instead of defaulting to 0.
@@ -561,6 +600,32 @@ export function usePracticeRoomPageState({
     );
   }, [activeQuestionUnit, questionRewardIndicatorsByQuestionUnitId]);
 
+  // Resolve the active question's first-try-bonus state from local optimistic
+  // overrides first, then fall back to backend reward-state snapshot.
+  const activeFirstTryBonusStatus = useMemo<FirstTryBonusStatus>(() => {
+    if (!activeQuestion) {
+      return 'available';
+    }
+    const localAttemptResult = lastAttemptResultByContentId[activeQuestion.question.id];
+    if (localAttemptResult === 'first-try-correct') {
+      return 'earned';
+    }
+    if (localAttemptResult === 'incorrect') {
+      return 'lost';
+    }
+    if (activeQuestionRewardIndicator?.firstAttemptBonusStatus === 'already_earned') {
+      return 'earned';
+    }
+    if (activeQuestionRewardIndicator?.firstAttemptBonusStatus === 'lost') {
+      return 'lost';
+    }
+    return 'available';
+  }, [
+    activeQuestion,
+    activeQuestionRewardIndicator?.firstAttemptBonusStatus,
+    lastAttemptResultByContentId,
+  ]);
+
   // Lifetime claimed streak tiers come from room-load response and can differ
   // from current session streak; this powers "already claimed" UI affordances.
   const claimedStreakTiers = useMemo(
@@ -606,8 +671,18 @@ export function usePracticeRoomPageState({
   };
 
   // Updates the first-try accuracy indicator result after a submission.
-  const updateLastAttemptResult = (contentId: number, result: 'first-try-correct' | 'incorrect') => {
-    setLastAttemptResultByContentId((previous) => ({ ...previous, [contentId]: result }));
+  const updateLastAttemptResult = (
+    contentId: number,
+    result: 'first-try-correct' | 'incorrect' | null,
+  ) => {
+    setLastAttemptResultByContentId((previous) => {
+      if (result === null) {
+        const next = { ...previous };
+        delete next[contentId];
+        return next;
+      }
+      return { ...previous, [contentId]: result };
+    });
   };
 
   // Resets the accuracy indicator to neutral for the given content id — but only
@@ -648,6 +723,7 @@ export function usePracticeRoomPageState({
     moduleDetail,
     updateCurrentStreak,
     updateLastAttemptResult,
+    activeFirstTryBonusStatus,
     clearLastAttemptResult,
     setSubmittedAttemptByContentId,
     setSubmittedByContentIdBySessionId,
@@ -787,6 +863,8 @@ export function usePracticeRoomPageState({
     lastAttemptResult: activeQuestion
       ? (lastAttemptResultByContentId[activeQuestion.question.id] ?? null)
       : null,
+    // First-try bonus status is backend-owned reward state plus optimistic local updates.
+    firstTryBonusStatus: activeFirstTryBonusStatus,
     selectQuestionUnit,
     selectOption,
     isActiveHintUnlocked,

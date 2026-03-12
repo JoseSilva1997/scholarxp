@@ -85,6 +85,7 @@ function buildParams(overrides: Partial<BaseParams> = {}): BaseParams {
     isPending: false,
     applyExpAward: vi.fn(),
     moduleDetail: null,
+    activeFirstTryBonusStatus: 'available',
     setSubmittedAttemptByContentId: vi.fn(),
     setSubmittedByContentIdBySessionId: vi.fn(),
     parsedModuleId: 1,
@@ -326,6 +327,55 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
       studentAnswer: { selectedOptionIndex: 0 },
       isCorrect: true,
     });
+  });
+
+  it('keeps lost first-try state on correct retries without first-attempt bonus', async () => {
+    const updateLastAttemptResult = vi.fn();
+    const mutateAsync = vi.fn().mockResolvedValue({
+      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
+      hasCorrectAttempt: true,
+      awardReasons: {
+        baseQuestionExp: 'already_earned',
+        firstAttemptBonus: 'not_first_try',
+      },
+    } satisfies SubmitAttemptResponse);
+    const { result } = renderHook(() =>
+      useSubmitAttempt(
+        buildParams({
+          mutateAsync,
+          updateLastAttemptResult,
+          activeFirstTryBonusStatus: 'lost',
+        }),
+      ),
+    );
+    await act(() => result.current.submitActiveQuestionAttempt());
+    expect(updateLastAttemptResult).toHaveBeenCalledWith(QUESTION_ID, 'incorrect');
+  });
+
+  it('preserves earned first-try status on later incorrect retries', async () => {
+    const updateLastAttemptResult = vi.fn();
+    const mutateAsync = vi.fn().mockResolvedValue({
+      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
+      hasCorrectAttempt: true,
+      awardReasons: {
+        baseQuestionExp: 'incorrect',
+        firstAttemptBonus: 'incorrect',
+      },
+    } satisfies SubmitAttemptResponse);
+    const { result } = renderHook(() =>
+      useSubmitAttempt(
+        buildParams({
+          mutateAsync,
+          updateLastAttemptResult,
+          activeFirstTryBonusStatus: 'earned',
+        }),
+      ),
+    );
+    await act(() => result.current.submitActiveQuestionAttempt());
+    expect(updateLastAttemptResult).toHaveBeenCalledWith(
+      QUESTION_ID,
+      'first-try-correct',
+    );
   });
 
   it('marks the active question as submitted in setSubmittedByContentIdBySessionId', async () => {

@@ -89,6 +89,7 @@ type MockPageState = {
   highestStreak: number;
   isStreakInitialized: boolean;
   lastAttemptResult: 'first-try-correct' | 'incorrect' | null;
+  firstTryBonusStatus: 'available' | 'earned' | 'lost';
   isActiveHintUnlocked: boolean;
 };
 
@@ -123,6 +124,7 @@ let pageState: MockPageState = {
   highestStreak: 0,
   isStreakInitialized: false,
   lastAttemptResult: null,
+  firstTryBonusStatus: 'available',
   isActiveHintUnlocked: false,
 };
 
@@ -187,6 +189,7 @@ describe('PracticeRoomPage route (core-only)', () => {
       highestStreak: 0,
       isStreakInitialized: false,
       lastAttemptResult: null,
+      firstTryBonusStatus: 'available',
       isActiveHintUnlocked: false,
     };
     vi.clearAllMocks();

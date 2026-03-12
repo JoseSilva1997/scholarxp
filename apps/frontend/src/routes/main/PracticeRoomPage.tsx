@@ -57,7 +57,7 @@ export default function PracticeRoomPage() {
     currentStreak,
     highestStreak,
     isStreakInitialized,
-    lastAttemptResult,
+    firstTryBonusStatus,
   } = usePracticeRoomPageState({
     moduleIdParam: moduleId,
     unitIdParam: unitId,
@@ -86,19 +86,6 @@ export default function PracticeRoomPage() {
     activeQuestionRewardIndicators?.baseQuestionExpStatus === 'already_earned'
       ? 'claimed'
       : 'available';
-
-  // Resolve the first-try bonus status for the active question into a single
-  // three-value signal for the header indicator. Live session results (from the
-  // submit mutation) take priority since the server snapshot only updates on
-  // refetch; fall back to the server snapshot for returning students where no
-  // new attempt has been made yet in this session.
-  const firstTryStatus = (() => {
-    if (lastAttemptResult === 'first-try-correct') return 'earned' as const;
-    if (lastAttemptResult === 'incorrect') return 'lost' as const;
-    if (activeQuestionRewardIndicators?.firstAttemptBonusStatus === 'already_earned') return 'earned' as const;
-    if (activeQuestionRewardIndicators?.firstAttemptBonusStatus === 'lost') return 'lost' as const;
-    return 'available' as const;
-  })();
 
   // Per-question streak eligibility: a question can increment the streak as long
   // as it has never been answered correctly. Once hasCorrectAttempt is true
@@ -147,7 +134,7 @@ export default function PracticeRoomPage() {
               <BaseXpIndicator status={baseXpStatus} />
               {/* Accuracy indicator (bullseye) sits to the left of the streak
                   indicator so all per-question reward pills are grouped together. */}
-              <FirstTryAccuracyIndicator status={firstTryStatus} />
+              <FirstTryAccuracyIndicator status={firstTryBonusStatus} />
               {/* Streak indicator sits left of the XP bar so progress metrics are grouped */}
               <StreakIndicator
                 currentStreak={currentStreak}

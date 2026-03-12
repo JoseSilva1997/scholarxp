@@ -2,7 +2,7 @@ import React from 'react';
 import { act, render, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Mock } from 'vitest';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 
 import { logError } from '../../../utils/logger';
 
@@ -36,11 +36,14 @@ function renderHookWithParams(
   initialEntry: string = '/main/modules/1/1/practice-room',
 ) {
   let latest: PracticeRoomPageState | null = null;
+  let latestSearch = '';
 
   function TestWrapper() {
     const state = usePracticeRoomPageState({ moduleIdParam, unitIdParam });
+    const location = useLocation();
     React.useEffect(() => {
       latest = state;
+      latestSearch = location.search;
     });
     return <div>ok</div>;
   }
@@ -53,6 +56,7 @@ function renderHookWithParams(
   return {
     ...utils,
     getState: () => latest as PracticeRoomPageState,
+    getSearch: () => latestSearch,
   };
 }
 
@@ -206,6 +210,75 @@ describe('usePracticeRoomPageState (core-only)', () => {
     await waitFor(() => {
       expect(rendered.getState().selectedQuestionUnitIndex).toBe(1);
       expect(rendered.getState().activeQuestion?.question.id).toBe(101);
+    });
+  });
+
+  it('consumes questionId deep-links after first use so later refetches do not re-force navigation', async () => {
+    useModuleUnitPracticeRoomQueryMock.mockReturnValue({
+      isPending: false,
+      error: null,
+      data: {
+        practiceRoom: {
+          sessionId: '11111111-1111-4111-8111-111111111107',
+          moduleUnitId: 3,
+          moduleUnitTitle: 'Unit',
+          questions: [
+            {
+              questionUnitId: 11,
+              position: 1,
+              hasCorrectAttempt: null,
+              coreQuestion: {
+                questionId: 11,
+                questionContent: {
+                  id: 100,
+                  type: 'mcq',
+                  questionStem: 'Core stem',
+                  questionData: {
+                    options: [{ optionText: 'A' }, { optionText: 'B' }],
+                    correctOptionIndex: 1,
+                  },
+                  hint: null,
+                  difficultyScore: 1,
+                },
+                lastAttempt: null,
+              },
+            },
+            {
+              questionUnitId: 12,
+              position: 2,
+              hasCorrectAttempt: null,
+              coreQuestion: {
+                questionId: 12,
+                questionContent: {
+                  id: 101,
+                  type: 'mcq',
+                  questionStem: 'Second core stem',
+                  questionData: {
+                    options: [{ optionText: 'C' }, { optionText: 'D' }],
+                    correctOptionIndex: 0,
+                  },
+                  hint: null,
+                  difficultyScore: 1,
+                },
+                lastAttempt: null,
+              },
+            },
+          ],
+        },
+      },
+    });
+
+    const rendered = renderHookWithParams(
+      '1',
+      '1',
+      '/main/modules/1/1/practice-room?questionId=12',
+    );
+
+    await waitFor(() => {
+      expect(rendered.getState().selectedQuestionUnitIndex).toBe(1);
+    });
+    await waitFor(() => {
+      expect(rendered.getSearch()).not.toContain('questionId=');
     });
   });
 
@@ -490,6 +563,59 @@ describe('usePracticeRoomPageState (core-only)', () => {
     const nextSessionRender = renderHookWithParams('1', '1');
     expect(nextSessionRender.getState().selectedQuestionUnitIndex).toBe(0);
     expect(nextSessionRender.getState().activeQuestion?.question.id).toBe(100);
+  });
+
+  it('clears transient option overrides when backend switches to a new session', async () => {
+    let currentSessionId = '11111111-1111-4111-8111-111111111021';
+    useModuleUnitPracticeRoomQueryMock.mockImplementation(() => ({
+      isPending: false,
+      error: null,
+      data: {
+        practiceRoom: {
+          sessionId: currentSessionId,
+          moduleUnitId: 3,
+          moduleUnitTitle: 'Unit',
+          questions: [
+            {
+              questionUnitId: 11,
+              position: 1,
+              hasCorrectAttempt: null,
+              coreQuestion: {
+                questionId: 11,
+                questionContent: {
+                  id: 100,
+                  type: 'mcq',
+                  questionStem: 'Core stem',
+                  questionData: {
+                    options: [{ optionText: 'A' }, { optionText: 'B' }],
+                    correctOptionIndex: 1,
+                  },
+                  hint: null,
+                  difficultyScore: 1,
+                },
+                lastAttempt: null,
+              },
+            },
+          ],
+        },
+      },
+    }));
+
+    const rendered = renderHookWithParams('1', '1');
+    act(() => {
+      rendered.getState().selectOption(100, 1);
+    });
+    expect(rendered.getState().selectedOptionIndex).toBe(1);
+
+    currentSessionId = '11111111-1111-4111-8111-111111111022';
+    act(() => {
+      // Trigger a rerender so the hook observes the new backend session id.
+      rendered.getState().selectQuestionUnit(0);
+    });
+
+    await waitFor(() => {
+      expect(rendered.getState().selectedOptionIndex).toBeNull();
+    });
   });
 
   it('submits core attempt payload and records submit errors with logger', async () => {

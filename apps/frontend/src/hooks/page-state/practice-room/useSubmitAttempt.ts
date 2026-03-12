@@ -26,6 +26,8 @@ type ActiveQuestion = {
   question: PracticeQuestion;
 };
 
+type FirstTryBonusStatus = 'available' | 'earned' | 'lost';
+
 // Parameters are almost entirely derived from the parent page state; this
 // hook never mutates them except via the two setter callbacks at the bottom.
 // keeping the shape explicit helps unit tests feed realistic props during
@@ -54,8 +56,16 @@ type UseSubmitAttemptParams = {
   updateCurrentStreak?: (currentStreak: number, highestStreak: number) => void;
   // Accuracy callback: called after every submission to update the first-try accuracy indicator.
   // 'first-try-correct' when firstAttemptBonus > 0, 'incorrect' when the attempt was wrong.
+  // `null` clears stale state (used when a retry becomes correct but not first-try).
   // Optional so callers that don't show the indicator can omit it.
-  updateLastAttemptResult?: (contentId: number, result: 'first-try-correct' | 'incorrect') => void;
+  updateLastAttemptResult?: (
+    contentId: number,
+    result: 'first-try-correct' | 'incorrect' | null,
+  ) => void;
+  // Resolved first-try bonus state for the active question before this submit.
+  // This lets submit handling preserve earned/lost states across retries instead
+  // of incorrectly tying the indicator to latest answer correctness.
+  activeFirstTryBonusStatus: FirstTryBonusStatus;
   // Called by tryAgainActiveQuestion to clear the last-attempt result so the indicator
   // returns to neutral while the student retries — prevents a stale red/green from persisting.
   clearLastAttemptResult?: (contentId: number) => void;
@@ -95,6 +105,47 @@ function resolveLatestAttemptCorrectness(response: SubmitAttemptResponse): boole
   return response.hasCorrectAttempt;
 }
 
+// Converts a stable first-try status into the local override representation.
+function mapFirstTryStatusToLocalResult(
+  status: FirstTryBonusStatus,
+): 'first-try-correct' | 'incorrect' | null {
+  if (status === 'earned') {
+    return 'first-try-correct';
+  }
+  if (status === 'lost') {
+    return 'incorrect';
+  }
+  return null;
+}
+
+// Determines the next first-try indicator state from backend-owned reason codes
+// and current status so retries never overwrite historical earned/lost outcomes.
+function resolveNextFirstTryLocalResult(input: {
+  response: SubmitAttemptResponse;
+  latestAttemptIsCorrect: boolean;
+  currentStatus: FirstTryBonusStatus;
+}): 'first-try-correct' | 'incorrect' | null {
+  const firstTryReason = input.response.awardReasons?.firstAttemptBonus;
+  if (firstTryReason === 'awarded' || firstTryReason === 'already_earned') {
+    return 'first-try-correct';
+  }
+  if (firstTryReason === 'incorrect') {
+    return input.currentStatus === 'earned' ? 'first-try-correct' : 'incorrect';
+  }
+  if (firstTryReason === 'not_first_try') {
+    return mapFirstTryStatusToLocalResult(input.currentStatus);
+  }
+
+  // Backward-compatible fallback for older payloads without award reasons.
+  if (input.response.awards.firstAttemptBonus > 0) {
+    return 'first-try-correct';
+  }
+  if (input.currentStatus === 'available') {
+    return input.latestAttemptIsCorrect ? 'first-try-correct' : 'incorrect';
+  }
+  return mapFirstTryStatusToLocalResult(input.currentStatus);
+}
+
 export function useSubmitAttempt({
   room,
   activeQuestionUnit,
@@ -111,6 +162,7 @@ export function useSubmitAttempt({
   moduleDetail,
   updateCurrentStreak,
   updateLastAttemptResult,
+  activeFirstTryBonusStatus,
   clearLastAttemptResult,
   setSubmittedAttemptByContentId,
   setSubmittedByContentIdBySessionId,
@@ -201,14 +253,15 @@ export function useSubmitAttempt({
         updateCurrentStreak(submitResponse.currentStreak, submitResponse.highestStreak);
       }
       // Inform the accuracy indicator: green if firstAttemptBonus was awarded (first-try
-      // correct), red if the attempt was wrong. Correct retries are not reported so the
-      // indicator stays neutral — it only ever turns green on a genuine first-try win.
+      // correct), red if first-try was missed. Retries preserve earned/lost state;
+      // they must not rebind the indicator to latest answer correctness.
       if (updateLastAttemptResult !== undefined) {
-        if (submitResponse.awards.firstAttemptBonus > 0) {
-          updateLastAttemptResult(activeQuestion.question.id, 'first-try-correct');
-        } else if (!latestAttemptIsCorrect) {
-          updateLastAttemptResult(activeQuestion.question.id, 'incorrect');
-        }
+        const nextFirstTryResult = resolveNextFirstTryLocalResult({
+          response: submitResponse,
+          latestAttemptIsCorrect,
+          currentStatus: activeFirstTryBonusStatus,
+        });
+        updateLastAttemptResult(activeQuestion.question.id, nextFirstTryResult);
       }
       setSubmittedAttemptByContentId((previous) => ({
         ...previous,
