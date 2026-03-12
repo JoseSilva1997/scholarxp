@@ -818,7 +818,8 @@ describe('usePracticeRoomPageState (core-only)', () => {
     expect(state.canSubmitAttempt).toBe(true);
   });
 
-  it('shows try again after incorrect submit and clears submitted state when retried', async () => {
+  it('allows re-submitting the same question after a short cooldown', async () => {
+    vi.useFakeTimers();
     const mutateAsync = vi.fn().mockResolvedValue({
       awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: false,
@@ -875,15 +876,19 @@ describe('usePracticeRoomPageState (core-only)', () => {
 
     state = rendered.getState();
     expect(state.hasSubmittedActiveQuestion).toBe(true);
-    expect(state.showTryAgainButton).toBe(true);
+    expect(state.canSubmitAttempt).toBe(false);
 
-    act(() => {
-      state.tryAgainActiveQuestion();
+    await act(async () => {
+      vi.advanceTimersByTime(1_500);
     });
-
     state = rendered.getState();
-    expect(state.hasSubmittedActiveQuestion).toBe(false);
-    expect(state.showTryAgainButton).toBe(false);
+    expect(state.canSubmitAttempt).toBe(true);
+
+    await act(async () => {
+      await state.submitActiveQuestionAttempt();
+    });
+    expect(mutateAsync).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
   });
 
   it('animates module progress and levels up when awarded exp crosses the threshold', async () => {

@@ -41,15 +41,12 @@ export default function PracticeRoomPage() {
     activeQuestionOptions,
     questionUnitNav,
     selectedOptionIndex,
-    hasSubmittedActiveQuestion,
     hasActiveOptionOverride,
-    showTryAgainButton,
     rewardIndicators,
     selectQuestionUnit,
     selectOption,
     isActiveHintUnlocked,
     unlockHintForContent,
-    tryAgainActiveQuestion,
     submitActiveQuestionAttempt,
     goToPreviousQuestionUnit,
     goToNextQuestionUnit,
@@ -63,11 +60,11 @@ export default function PracticeRoomPage() {
   });
 
   // Feedback remains presentation-only and uses local question data so it can be swapped to server-driven feedback later.
-  // Revisited questions render prior feedback until the student starts a new draft selection.
+  // Revisited questions render prior feedback until the student starts a new
+  // draft selection for the active question.
   const hasSubmittedFeedback =
-    hasSubmittedActiveQuestion ||
-    (activeQuestionUnit?.coreQuestion.lastAttempt !== null &&
-      !hasActiveOptionOverride);
+    activeQuestionUnit?.coreQuestion.lastAttempt !== null &&
+    !hasActiveOptionOverride;
   const optionFeedback = activeQuestion
     ? buildPracticeRoomAnswerFeedback({
         question: activeQuestion.question,
@@ -283,10 +280,7 @@ export default function PracticeRoomPage() {
                         }`}
                         onClick={() => selectOption(activeQuestion.question.id, optionIndex)}
                         aria-pressed={isSelected}
-                        disabled={
-                          hasSubmittedActiveQuestion ||
-                          isRoomReadOnly
-                        }
+                        disabled={isRoomReadOnly}
                       >
                         <div className={styles.optionContentWrapper}>
                           <span className={styles.optionLetter}>
@@ -367,16 +361,6 @@ export default function PracticeRoomPage() {
               ) : null}
 
               <div className={styles.submitRow}>
-                {showTryAgainButton ? (
-                  <button
-                    type="button"
-                    className={styles.tryAgainButton}
-                    onClick={tryAgainActiveQuestion}
-                  >
-                    Try again
-                  </button>
-                ) : null}
-
                 <div className={styles.submitControls}>
                   <div className={styles.questionNavButtons}>
                     <button
@@ -413,11 +397,7 @@ export default function PracticeRoomPage() {
                     }}
                     disabled={!canSubmitAttempt}
                   >
-                    {isSubmittingAttempt
-                      ? 'Submitting…'
-                      : hasSubmittedActiveQuestion
-                        ? 'Submitted'
-                        : "Submit"}
+                    {isSubmittingAttempt ? 'Submitting…' : 'Submit'}
                   </button>
                 </div>
               </div>

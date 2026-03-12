@@ -570,9 +570,6 @@ export function usePracticeRoomPageState({
         activeQuestion.question.id,
       )
     : false;
-  const isActiveQuestionIncorrect =
-    activeQuestionUnit?.coreQuestion.lastAttempt?.isCorrect === false;
-  const showTryAgainButton = hasSubmittedActiveQuestion && isActiveQuestionIncorrect;
 
   // Compute static reward availability from backend room-load payload so UI can
   // render icons/tooltips before the learner submits another attempt.
@@ -681,14 +678,11 @@ export function usePracticeRoomPageState({
     });
   };
 
-  // Resets the accuracy indicator to neutral for the given content id — but only
-  // if the result was 'first-try-correct'. An 'incorrect' result is intentionally
-  // preserved across retry attempts so the student can see they already got it wrong
-  // and are trying again; clearing it would lose that visual context.
-  const clearLastAttemptResult = (contentId: number) => {
-    setLastAttemptResultByContentId((previous) => {
-      if (previous[contentId] === 'incorrect') {
-        // Keep red — don't wipe it when the student clicks "Try Again".
+  // Draft selections are only needed pre-submit; once an answer is accepted,
+  // clear the override so option feedback reflects the saved attempt snapshot.
+  const clearSelectedOptionOverride = (contentId: number) => {
+    setSelectedOptionOverrideByContentId((previous) => {
+      if (!Object.prototype.hasOwnProperty.call(previous, contentId)) {
         return previous;
       }
       const next = { ...previous };
@@ -702,14 +696,12 @@ export function usePracticeRoomPageState({
     isSubmittingAttempt,
     canSubmitAttempt,
     submitActiveQuestionAttempt,
-    tryAgainActiveQuestion,
   } = useSubmitAttempt({
     room: roomWithLocalAttempts,
     activeQuestionUnit,
     activeQuestion,
     isRoomReadOnly,
     selectedOptionIndex,
-    hasSubmittedActiveQuestion,
     isActiveHintUnlocked,
     activeContentIdRef,
     activeContentViewStartMsRef,
@@ -720,7 +712,7 @@ export function usePracticeRoomPageState({
     updateCurrentStreak,
     updateLastAttemptResult,
     activeFirstTryBonusStatus,
-    clearLastAttemptResult,
+    clearSelectedOptionOverride,
     setSubmittedAttemptByContentId,
     setSubmittedByContentIdBySessionId,
     parsedModuleId,
@@ -839,7 +831,6 @@ export function usePracticeRoomPageState({
     selectedOptionIndex,
     hasSubmittedActiveQuestion,
     hasActiveOptionOverride,
-    showTryAgainButton,
     rewardIndicators: {
       activeQuestion: activeQuestionRewardIndicator,
       byQuestionUnitId: questionRewardIndicatorsByQuestionUnitId,
@@ -867,7 +858,6 @@ export function usePracticeRoomPageState({
     selectOption,
     isActiveHintUnlocked,
     unlockHintForContent,
-    tryAgainActiveQuestion,
     submitActiveQuestionAttempt,
     goToPreviousQuestionUnit,
     goToNextQuestionUnit,

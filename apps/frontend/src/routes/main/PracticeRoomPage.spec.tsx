@@ -46,7 +46,6 @@ const mocks = vi.hoisted(() => ({
   selectQuestionUnit: vi.fn(),
   selectOption: vi.fn(),
   unlockHintForContent: vi.fn(),
-  tryAgainActiveQuestion: vi.fn(),
   goToPreviousQuestionUnit: vi.fn(),
   goToNextQuestionUnit: vi.fn(),
   submitActiveQuestionAttempt: vi.fn(),
@@ -71,9 +70,7 @@ type MockPageState = {
   activeQuestionOptions: Array<{ optionText: string }>;
   questionUnitNav: { canGoPrevious: boolean; canGoNext: boolean };
   selectedOptionIndex: number | null;
-  hasSubmittedActiveQuestion: boolean;
   hasActiveOptionOverride: boolean;
-  showTryAgainButton: boolean;
   rewardIndicators: {
     activeQuestion: {
       baseQuestionExpStatus: 'available' | 'already_earned';
@@ -112,9 +109,7 @@ let pageState: MockPageState = {
   activeQuestionOptions: [],
   questionUnitNav: { canGoPrevious: false, canGoNext: false },
   selectedOptionIndex: null,
-  hasSubmittedActiveQuestion: false,
   hasActiveOptionOverride: false,
-  showTryAgainButton: false,
   rewardIndicators: {
     activeQuestion: null,
     byQuestionUnitId: {},
@@ -142,7 +137,6 @@ vi.mock('../../hooks/page-state/practice-room/usePracticeRoomPageState', () => (
     selectQuestionUnit: mocks.selectQuestionUnit,
     selectOption: mocks.selectOption,
     unlockHintForContent: mocks.unlockHintForContent,
-    tryAgainActiveQuestion: mocks.tryAgainActiveQuestion,
     goToPreviousQuestionUnit: mocks.goToPreviousQuestionUnit,
     goToNextQuestionUnit: mocks.goToNextQuestionUnit,
     submitActiveQuestionAttempt: mocks.submitActiveQuestionAttempt,
@@ -177,9 +171,7 @@ describe('PracticeRoomPage route (core-only)', () => {
       activeQuestionOptions: [],
       questionUnitNav: { canGoPrevious: false, canGoNext: false },
       selectedOptionIndex: null,
-      hasSubmittedActiveQuestion: false,
       hasActiveOptionOverride: false,
-      showTryAgainButton: false,
       rewardIndicators: {
         activeQuestion: null,
         byQuestionUnitId: {},
@@ -325,19 +317,17 @@ describe('PracticeRoomPage route (core-only)', () => {
     );
 
     expect(
-      screen.getByLabelText('Base XP: already earned (not streak-eligible)'),
+      screen.getByLabelText('Base XP: already earned (cannot contribute to streak)'),
     ).toBeInTheDocument();
   });
 
-  it('renders try again button before submit when question is incorrect and submitted', () => {
+  it('keeps only the submit action visible after previous attempts', () => {
     const question = createMockQuestionUnit();
     pageState.isLoading = false;
     pageState.room = { moduleUnitTitle: 'Unit 1', questions: [question] };
     pageState.activeQuestionUnit = question;
     pageState.activeQuestion = { question: question.coreQuestion.questionContent };
     pageState.activeQuestionOptions = [{ optionText: 'A' }, { optionText: 'B' }];
-    pageState.hasSubmittedActiveQuestion = true;
-    pageState.showTryAgainButton = true;
 
     render(
       <MemoryRouter>
@@ -345,15 +335,8 @@ describe('PracticeRoomPage route (core-only)', () => {
       </MemoryRouter>,
     );
 
-    const allButtons = screen.getAllByRole('button');
-    const tryAgainButton = screen.getByRole('button', { name: /Try again/i });
-    const submitButton = screen.getByRole('button', { name: /Submitted/i });
-    expect(allButtons.indexOf(tryAgainButton)).toBeLessThan(
-      allButtons.indexOf(submitButton),
-    );
-
-    fireEvent.click(tryAgainButton);
-    expect(mocks.tryAgainActiveQuestion).toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: /Try again/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Submit$/i })).toBeInTheDocument();
   });
 
   it('shows incorrect feedback for persisted incorrect attempts on revisit', () => {
@@ -369,7 +352,6 @@ describe('PracticeRoomPage route (core-only)', () => {
     pageState.activeQuestion = { question: question.coreQuestion.questionContent };
     pageState.activeQuestionOptions = [{ optionText: 'A' }, { optionText: 'B' }];
     pageState.selectedOptionIndex = 1;
-    pageState.hasSubmittedActiveQuestion = false;
     pageState.hasActiveOptionOverride = false;
 
     render(
@@ -394,7 +376,6 @@ describe('PracticeRoomPage route (core-only)', () => {
     pageState.activeQuestion = { question: question.coreQuestion.questionContent };
     pageState.activeQuestionOptions = [{ optionText: 'A' }, { optionText: 'B' }];
     pageState.selectedOptionIndex = 0;
-    pageState.hasSubmittedActiveQuestion = false;
     pageState.hasActiveOptionOverride = true;
 
     render(

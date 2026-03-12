@@ -4,7 +4,7 @@
 // for retrying a question. Placing all of this logic here keeps
 // `usePracticeRoomPageState` simpler and lets tests target submission rules
 // in isolation.
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type {
   PracticeAttemptSnapshot,
   PracticeQuestion,
@@ -40,7 +40,6 @@ type UseSubmitAttemptParams = {
   activeQuestion: ActiveQuestion | null;
   isRoomReadOnly: boolean;
   selectedOptionIndex: number | null;
-  hasSubmittedActiveQuestion: boolean;
   isActiveHintUnlocked: boolean;
   // Timing refs shared with the view-duration tracking effect in the parent.
   activeContentIdRef: React.RefObject<number | null>;
@@ -66,10 +65,10 @@ type UseSubmitAttemptParams = {
   // This lets submit handling preserve earned/lost states across retries instead
   // of incorrectly tying the indicator to latest answer correctness.
   activeFirstTryBonusStatus: FirstTryBonusStatus;
-  // Called by tryAgainActiveQuestion to clear the last-attempt result so the indicator
-  // returns to neutral while the student retries — prevents a stale red/green from persisting.
-  clearLastAttemptResult?: (contentId: number) => void;
-  // State setters for attempt tracking — also used by tryAgainActiveQuestion.
+  // Clears the transient local draft selection after a successful submission so
+  // UI feedback switches back to the just-submitted attempt snapshot.
+  clearSelectedOptionOverride?: (contentId: number) => void;
+  // State setters for attempt tracking after successful submissions.
   setSubmittedAttemptByContentId: React.Dispatch<
     React.SetStateAction<Record<number, PracticeAttemptSnapshot | null>>
   >;
@@ -87,8 +86,9 @@ type UseSubmitAttemptResult = {
   isSubmittingAttempt: boolean;
   canSubmitAttempt: boolean;
   submitActiveQuestionAttempt: () => Promise<void>;
-  tryAgainActiveQuestion: () => void;
 };
+
+const SUBMIT_COOLDOWN_MS = 1_000;
 
 // `hasCorrectAttempt` is historical ("ever correct") and can stay true after a new
 // incorrect retry. For UI that reflects the latest submission, derive correctness
@@ -152,7 +152,6 @@ export function useSubmitAttempt({
   activeQuestion,
   isRoomReadOnly,
   selectedOptionIndex,
-  hasSubmittedActiveQuestion,
   isActiveHintUnlocked,
   activeContentIdRef,
   activeContentViewStartMsRef,
@@ -163,7 +162,7 @@ export function useSubmitAttempt({
   updateCurrentStreak,
   updateLastAttemptResult,
   activeFirstTryBonusStatus,
-  clearLastAttemptResult,
+  clearSelectedOptionOverride,
   setSubmittedAttemptByContentId,
   setSubmittedByContentIdBySessionId,
   parsedModuleId,
@@ -183,6 +182,29 @@ export function useSubmitAttempt({
 
   // holds any error returned when the submission fails; surfaced to UI.
   const [submitErrorMessage, setSubmitErrorMessage] = useState<string | null>(null);
+  // Cooldown blocks rapid repeat submissions after a successful attempt to
+  // reduce accidental double-submits and high-frequency spam.
+  const [isSubmitCooldownActive, setIsSubmitCooldownActive] = useState(false);
+  const cooldownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (cooldownTimerRef.current !== null) {
+        clearTimeout(cooldownTimerRef.current);
+      }
+    };
+  }, []);
+
+  const startSubmitCooldown = () => {
+    setIsSubmitCooldownActive(true);
+    if (cooldownTimerRef.current !== null) {
+      clearTimeout(cooldownTimerRef.current);
+    }
+    cooldownTimerRef.current = setTimeout(() => {
+      setIsSubmitCooldownActive(false);
+      cooldownTimerRef.current = null;
+    }, SUBMIT_COOLDOWN_MS);
+  };
 
   // derived boolean that encapsulates all guard conditions preventing
   // a submission; keeps callers simple (no need to recompute this logic
@@ -191,7 +213,7 @@ export function useSubmitAttempt({
     Boolean(room && activeQuestionUnit && activeQuestion) &&
     !isRoomReadOnly &&
     selectedOptionIndex !== null &&
-    !hasSubmittedActiveQuestion &&
+    !isSubmitCooldownActive &&
     !isPending;
 
   // called when user presses the submit button. it re-checks guard
@@ -204,7 +226,7 @@ export function useSubmitAttempt({
       !activeQuestion ||
       isRoomReadOnly ||
       selectedOptionIndex === null ||
-      hasSubmittedActiveQuestion
+      isSubmitCooldownActive
     ) {
       return;
     }
@@ -278,6 +300,8 @@ export function useSubmitAttempt({
           [activeQuestion.question.id]: true,
         },
       }));
+      clearSelectedOptionOverride?.(activeQuestion.question.id);
+      startSubmitCooldown();
     } catch (error) {
       const message = getDisplayErrorMessage(error, {
         fallbackMessage:
@@ -295,37 +319,10 @@ export function useSubmitAttempt({
     }
   };
 
-  // allows the student to retry the same question. we only clear the
-  // local locks which prevent repeat submits; this leaves the selected
-  // answer intact so UI doesn't jump around while they reconsider.
-  const tryAgainActiveQuestion = () => {
-    if (!activeQuestion || !room) {
-      return;
-    }
-    const { sessionId } = room;
-    // Clearing local submit locks lets students immediately retry after an
-    // incorrect attempt while preserving seeded selection.
-    // clearLastAttemptResult preserves 'incorrect' state so the red target
-    // persists through retries; it only resets 'first-try-correct' to neutral.
-    clearLastAttemptResult?.(activeQuestion.question.id);
-    setSubmittedByContentIdBySessionId((previous) => {
-      const nextSessionValue = { ...(previous[sessionId] ?? {}) };
-      delete nextSessionValue[activeQuestion.question.id];
-      return { ...previous, [sessionId]: nextSessionValue };
-    });
-    setSubmittedAttemptByContentId((previous) => {
-      const next = { ...previous };
-      delete next[activeQuestion.question.id];
-      return next;
-    });
-    setSubmitErrorMessage(null);
-  };
-
   return {
     submitErrorMessage,
     isSubmittingAttempt: isPending,
     canSubmitAttempt,
     submitActiveQuestionAttempt,
-    tryAgainActiveQuestion,
   };
 }
