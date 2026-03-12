@@ -23,7 +23,8 @@ export default function RewardsGuideTooltip() {
           </li>
           <li>
             <strong>🎯 First-try bonus</strong> — Earned by getting the question
-            right on the first try, lost if you get it wrong.
+            right on the first try without a hint. You lose it if you answer
+            wrong or unlock a hint before submitting.
           </li>
           <li>
             <strong>🔥 Session streak</strong> — tracks your consecutive

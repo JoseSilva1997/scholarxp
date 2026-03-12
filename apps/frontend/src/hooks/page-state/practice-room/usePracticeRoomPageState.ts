@@ -610,10 +610,16 @@ export function usePracticeRoomPageState({
     if (activeQuestionRewardIndicator?.firstAttemptBonusStatus === 'lost') {
       return 'lost';
     }
+    // Unlocking hint before first submission forfeits first-try bonus immediately
+    // so the indicator reflects the assisted state without waiting for submit.
+    if (isActiveHintUnlocked) {
+      return 'lost';
+    }
     return 'available';
   }, [
     activeQuestion,
     activeQuestionRewardIndicator?.firstAttemptBonusStatus,
+    isActiveHintUnlocked,
     lastAttemptResultByContentId,
   ]);
 

@@ -205,6 +205,7 @@ describe('ExpAwardingService', () => {
         isCorrect: true,
         hadCorrectAttemptBeforeSubmit: false,
         hadAnyAttemptBeforeSubmit: false,
+        hintUnlockedOnSubmit: false,
       },
       prisma,
     );
@@ -243,6 +244,53 @@ describe('ExpAwardingService', () => {
     expect(result.updatedMembership?.module.title).toBe('Biology');
   });
 
+  it('denies first-attempt bonus when the first correct submission used a hint', async () => {
+    prisma.questionUnit.findMany.mockResolvedValue([
+      { id: 201 },
+      { id: 202 },
+      { id: 203 },
+    ] as never);
+    prisma.questionAttempt.findMany
+      // Historically solved outside this session.
+      .mockResolvedValueOnce([])
+      // Attempts in this session.
+      .mockResolvedValueOnce([{ questionId: 201, isCorrect: true }] as never);
+
+    const result = await service.awardAttemptModuleExp(
+      {
+        studentId: 100,
+        moduleId: 10,
+        moduleUnitId: 20,
+        sessionId: '11111111-1111-4111-8111-111111111111',
+        questionUnitId: 201,
+        isCorrect: true,
+        hadCorrectAttemptBeforeSubmit: false,
+        hadAnyAttemptBeforeSubmit: false,
+        hintUnlockedOnSubmit: true,
+      },
+      prisma,
+    );
+
+    const firstAttemptEventCalls = expLedgerService.recordEvent.mock.calls.filter(
+      ([params]) =>
+        params.eventType === ExpLedgerEventTypes.PRACTICE_ROOM_CORRECT_AT_FIRST_ATTEMPT,
+    );
+    expect(firstAttemptEventCalls).toHaveLength(0);
+    expect(userModuleService.addStudentModuleExp).toHaveBeenCalledTimes(1);
+    expect(userModuleService.addStudentModuleExp).toHaveBeenCalledWith(
+      10,
+      100,
+      333,
+      prisma,
+    );
+    expect(result.moduleAwards).toEqual({
+      baseQuestionExp: 333,
+      firstAttemptBonus: 0,
+      streakBonus: 0,
+    });
+    expect(result.moduleExpAwarded).toBe(333);
+  });
+
   it('returns zero module xp when attempt ledger event already exists', async () => {
     prisma.questionUnit.findMany.mockResolvedValue([{ id: 201 }] as never);
     expLedgerService.recordEvent.mockResolvedValue({
@@ -260,6 +308,7 @@ describe('ExpAwardingService', () => {
         isCorrect: true,
         hadCorrectAttemptBeforeSubmit: false,
         hadAnyAttemptBeforeSubmit: false,
+        hintUnlockedOnSubmit: false,
       },
       prisma,
     );
@@ -287,6 +336,7 @@ describe('ExpAwardingService', () => {
         isCorrect: false,
         hadCorrectAttemptBeforeSubmit: false,
         hadAnyAttemptBeforeSubmit: false,
+        hintUnlockedOnSubmit: false,
       },
       prisma,
     );
@@ -327,6 +377,7 @@ describe('ExpAwardingService', () => {
         isCorrect: true,
         hadCorrectAttemptBeforeSubmit: false,
         hadAnyAttemptBeforeSubmit: false,
+        hintUnlockedOnSubmit: false,
       },
       prisma,
     );
@@ -376,6 +427,7 @@ describe('ExpAwardingService', () => {
         isCorrect: true,
         hadCorrectAttemptBeforeSubmit: false,
         hadAnyAttemptBeforeSubmit: false,
+        hintUnlockedOnSubmit: false,
       },
       prisma,
     );
@@ -429,6 +481,7 @@ describe('ExpAwardingService', () => {
         isCorrect: true,
         hadCorrectAttemptBeforeSubmit: false,
         hadAnyAttemptBeforeSubmit: false,
+        hintUnlockedOnSubmit: false,
       },
       prisma,
     );

@@ -43,8 +43,8 @@ export interface PracticeQuestionRewardState {
   // attempt for this question, then becomes already_earned permanently.
   baseQuestionExpStatus: 'available' | 'already_earned';
   // First-attempt bonus is available only before any attempt exists. Once the
-  // first attempt occurs it becomes either already_earned (first attempt correct)
-  // or lost (first attempt incorrect).
+  // first attempt occurs it becomes either already_earned (first attempt correct
+  // without hint) or lost (first attempt incorrect, or first attempt used hint).
   firstAttemptBonusStatus: 'available' | 'already_earned' | 'lost';
 }
 
@@ -157,11 +157,13 @@ export interface SubmitAttemptResponse {
 export type AwardReasons = {
   // Correct first-solves award XP; wrong submissions and repeat-correct submissions do not.
   baseQuestionExp: 'awarded' | 'incorrect' | 'already_earned';
-  // First-try bonus only applies on a correct first attempt for that question.
+  // First-try bonus only applies on a correct first attempt for that question
+  // when no hint was unlocked before that first submission.
   firstAttemptBonus:
     | 'awarded'
     | 'incorrect'
     | 'not_first_try'
+    | 'hint_used'
     | 'already_earned';
 }
 

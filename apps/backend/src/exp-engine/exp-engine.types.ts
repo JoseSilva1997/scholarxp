@@ -22,6 +22,8 @@ export type AwardAttemptModuleExpParams = {
   isCorrect: boolean;
   hadCorrectAttemptBeforeSubmit: boolean;
   hadAnyAttemptBeforeSubmit: boolean;
+  // Snapshot from submit payload: true means the learner unlocked hint before this submission.
+  hintUnlockedOnSubmit: boolean;
 };
 
 export type AttemptModuleExpRewardResult = {

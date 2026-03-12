@@ -132,6 +132,10 @@ function resolveNextFirstTryLocalResult(input: {
   if (firstTryReason === 'incorrect') {
     return input.currentStatus === 'earned' ? 'first-try-correct' : 'incorrect';
   }
+  if (firstTryReason === 'hint_used') {
+    // Hint on first submit forfeits first-try bonus, but should not override an already-earned state.
+    return input.currentStatus === 'earned' ? 'first-try-correct' : 'incorrect';
+  }
   if (firstTryReason === 'not_first_try') {
     return mapFirstTryStatusToLocalResult(input.currentStatus);
   }

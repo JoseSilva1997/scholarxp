@@ -344,6 +344,29 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
     expect(updateLastAttemptResult).toHaveBeenCalledWith(QUESTION_ID, 'incorrect');
   });
 
+  it('marks first-try as lost when backend reports hint_used', async () => {
+    const updateLastAttemptResult = vi.fn();
+    const mutateAsync = vi.fn().mockResolvedValue({
+      awards: { baseQuestionExp: 10, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
+      hasCorrectAttempt: true,
+      awardReasons: {
+        baseQuestionExp: 'awarded',
+        firstAttemptBonus: 'hint_used',
+      },
+    } satisfies SubmitAttemptResponse);
+    const { result } = renderHook(() =>
+      useSubmitAttempt(
+        buildParams({
+          mutateAsync,
+          updateLastAttemptResult,
+          activeFirstTryBonusStatus: 'available',
+        }),
+      ),
+    );
+    await act(() => result.current.submitActiveQuestionAttempt());
+    expect(updateLastAttemptResult).toHaveBeenCalledWith(QUESTION_ID, 'incorrect');
+  });
+
   it('preserves earned first-try status on later incorrect retries', async () => {
     const updateLastAttemptResult = vi.fn();
     const mutateAsync = vi.fn().mockResolvedValue({

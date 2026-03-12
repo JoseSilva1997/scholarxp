@@ -429,14 +429,17 @@ describe('usePracticeRoomPageState (core-only)', () => {
     });
 
     const initialRender = renderHookWithParams('1', '1');
+    expect(initialRender.getState().firstTryBonusStatus).toBe('available');
     act(() => {
       initialRender.getState().unlockHintForContent(100);
     });
     expect(initialRender.getState().isActiveHintUnlocked).toBe(true);
+    expect(initialRender.getState().firstTryBonusStatus).toBe('lost');
     initialRender.unmount();
 
     const reloadedRender = renderHookWithParams('1', '1');
     expect(reloadedRender.getState().isActiveHintUnlocked).toBe(true);
+    expect(reloadedRender.getState().firstTryBonusStatus).toBe('lost');
   });
 
   it('persists submitted status on reload for the same session', async () => {

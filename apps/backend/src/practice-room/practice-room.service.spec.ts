@@ -655,6 +655,26 @@ describe('PracticeRoomService', () => {
     });
   });
 
+  describe('reward-state reduction (private)', () => {
+    it('marks first-attempt bonus as lost when first attempt used hint even if correct', () => {
+      const state = (service as any).reduceQuestionRewardStateFromAttempts([
+        {
+          questionId: 10,
+          isCorrect: true,
+          hintsUsed: 1,
+        },
+      ]) as Map<
+        number,
+        { baseQuestionExpStatus: string; firstAttemptBonusStatus: string }
+      >;
+
+      expect(state.get(10)).toEqual({
+        baseQuestionExpStatus: 'already_earned',
+        firstAttemptBonusStatus: 'lost',
+      });
+    });
+  });
+
   describe('Integration scenarios', () => {
     // ===== FULL INTEGRATION: Complete happy path =====
     it('should orchestrate all methods in complete practice room flow', async () => {
@@ -849,10 +869,62 @@ describe('PracticeRoomService', () => {
           isCorrect: true,
           hadCorrectAttemptBeforeSubmit: false,
           hadAnyAttemptBeforeSubmit: false,
+          hintUnlockedOnSubmit: false,
         },
         prisma,
       );
       expect(practiceRewardService.awardCompletionExp).not.toHaveBeenCalled();
+    });
+
+    it('returns firstAttemptBonus reason hint_used when first submit is correct with hint unlocked', async () => {
+      prisma.practiceSession.findFirst.mockResolvedValue({
+        id: '11111111-1111-4111-8111-111111111077',
+        sessionType: 'practice_room',
+        endTime: null,
+      } as any);
+      prisma.questionUnit.findFirst.mockResolvedValue({
+        id: 201,
+        contents: [
+          {
+            id: 301,
+            type: 'mcq',
+            questionData: { correctOptionIndex: 2 },
+          },
+        ],
+        variants: [],
+      } as any);
+      prisma.questionAttempt.findFirst.mockResolvedValue(null);
+      prisma.questionAttempt.create.mockResolvedValue({ id: 999 } as any);
+      practiceRewardService.awardAttemptModuleExp.mockResolvedValueOnce({
+        moduleExpAwarded: 33,
+        moduleAwards: {
+          baseQuestionExp: 33,
+          firstAttemptBonus: 0,
+          streakBonus: 0,
+        },
+        updatedMembership: null,
+      });
+
+      const result = await service.submitAttempt(1, 10, 100, {
+        moduleUnitId: 10,
+        questionUnitId: 201,
+        questionContentId: 301,
+        sessionId: '11111111-1111-4111-8111-111111111077',
+        timeTakenMs: 1200,
+        hintUnlocked: true,
+        studentAnswer: { selectedOptionIndex: 2 } as any,
+      });
+
+      expect(result.awards).toEqual({
+        baseQuestionExp: 33,
+        firstAttemptBonus: 0,
+        streakBonus: 0,
+        accountExp: 0,
+      });
+      expect(result.awardReasons).toEqual({
+        baseQuestionExp: 'awarded',
+        firstAttemptBonus: 'hint_used',
+      });
     });
 
     it('throws when payload module unit does not match route module unit', async () => {

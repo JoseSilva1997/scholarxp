@@ -196,6 +196,8 @@ export class PracticeRoomService {
             isCorrect,
             hadCorrectAttemptBeforeSubmit,
             hadAnyAttemptBeforeSubmit,
+            // Hint usage is policy input for first-try bonus eligibility.
+            hintUnlockedOnSubmit: payload.hintUnlocked,
           },
           tx,
         );
@@ -242,6 +244,7 @@ export class PracticeRoomService {
       awardReasons: this.resolveSubmitAwardReasons({
         isCorrect,
         hadAnyAttemptBeforeSubmit,
+        hintUnlockedOnSubmit: payload.hintUnlocked,
         moduleAwards,
       }),
       hasCorrectAttempt: alreadyHasCorrectAttempt || isCorrect,
@@ -264,6 +267,7 @@ export class PracticeRoomService {
   private resolveSubmitAwardReasons(params: {
     isCorrect: boolean;
     hadAnyAttemptBeforeSubmit: boolean;
+    hintUnlockedOnSubmit: boolean;
     moduleAwards: {
       baseQuestionExp: number;
       firstAttemptBonus: number;
@@ -281,6 +285,8 @@ export class PracticeRoomService {
         ? 'awarded'
         : params.hadAnyAttemptBeforeSubmit
           ? 'not_first_try'
+          : params.hintUnlockedOnSubmit
+            ? 'hint_used'
           : 'already_earned';
 
     return {
@@ -589,6 +595,7 @@ export class PracticeRoomService {
       select: {
         questionId: true,
         isCorrect: true,
+        hintsUsed: true,
       },
     });
 
@@ -626,7 +633,7 @@ export class PracticeRoomService {
 
   // One pass over sorted attempts keeps reward-state derivation deterministic and easy to unit-test.
   private reduceQuestionRewardStateFromAttempts(
-    attempts: Array<{ questionId: number; isCorrect: boolean }>,
+    attempts: Array<{ questionId: number; isCorrect: boolean; hintsUsed: number }>,
   ): Map<number, PracticeQuestionRewardState> {
     const rewardStateByQuestionId = new Map<
       number,
@@ -639,9 +646,13 @@ export class PracticeRoomService {
       const nextState = { ...existingState };
 
       if (existingState.firstAttemptBonusStatus === 'available') {
-        nextState.firstAttemptBonusStatus = attempt.isCorrect
-          ? 'already_earned'
-          : 'lost';
+        // First attempt with hint is always assisted, so first-try bonus is forfeited.
+        nextState.firstAttemptBonusStatus =
+          attempt.hintsUsed > 0
+            ? 'lost'
+            : attempt.isCorrect
+              ? 'already_earned'
+              : 'lost';
       }
       if (attempt.isCorrect) {
         nextState.baseQuestionExpStatus = 'already_earned';

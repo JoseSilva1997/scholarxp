@@ -106,8 +106,9 @@ export class ExpAwardingService {
       ).id;
     }
 
-    // First-attempt bonus only applies when this correct submission was also first-ever attempt.
-    if (!params.hadAnyAttemptBeforeSubmit) {
+    // First-attempt bonus only applies when this correct submission was also
+    // first-ever attempt and no hint was unlocked prior to submitting.
+    if (!params.hadAnyAttemptBeforeSubmit && !params.hintUnlockedOnSubmit) {
       const firstAttemptAward =
         this.expCalculationService.getFirstAttemptBonusAward(
           questionContext.totalQuestions,
