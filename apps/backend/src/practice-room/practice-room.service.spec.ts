@@ -6,6 +6,7 @@ import { PracticeRoomService } from './practice-room.service';
 import { PracticeRoomMapper } from './practice-room.mapper';
 import { StudentModuleUnitProgressService } from './student-module-unit-progress.service';
 import { ExpAwardingService } from '../exp-engine/exp-awarding.service';
+import { ExpStreakService } from '../exp-engine/exp-streak.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock, type PrismaMock } from '../test/test-helpers';
 import type {
@@ -24,6 +25,9 @@ describe('PracticeRoomService', () => {
   let practiceRewardService: {
     awardAttemptModuleExp: jest.Mock;
     awardCompletionExp: jest.Mock;
+  };
+  let expStreakService: {
+    getSessionStreak: jest.Mock;
   };
 
   // Mock data builders for consistent test setup
@@ -94,6 +98,8 @@ describe('PracticeRoomService', () => {
   beforeEach(async () => {
     // Create mocks for dependencies
     prisma = createPrismaMock();
+    // Practice-room load now queries streak-claim ledger rows; default to none.
+    prisma.expLedger.findMany.mockResolvedValue([]);
     // Transaction callback mode keeps submit-attempt tests deterministic without a real database transaction.
     (prisma.$transaction as jest.Mock).mockImplementation(async (callback) =>
       callback(prisma),
@@ -110,9 +116,21 @@ describe('PracticeRoomService', () => {
         lastPracticedAt: new Date('2026-02-12T10:00:00.000Z'),
       }),
     };
+    // getSessionStreak returns both counts so the response can show pip state.
+    expStreakService = {
+      getSessionStreak: jest
+        .fn()
+        .mockResolvedValue({ currentStreak: 0, highestStreak: 0 }),
+    };
+
     practiceRewardService = {
       awardAttemptModuleExp: jest.fn().mockResolvedValue({
         moduleExpAwarded: 50,
+        moduleAwards: {
+          baseQuestionExp: 33,
+          firstAttemptBonus: 17,
+          streakBonus: 0,
+        },
         updatedMembership: {
           id: 700,
           moduleId: 1,
@@ -145,6 +163,10 @@ describe('PracticeRoomService', () => {
         {
           provide: ExpAwardingService,
           useValue: practiceRewardService,
+        },
+        {
+          provide: ExpStreakService,
+          useValue: expStreakService,
         },
       ],
     }).compile();
@@ -633,6 +655,26 @@ describe('PracticeRoomService', () => {
     });
   });
 
+  describe('reward-state reduction (private)', () => {
+    it('marks first-attempt bonus as lost when first attempt used hint even if correct', () => {
+      const state = (service as any).reduceQuestionRewardStateFromAttempts([
+        {
+          questionId: 10,
+          isCorrect: true,
+          hintsUsed: 1,
+        },
+      ]) as Map<
+        number,
+        { baseQuestionExpStatus: string; firstAttemptBonusStatus: string }
+      >;
+
+      expect(state.get(10)).toEqual({
+        baseQuestionExpStatus: 'already_earned',
+        firstAttemptBonusStatus: 'lost',
+      });
+    });
+  });
+
   describe('Integration scenarios', () => {
     // ===== FULL INTEGRATION: Complete happy path =====
     it('should orchestrate all methods in complete practice room flow', async () => {
@@ -795,7 +837,16 @@ describe('PracticeRoomService', () => {
         prisma,
       );
       expect(result).toEqual({
-        moduleExpAwarded: 50,
+        awards: {
+          baseQuestionExp: 33,
+          firstAttemptBonus: 17,
+          streakBonus: 0,
+          accountExp: 0,
+        },
+        awardReasons: {
+          baseQuestionExp: 'awarded',
+          firstAttemptBonus: 'awarded',
+        },
         hasCorrectAttempt: true,
         updatedModuleProgress: {
           id: 1,
@@ -805,6 +856,8 @@ describe('PracticeRoomService', () => {
           currentExp: 50,
           expMax: 1000,
         },
+        currentStreak: 0,
+        highestStreak: 0,
       });
       expect(practiceRewardService.awardAttemptModuleExp).toHaveBeenCalledWith(
         {
@@ -816,10 +869,62 @@ describe('PracticeRoomService', () => {
           isCorrect: true,
           hadCorrectAttemptBeforeSubmit: false,
           hadAnyAttemptBeforeSubmit: false,
+          hintUnlockedOnSubmit: false,
         },
         prisma,
       );
       expect(practiceRewardService.awardCompletionExp).not.toHaveBeenCalled();
+    });
+
+    it('returns firstAttemptBonus reason hint_used when first submit is correct with hint unlocked', async () => {
+      prisma.practiceSession.findFirst.mockResolvedValue({
+        id: '11111111-1111-4111-8111-111111111077',
+        sessionType: 'practice_room',
+        endTime: null,
+      } as any);
+      prisma.questionUnit.findFirst.mockResolvedValue({
+        id: 201,
+        contents: [
+          {
+            id: 301,
+            type: 'mcq',
+            questionData: { correctOptionIndex: 2 },
+          },
+        ],
+        variants: [],
+      } as any);
+      prisma.questionAttempt.findFirst.mockResolvedValue(null);
+      prisma.questionAttempt.create.mockResolvedValue({ id: 999 } as any);
+      practiceRewardService.awardAttemptModuleExp.mockResolvedValueOnce({
+        moduleExpAwarded: 33,
+        moduleAwards: {
+          baseQuestionExp: 33,
+          firstAttemptBonus: 0,
+          streakBonus: 0,
+        },
+        updatedMembership: null,
+      });
+
+      const result = await service.submitAttempt(1, 10, 100, {
+        moduleUnitId: 10,
+        questionUnitId: 201,
+        questionContentId: 301,
+        sessionId: '11111111-1111-4111-8111-111111111077',
+        timeTakenMs: 1200,
+        hintUnlocked: true,
+        studentAnswer: { selectedOptionIndex: 2 } as any,
+      });
+
+      expect(result.awards).toEqual({
+        baseQuestionExp: 33,
+        firstAttemptBonus: 0,
+        streakBonus: 0,
+        accountExp: 0,
+      });
+      expect(result.awardReasons).toEqual({
+        baseQuestionExp: 'awarded',
+        firstAttemptBonus: 'hint_used',
+      });
     });
 
     it('throws when payload module unit does not match route module unit', async () => {
@@ -979,6 +1084,11 @@ describe('PracticeRoomService', () => {
       prisma.questionAttempt.create.mockResolvedValue({ id: 999 } as any);
       practiceRewardService.awardAttemptModuleExp.mockResolvedValue({
         moduleExpAwarded: 0,
+        moduleAwards: {
+          baseQuestionExp: 0,
+          firstAttemptBonus: 0,
+          streakBonus: 0,
+        },
         updatedMembership: null,
       });
 
@@ -993,7 +1103,12 @@ describe('PracticeRoomService', () => {
       });
 
       expect(practiceRewardService.awardAttemptModuleExp).toHaveBeenCalled();
-      expect(result.moduleExpAwarded).toBe(0);
+      expect(result.awards).toEqual({
+        baseQuestionExp: 0,
+        firstAttemptBonus: 0,
+        streakBonus: 0,
+        accountExp: 0,
+      });
     });
   });
 

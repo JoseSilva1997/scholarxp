@@ -12,6 +12,19 @@ export type ProgressModuleDetail = {
   expMax?: number | null;
 };
 
+// Structured breakdown of XP awarded on a single question attempt. Exported so
+// the UI layer can display each component (base, streak, first-attempt) independently
+// rather than showing a single opaque total.
+export type ExpBreakdown = {
+  base: number;
+  firstAttemptBonus: number;
+  streakBonus: number;
+  total: number;
+  // Monotonically-incrementing ID stamped by applyExpAward before the value is stored.
+  // Used as React keys so chips re-mount on every new award even if values are identical.
+  awardId?: number;
+};
+
 type ModuleProgress = {
   level: number;
   currentExp: number;
@@ -30,7 +43,9 @@ type UseModuleProgressAnimationParams = {
 
 type UseModuleProgressAnimationResult = {
   moduleProgress: ModuleProgress | null;
-  moduleExpGainIndicator: number | null;
+  // Full breakdown so the UI can display each XP source (base, first-attempt, streak)
+  // as separate labelled chips instead of a single combined total.
+  moduleExpGainIndicator: ExpBreakdown | null;
   showLevelUp: boolean;
   // True once the first server snapshot has been applied; used by the parent to gate
   // the loading state so the progress bar doesn't flash empty on mount.
@@ -39,7 +54,7 @@ type UseModuleProgressAnimationResult = {
   // double-count guard, level-up celebration, and XP gain chip so those details
   // don't leak back into the parent hook.
   applyExpAward: (
-    moduleExpAwarded: number,
+    breakdown: ExpBreakdown,
     currentModuleDetail: ProgressModuleDetail | null,
   ) => void;
 };
@@ -49,7 +64,7 @@ export function useModuleProgressAnimation({
   moduleId,
 }: UseModuleProgressAnimationParams): UseModuleProgressAnimationResult {
   const [showLevelUp, setShowLevelUp] = useState(false);
-  const [moduleExpGainIndicator, setModuleExpGainIndicator] = useState<number | null>(null);
+  const [moduleExpGainIndicator, setModuleExpGainIndicator] = useState<ExpBreakdown | null>(null);
   const [moduleProgressAnimation, setModuleProgressAnimation] =
     useState<ModuleProgressAnimationSnapshot | null>(null);
   const [displayedModuleTotalExp, setDisplayedModuleTotalExp] = useState<number | null>(null);
@@ -61,6 +76,8 @@ export function useModuleProgressAnimation({
   const moduleExpGainIndicatorTimeoutRef = useRef<number | null>(null);
   const levelUpVisibilityTimeoutRef = useRef<number | null>(null);
   const moduleProgressScopeRef = useRef<string | null>(null);
+  // Incremented each time an award is applied so chips always get a unique React key.
+  const awardCounterRef = useRef(0);
   // Tracks the last known level so we only show the level-up banner on genuine transitions.
   const prevLevelRef = useRef<number | undefined>(undefined);
 
@@ -264,7 +281,7 @@ export function useModuleProgressAnimation({
   // double-count guard, level-up trigger, and XP gain chip so those concerns stay
   // inside this hook and don't bleed back into the parent.
   const applyExpAward = useCallback(
-    (moduleExpAwarded: number, currentModuleDetail: ProgressModuleDetail | null) => {
+    (breakdown: ExpBreakdown, currentModuleDetail: ProgressModuleDetail | null) => {
       const currentExpMax =
         currentModuleDetail?.expMax && currentModuleDetail.expMax > 0
           ? currentModuleDetail.expMax
@@ -282,7 +299,7 @@ export function useModuleProgressAnimation({
           : // Fall back to the current animation snapshot when module detail isn't loaded yet.
             (moduleProgressAnimation?.totalExp ?? displayedModuleTotalExpRef.current ?? 0);
 
-      const targetTotalExp = baselineTotalExp + moduleExpAwarded;
+      const targetTotalExp = baselineTotalExp + breakdown.total;
 
       setModuleProgressAnimation((previousValue) => {
         // If the animation target is already at or beyond our target (likely from the server
@@ -303,15 +320,18 @@ export function useModuleProgressAnimation({
         return { totalExp: targetTotalExp, expMax: currentExpMax };
       });
 
-      setModuleExpGainIndicator(moduleExpAwarded);
+      // Stamp a unique awardId so the chip components re-mount on every new award
+      // even if the breakdown values are identical to the previous one.
+      setModuleExpGainIndicator({ ...breakdown, awardId: ++awardCounterRef.current });
       if (moduleExpGainIndicatorTimeoutRef.current !== null) {
         clearTimeout(moduleExpGainIndicatorTimeoutRef.current);
       }
-      // The gain chip is intentionally brief so it celebrates progress without cluttering the header.
+      // 4700 ms covers the full staggered sequence: y delays 0 / 0.8 / 1.6 s,
+      // each chip runs 2.5 s → last chip ends at 4.1 s, with a 600 ms safety buffer.
       moduleExpGainIndicatorTimeoutRef.current = window.setTimeout(() => {
         setModuleExpGainIndicator(null);
         moduleExpGainIndicatorTimeoutRef.current = null;
-      }, 1400);
+      }, 4700);
     },
     // moduleProgressAnimation is read via closure inside setModuleProgressAnimation's
     // functional updater, so the ref fallback covers stale closure risk on the ref path.

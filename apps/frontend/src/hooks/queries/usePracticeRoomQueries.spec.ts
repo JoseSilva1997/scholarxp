@@ -40,7 +40,7 @@ describe('useModuleUnitPracticeRoomQuery', () => {
     useMutationMock.mockReturnValue({ mutateAsync: vi.fn() });
     getPracticeRoomMock.mockResolvedValue('result');
     submitPracticeRoomAttemptMock.mockResolvedValue({
-      moduleExpAwarded: 0,
+      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: false,
     });
     closePracticeRoomSessionMock.mockResolvedValue({
@@ -124,7 +124,7 @@ describe('useSubmitModuleUnitPracticeAttemptMutation', () => {
     useMutationMock.mockReturnValue({ mutateAsync: vi.fn() });
     getPracticeRoomMock.mockResolvedValue('result');
     submitPracticeRoomAttemptMock.mockResolvedValue({
-      moduleExpAwarded: 0,
+      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: false,
     });
     closePracticeRoomSessionMock.mockResolvedValue({
@@ -175,7 +175,7 @@ describe('useSubmitModuleUnitPracticeAttemptMutation', () => {
 
     const opts = useMutationMock.mock.calls[0][0];
     const mockResponse = {
-      moduleExpAwarded: 10,
+      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: true,
     };
     await opts.onSuccess(mockResponse);

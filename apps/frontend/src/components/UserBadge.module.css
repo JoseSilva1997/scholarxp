@@ -3,7 +3,7 @@
   align-items: center;
   gap: 16px;
   border-radius: var(--radius-full);
-  padding: 4px 6px 4px 28px;
+  padding: 8px 6px 8px 28px;
   background: var(--color-glass-bg); /* Glassy background for dark header context */
   backdrop-filter: blur(12px);
   border: 1px solid var(--color-glass-border); /* Subtle glass border */
@@ -112,7 +112,7 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  margin-top: 14px; /* Space for the absolute XP label */
+  margin-top: 8px; /* Space for the absolute XP label */
   white-space: nowrap;
 }
 
@@ -201,24 +201,19 @@
   100% { background-position: -200% 0; }
 }
 
-.expLabel {
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: var(--color-text-on-dark-muted); /* Translucent white text on dark */
-  white-space: nowrap;
-  letter-spacing: 0.01em;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-
-.expGain {
-  order: -1;
-  font-size: 0.65rem;
+.expGainFloating {
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  font-size: 0.75rem;
   font-weight: 800;
-  color: var(--color-secondary);
-  text-shadow: 0 0 4px var(--color-secondary-soft);
+  color: var(--color-secondary-light);
+  text-shadow: 
+    0 0 10px var(--color-secondary-soft),
+    0 0 20px rgba(0, 0, 0, 0.5);
   pointer-events: none;
   white-space: nowrap;
+  z-index: 10;
 }
 
 .menu {
@@ -258,19 +253,34 @@
   gap: 12px;
 }
 
-.menuHeaderAvatar {
-  width: 48px;
-  height: 48px;
+.menuHeaderProfileSide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  padding: 4px;
+  background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary));
   border-radius: 50%;
-  border: 2px solid var(--color-glass-border-strong);
+  box-shadow: 
+    0 0 0 2px var(--color-glass-border),
+    0 0 20px var(--color-primary-soft);
+  flex-shrink: 0;
+}
+
+.menuHeaderAvatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid var(--btn-primary-dark);
   object-fit: cover;
   background: var(--color-glass-border-subtle);
-  flex-shrink: 0;
+  display: block;
 }
 
 .menuHeaderInfo {
   min-width: 0;
   flex: 1;
+  padding-left: 4px;
 }
 
 .menuHeaderName {
@@ -282,61 +292,69 @@
   text-overflow: ellipsis;
 }
 
+.menuHeaderLevelBadge {
+  position: absolute;
+  bottom: -6px;
+  background: var(--color-primary);
+  color: var(--color-text-on-dark-vibrant);
+  font-size: 0.7rem;
+  font-weight: 900;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1.5px solid var(--btn-primary-dark);
+  box-shadow: 
+    0 4px 12px var(--color-overlay-dark),
+    0 0 10px var(--color-secondary-soft);
+  z-index: 2;
+  min-width: 24px;
+  text-align: center;
+}
+
 .menuHeaderRole {
   font-size: 0.8rem;
   color: var(--color-text-on-dark-muted);
   margin-top: 2px;
 }
 
-/* Mobile Progress in Menu */
-.menuProgress {
-  padding: 12px 16px;
-  background: var(--color-glass-bg-subtle);
-  border-bottom: 1px solid var(--color-glass-border);
-  display: none; /* Only show on mobile */
-}
-
-@media (max-width: 480px) {
-  .menuProgress {
-    display: block;
-  }
-}
-
-.menuProgressHeader {
+/* Integrated Progress - now inside menuHeaderInfo */
+.menuProgressIntegrated {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.menuLevel {
-  font-size: 0.8rem;
+.menuExpLabel {
+  font-size: 0.65rem;
   font-weight: 700;
-  color: var(--color-accent);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.menuExp {
-  font-size: 0.7rem;
-  color: var(--color-text-on-dark-subtle);
-  font-family: inherit;
+  color: var(--color-text-on-dark-muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+  letter-spacing: 0.02em;
 }
 
 .menuBarTrack {
-  height: 6px;
-  background: var(--color-overlay-dark);
-  border-radius: 3px;
+  height: 10px;
+  background: var(--color-glass-bg-deep);
+  border-radius: var(--radius-full);
   overflow: hidden;
   position: relative;
+  border: 1px solid var(--color-glass-border-subtle);
 }
 
 .menuBarFill {
   height: 100%;
   background: linear-gradient(90deg, var(--color-secondary-light), var(--color-secondary));
-  border-radius: 3px;
-  box-shadow: 0 0 10px var(--color-secondary-soft);
+  border-radius: var(--radius-full);
+  box-shadow: 0 0 8px var(--color-secondary-soft);
   transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Cleanup old styles */
+.menuProgress {
+  display: none;
 }
 
 .menuContent {

@@ -1,0 +1,70 @@
+/* Styles for the BaseXpIndicator component.
+   Bare icon — no circular container. The bolt icon itself glows when base XP
+   is still earnable for the active question.
+   Two states:
+     available — amber bolt with pulsing drop-shadow glow
+     claimed   — dimmed bolt + green checkmark badge, "already earned" */
+
+/* Minimal wrapper; exists only to flex-center the icon. */
+.container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Icon ──────────────────────────────────────────────────────────────────── */
+
+/* Wrapper is relative so the overlay badge can still be positioned inside it. */
+.iconWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon {
+  width: 1.2rem;
+  height: 1.2rem;
+  transition: color 0.3s ease, filter 0.3s ease;
+}
+
+/* Available: amber bolt with pulsing drop-shadow glow. */
+.stateAvailable .icon {
+  color: var(--color-accent);
+  animation: xpPulse 2.4s ease-in-out infinite;
+}
+
+/* Claimed: muted, no glow. */
+.stateClaimed .icon {
+  color: var(--color-text-dim);
+  filter: none;
+}
+
+/* ── Overlay badge ─────────────────────────────────────────────────────────── */
+
+/* Small circular green checkmark anchored to the bottom-right of the bolt icon. */
+.overlayBadge {
+  position: absolute;
+  bottom: -3px;
+  right: -4px;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: var(--color-success);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--color-surface);
+}
+
+.overlayIcon {
+  width: 0.45rem;
+  height: 0.45rem;
+  color: #fff;
+}
+
+/* Pulse animates the drop-shadow on the icon itself so the bolt appears to glow. */
+@keyframes xpPulse {
+  0%, 100% { filter: drop-shadow(0 0 3px rgba(245, 158, 11, 0.4)); }
+  50%       { filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.75)); }
+}

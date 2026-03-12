@@ -1,0 +1,80 @@
+/* Styles for the FirstTryAccuracyIndicator component.
+   Bare icon — no circular container. The target icon itself glows when the
+   first-try bonus is still earnable.
+   Three states:
+     available — amber target with pulsing drop-shadow glow
+     earned    — dimmed target + green checkmark badge
+     lost      — dimmed target + red X badge */
+
+/* Minimal wrapper; exists only to flex-center the icon. */
+.container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Icon ──────────────────────────────────────────────────────────────────── */
+
+/* Wrapper is relative so the overlay badge can be positioned inside it. */
+.iconWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon {
+  width: 1.4rem;
+  height: 1.4rem;
+  transition: color 0.3s ease, filter 0.3s ease;
+}
+
+/* Available: amber target with pulsing drop-shadow glow. */
+.stateAvailable .icon {
+  color: var(--color-accent);
+  animation: accuracyPulse 2.4s ease-in-out infinite;
+}
+
+/* Earned and lost: muted, no glow — only the badge conveys the distinction. */
+.stateEarned .icon,
+.stateLost .icon {
+  color: var(--color-text-dim);
+  filter: none;
+}
+
+/* ── Overlay badge ─────────────────────────────────────────────────────────── */
+
+/* Small circular badge anchored to the bottom-right of the target icon.
+   Overlaid so the target shape remains visible as context for the state. */
+.overlayBadge {
+  position: absolute;
+  bottom: -3px;
+  right: -4px;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--color-surface);
+}
+
+.overlayBadgeEarned {
+  background: var(--color-success);
+}
+
+.overlayBadgeLost {
+  background: var(--color-error);
+}
+
+.overlayIcon {
+  width: 0.45rem;
+  height: 0.45rem;
+  color: #fff;
+}
+
+/* Pulse animates drop-shadow on the icon so the target appears to glow. */
+@keyframes accuracyPulse {
+  0%, 100% { filter: drop-shadow(0 0 3px rgba(245, 158, 11, 0.4)); }
+  50%       { filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.75)); }
+}

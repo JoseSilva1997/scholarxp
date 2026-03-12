@@ -1,0 +1,105 @@
+/* Styles for the RewardsGuideTooltip component.
+   The wrapper is the hover/focus target; the bubble is hidden by default and
+   revealed via :hover and :focus-within so both mouse and keyboard users can
+   access it without any JavaScript state. */
+
+.wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Make the icon itself the hit area; outline on focus so keyboard users see it */
+  cursor: default;
+  border-radius: 50%;
+  outline: none;
+}
+
+.wrapper:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ── Icon ──────────────────────────────────────────────────────────────────── */
+
+.icon {
+  width: 0.9rem;
+  height: 0.9rem;
+  color: var(--btn-primary-dark);
+  transition: color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.wrapper:hover .icon,
+.wrapper:focus-within .icon {
+  color: var(--color-primary-light);
+}
+
+/* ── Speech bubble ─────────────────────────────────────────────────────────── */
+
+.bubble {
+  /* Bubble is hidden until the wrapper is hovered/focused */
+  display: none;
+  position: absolute;
+  /* Anchor to bottom-right of the icon so it opens downward toward the content area */
+  top: calc(100% + 10px);
+  right: 0;
+  width: 280px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-lg, 0 8px 24px rgba(0, 0, 0, 0.12));
+  padding: 0.85rem 1rem;
+  z-index: 200;
+  /* Prevent the bubble itself from triggering re-hide when cursor moves into it */
+  pointer-events: none;
+}
+
+.wrapper:hover .bubble,
+.wrapper:focus-within .bubble {
+  display: block;
+}
+
+/* Tail pointing upward toward the icon */
+.bubble::before {
+  content: '';
+  position: absolute;
+  top: -7px;
+  right: 8px;
+  width: 12px;
+  height: 12px;
+  background: var(--color-surface);
+  border-left: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-border);
+  transform: rotate(45deg);
+}
+
+/* ── Bubble content ────────────────────────────────────────────────────────── */
+
+.heading {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 0.6rem;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.list li {
+  font-size: 0.78rem;
+  color: var(--color-text);
+  line-height: 1.45;
+}
+
+.list li strong {
+  /* Keep the emoji+label visually distinct from the description */
+  font-weight: 600;
+}

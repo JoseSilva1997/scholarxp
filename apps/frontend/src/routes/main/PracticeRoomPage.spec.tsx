@@ -46,7 +46,6 @@ const mocks = vi.hoisted(() => ({
   selectQuestionUnit: vi.fn(),
   selectOption: vi.fn(),
   unlockHintForContent: vi.fn(),
-  tryAgainActiveQuestion: vi.fn(),
   goToPreviousQuestionUnit: vi.fn(),
   goToNextQuestionUnit: vi.fn(),
   submitActiveQuestionAttempt: vi.fn(),
@@ -57,7 +56,8 @@ type MockPageState = {
   parsedUnitId: number | null;
   room: { moduleUnitTitle: string; questions: PracticeQuestionUnit[] } | null;
   moduleProgress: { level: number; currentExp: number; expPercent: number } | null;
-  moduleExpGainIndicator: number | null;
+  moduleExpGainIndicator: { base: number; firstAttemptBonus: number; streakBonus: number; total: number; awardId?: number } | null;
+  showLevelUp: boolean;
   isLoading: boolean;
   pageError: string | null;
   submitErrorMessage: string | null;
@@ -70,9 +70,23 @@ type MockPageState = {
   activeQuestionOptions: Array<{ optionText: string }>;
   questionUnitNav: { canGoPrevious: boolean; canGoNext: boolean };
   selectedOptionIndex: number | null;
-  hasSubmittedActiveQuestion: boolean;
   hasActiveOptionOverride: boolean;
-  showTryAgainButton: boolean;
+  rewardIndicators: {
+    activeQuestion: {
+      baseQuestionExpStatus: 'available' | 'already_earned';
+      firstAttemptBonusStatus: 'available' | 'already_earned' | 'lost';
+    } | null;
+    byQuestionUnitId: Record<number, unknown>;
+    streak: {
+      isEligibleForStreakRewards: boolean;
+      claimedTiers: number[];
+    };
+  };
+  currentStreak: number;
+  highestStreak: number;
+  isStreakInitialized: boolean;
+  lastAttemptResult: 'first-try-correct' | 'incorrect' | null;
+  firstTryBonusStatus: 'available' | 'earned' | 'lost';
   isActiveHintUnlocked: boolean;
 };
 
@@ -82,6 +96,7 @@ let pageState: MockPageState = {
   room: null,
   moduleProgress: null,
   moduleExpGainIndicator: null,
+  showLevelUp: false,
   isLoading: true,
   pageError: null,
   submitErrorMessage: null,
@@ -94,9 +109,17 @@ let pageState: MockPageState = {
   activeQuestionOptions: [],
   questionUnitNav: { canGoPrevious: false, canGoNext: false },
   selectedOptionIndex: null,
-  hasSubmittedActiveQuestion: false,
   hasActiveOptionOverride: false,
-  showTryAgainButton: false,
+  rewardIndicators: {
+    activeQuestion: null,
+    byQuestionUnitId: {},
+    streak: { isEligibleForStreakRewards: false, claimedTiers: [] },
+  },
+  currentStreak: 0,
+  highestStreak: 0,
+  isStreakInitialized: false,
+  lastAttemptResult: null,
+  firstTryBonusStatus: 'available',
   isActiveHintUnlocked: false,
 };
 
@@ -114,7 +137,6 @@ vi.mock('../../hooks/page-state/practice-room/usePracticeRoomPageState', () => (
     selectQuestionUnit: mocks.selectQuestionUnit,
     selectOption: mocks.selectOption,
     unlockHintForContent: mocks.unlockHintForContent,
-    tryAgainActiveQuestion: mocks.tryAgainActiveQuestion,
     goToPreviousQuestionUnit: mocks.goToPreviousQuestionUnit,
     goToNextQuestionUnit: mocks.goToNextQuestionUnit,
     submitActiveQuestionAttempt: mocks.submitActiveQuestionAttempt,
@@ -136,6 +158,7 @@ describe('PracticeRoomPage route (core-only)', () => {
       room: null,
       moduleProgress: null,
       moduleExpGainIndicator: null,
+      showLevelUp: false,
       isLoading: true,
       pageError: null,
       submitErrorMessage: null,
@@ -148,9 +171,17 @@ describe('PracticeRoomPage route (core-only)', () => {
       activeQuestionOptions: [],
       questionUnitNav: { canGoPrevious: false, canGoNext: false },
       selectedOptionIndex: null,
-      hasSubmittedActiveQuestion: false,
       hasActiveOptionOverride: false,
-      showTryAgainButton: false,
+      rewardIndicators: {
+        activeQuestion: null,
+        byQuestionUnitId: {},
+        streak: { isEligibleForStreakRewards: false, claimedTiers: [] },
+      },
+      currentStreak: 0,
+      highestStreak: 0,
+      isStreakInitialized: false,
+      lastAttemptResult: null,
+      firstTryBonusStatus: 'available',
       isActiveHintUnlocked: false,
     };
     vi.clearAllMocks();
@@ -159,7 +190,7 @@ describe('PracticeRoomPage route (core-only)', () => {
   it('renders module exp gain indicator when present', () => {
     pageState.isLoading = false;
     pageState.moduleProgress = { level: 2, currentExp: 120, expPercent: 12 };
-    pageState.moduleExpGainIndicator = 50;
+    pageState.moduleExpGainIndicator = { base: 50, firstAttemptBonus: 0, streakBonus: 0, total: 50 };
     pageState.room = { moduleUnitTitle: 'Unit 1', questions: [] };
 
     render(
@@ -168,7 +199,7 @@ describe('PracticeRoomPage route (core-only)', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('+50')).toBeInTheDocument();
+    expect(screen.getByText('+50 xp')).toBeInTheDocument();
     expect(screen.getByText('120 xp')).toBeInTheDocument();
   });
 
@@ -211,7 +242,7 @@ describe('PracticeRoomPage route (core-only)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Question 1' }));
     expect(mocks.selectQuestionUnit).toHaveBeenCalledWith(0);
 
-    fireEvent.click(screen.getByRole('button', { name: /Submit answer/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Submit/i }));
     expect(mocks.submitActiveQuestionAttempt).toHaveBeenCalled();
   });
 
@@ -232,18 +263,22 @@ describe('PracticeRoomPage route (core-only)', () => {
     );
 
     expect(screen.getByRole('button', { name: 'A A' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: /Submit answer/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /^Submit$/i })).toBeDisabled();
   });
 
-  it('renders try again button before submit when question is incorrect and submitted', () => {
-    const question = createMockQuestionUnit();
+  it('keeps prior-correct questions interactive during active practice sessions', () => {
+    const question = createMockQuestionUnit({
+      coreQuestion: {
+        ...createMockQuestionUnit().coreQuestion,
+        lastAttempt: { studentAnswer: { selectedOptionIndex: 0 }, isCorrect: true },
+      },
+    });
     pageState.isLoading = false;
+    pageState.canSubmitAttempt = true;
     pageState.room = { moduleUnitTitle: 'Unit 1', questions: [question] };
     pageState.activeQuestionUnit = question;
     pageState.activeQuestion = { question: question.coreQuestion.questionContent };
     pageState.activeQuestionOptions = [{ optionText: 'A' }, { optionText: 'B' }];
-    pageState.hasSubmittedActiveQuestion = true;
-    pageState.showTryAgainButton = true;
 
     render(
       <MemoryRouter>
@@ -251,15 +286,57 @@ describe('PracticeRoomPage route (core-only)', () => {
       </MemoryRouter>,
     );
 
-    const allButtons = screen.getAllByRole('button');
-    const tryAgainButton = screen.getByRole('button', { name: /Try again/i });
-    const submitButton = screen.getByRole('button', { name: /Submitted/i });
-    expect(allButtons.indexOf(tryAgainButton)).toBeLessThan(
-      allButtons.indexOf(submitButton),
+    expect(screen.getByRole('button', { name: 'A A' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /^Submit$/i })).toBeEnabled();
+  });
+
+  it('surfaces solved-question streak ineligibility through the base XP indicator copy', () => {
+    const question = createMockQuestionUnit({
+      hasCorrectAttempt: null,
+      coreQuestion: {
+        ...createMockQuestionUnit().coreQuestion,
+        lastAttempt: { studentAnswer: { selectedOptionIndex: 1 }, isCorrect: false },
+      },
+    });
+    pageState.isLoading = false;
+    pageState.moduleProgress = { level: 1, currentExp: 0, expPercent: 0 };
+    pageState.room = { moduleUnitTitle: 'Unit 1', questions: [question] };
+    pageState.activeQuestionUnit = question;
+    pageState.activeQuestion = { question: question.coreQuestion.questionContent };
+    pageState.activeQuestionOptions = [{ optionText: 'A' }, { optionText: 'B' }];
+    pageState.rewardIndicators.streak.isEligibleForStreakRewards = true;
+    pageState.rewardIndicators.activeQuestion = {
+      baseQuestionExpStatus: 'already_earned',
+      firstAttemptBonusStatus: 'lost',
+    };
+
+    render(
+      <MemoryRouter>
+        <PracticeRoomPage />
+      </MemoryRouter>,
     );
 
-    fireEvent.click(tryAgainButton);
-    expect(mocks.tryAgainActiveQuestion).toHaveBeenCalled();
+    expect(
+      screen.getByLabelText('Base XP: already earned (cannot contribute to streak)'),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps only the submit action visible after previous attempts', () => {
+    const question = createMockQuestionUnit();
+    pageState.isLoading = false;
+    pageState.room = { moduleUnitTitle: 'Unit 1', questions: [question] };
+    pageState.activeQuestionUnit = question;
+    pageState.activeQuestion = { question: question.coreQuestion.questionContent };
+    pageState.activeQuestionOptions = [{ optionText: 'A' }, { optionText: 'B' }];
+
+    render(
+      <MemoryRouter>
+        <PracticeRoomPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByRole('button', { name: /Try again/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Submit$/i })).toBeInTheDocument();
   });
 
   it('shows incorrect feedback for persisted incorrect attempts on revisit', () => {
@@ -275,7 +352,6 @@ describe('PracticeRoomPage route (core-only)', () => {
     pageState.activeQuestion = { question: question.coreQuestion.questionContent };
     pageState.activeQuestionOptions = [{ optionText: 'A' }, { optionText: 'B' }];
     pageState.selectedOptionIndex = 1;
-    pageState.hasSubmittedActiveQuestion = false;
     pageState.hasActiveOptionOverride = false;
 
     render(
@@ -300,7 +376,6 @@ describe('PracticeRoomPage route (core-only)', () => {
     pageState.activeQuestion = { question: question.coreQuestion.questionContent };
     pageState.activeQuestionOptions = [{ optionText: 'A' }, { optionText: 'B' }];
     pageState.selectedOptionIndex = 0;
-    pageState.hasSubmittedActiveQuestion = false;
     pageState.hasActiveOptionOverride = true;
 
     render(

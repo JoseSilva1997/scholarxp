@@ -9,10 +9,16 @@ import {
   PracticeSessionTypeValues,
   type PracticeSessionType,
   type StudentAnswer,
+  type AwardReasons,
+  type PracticeQuestionRewardState,
 } from '@scholarxp/api-contracts';
 import { ExpAwardingService } from '../exp-engine/exp-awarding.service';
+import { ExpStreakService } from '../exp-engine/exp-streak.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { MODULE_UNIT_BASELINE_EXP } from '@scholarxp/constants';
+import {
+  ExpLedgerEventTypes,
+  MODULE_UNIT_BASELINE_EXP,
+} from '@scholarxp/constants';
 import { ModuleUnitPracticeRoomResponseDto } from './dto/practice-room-response.dto';
 import { SubmitAttemptDto } from './dto/submit-attempt.dto';
 import { SubmitAttemptResponseDto } from './dto/submit-attempt-response.dto';
@@ -50,6 +56,7 @@ export class PracticeRoomService {
     private readonly practiceRoomMapper: PracticeRoomMapper,
     private readonly studentModuleUnitProgressService: StudentModuleUnitProgressService,
     private readonly expAwardingService: ExpAwardingService,
+    private readonly expStreakService: ExpStreakService,
   ) {}
 
   // Builds the initial room state for one student in one module unit and either resumes a provided session or opens a fresh one.
@@ -74,6 +81,24 @@ export class PracticeRoomService {
       moduleId,
       studentId,
     );
+    const questionRewardStateByQuestionId =
+      await this.getQuestionRewardStateMap(
+        moduleUnitId,
+        studentId,
+        roomContext.questionUnitDrafts,
+      );
+    const claimedStreakTiers = await this.getClaimedStreakTiers(
+      moduleId,
+      moduleUnitId,
+      studentId,
+    );
+    // Fetch current and highest streak for this session so UI shows correct state on page load/refresh.
+    const { currentStreak, highestStreak } =
+      await this.expStreakService.getSessionStreak(
+        moduleUnitId,
+        studentId,
+        roomContext.session.id,
+      );
 
     return this.practiceRoomMapper.buildResponse({
       sessionId: roomContext.session.id,
@@ -83,7 +108,11 @@ export class PracticeRoomService {
       isReadOnly: roomContext.isReadOnly,
       questionUnitDrafts: roomContext.questionUnitDrafts,
       latestAttemptByKey,
+      questionRewardStateByQuestionId,
+      claimedStreakTiers,
       moduleProgress,
+      currentStreak,
+      highestStreak,
     });
   }
 
@@ -113,82 +142,111 @@ export class PracticeRoomService {
     );
 
     const attemptedAt = new Date();
-    const { alreadyHasCorrectAttempt, updatedMembership, moduleExpAwarded } =
-      await this.prisma.$transaction(async (tx) => {
-        const hadAnyAttemptBeforeSubmit = await this.hasAnyAttempt(
-          moduleUnitId,
-          studentId,
-          payload.questionUnitId,
-          tx,
-        );
-        const hadCorrectAttemptBeforeSubmit = await this.hasAnyCorrectAttempt(
-          moduleUnitId,
-          studentId,
-          payload.questionUnitId,
-          tx,
-        );
+    const {
+      alreadyHasCorrectAttempt,
+      hadAnyAttemptBeforeSubmit,
+      updatedMembership,
+      moduleAwards,
+      awardedAccountExp,
+    } = await this.prisma.$transaction(async (tx) => {
+      const hadAnyAttemptBeforeSubmit = await this.hasAnyAttempt(
+        moduleUnitId,
+        studentId,
+        payload.questionUnitId,
+        tx,
+      );
+      const hadCorrectAttemptBeforeSubmit = await this.hasAnyCorrectAttempt(
+        moduleUnitId,
+        studentId,
+        payload.questionUnitId,
+        tx,
+      );
 
-        await this.createAttemptRecord(
-          moduleUnitId,
-          studentId,
-          payload,
-          isCorrect,
-          attemptedAt,
+      await this.createAttemptRecord(
+        moduleUnitId,
+        studentId,
+        payload,
+        isCorrect,
+        attemptedAt,
+        tx,
+      );
+      const syncedProgress =
+        await this.studentModuleUnitProgressService.syncFromAttempts(
+          {
+            moduleUnitId,
+            studentId,
+            attemptedAt,
+          },
           tx,
         );
-        const syncedProgress =
-          await this.studentModuleUnitProgressService.syncFromAttempts(
-            {
-              moduleUnitId,
-              studentId,
-              attemptedAt,
-            },
-            tx,
-          );
-        await this.closeSessionOnCompletionIfNeeded(
-          payload.sessionId,
-          attemptedAt,
-          syncedProgress.isCompleted,
+      await this.closeSessionOnCompletionIfNeeded(
+        payload.sessionId,
+        attemptedAt,
+        syncedProgress.isCompleted,
+        tx,
+      );
+      const rewardPersistence =
+        await this.expAwardingService.awardAttemptModuleExp(
+          {
+            studentId,
+            moduleId,
+            moduleUnitId,
+            sessionId: payload.sessionId,
+            questionUnitId: payload.questionUnitId,
+            isCorrect,
+            hadCorrectAttemptBeforeSubmit,
+            hadAnyAttemptBeforeSubmit,
+            // Hint usage is policy input for first-try bonus eligibility.
+            hintUnlockedOnSubmit: payload.hintUnlocked,
+          },
           tx,
         );
-        const rewardPersistence =
-          await this.expAwardingService.awardAttemptModuleExp(
-            {
-              studentId,
-              moduleId,
-              moduleUnitId,
-              sessionId: payload.sessionId,
-              questionUnitId: payload.questionUnitId,
-              isCorrect,
-              hadCorrectAttemptBeforeSubmit,
-              hadAnyAttemptBeforeSubmit,
-            },
-            tx,
-          );
-        if (syncedProgress.isCompleted) {
-          // Completion account XP is policy-owned by the reward service to keep this orchestration thin.
-          await this.expAwardingService.awardCompletionExp(
-            {
-              studentId,
-              moduleId,
-              moduleUnitId,
-              sessionId: payload.sessionId,
-              completedAt: attemptedAt,
-            },
-            tx,
-          );
-        }
+      let awardedAccountExp = 0;
+      if (syncedProgress.isCompleted) {
+        // Completion account XP is policy-owned by the reward service to keep this orchestration thin.
+        awardedAccountExp = await this.expAwardingService.awardCompletionExp(
+          {
+            studentId,
+            moduleId,
+            moduleUnitId,
+            sessionId: payload.sessionId,
+            completedAt: attemptedAt,
+          },
+          tx,
+        );
+      }
 
-        return {
-          alreadyHasCorrectAttempt: hadCorrectAttemptBeforeSubmit,
-          updatedMembership: rewardPersistence.updatedMembership,
-          moduleExpAwarded: rewardPersistence.moduleExpAwarded,
-        };
-      });
+      return {
+        alreadyHasCorrectAttempt: hadCorrectAttemptBeforeSubmit,
+        hadAnyAttemptBeforeSubmit,
+        updatedMembership: rewardPersistence.updatedMembership,
+        moduleAwards: rewardPersistence.moduleAwards,
+        awardedAccountExp,
+      };
+    });
 
     // Reward values are ledger-backed so retries can safely return zero when the event was already applied.
+    // Streak is read after the transaction so it reflects the attempt we just persisted.
+    const { currentStreak, highestStreak } =
+      await this.expStreakService.getSessionStreak(
+        moduleUnitId,
+        studentId,
+        payload.sessionId,
+      );
+
     return {
-      moduleExpAwarded,
+      awards: {
+        baseQuestionExp: moduleAwards.baseQuestionExp,
+        firstAttemptBonus: moduleAwards.firstAttemptBonus,
+        streakBonus: moduleAwards.streakBonus,
+        accountExp: awardedAccountExp,
+      },
+      awardReasons: this.resolveSubmitAwardReasons({
+        isCorrect,
+        hadAnyAttemptBeforeSubmit,
+        hintUnlockedOnSubmit: payload.hintUnlocked,
+        moduleAwards,
+      }),
       hasCorrectAttempt: alreadyHasCorrectAttempt || isCorrect,
       updatedModuleProgress: updatedMembership
         ? {
@@ -200,6 +258,40 @@ export class PracticeRoomService {
             expMax: MODULE_UNIT_BASELINE_EXP,
           }
         : undefined,
+      currentStreak,
+      highestStreak,
+    };
+  }
+
+  // Keep reward-reason mapping backend-owned so clients can render precise UX copy without duplicating policy rules.
+  private resolveSubmitAwardReasons(params: {
+    isCorrect: boolean;
+    hadAnyAttemptBeforeSubmit: boolean;
+    hintUnlockedOnSubmit: boolean;
+    moduleAwards: {
+      baseQuestionExp: number;
+      firstAttemptBonus: number;
+    };
+  }): AwardReasons {
+    const baseQuestionExp = !params.isCorrect
+      ? 'incorrect'
+      : params.moduleAwards.baseQuestionExp > 0
+        ? 'awarded'
+        : 'already_earned';
+
+    const firstAttemptBonus = !params.isCorrect
+      ? 'incorrect'
+      : params.moduleAwards.firstAttemptBonus > 0
+        ? 'awarded'
+        : params.hadAnyAttemptBeforeSubmit
+          ? 'not_first_try'
+          : params.hintUnlockedOnSubmit
+            ? 'hint_used'
+          : 'already_earned';
+
+    return {
+      baseQuestionExp,
+      firstAttemptBonus,
     };
   }
 
@@ -478,6 +570,118 @@ export class PracticeRoomService {
       isCorrect: attempt.isCorrect,
       attemptedAt: attempt.attemptedAt,
     }));
+  }
+
+  // Build per-question reward availability from canonical attempt history so the UI can explain XP outcomes on room load.
+  private async getQuestionRewardStateMap(
+    moduleUnitId: number,
+    studentId: number,
+    questionUnitDrafts: RoomQuestionUnitDraft[],
+  ): Promise<Map<number, PracticeQuestionRewardState>> {
+    const questionUnitIds = questionUnitDrafts.map(
+      (questionUnit) => questionUnit.questionUnitId,
+    );
+    if (questionUnitIds.length === 0) {
+      return new Map<number, PracticeQuestionRewardState>();
+    }
+
+    const attempts = await this.prisma.questionAttempt.findMany({
+      where: {
+        moduleUnitId,
+        studentId,
+        questionId: { in: questionUnitIds },
+      },
+      orderBy: [{ attemptedAt: 'asc' }, { id: 'asc' }],
+      select: {
+        questionId: true,
+        isCorrect: true,
+        hintsUsed: true,
+      },
+    });
+
+    return this.reduceQuestionRewardStateFromAttempts(attempts);
+  }
+
+  // Parse persisted streak reward events to expose already-claimed tiers for this user/unit.
+  private async getClaimedStreakTiers(
+    moduleId: number,
+    moduleUnitId: number,
+    studentId: number,
+  ): Promise<number[]> {
+    const streakEvents = await this.prisma.expLedger.findMany({
+      where: {
+        userId: studentId,
+        moduleId,
+        moduleUnitId,
+        eventType: ExpLedgerEventTypes.PRACTICE_ROOM_STREAK,
+      },
+      select: {
+        idempotencyKey: true,
+      },
+    });
+
+    const claimedTierSet = new Set<number>();
+    for (const event of streakEvents) {
+      const tier = this.readStreakTierFromIdempotencyKey(event.idempotencyKey);
+      if (tier !== null) {
+        claimedTierSet.add(tier);
+      }
+    }
+
+    return [...claimedTierSet].sort((left, right) => left - right);
+  }
+
+  // One pass over sorted attempts keeps reward-state derivation deterministic and easy to unit-test.
+  private reduceQuestionRewardStateFromAttempts(
+    attempts: Array<{ questionId: number; isCorrect: boolean; hintsUsed: number }>,
+  ): Map<number, PracticeQuestionRewardState> {
+    const rewardStateByQuestionId = new Map<
+      number,
+      PracticeQuestionRewardState
+    >();
+    for (const attempt of attempts) {
+      const existingState =
+        rewardStateByQuestionId.get(attempt.questionId) ??
+        this.buildDefaultQuestionRewardState();
+      const nextState = { ...existingState };
+
+      if (existingState.firstAttemptBonusStatus === 'available') {
+        // First attempt with hint is always assisted, so first-try bonus is forfeited.
+        nextState.firstAttemptBonusStatus =
+          attempt.hintsUsed > 0
+            ? 'lost'
+            : attempt.isCorrect
+              ? 'already_earned'
+              : 'lost';
+      }
+      if (attempt.isCorrect) {
+        nextState.baseQuestionExpStatus = 'already_earned';
+      }
+
+      rewardStateByQuestionId.set(attempt.questionId, nextState);
+    }
+
+    return rewardStateByQuestionId;
+  }
+
+  // Idempotency keys include ":tier:{n}"; extracting that suffix avoids schema changes for historical rows.
+  private readStreakTierFromIdempotencyKey(
+    idempotencyKey: string,
+  ): number | null {
+    const match = idempotencyKey.match(/:tier:(\d+)$/);
+    if (!match) {
+      return null;
+    }
+    const tier = Number(match[1]);
+    return Number.isInteger(tier) && tier > 0 ? tier : null;
+  }
+
+  // Centralized default avoids repeating literal state objects across mapping helpers.
+  private buildDefaultQuestionRewardState(): PracticeQuestionRewardState {
+    return {
+      baseQuestionExpStatus: 'available',
+      firstAttemptBonusStatus: 'available',
+    };
   }
 
   // Route params remain the source of truth, so payload moduleUnitId must match to prevent accidental cross-unit writes.

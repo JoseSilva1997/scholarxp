@@ -1,0 +1,204 @@
+/* Styles for the StreakIndicator component. Visual intensity scales with tier
+   using CSS custom-property overrides so a single animation rule covers all
+   states; tier classes override --streak-color and --streak-glow only. */
+
+.container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-surface);
+  padding: 0.5rem 0.9rem;
+  border-radius: 20px;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-md);
+  /* Base streak color token overridden per tier below */
+  --streak-color: var(--color-text-dim);
+  --streak-glow: transparent;
+  position: relative;
+  overflow: visible;
+  transition: border-color 0.4s ease, box-shadow 0.4s ease;
+}
+
+/* Wrapper for flame and pips, stacked vertically */
+.iconPipGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+/* ── Tier styling ──────────────────────────────────────────────────────────── */
+
+/* Tier 0: dormant — muted icon, no glow, no pulse */
+.tier0 {
+  --streak-color: var(--color-primary-subtle);
+  --streak-glow: transparent;
+}
+
+/* Tier 1: warm — accent amber, subtle pulse; corresponds to ≥ 30 % threshold */
+.tier1 {
+  --streak-color: var(--color-flame-tier1);
+  --streak-glow: var(--color-flame-tier1-glow);
+  border-color: var(--color-flame-tier1-border);
+  box-shadow: var(--shadow-md), 0 0 10px var(--streak-glow);
+  animation: streakPulse 2.4s ease-in-out infinite;
+}
+
+/* Tier 2: hot — deeper orange/red, stronger glow + faster pulse; ≥ 50 % */
+.tier2 {
+  --streak-color: var(--color-flame-tier2);
+  --streak-glow: var(--color-flame-tier2-glow);
+  border-color: var(--color-flame-tier2-border);
+  box-shadow: var(--shadow-md), 0 0 14px var(--streak-glow);
+  animation: streakPulse 1.8s ease-in-out infinite;
+}
+
+/* Tier 3: blaze — full red, brightest glow + fast pulse; 100 % clean run */
+.tier3 {
+  --streak-color: var(--color-flame-tier3);
+  --streak-glow: var(--color-flame-tier3-glow);
+  border-color: var(--color-flame-tier3-border);
+  box-shadow: var(--shadow-md), 0 0 18px var(--streak-glow);
+  animation: streakPulse 1.2s ease-in-out infinite;
+}
+
+/* ── Glow pulse animation (intensity is tuned by animation-duration per tier) */
+@keyframes streakPulse {
+  0%, 100% {
+    box-shadow: var(--shadow-md), 0 0 8px var(--streak-glow);
+  }
+  50% {
+    box-shadow: var(--shadow-md), 0 0 20px var(--streak-glow);
+  }
+}
+
+/* ── Icon ──────────────────────────────────────────────────────────────────── */
+
+.iconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: bottom center;
+}
+
+.icon {
+  /* Inherits --streak-color so one rule drives all tier colors */
+  color: var(--streak-color);
+  width: 16px;
+  height: 16px;
+  transition: color 0.35s ease;
+}
+
+/* ── Badge ─────────────────────────────────────────────────────────────────── */
+
+.badge {
+  font-size: 0.8rem;
+  font-weight: 800;
+  font-family: var(--font-display);
+  color: var(--streak-color);
+  transition: color 0.35s ease;
+  line-height: 1;
+  min-width: 1ch;
+  text-align: center;
+}
+
+/* ── Pip row ────────────────────────────────────────────────────────────────── */
+
+/* Pips arranged horizontally below the flame, small enough not to distract
+   but clearly readable. Each pip maps to one XP bonus tier:
+   pip 1 = 30 % threshold, pip 2 = 50 % threshold. Tier 3 (100 %) is implicit
+   and needs no pip because completing the unit is already self-evident. */
+.pips {
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+}
+
+.pip {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  transition: background-color 0.35s ease, box-shadow 0.35s ease;
+}
+
+/* inactive: threshold not reached yet — dim unfilled circle */
+.pipInactive {
+  background-color: transparent;
+  box-shadow: 0 0 0 1.5px var(--color-pip-inactive);
+}
+
+/* active: current streak has just hit this threshold for the first time this
+   session — bonus will be awarded. Pulses to grab attention. */
+.pipActive.pipTier1 {
+  background-color: var(--color-pip-tier1-active);
+  box-shadow: 0 0 5px var(--color-pip-tier1-active-glow);
+  animation: pipPulse 1.4s ease-in-out infinite;
+}
+
+.pipActive.pipTier2 {
+  background-color: var(--color-pip-tier2-active);
+  box-shadow: 0 0 5px var(--color-pip-tier2-active-glow);
+  animation: pipPulse 1.1s ease-in-out infinite;
+}
+
+.pipActive.pipTier3 {
+  background-color: var(--color-pip-tier2-active);
+  box-shadow: 0 0 5px var(--color-pip-tier2-active-glow);
+  animation: pipPulse 0.9s ease-in-out infinite;
+}
+
+/* claimed: bonus already collected for this tier; re-reaching it won't give XP.
+   Filled but muted to signal "earned but spent". */
+.pipClaimed.pipTier1 {
+  background-color: var(--color-pip-tier1-claimed);
+  box-shadow: none;
+}
+
+.pipClaimed.pipTier2 {
+  background-color: var(--color-pip-tier2-claimed);
+  box-shadow: none;
+}
+
+.pipClaimed.pipTier3 {
+  background-color: var(--color-pip-tier2-claimed);
+  box-shadow: none;
+}
+
+/* ── Floating Bonus ─────────────────────────────────────────────────────────── */
+
+/* Floating "Bonus!" text that animates upward when a streak bonus is earned.
+   Positioned absolutely above the container so it floats without pushing layout. */
+.floatingBonus {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-48%) translateY(-200%);
+  font-weight: 800;
+  font-size: 1rem;
+  line-height: 1;
+  /* Use a vibrant color that pairs well with the achievement: golden yellow */
+  color: var(--color-success);
+  text-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .container {
+    padding: 0.45rem 0.7rem;
+    gap: 4px;
+  }
+
+  .icon {
+    width: 14px;
+    height: 14px;
+  }
+
+  .badge {
+    font-size: 0.75rem;
+  }
+}

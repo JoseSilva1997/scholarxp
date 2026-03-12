@@ -21,7 +21,19 @@ type BuildResponseInput = {
   isReadOnly: boolean;
   questionUnitDrafts: RoomQuestionUnitDraft[];
   latestAttemptByKey: Map<string, LatestAttemptSnapshot>;
+  questionRewardStateByQuestionId: Map<
+    number,
+    {
+      baseQuestionExpStatus: 'available' | 'already_earned';
+      firstAttemptBonusStatus: 'available' | 'already_earned' | 'lost';
+    }
+  >;
+  claimedStreakTiers: number[];
   moduleProgress?: ModuleSummaryResponse;
+  // Live streak for this session passed from service to include in initial response.
+  currentStreak?: number;
+  // All-time highest streak in this session.
+  highestStreak?: number;
 };
 
 @Injectable()
@@ -84,10 +96,16 @@ export class PracticeRoomMapper {
           questionUnitDraft,
           index,
           input.latestAttemptByKey,
+          input.questionRewardStateByQuestionId,
         ),
       ),
     };
     response.moduleProgress = input.moduleProgress;
+    response.streakRewardState = {
+      claimedTiers: input.claimedStreakTiers,
+    };
+    response.currentStreak = input.currentStreak;
+    response.highestStreak = input.highestStreak;
     return response;
   }
 
@@ -101,6 +119,13 @@ export class PracticeRoomMapper {
     questionUnitDraft: RoomQuestionUnitDraft,
     index: number,
     latestAttemptByKey: Map<string, LatestAttemptSnapshot>,
+    questionRewardStateByQuestionId: Map<
+      number,
+      {
+        baseQuestionExpStatus: 'available' | 'already_earned';
+        firstAttemptBonusStatus: 'available' | 'already_earned' | 'lost';
+      }
+    >,
   ) {
     const coreAttempt = latestAttemptByKey.get(
       this.buildAttemptKey(
@@ -116,6 +141,9 @@ export class PracticeRoomMapper {
       questionUnitId: questionUnitDraft.questionUnitId,
       position: index + 1,
       hasCorrectAttempt,
+      rewardState:
+        questionRewardStateByQuestionId.get(questionUnitDraft.questionUnitId) ??
+        this.buildDefaultQuestionRewardState(),
       coreQuestion: {
         questionId: questionUnitDraft.coreQuestion.questionId,
         questionContent: questionUnitDraft.coreQuestion.questionContent,
@@ -132,6 +160,14 @@ export class PracticeRoomMapper {
     return {
       studentAnswer: attempt.studentAnswer as unknown as StudentAnswer,
       isCorrect: attempt.isCorrect,
+    };
+  }
+
+  // New questions default to "available" so the UI can show earnable reward icons before any attempt exists.
+  private buildDefaultQuestionRewardState() {
+    return {
+      baseQuestionExpStatus: 'available' as const,
+      firstAttemptBonusStatus: 'available' as const,
     };
   }
 }

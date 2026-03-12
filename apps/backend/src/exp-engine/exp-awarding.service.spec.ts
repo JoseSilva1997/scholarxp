@@ -8,6 +8,8 @@ import { createPrismaMock, type PrismaMock } from '../test/test-helpers';
 import { ExpAwardingService } from './exp-awarding.service';
 import { ExpCalculationService } from './exp-calculation.service';
 import { ExpLedgerEventTypes } from '@scholarxp/constants';
+import { ExpQuestionContextService } from './exp-question-context.service';
+import { ExpStreakService } from './exp-streak.service';
 
 describe('ExpAwardingService', () => {
   let service: ExpAwardingService;
@@ -15,12 +17,22 @@ describe('ExpAwardingService', () => {
   let expLedgerService: {
     recordEvent: jest.Mock;
     getTodaysNumberOfCompletedUnits: jest.Mock;
+    acquireDailyCompletionLock: jest.Mock;
   };
   let avatarService: { addStudentExp: jest.Mock };
   let userModuleService: { addStudentModuleExp: jest.Mock };
 
   beforeEach(async () => {
     prisma = createPrismaMock();
+    prisma.$transaction.mockImplementation(
+      async (...args: unknown[]): Promise<unknown> => {
+        const [firstArg] = args;
+        if (typeof firstArg === 'function') {
+          return (firstArg as (client: PrismaMock) => Promise<unknown>)(prisma);
+        }
+        return firstArg;
+      },
+    );
     expLedgerService = {
       recordEvent: jest
         .fn()
@@ -28,6 +40,7 @@ describe('ExpAwardingService', () => {
           Promise.resolve({ created: true, awardedExp: params.awardedExp }),
         ),
       getTodaysNumberOfCompletedUnits: jest.fn(),
+      acquireDailyCompletionLock: jest.fn().mockResolvedValue(undefined),
     };
     avatarService = {
       addStudentExp: jest.fn().mockResolvedValue(undefined),
@@ -63,6 +76,8 @@ describe('ExpAwardingService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ExpCalculationService,
+        ExpQuestionContextService,
+        ExpStreakService,
         ExpAwardingService,
         { provide: PrismaService, useValue: prisma },
         { provide: ExpLedgerService, useValue: expLedgerService },
@@ -86,14 +101,23 @@ describe('ExpAwardingService', () => {
     });
 
     expect(awarded).toBe(100);
-    expect(expLedgerService.recordEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        eventType: ExpLedgerEventTypes.COMPLETE_MODULE_UNIT,
-        awardedExp: 100,
-      }),
-      prisma,
+    const completionEventCall = expLedgerService.recordEvent.mock.calls.find(
+      ([params]) =>
+        params.eventType === ExpLedgerEventTypes.COMPLETE_MODULE_UNIT,
     );
-    expect(avatarService.addStudentExp).toHaveBeenCalledWith(100, 100, prisma);
+    expect(completionEventCall?.[0].awardedExp).toBe(100);
+    const firstCompletionLockCall =
+      expLedgerService.acquireDailyCompletionLock.mock.calls.find(
+        ([userId, completedAt]) =>
+          userId === 100 &&
+          completedAt?.toISOString?.() === '2026-03-07T15:40:00.000Z',
+      );
+    expect(firstCompletionLockCall).toBeDefined();
+    const firstCompletionAvatarCall =
+      avatarService.addStudentExp.mock.calls.find(
+        ([userId, awardedExp]) => userId === 100 && awardedExp === 100,
+      );
+    expect(firstCompletionAvatarCall).toBeDefined();
   });
 
   it('awards 25 account xp on second completion of UTC day', async () => {
@@ -108,7 +132,18 @@ describe('ExpAwardingService', () => {
     });
 
     expect(awarded).toBe(25);
-    expect(avatarService.addStudentExp).toHaveBeenCalledWith(100, 25, prisma);
+    const secondCompletionLockCall =
+      expLedgerService.acquireDailyCompletionLock.mock.calls.find(
+        ([userId, completedAt]) =>
+          userId === 100 &&
+          completedAt?.toISOString?.() === '2026-03-07T16:40:00.000Z',
+      );
+    expect(secondCompletionLockCall).toBeDefined();
+    const secondCompletionAvatarCall =
+      avatarService.addStudentExp.mock.calls.find(
+        ([userId, awardedExp]) => userId === 100 && awardedExp === 25,
+      );
+    expect(secondCompletionAvatarCall).toBeDefined();
   });
 
   it('awards 0 account xp from third completion onward in same UTC day', async () => {
@@ -125,6 +160,7 @@ describe('ExpAwardingService', () => {
     expect(awarded).toBe(0);
     expect(expLedgerService.recordEvent).not.toHaveBeenCalled();
     expect(avatarService.addStudentExp).not.toHaveBeenCalled();
+    expect(expLedgerService.acquireDailyCompletionLock).toHaveBeenCalled();
   });
 
   it('does not apply account xp when completion event was already recorded', async () => {
@@ -144,6 +180,7 @@ describe('ExpAwardingService', () => {
 
     expect(awarded).toBe(0);
     expect(avatarService.addStudentExp).not.toHaveBeenCalled();
+    expect(expLedgerService.acquireDailyCompletionLock).toHaveBeenCalled();
   });
 
   it('awards module xp for a persisted practice attempt and returns updated membership snapshot', async () => {
@@ -152,9 +189,11 @@ describe('ExpAwardingService', () => {
       { id: 202 },
       { id: 203 },
     ] as never);
-    prisma.questionAttempt.findMany.mockResolvedValue([
-      { questionId: 201, isCorrect: true },
-    ] as never);
+    prisma.questionAttempt.findMany
+      // Historically solved outside this session.
+      .mockResolvedValueOnce([])
+      // Attempts in this session.
+      .mockResolvedValueOnce([{ questionId: 201, isCorrect: true }] as never);
 
     const result = await service.awardAttemptModuleExp(
       {
@@ -166,6 +205,7 @@ describe('ExpAwardingService', () => {
         isCorrect: true,
         hadCorrectAttemptBeforeSubmit: false,
         hadAnyAttemptBeforeSubmit: false,
+        hintUnlockedOnSubmit: false,
       },
       prisma,
     );
@@ -204,6 +244,53 @@ describe('ExpAwardingService', () => {
     expect(result.updatedMembership?.module.title).toBe('Biology');
   });
 
+  it('denies first-attempt bonus when the first correct submission used a hint', async () => {
+    prisma.questionUnit.findMany.mockResolvedValue([
+      { id: 201 },
+      { id: 202 },
+      { id: 203 },
+    ] as never);
+    prisma.questionAttempt.findMany
+      // Historically solved outside this session.
+      .mockResolvedValueOnce([])
+      // Attempts in this session.
+      .mockResolvedValueOnce([{ questionId: 201, isCorrect: true }] as never);
+
+    const result = await service.awardAttemptModuleExp(
+      {
+        studentId: 100,
+        moduleId: 10,
+        moduleUnitId: 20,
+        sessionId: '11111111-1111-4111-8111-111111111111',
+        questionUnitId: 201,
+        isCorrect: true,
+        hadCorrectAttemptBeforeSubmit: false,
+        hadAnyAttemptBeforeSubmit: false,
+        hintUnlockedOnSubmit: true,
+      },
+      prisma,
+    );
+
+    const firstAttemptEventCalls = expLedgerService.recordEvent.mock.calls.filter(
+      ([params]) =>
+        params.eventType === ExpLedgerEventTypes.PRACTICE_ROOM_CORRECT_AT_FIRST_ATTEMPT,
+    );
+    expect(firstAttemptEventCalls).toHaveLength(0);
+    expect(userModuleService.addStudentModuleExp).toHaveBeenCalledTimes(1);
+    expect(userModuleService.addStudentModuleExp).toHaveBeenCalledWith(
+      10,
+      100,
+      333,
+      prisma,
+    );
+    expect(result.moduleAwards).toEqual({
+      baseQuestionExp: 333,
+      firstAttemptBonus: 0,
+      streakBonus: 0,
+    });
+    expect(result.moduleExpAwarded).toBe(333);
+  });
+
   it('returns zero module xp when attempt ledger event already exists', async () => {
     prisma.questionUnit.findMany.mockResolvedValue([{ id: 201 }] as never);
     expLedgerService.recordEvent.mockResolvedValue({
@@ -221,12 +308,18 @@ describe('ExpAwardingService', () => {
         isCorrect: true,
         hadCorrectAttemptBeforeSubmit: false,
         hadAnyAttemptBeforeSubmit: false,
+        hintUnlockedOnSubmit: false,
       },
       prisma,
     );
 
     expect(result).toEqual({
       moduleExpAwarded: 0,
+      moduleAwards: {
+        baseQuestionExp: 0,
+        firstAttemptBonus: 0,
+        streakBonus: 0,
+      },
       updatedMembership: null,
     });
     expect(userModuleService.addStudentModuleExp).not.toHaveBeenCalled();
@@ -243,12 +336,18 @@ describe('ExpAwardingService', () => {
         isCorrect: false,
         hadCorrectAttemptBeforeSubmit: false,
         hadAnyAttemptBeforeSubmit: false,
+        hintUnlockedOnSubmit: false,
       },
       prisma,
     );
 
     expect(result).toEqual({
       moduleExpAwarded: 0,
+      moduleAwards: {
+        baseQuestionExp: 0,
+        firstAttemptBonus: 0,
+        streakBonus: 0,
+      },
       updatedMembership: null,
     });
     expect(expLedgerService.recordEvent).not.toHaveBeenCalled();
@@ -262,9 +361,11 @@ describe('ExpAwardingService', () => {
       { id: 204 },
     ] as never);
     // Only one correct attempt exists in this session, so streak rewards should not trigger.
-    prisma.questionAttempt.findMany.mockResolvedValue([
-      { questionId: 201, isCorrect: true },
-    ] as never);
+    prisma.questionAttempt.findMany
+      // Solved attempts from other sessions are excluded by query; no historical solves here.
+      .mockResolvedValueOnce([])
+      // One correct attempt in the current session.
+      .mockResolvedValueOnce([{ questionId: 201, isCorrect: true }] as never);
 
     await service.awardAttemptModuleExp(
       {
@@ -276,6 +377,7 @@ describe('ExpAwardingService', () => {
         isCorrect: true,
         hadCorrectAttemptBeforeSubmit: false,
         hadAnyAttemptBeforeSubmit: false,
+        hintUnlockedOnSubmit: false,
       },
       prisma,
     );
@@ -287,6 +389,103 @@ describe('ExpAwardingService', () => {
         }),
       }),
     );
+    const streakEventCalls = expLedgerService.recordEvent.mock.calls.filter(
+      ([params]) =>
+        params.eventType === ExpLedgerEventTypes.PRACTICE_ROOM_STREAK,
+    );
+    expect(streakEventCalls).toHaveLength(0);
+  });
+
+  it('increments streak on retry-correct answers', async () => {
+    prisma.questionUnit.findMany.mockResolvedValue([
+      { id: 201 },
+      { id: 202 },
+      { id: 203 },
+      { id: 204 },
+      { id: 205 },
+    ] as never);
+    // q1 is corrected on retry (after wrong), then q2/q3 are correct.
+    // Product rule: retry-correct answers still contribute to streak rebuilding.
+    prisma.questionAttempt.findMany
+      // No historically solved questions in prior sessions.
+      .mockResolvedValueOnce([])
+      // Current session timeline.
+      .mockResolvedValueOnce([
+        { questionId: 201, isCorrect: false },
+        { questionId: 201, isCorrect: true },
+        { questionId: 202, isCorrect: true },
+        { questionId: 203, isCorrect: true },
+      ] as never);
+
+    await service.awardAttemptModuleExp(
+      {
+        studentId: 100,
+        moduleId: 10,
+        moduleUnitId: 20,
+        sessionId: '33333333-3333-4333-8333-333333333333',
+        questionUnitId: 203,
+        isCorrect: true,
+        hadCorrectAttemptBeforeSubmit: false,
+        hadAnyAttemptBeforeSubmit: false,
+        hintUnlockedOnSubmit: false,
+      },
+      prisma,
+    );
+
+    const streakEventCalls = expLedgerService.recordEvent.mock.calls.filter(
+      ([params]) =>
+        params.eventType === ExpLedgerEventTypes.PRACTICE_ROOM_STREAK,
+    );
+    expect(streakEventCalls).toHaveLength(2);
+    expect(streakEventCalls[0]?.[0]).toEqual(
+      expect.objectContaining({
+        idempotencyKey: 'practice_streak:user:100:unit:20:tier:1',
+      }),
+    );
+    expect(streakEventCalls[1]?.[0]).toEqual(
+      expect.objectContaining({
+        idempotencyKey: 'practice_streak:user:100:unit:20:tier:2',
+      }),
+    );
+  });
+
+  it('resets streak on wrong retries for already-solved questions', async () => {
+    prisma.questionUnit.findMany.mockResolvedValue([
+      { id: 201 },
+      { id: 202 },
+      { id: 203 },
+      { id: 204 },
+      { id: 205 },
+    ] as never);
+    // Product caveat: once q1 is solved, a later wrong retry on q1 should still
+    // break the live streak. That wrong retry should never increment streak on its own.
+    prisma.questionAttempt.findMany
+      // q201 was solved in a previous session, so this session should not
+      // gain streak progress from q201 correct retries.
+      .mockResolvedValueOnce([{ questionId: 201 }] as never)
+      // Current session timeline includes wrong retry that must reset streak.
+      .mockResolvedValueOnce([
+        { questionId: 201, isCorrect: true },
+        { questionId: 201, isCorrect: false },
+        { questionId: 202, isCorrect: true },
+        { questionId: 203, isCorrect: true },
+      ] as never);
+
+    await service.awardAttemptModuleExp(
+      {
+        studentId: 100,
+        moduleId: 10,
+        moduleUnitId: 20,
+        sessionId: '44444444-4444-4444-8444-444444444444',
+        questionUnitId: 203,
+        isCorrect: true,
+        hadCorrectAttemptBeforeSubmit: false,
+        hadAnyAttemptBeforeSubmit: false,
+        hintUnlockedOnSubmit: false,
+      },
+      prisma,
+    );
+
     const streakEventCalls = expLedgerService.recordEvent.mock.calls.filter(
       ([params]) =>
         params.eventType === ExpLedgerEventTypes.PRACTICE_ROOM_STREAK,

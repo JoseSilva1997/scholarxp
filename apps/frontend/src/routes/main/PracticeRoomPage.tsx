@@ -3,13 +3,17 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Link, useParams } from 'react-router-dom';
 import { IconContext } from 'react-icons';
 import {
-  FaChevronRight,
+  FaChevronDown,
   FaCircleChevronLeft,
   FaCircleChevronRight,
   FaLightbulb,
 } from 'react-icons/fa6';
 import expIcon from '../../assets/exp_icon.svg';
 import MainSection from '../../components/MainSection';
+import StreakIndicator from '../../components/PracticeRoom/StreakTrackerIndicator';
+import FirstTryAccuracyIndicator from '../../components/PracticeRoom/FirstTryAccuracyIndicator';
+import BaseXpIndicator from '../../components/PracticeRoom/BaseXpIndicator';
+import RewardsGuideTooltip from '../../components/PracticeRoom/RewardsGuideTooltip';
 import { usePracticeRoomPageState } from '../../hooks/page-state/practice-room/usePracticeRoomPageState';
 import styles from './PracticeRoomPage.module.css';
 import { getQuestionUnitStatusClass } from './practice-room-status';
@@ -37,28 +41,30 @@ export default function PracticeRoomPage() {
     activeQuestionOptions,
     questionUnitNav,
     selectedOptionIndex,
-    hasSubmittedActiveQuestion,
     hasActiveOptionOverride,
-    showTryAgainButton,
+    rewardIndicators,
     selectQuestionUnit,
     selectOption,
     isActiveHintUnlocked,
     unlockHintForContent,
-    tryAgainActiveQuestion,
     submitActiveQuestionAttempt,
     goToPreviousQuestionUnit,
     goToNextQuestionUnit,
+    currentStreak,
+    highestStreak,
+    isStreakInitialized,
+    firstTryBonusStatus,
   } = usePracticeRoomPageState({
     moduleIdParam: moduleId,
     unitIdParam: unitId,
   });
 
   // Feedback remains presentation-only and uses local question data so it can be swapped to server-driven feedback later.
-  // Revisited questions render prior feedback until the student starts a new draft selection.
+  // Revisited questions render prior feedback until the student starts a new
+  // draft selection for the active question.
   const hasSubmittedFeedback =
-    hasSubmittedActiveQuestion ||
-    (activeQuestionUnit?.coreQuestion.lastAttempt !== null &&
-      !hasActiveOptionOverride);
+    activeQuestionUnit?.coreQuestion.lastAttempt !== null &&
+    !hasActiveOptionOverride;
   const optionFeedback = activeQuestion
     ? buildPracticeRoomAnswerFeedback({
         question: activeQuestion.question,
@@ -67,6 +73,15 @@ export default function PracticeRoomPage() {
         optionCount: activeQuestionOptions.length,
       })
     : [];
+  const activeQuestionRewardIndicators = rewardIndicators.activeQuestion;
+
+  // Resolve base XP status into a two-value signal for the header indicator.
+  // The server snapshot is sufficient here: base XP can only move from
+  // 'available' → 'already_earned' and never resets, so no live override needed.
+  const baseXpStatus: 'available' | 'claimed' =
+    activeQuestionRewardIndicators?.baseQuestionExpStatus === 'already_earned'
+      ? 'claimed'
+      : 'available';
 
   if (!parsedModuleId || !parsedUnitId) {
     return (
@@ -96,6 +111,21 @@ export default function PracticeRoomPage() {
 
           {moduleProgress && (
             <div className={styles.headerProgress}>
+              {/* Info icon: hover reveals a speech-bubble explaining all reward indicators */}
+                <RewardsGuideTooltip />
+              {/* XP indicator: amber when base XP is still earnable, dimmed once claimed. */}
+              <BaseXpIndicator status={baseXpStatus} />
+              {/* Accuracy indicator (bullseye) sits to the left of the streak
+                  indicator so all per-question reward pills are grouped together. */}
+              <FirstTryAccuracyIndicator status={firstTryBonusStatus} />
+              {/* Streak indicator sits left of the XP bar so progress metrics are grouped */}
+              <StreakIndicator
+                currentStreak={currentStreak}
+                highestStreak={highestStreak}
+                totalQuestions={room?.questions.length ?? 0}
+                isStreakInitialized={isStreakInitialized}
+                claimedTiers={rewardIndicators.streak.claimedTiers}
+              />
               <div className={styles.levelIndicatorMini}>
                 <img src={expIcon} alt="" aria-hidden="true" className={styles.miniLevelIcon} />
                 <div className={styles.levelTextWrapper}>
@@ -123,20 +153,58 @@ export default function PracticeRoomPage() {
                 </div>
                 <div className={styles.xpValueContainer}>
                   <span className={styles.miniExpLabel}>{moduleProgress.currentExp} xp</span>
-                  <AnimatePresence>
-                    {moduleExpGainIndicator ? (
-                      <motion.span
-                        key="xp-gain"
-                        initial={{ y: 10, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.4, ease: 'easeOut' }}
-                        className={styles.miniExpGain}
-                      >
-                        +{moduleExpGainIndicator}
-                      </motion.span>
-                    ) : null}
-                  </AnimatePresence>
+                  {/* Escalator animation: all chips share the same spawn point and move upward
+                      at constant speed, staggered so they space out naturally on the track.
+                      Opacity holds while readable then fades as chips approach the top.
+                      awardId keys ensure chips remount on every new award. */}
+                  {moduleExpGainIndicator && (
+                    <>
+                      {moduleExpGainIndicator.base > 0 && (
+                        <motion.span
+                          key={`${moduleExpGainIndicator.awardId}-base`}
+                          initial={{ y: 0, opacity: 0 }}
+                          animate={{ y: -40, opacity: [0, 1, 1, 0] }}
+                          transition={{
+                            // y starts 0.2s before opacity so the chip is already
+                            // moving when it fades in — no visible pause at spawn.
+                            y: { ease: 'linear', duration: 2.5, delay: 0 },
+                            opacity: { duration: 2.5, times: [0, 0.04, 0.6, 1], delay: 0.2 },
+                          }}
+                          className={styles.xpFloatChip}
+                        >
+                          +{moduleExpGainIndicator.base} xp
+                        </motion.span>
+                      )}
+                      {moduleExpGainIndicator.firstAttemptBonus > 0 && (
+                        <motion.span
+                          key={`${moduleExpGainIndicator.awardId}-1st`}
+                          initial={{ y: 0, opacity: 0 }}
+                          animate={{ y: -40, opacity: [0, 1, 1, 0] }}
+                          transition={{
+                            y: { ease: 'linear', duration: 2.5, delay: 0.8 },
+                            opacity: { duration: 2.5, times: [0, 0.04, 0.6, 1], delay: 1.0 },
+                          }}
+                          className={`${styles.xpFloatChip} ${styles.xpFloatChipFirstAttempt}`}
+                        >
+                          +{moduleExpGainIndicator.firstAttemptBonus} 🎯
+                        </motion.span>
+                      )}
+                      {moduleExpGainIndicator.streakBonus > 0 && (
+                        <motion.span
+                          key={`${moduleExpGainIndicator.awardId}-streak`}
+                          initial={{ y: 0, opacity: 0 }}
+                          animate={{ y: -40, opacity: [0, 1, 1, 0] }}
+                          transition={{
+                            y: { ease: 'linear', duration: 2.5, delay: 1.6 },
+                            opacity: { duration: 2.5, times: [0, 0.04, 0.6, 1], delay: 1.8 },
+                          }}
+                          className={`${styles.xpFloatChip} ${styles.xpFloatChipStreak}`}
+                        >
+                          +{moduleExpGainIndicator.streakBonus} 🔥
+                        </motion.span>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -185,32 +253,6 @@ export default function PracticeRoomPage() {
             <section className={styles.questionPanel}>
               <div className={styles.stemHeader}>
                 <h2 className={styles.questionStem}>{activeQuestion.question.questionStem}</h2>
-                <div className={styles.questionNavButtons}>
-                  <button
-                    type="button"
-                    className={styles.questionUnitNavButton}
-                    onClick={goToPreviousQuestionUnit}
-                    disabled={!questionUnitNav.canGoPrevious}
-                    aria-label="Previous question"
-                  >
-                    <IconContext.Provider value={{ className: styles.navIcon }}>
-                      <FaCircleChevronLeft />
-                    </IconContext.Provider>
-                    <span className={styles.questionUnitNavLabel}>Prev</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.questionUnitNavButton}
-                    onClick={goToNextQuestionUnit}
-                    disabled={!questionUnitNav.canGoNext}
-                    aria-label="Next question"
-                  >
-                    <span className={styles.questionUnitNavLabel}>Next</span>
-                    <IconContext.Provider value={{ className: styles.navIcon }}>
-                      <FaCircleChevronRight />
-                    </IconContext.Provider>
-                  </button>
-                </div>
               </div>
 
               <div className={styles.questionContent}>
@@ -238,7 +280,7 @@ export default function PracticeRoomPage() {
                         }`}
                         onClick={() => selectOption(activeQuestion.question.id, optionIndex)}
                         aria-pressed={isSelected}
-                        disabled={hasSubmittedActiveQuestion || isRoomReadOnly}
+                        disabled={isRoomReadOnly}
                       >
                         <div className={styles.optionContentWrapper}>
                           <span className={styles.optionLetter}>
@@ -266,6 +308,8 @@ export default function PracticeRoomPage() {
                     );
                   })}
                 </div>
+              </div>
+              <div className={styles.stickyFooter}>
 
                 {activeQuestion.question.hint ? (
                   <div className={styles.hintSection}>
@@ -301,7 +345,7 @@ export default function PracticeRoomPage() {
                         }`}
                         aria-hidden="true"
                       >
-                        <FaChevronRight />
+                        <FaChevronDown />
                       </span>
                     </div>
                     {isActiveHintUnlocked ? (
@@ -309,8 +353,7 @@ export default function PracticeRoomPage() {
                     ) : null}
                   </div>
                 ) : null}
-              </div>
-
+                
               {submitErrorMessage ? (
                 <div className={styles.submitError} role="alert">
                   {submitErrorMessage}
@@ -318,30 +361,47 @@ export default function PracticeRoomPage() {
               ) : null}
 
               <div className={styles.submitRow}>
-                {showTryAgainButton ? (
+                <div className={styles.submitControls}>
+                  <div className={styles.questionNavButtons}>
+                    <button
+                      type="button"
+                      className={styles.questionUnitNavButton}
+                      onClick={goToPreviousQuestionUnit}
+                      disabled={!questionUnitNav.canGoPrevious}
+                      aria-label="Previous question"
+                    >
+                      <IconContext.Provider value={{ className: styles.navIcon }}>
+                        <FaCircleChevronLeft />
+                      </IconContext.Provider>
+                      <span className={styles.questionUnitNavLabel}>Prev</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.questionUnitNavButton}
+                      onClick={goToNextQuestionUnit}
+                      disabled={!questionUnitNav.canGoNext}
+                      aria-label="Next question"
+                    >
+                      <span className={styles.questionUnitNavLabel}>Next</span>
+                      <IconContext.Provider value={{ className: styles.navIcon }}>
+                        <FaCircleChevronRight />
+                      </IconContext.Provider>
+                    </button>
+                  </div>
+
                   <button
                     type="button"
-                    className={styles.tryAgainButton}
-                    onClick={tryAgainActiveQuestion}
+                    className={styles.submitButton}
+                    onClick={() => {
+                      void submitActiveQuestionAttempt();
+                    }}
+                    disabled={!canSubmitAttempt}
                   >
-                    Try again
+                    {isSubmittingAttempt ? 'Submitting…' : 'Submit'}
                   </button>
-                ) : null}
-                <button
-                  type="button"
-                  className={styles.submitButton}
-                  onClick={() => {
-                    void submitActiveQuestionAttempt();
-                  }}
-                  disabled={!canSubmitAttempt}
-                >
-                  {isSubmittingAttempt
-                    ? 'Submitting…'
-                    : hasSubmittedActiveQuestion
-                      ? 'Submitted'
-                      : 'Submit answer'}
-                </button>
+                </div>
               </div>
+            </div>
             </section>
           ) : (
             <div className={styles.statusCard}>

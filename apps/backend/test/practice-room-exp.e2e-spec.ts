@@ -1,5 +1,10 @@
 // Role: validates practice-room XP policy end-to-end through HTTP routes and persisted ledger/account side effects.
-import { CanActivate, ExecutionContext, INestApplication, ValidationPipe } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  INestApplication,
+  ValidationPipe,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { GlobalRole, ModuleUnitStatus } from '@prisma/client';
 import { ExpLedgerEventTypes } from '@scholarxp/constants';
@@ -72,6 +77,7 @@ describe('Practice room XP policy (e2e)', () => {
   });
 
   beforeEach(async () => {
+    assertSafeE2eDatabaseUrl();
     await clearDatabase(prisma);
   });
 
@@ -244,18 +250,30 @@ describe('Practice room XP policy (e2e)', () => {
     const seed = await seedStudentModuleScenario(prisma);
     authContext.userId = seed.studentId;
 
-    const firstUnit = await seedModuleUnitWithMcqQuestions(prisma, seed.moduleId, {
-      title: 'Unit C1',
-      questionCount: 1,
-    });
-    const secondUnit = await seedModuleUnitWithMcqQuestions(prisma, seed.moduleId, {
-      title: 'Unit C2',
-      questionCount: 1,
-    });
-    const thirdUnit = await seedModuleUnitWithMcqQuestions(prisma, seed.moduleId, {
-      title: 'Unit C3',
-      questionCount: 1,
-    });
+    const firstUnit = await seedModuleUnitWithMcqQuestions(
+      prisma,
+      seed.moduleId,
+      {
+        title: 'Unit C1',
+        questionCount: 1,
+      },
+    );
+    const secondUnit = await seedModuleUnitWithMcqQuestions(
+      prisma,
+      seed.moduleId,
+      {
+        title: 'Unit C2',
+        questionCount: 1,
+      },
+    );
+    const thirdUnit = await seedModuleUnitWithMcqQuestions(
+      prisma,
+      seed.moduleId,
+      {
+        title: 'Unit C3',
+        questionCount: 1,
+      },
+    );
 
     await completeSingleQuestionUnit(app, seed.moduleId, firstUnit);
     await completeSingleQuestionUnit(app, seed.moduleId, secondUnit);
@@ -268,7 +286,9 @@ describe('Practice room XP policy (e2e)', () => {
       },
       orderBy: { eventTimestamp: 'asc' },
     });
-    expect(completionEvents.map((entry) => entry.awardedExp)).toEqual([100, 25]);
+    expect(completionEvents.map((entry) => entry.awardedExp)).toEqual([
+      100, 25,
+    ]);
 
     const avatar = await prisma.avatar.findUnique({
       where: { userId: seed.studentId },
@@ -332,6 +352,23 @@ describe('Practice room XP policy (e2e)', () => {
     expect(firstAttemptEvents).toHaveLength(1);
   });
 });
+
+function assertSafeE2eDatabaseUrl() {
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    throw new Error(
+      'E2E safety check failed: DATABASE_URL is not defined before destructive cleanup.',
+    );
+  }
+
+  // This suite clears many tables; enforce a second local guard even if setup-env is bypassed.
+  const isLikelyTestDb = /(test|e2e)/i.test(databaseUrl);
+  if (process.env.E2E_ALLOW_NON_TEST_DATABASE !== 'true' && !isLikelyTestDb) {
+    throw new Error(
+      'E2E safety check failed: refusing destructive cleanup on a non-test DATABASE_URL.',
+    );
+  }
+}
 
 // Creates one student with avatar + module enrollment so reward writes have all required persistence rows.
 async function seedStudentModuleScenario(prisma: PrismaService) {
@@ -482,7 +519,11 @@ async function completeSingleQuestionUnit(
   moduleId: number,
   unit: SeededModuleUnit,
 ) {
-  const sessionId = await openPracticeRoomSession(app, moduleId, unit.moduleUnitId);
+  const sessionId = await openPracticeRoomSession(
+    app,
+    moduleId,
+    unit.moduleUnitId,
+  );
   await submitAttempt(
     app,
     moduleId,

@@ -85,6 +85,15 @@ export function useSubmitModuleUnitPracticeAttemptMutation(
         }),
       ];
 
+      // Completion rewards change account/avatar XP, so refresh auth snapshot when account XP was granted.
+      if (data.awards.accountExp > 0) {
+        invalidations.push(
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.auth.me,
+          }),
+        );
+      }
+
       if (!data.updatedModuleProgress) {
         invalidations.push(
           queryClient.invalidateQueries({

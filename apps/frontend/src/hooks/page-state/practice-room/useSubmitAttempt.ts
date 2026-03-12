@@ -4,7 +4,7 @@
 // for retrying a question. Placing all of this logic here keeps
 // `usePracticeRoomPageState` simpler and lets tests target submission rules
 // in isolation.
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type {
   PracticeAttemptSnapshot,
   PracticeQuestion,
@@ -18,13 +18,15 @@ import {
   shouldLogApiError,
 } from '../../../api/get-display-error';
 import { logError } from '../../../utils/logger';
-import type { ProgressModuleDetail } from './useModuleProgressAnimation';
+import type { ProgressModuleDetail, ExpBreakdown } from './useModuleProgressAnimation';
 
 // lightweight wrapper so callers only need to provide the question
 // itself (not the entire unit).
 type ActiveQuestion = {
   question: PracticeQuestion;
 };
+
+type FirstTryBonusStatus = 'available' | 'earned' | 'lost';
 
 // Parameters are almost entirely derived from the parent page state; this
 // hook never mutates them except via the two setter callbacks at the bottom.
@@ -38,7 +40,6 @@ type UseSubmitAttemptParams = {
   activeQuestion: ActiveQuestion | null;
   isRoomReadOnly: boolean;
   selectedOptionIndex: number | null;
-  hasSubmittedActiveQuestion: boolean;
   isActiveHintUnlocked: boolean;
   // Timing refs shared with the view-duration tracking effect in the parent.
   activeContentIdRef: React.RefObject<number | null>;
@@ -47,9 +48,27 @@ type UseSubmitAttemptParams = {
   mutateAsync: (payload: SubmitAttemptPayload) => Promise<SubmitAttemptResponse>;
   isPending: boolean;
   // XP callbacks supplied by parent hooks.
-  applyExpAward: (awarded: number, detail: ProgressModuleDetail | null) => void;
+  applyExpAward: (breakdown: ExpBreakdown, detail: ProgressModuleDetail | null) => void;
   moduleDetail: ProgressModuleDetail | null;
-  // State setters for attempt tracking — also used by tryAgainActiveQuestion.
+  // Streak callback: called after every successful submission with both the live streak
+  // and the all-time session high. Optional so callers that don't display streak can omit it.
+  updateCurrentStreak?: (currentStreak: number, highestStreak: number) => void;
+  // Accuracy callback: called after every submission to update the first-try accuracy indicator.
+  // 'first-try-correct' when firstAttemptBonus > 0, 'incorrect' when the attempt was wrong.
+  // `null` clears stale state (used when a retry becomes correct but not first-try).
+  // Optional so callers that don't show the indicator can omit it.
+  updateLastAttemptResult?: (
+    contentId: number,
+    result: 'first-try-correct' | 'incorrect' | null,
+  ) => void;
+  // Resolved first-try bonus state for the active question before this submit.
+  // This lets submit handling preserve earned/lost states across retries instead
+  // of incorrectly tying the indicator to latest answer correctness.
+  activeFirstTryBonusStatus: FirstTryBonusStatus;
+  // Clears the transient local draft selection after a successful submission so
+  // UI feedback switches back to the just-submitted attempt snapshot.
+  clearSelectedOptionOverride?: (contentId: number) => void;
+  // State setters for attempt tracking after successful submissions.
   setSubmittedAttemptByContentId: React.Dispatch<
     React.SetStateAction<Record<number, PracticeAttemptSnapshot | null>>
   >;
@@ -67,8 +86,69 @@ type UseSubmitAttemptResult = {
   isSubmittingAttempt: boolean;
   canSubmitAttempt: boolean;
   submitActiveQuestionAttempt: () => Promise<void>;
-  tryAgainActiveQuestion: () => void;
 };
+
+const SUBMIT_COOLDOWN_MS = 1_000;
+
+// `hasCorrectAttempt` is historical ("ever correct") and can stay true after a new
+// incorrect retry. For UI that reflects the latest submission, derive correctness
+// from backend-owned award reasons when available.
+function resolveLatestAttemptCorrectness(response: SubmitAttemptResponse): boolean {
+  const baseReason = response.awardReasons?.baseQuestionExp;
+  if (baseReason === 'incorrect') {
+    return false;
+  }
+  if (baseReason === 'awarded' || baseReason === 'already_earned') {
+    return true;
+  }
+  // Backward-compatible fallback for payloads that do not include award reasons.
+  return response.hasCorrectAttempt;
+}
+
+// Converts a stable first-try status into the local override representation.
+function mapFirstTryStatusToLocalResult(
+  status: FirstTryBonusStatus,
+): 'first-try-correct' | 'incorrect' | null {
+  if (status === 'earned') {
+    return 'first-try-correct';
+  }
+  if (status === 'lost') {
+    return 'incorrect';
+  }
+  return null;
+}
+
+// Determines the next first-try indicator state from backend-owned reason codes
+// and current status so retries never overwrite historical earned/lost outcomes.
+function resolveNextFirstTryLocalResult(input: {
+  response: SubmitAttemptResponse;
+  latestAttemptIsCorrect: boolean;
+  currentStatus: FirstTryBonusStatus;
+}): 'first-try-correct' | 'incorrect' | null {
+  const firstTryReason = input.response.awardReasons?.firstAttemptBonus;
+  if (firstTryReason === 'awarded' || firstTryReason === 'already_earned') {
+    return 'first-try-correct';
+  }
+  if (firstTryReason === 'incorrect') {
+    return input.currentStatus === 'earned' ? 'first-try-correct' : 'incorrect';
+  }
+  if (firstTryReason === 'hint_used') {
+    // Hint on first submit forfeits first-try bonus, but should not override an already-earned state.
+    return input.currentStatus === 'earned' ? 'first-try-correct' : 'incorrect';
+  }
+  if (firstTryReason === 'not_first_try') {
+    return mapFirstTryStatusToLocalResult(input.currentStatus);
+  }
+
+  // Fallback for payloads without award reasons.
+  if (input.response.awards.firstAttemptBonus > 0) {
+    return 'first-try-correct';
+  }
+  if (input.currentStatus === 'available') {
+    return input.latestAttemptIsCorrect ? 'first-try-correct' : 'incorrect';
+  }
+  return mapFirstTryStatusToLocalResult(input.currentStatus);
+}
 
 export function useSubmitAttempt({
   room,
@@ -76,7 +156,6 @@ export function useSubmitAttempt({
   activeQuestion,
   isRoomReadOnly,
   selectedOptionIndex,
-  hasSubmittedActiveQuestion,
   isActiveHintUnlocked,
   activeContentIdRef,
   activeContentViewStartMsRef,
@@ -84,13 +163,52 @@ export function useSubmitAttempt({
   isPending,
   applyExpAward,
   moduleDetail,
+  updateCurrentStreak,
+  updateLastAttemptResult,
+  activeFirstTryBonusStatus,
+  clearSelectedOptionOverride,
   setSubmittedAttemptByContentId,
   setSubmittedByContentIdBySessionId,
   parsedModuleId,
   parsedUnitId,
 }: UseSubmitAttemptParams): UseSubmitAttemptResult {
+  // Build a structured XP breakdown from the awards payload so `applyExpAward` can
+  // expose each source (base, first-attempt, streak) to the indicator UI.
+  const buildExpBreakdown = (response: SubmitAttemptResponse): ExpBreakdown => {
+    const { baseQuestionExp, firstAttemptBonus, streakBonus } = response.awards;
+    return {
+      base: baseQuestionExp,
+      firstAttemptBonus,
+      streakBonus,
+      total: baseQuestionExp + firstAttemptBonus + streakBonus,
+    };
+  };
+
   // holds any error returned when the submission fails; surfaced to UI.
   const [submitErrorMessage, setSubmitErrorMessage] = useState<string | null>(null);
+  // Cooldown blocks rapid repeat submissions after a successful attempt to
+  // reduce accidental double-submits and high-frequency spam.
+  const [isSubmitCooldownActive, setIsSubmitCooldownActive] = useState(false);
+  const cooldownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (cooldownTimerRef.current !== null) {
+        clearTimeout(cooldownTimerRef.current);
+      }
+    };
+  }, []);
+
+  const startSubmitCooldown = () => {
+    setIsSubmitCooldownActive(true);
+    if (cooldownTimerRef.current !== null) {
+      clearTimeout(cooldownTimerRef.current);
+    }
+    cooldownTimerRef.current = setTimeout(() => {
+      setIsSubmitCooldownActive(false);
+      cooldownTimerRef.current = null;
+    }, SUBMIT_COOLDOWN_MS);
+  };
 
   // derived boolean that encapsulates all guard conditions preventing
   // a submission; keeps callers simple (no need to recompute this logic
@@ -99,7 +217,7 @@ export function useSubmitAttempt({
     Boolean(room && activeQuestionUnit && activeQuestion) &&
     !isRoomReadOnly &&
     selectedOptionIndex !== null &&
-    !hasSubmittedActiveQuestion &&
+    !isSubmitCooldownActive &&
     !isPending;
 
   // called when user presses the submit button. it re-checks guard
@@ -112,7 +230,7 @@ export function useSubmitAttempt({
       !activeQuestion ||
       isRoomReadOnly ||
       selectedOptionIndex === null ||
-      hasSubmittedActiveQuestion
+      isSubmitCooldownActive
     ) {
       return;
     }
@@ -141,18 +259,42 @@ export function useSubmitAttempt({
 
     try {
       const submitResponse = await mutateAsync(payload);
-      if (submitResponse.moduleExpAwarded > 0) {
+      const latestAttemptIsCorrect =
+        resolveLatestAttemptCorrectness(submitResponse);
+      const breakdown = buildExpBreakdown(submitResponse);
+      if (breakdown.total > 0) {
         // Delegate the animation target update, double-count guard, and level-up
         // celebration to the progress hook so this handler stays focused on
         // attempt business logic.
-        applyExpAward(submitResponse.moduleExpAwarded, moduleDetail);
+        applyExpAward(breakdown, moduleDetail);
+      }
+      // Relay both streak values to the parent so StreakIndicator can show
+      // pip state without a separate server call. Both values must be present;
+      // if either is absent (e.g. older API version) the callback is skipped.
+      if (
+        updateCurrentStreak !== undefined &&
+        submitResponse.currentStreak !== undefined &&
+        submitResponse.highestStreak !== undefined
+      ) {
+        updateCurrentStreak(submitResponse.currentStreak, submitResponse.highestStreak);
+      }
+      // Inform the accuracy indicator: green if firstAttemptBonus was awarded (first-try
+      // correct), red if first-try was missed. Retries preserve earned/lost state;
+      // they must not rebind the indicator to latest answer correctness.
+      if (updateLastAttemptResult !== undefined) {
+        const nextFirstTryResult = resolveNextFirstTryLocalResult({
+          response: submitResponse,
+          latestAttemptIsCorrect,
+          currentStatus: activeFirstTryBonusStatus,
+        });
+        updateLastAttemptResult(activeQuestion.question.id, nextFirstTryResult);
       }
       setSubmittedAttemptByContentId((previous) => ({
         ...previous,
         [activeQuestion.question.id]: {
           studentAnswer,
-          // Use backend-returned correctness as the authoritative value;
-          isCorrect: submitResponse.hasCorrectAttempt,
+          // Track latest-attempt correctness so nav/status UI reflects this submit.
+          isCorrect: latestAttemptIsCorrect,
         },
       }));
       setSubmittedByContentIdBySessionId((previous) => ({
@@ -162,6 +304,8 @@ export function useSubmitAttempt({
           [activeQuestion.question.id]: true,
         },
       }));
+      clearSelectedOptionOverride?.(activeQuestion.question.id);
+      startSubmitCooldown();
     } catch (error) {
       const message = getDisplayErrorMessage(error, {
         fallbackMessage:
@@ -179,34 +323,10 @@ export function useSubmitAttempt({
     }
   };
 
-  // allows the student to retry the same question. we only clear the
-  // local locks which prevent repeat submits; this leaves the selected
-  // answer intact so UI doesn't jump around while they reconsider.
-  const tryAgainActiveQuestion = () => {
-    if (!activeQuestion || !room) {
-      return;
-    }
-    const { sessionId } = room;
-    // Clearing local submit locks lets students immediately retry after an
-    // incorrect attempt while preserving seeded selection.
-    setSubmittedByContentIdBySessionId((previous) => {
-      const nextSessionValue = { ...(previous[sessionId] ?? {}) };
-      delete nextSessionValue[activeQuestion.question.id];
-      return { ...previous, [sessionId]: nextSessionValue };
-    });
-    setSubmittedAttemptByContentId((previous) => {
-      const next = { ...previous };
-      delete next[activeQuestion.question.id];
-      return next;
-    });
-    setSubmitErrorMessage(null);
-  };
-
   return {
     submitErrorMessage,
     isSubmittingAttempt: isPending,
     canSubmitAttempt,
     submitActiveQuestionAttempt,
-    tryAgainActiveQuestion,
   };
 }

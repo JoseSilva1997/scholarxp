@@ -86,4 +86,20 @@ export class ExpLedgerService {
       },
     });
   }
+
+  // Serialize completion-tier assignment per user/day so concurrent completions cannot both read the same tier.
+  async acquireDailyCompletionLock(
+    userId: number,
+    timestamp: Date,
+    tx?: PrismaClientLike,
+  ): Promise<void> {
+    const prismaClient = tx ?? this.prisma;
+    const { dayStartUtc } = DateHelpers.getUtcDayBounds(timestamp);
+    // Use a stable UTC-day serial (days since Unix epoch) as the second advisory-lock key component.
+    const daySerial = Math.floor(dayStartUtc.getTime() / 86_400_000);
+
+    await prismaClient.$executeRaw`
+      SELECT pg_advisory_xact_lock(${userId}, ${daySerial})
+    `;
+  }
 }

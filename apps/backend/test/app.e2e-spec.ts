@@ -17,9 +17,7 @@ describe('App bootstrap (e2e)', () => {
   });
 
   it('returns 404 for GET / because no root route is registered', () => {
-    return request(app.getHttpServer())
-      .get('/')
-      .expect(404);
+    return request(app.getHttpServer()).get('/').expect(404);
   });
 
   it('returns test diagnostics payload from GET /test', () => {

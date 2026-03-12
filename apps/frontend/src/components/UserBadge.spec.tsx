@@ -65,7 +65,6 @@ describe('UserBadge', () => {
 
     expect(screen.getByText(/Level/)).toBeInTheDocument();
     expect(screen.getByText('5')).toBeInTheDocument();
-    expect(screen.getByText('50 xp')).toBeInTheDocument();
     expect(screen.getByText('Jane Doe')).toBeInTheDocument();
   });
 
@@ -107,6 +106,34 @@ describe('UserBadge', () => {
     expect(screen.queryAllByText('Level Up!').length).toBeGreaterThan(0);
   });
 
+  it('does not trigger level-up animation when exp increases within the same level', async () => {
+    const startingUser: AuthUser = {
+      ...user,
+      avatar: {
+        ...(user.avatar as NonNullable<AuthUser['avatar']>),
+        totalExp: 100,
+      },
+    };
+    const { rerender } = render(<UserBadge user={startingUser} />);
+
+    // Process initial set
+    await vi.advanceTimersByTimeAsync(1);
+
+    const sameLevelExpGainUser: AuthUser = {
+      ...user,
+      avatar: {
+        ...(user.avatar as NonNullable<AuthUser['avatar']>),
+        totalExp: 125,
+      },
+    };
+    rerender(<UserBadge user={sameLevelExpGainUser} />);
+
+    // Allow XP animation and queued frame callbacks to settle.
+    await vi.advanceTimersByTimeAsync(1200);
+
+    expect(screen.queryByText('Level Up!')).not.toBeInTheDocument();
+  });
+
   it('shows and clears exp gain indicator when exp increases', async () => {
     const startingUser: AuthUser = {
       ...user,
@@ -130,7 +157,7 @@ describe('UserBadge', () => {
     rerender(<UserBadge user={updatedUser} />);
     await vi.advanceTimersByTimeAsync(20);
 
-    expect(screen.getByText('+40')).toBeInTheDocument();
+    expect(screen.getByText('+40 XP')).toBeInTheDocument();
   });
 
   it('handles avatar image load errors by falling back to default', () => {
