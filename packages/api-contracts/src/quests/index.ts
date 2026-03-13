@@ -145,4 +145,9 @@ export interface QuestHistoryResponse extends QuestResponse {
   nextDayOffset: number | null;
 }
 
+// Mutation responses stay intentionally small because clients invalidate quest reads after trigger events.
+export interface QuestProgressResponse {
+  recorded: boolean;
+}
+
 export {};

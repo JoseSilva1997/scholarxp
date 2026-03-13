@@ -18,6 +18,7 @@ export const queryKeys = {
       ['modules', 'practice-room', moduleId, unitId] as const,
   },
   quests: {
+    all: ['quests'] as const,
     history: (dayLimit: number) => ['quests', 'history', dayLimit] as const,
     todaySummary: (userId: number | null) => ['quests', 'today-summary', userId] as const,
     todayList: (userId: number | null) => ['quests', 'today-list', userId] as const,

@@ -11,7 +11,7 @@ vi.mock('../constants/quest-constants', () => ({
 }));
 
 describe('TodayQuestPopover', () => {
-  const mockQuests: QuestView[] = [
+const mockQuests: QuestView[] = [
     {
       id: 1,
       moduleTitle: 'Basics of React',
@@ -46,13 +46,32 @@ describe('TodayQuestPopover', () => {
       generatedAt: new Date().toISOString(),
       completedAt: null,
     },
-  ];
+];
+
+const masterQuest: QuestView = {
+  id: 99,
+  moduleTitle: 'Master quest',
+  description: 'Complete all 3 daily quests to unlock the master quest reward.',
+  expGranted: 250,
+  isCompleted: false,
+  questDateUtc: '2024-05-20',
+  type: QuestTypeValues.masterDailyQuests,
+  tier: 'master',
+  progressCurrent: 1,
+  progressTarget: 3,
+  moduleId: null,
+  moduleUnitId: null,
+  moduleUnitTitle: null,
+  generatedAt: new Date().toISOString(),
+  completedAt: null,
+};
 
   it('renders loading state correctly', () => {
     renderWithProviders(
       <TodayQuestPopover 
         id="test-popover" 
         quests={[]} 
+        masterQuest={null}
         completed={0} 
         max={3} 
         isLoading={true} 
@@ -66,6 +85,7 @@ describe('TodayQuestPopover', () => {
       <TodayQuestPopover 
         id="test-popover" 
         quests={[]} 
+        masterQuest={null}
         completed={0} 
         max={0} 
         isLoading={false} 
@@ -79,6 +99,7 @@ describe('TodayQuestPopover', () => {
       <TodayQuestPopover 
         id="test-popover" 
         quests={mockQuests} 
+        masterQuest={masterQuest}
         completed={1} 
         max={2} 
         isLoading={false} 
@@ -102,6 +123,7 @@ describe('TodayQuestPopover', () => {
       <TodayQuestPopover 
         id="test-popover" 
         quests={mockQuests} 
+        masterQuest={masterQuest}
         completed={1} 
         max={2} 
         isLoading={false} 
@@ -129,6 +151,7 @@ describe('TodayQuestPopover', () => {
       <TodayQuestPopover 
         id="test-popover" 
         quests={mockQuests} 
+        masterQuest={masterQuest}
         completed={1} 
         max={2} 
         isLoading={false} 
@@ -154,6 +177,7 @@ describe('TodayQuestPopover', () => {
       <TodayQuestPopover 
         id="test-popover" 
         quests={mockQuests} 
+        masterQuest={masterQuest}
         completed={1} 
         max={2} 
         isLoading={false} 
@@ -173,6 +197,7 @@ describe('TodayQuestPopover', () => {
       <TodayQuestPopover 
         id="test-popover" 
         quests={[]} 
+        masterQuest={null}
         completed={0} 
         max={0} 
         isLoading={false} 
@@ -181,5 +206,20 @@ describe('TodayQuestPopover', () => {
     
     // The Progress bar is present but we should just ensure it doesn't crash
     expect(screen.getByText('0/0')).toBeInTheDocument();
+  });
+
+  it('shows the master quest chest state beside progress', () => {
+    renderWithProviders(
+      <TodayQuestPopover
+        id="test-popover"
+        quests={mockQuests}
+        masterQuest={masterQuest}
+        completed={1}
+        max={2}
+        isLoading={false}
+      />
+    );
+
+    expect(screen.getByLabelText('Master quest incomplete')).toBeInTheDocument();
   });
 });

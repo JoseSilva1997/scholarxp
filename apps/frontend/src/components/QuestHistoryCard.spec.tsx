@@ -1,4 +1,4 @@
-// Validates that quest history cards keep a fixed three-slot layout and render only badge imagery.
+// Validates that quest history cards render daily quest badges plus the separate master quest chest affordance.
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
@@ -33,24 +33,36 @@ const newUnitQuest: QuestView = {
     'Complete all questions from the Cell Structure lesson of your Biology 101 module.',
 };
 
-describe('QuestHistoryCard', () => {
-  it('renders exactly the number of quests provided', () => {
-    const { rerender } = render(<QuestHistoryCard quests={[null, null, null]} />);
-    expect(screen.getAllByTestId('quest-slot')).toHaveLength(3);
+const masterQuest: QuestView = {
+  ...baseQuest,
+  id: 99,
+  moduleId: null,
+  moduleUnitId: null,
+  moduleTitle: 'Master quest',
+  moduleUnitTitle: null,
+  type: QuestTypeValues.masterDailyQuests,
+  tier: 'master',
+  expGranted: 250,
+  progressCurrent: 3,
+  progressTarget: 3,
+  description: 'Complete all 3 daily quests to unlock the master quest reward.',
+};
 
-    rerender(<QuestHistoryCard quests={[null, null]} />);
+describe('QuestHistoryCard', () => {
+  it('renders exactly the number of daily quests provided', () => {
+    const { rerender } = render(<QuestHistoryCard quests={[baseQuest, newUnitQuest]} />);
     expect(screen.getAllByTestId('quest-slot')).toHaveLength(2);
 
-    rerender(<QuestHistoryCard quests={[null]} />);
+    rerender(<QuestHistoryCard quests={[baseQuest]} />);
     expect(screen.getAllByTestId('quest-slot')).toHaveLength(1);
   });
 
-  it('renders quest badges for populated slots and placeholders for empty slots', () => {
-    render(<QuestHistoryCard quests={[baseQuest, null]} />);
+  it('renders quest badges for populated slots and keeps the master chest separate', () => {
+    render(<QuestHistoryCard quests={[baseQuest]} masterQuest={masterQuest} />);
 
     const slots = screen.getAllByTestId('quest-slot');
     expect(within(slots[0]).getByRole('img')).toBeInTheDocument();
-    expect(within(slots[1]).queryByRole('img')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Master quest incomplete')).toBeInTheDocument();
   });
 
   it('shows tooltip details only after clicking a quest medal', async () => {
@@ -84,5 +96,16 @@ describe('QuestHistoryCard', () => {
     await waitFor(() => {
       expect(screen.queryByText('Module:')).not.toBeInTheDocument();
     });
+  });
+
+  it('renders a master quest chest at the end of the card', () => {
+    render(
+      <QuestHistoryCard
+        quests={[baseQuest]}
+        masterQuest={{ ...masterQuest, isCompleted: true, completedAt: '2026-02-17T00:15:00.000Z' }}
+      />,
+    );
+
+    expect(screen.getByLabelText('Master quest completed')).toBeInTheDocument();
   });
 });

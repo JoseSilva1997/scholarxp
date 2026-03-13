@@ -19,9 +19,9 @@ export default function QuestsPage() {
     let perfectDays = 0;
     
     daySections.forEach(section => {
-      const completedCount = section.quests.filter(q => q?.isCompleted).length;
+      const completedCount = section.quests.filter((q) => q.isCompleted).length;
       totalCompleted += completedCount;
-      if (completedCount === section.quests.length && section.quests.length > 0) {
+      if (section.masterQuest?.isCompleted) {
         perfectDays += 1;
       }
     });
@@ -110,9 +110,12 @@ export default function QuestsPage() {
             {daySections.map((daySection) => {
               // Check if all quests in the day are complete and count them.
               const completedQuestsCount = daySection.quests.filter(
-                (quest) => quest && quest.isCompleted,
+                (quest) => quest.isCompleted,
               ).length;
-              const allQuestsComplete = completedQuestsCount === daySection.quests.length;
+              const allQuestsComplete =
+                daySection.masterQuest?.isCompleted ??
+                (completedQuestsCount === daySection.quests.length &&
+                  daySection.quests.length > 0);
 
               return (
                 <div key={daySection.questDayUtc} className={styles.dayWrapper}>
@@ -135,11 +138,12 @@ export default function QuestsPage() {
                     <div className={styles.dayInfo}>
                       <h2 className={styles.dayLabel}>{daySection.dayLabel}</h2>
                       <p className={styles.dayProgress}>
-                        {completedQuestsCount}/{daySection.quests.length} Quests Completed
+                        {completedQuestsCount}/3 Quests Completed
                       </p>
                     </div>
                     <QuestHistoryCard
                       quests={daySection.quests}
+                      masterQuest={daySection.masterQuest}
                       activeTooltipId={activeTooltipId}
                       onTooltipToggle={setActiveTooltipId}
                       tooltipIdPrefix={daySection.questDayUtc}

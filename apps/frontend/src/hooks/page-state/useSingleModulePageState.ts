@@ -13,6 +13,10 @@ import {
 import { logError } from '../../utils/logger';
 import { canUserAccess } from '../../permissions/permission';
 import {
+  useRecordCompletedUnitReviewQuestProgressMutation,
+  useRecordDailyRevisionQuestProgressMutation,
+} from '../queries/useQuestsQueries';
+import {
   useCreateModuleUnitMutation,
   useModuleDetailQuery,
   useModuleUnitsQuery,
@@ -45,6 +49,8 @@ type UseSingleModulePageStateResult = {
   expPercent: number;
   expMax: number;
   isCreatingUnit: boolean;
+  handleDailyRevisionClick: () => Promise<void>;
+  handleOpenStudentPracticeRoom: (unitId: string, questionId?: string) => Promise<void>;
   handleCreateUnit: (title: string) => Promise<void>;
   handleChangeUnitStatus: (unitId: string, status: ModuleUnitStatus) => Promise<void>;
   handleUpdateUnitTitle: (unitId: string, title: string) => Promise<void>;
@@ -75,6 +81,10 @@ export function useSingleModulePageState({
   const createModuleUnitMutation = useCreateModuleUnitMutation(parsedId);
   const updateModuleUnitMutation = useUpdateModuleUnitMutation(parsedId);
   const updateModuleUnitStatusMutation = useUpdateModuleUnitStatusMutation(parsedId);
+  const recordDailyRevisionQuestProgressMutation =
+    useRecordDailyRevisionQuestProgressMutation(parsedId);
+  const recordCompletedUnitReviewQuestProgressMutation =
+    useRecordCompletedUnitReviewQuestProgressMutation(parsedId);
 
   // permission checks are memoized to avoid re-evaluating the
   // shared matrix on every render. user object is primary dependency.
@@ -194,6 +204,71 @@ export function useSingleModulePageState({
     }
   };
 
+  const handleDailyRevisionClick = async () => {
+    if (parsedId === null) {
+      return;
+    }
+
+    setActionError(null);
+    try {
+      await recordDailyRevisionQuestProgressMutation.mutateAsync();
+      // Product has not shipped the actual room entry yet, so keep the current placeholder after recording quest progress.
+      window.alert('Daily revision coming soon! 🎯');
+    } catch (error) {
+      setActionError(
+        getDisplayErrorMessage(error, {
+          fallbackMessage:
+            'Could not record your daily revision quest progress. Please try again.',
+        }),
+      );
+      if (shouldLogApiError(error)) {
+        logError(error, {
+          feature: 'quests',
+          action: 'daily-revision-click',
+          moduleId: parsedId,
+        });
+      }
+    }
+  };
+
+  const handleOpenStudentPracticeRoom = async (
+    unitId: string,
+    questionId?: string,
+  ) => {
+    if (parsedId === null) {
+      return;
+    }
+
+    const selectedUnit = moduleUnits.find((unit) => unit.id === unitId);
+    const searchParams = new URLSearchParams();
+    if (questionId) {
+      searchParams.set('questionId', questionId);
+    }
+    const practiceRoomPath = `/main/modules/${parsedId}/${unitId}/practice-room${
+      searchParams.size > 0 ? `?${searchParams.toString()}` : ''
+    }`;
+
+    if (selectedUnit?.isCompleted) {
+      try {
+        // Reviewing completed content should not be blocked by quest-side failures, so this stays a best-effort pre-navigation trigger.
+        await recordCompletedUnitReviewQuestProgressMutation.mutateAsync(
+          Number(unitId),
+        );
+      } catch (error) {
+        if (shouldLogApiError(error)) {
+          logError(error, {
+            feature: 'quests',
+            action: 'completed-unit-review',
+            moduleId: parsedId,
+            moduleUnitId: unitId,
+          });
+        }
+      }
+    }
+
+    window.location.assign(practiceRoomPath);
+  };
+
   // toggling a unit's status is a common teacher interaction, so we
   // give it a dedicated handler that logs failures for monitoring.
   const handleChangeUnitStatus = async (unitId: string, status: ModuleUnitStatus) => {
@@ -264,6 +339,8 @@ export function useSingleModulePageState({
     expPercent,
     expMax,
     isCreatingUnit: createModuleUnitMutation.isPending,
+    handleDailyRevisionClick,
+    handleOpenStudentPracticeRoom,
     handleCreateUnit,
     handleChangeUnitStatus,
     handleUpdateUnitTitle,

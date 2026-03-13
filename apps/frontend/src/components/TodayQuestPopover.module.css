@@ -47,6 +47,13 @@
 
 .progressContainer {
   display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.progressDetails {
+  display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 8px;
 }
@@ -57,6 +64,26 @@
   color: var(--color-text-on-dark-muted);
   display: flex;
   justify-content: space-between;
+}
+
+.masterQuestBadge {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-glass-bg-subtle);
+  border: 1px solid var(--color-glass-accent-light);
+  box-shadow: 0 0 16px var(--color-glass-accent-soft);
+  flex-shrink: 0;
+}
+
+.masterQuestIcon {
+  width: 1.4rem;
+  height: 1.4rem;
+  color: var(--color-accent-light);
+  filter: drop-shadow(0 0 8px var(--color-glass-accent-medium));
 }
 
 .progressBar {

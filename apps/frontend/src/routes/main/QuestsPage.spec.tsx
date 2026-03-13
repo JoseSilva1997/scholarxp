@@ -18,7 +18,12 @@ describe('QuestsPage route', () => {
     const loadMore = vi.fn();
     mocks.useQuestPageState.mockReturnValue({
       daySections: [
-        { questDayUtc: '2026-02-17', dayLabel: 'Today', quests: [null, null, null] },
+        {
+          questDayUtc: '2026-02-17',
+          dayLabel: 'Today',
+          quests: [],
+          masterQuest: null,
+        },
       ],
       isLoading: false,
       isLoadingMore: false,
@@ -75,8 +80,18 @@ describe('QuestsPage route', () => {
 
     mocks.useQuestPageState.mockReturnValue({
       daySections: [
-        { questDayUtc: '2026-02-17', dayLabel: 'Today', quests: [firstQuest, null, null] },
-        { questDayUtc: '2026-02-16', dayLabel: 'Feb 16, 2026', quests: [secondQuest, null, null] },
+        {
+          questDayUtc: '2026-02-17',
+          dayLabel: 'Today',
+          quests: [firstQuest],
+          masterQuest: null,
+        },
+        {
+          questDayUtc: '2026-02-16',
+          dayLabel: 'Feb 16, 2026',
+          quests: [secondQuest],
+          masterQuest: null,
+        },
       ],
       isLoading: false,
       isLoadingMore: false,
@@ -183,17 +198,20 @@ describe('QuestsPage route', () => {
         { 
           questDayUtc: '2026-02-17', 
           dayLabel: 'Perfect Day', 
-          quests: [completedQuest, completedQuest] 
+          quests: [completedQuest, completedQuest],
+          masterQuest: { ...completedQuest, id: 99, type: QuestTypeValues.masterDailyQuests, tier: 'master' },
         },
         { 
           questDayUtc: '2026-02-16', 
           dayLabel: 'Partial Day', 
-          quests: [completedQuest, incompleteQuest, null]  // null quest
+          quests: [completedQuest, incompleteQuest],
+          masterQuest: null,
         },
         {
           questDayUtc: '2026-02-15',
           dayLabel: 'Empty Day',
-          quests: []
+          quests: [],
+          masterQuest: null,
         }
       ],
       isLoading: false,
@@ -210,8 +228,8 @@ describe('QuestsPage route', () => {
     expect(screen.getAllByText('Quests Done')).toHaveLength(1);
     
     // Perfect days: 
-    // Day 1: 2/2 -> Perfect
-    // Day 2: 1/3 (one complete, one incomplete, one null) -> Not Perfect
+    // Day 1: master quest complete -> Perfect
+    // Day 2: master quest missing -> Not Perfect
     // Day 3: 0/0 -> Not Perfect (length > 0 check)
     expect(screen.getByText('1')).toBeInTheDocument();
     expect(screen.getAllByText('Perfect Days')).toHaveLength(1);
@@ -260,19 +278,22 @@ describe('QuestsPage route', () => {
           questDayUtc: '2026-02-18', 
           dayLabel: 'Today (Incomplete)', 
           isToday: true,
-          quests: [incompleteQuest] 
+          quests: [incompleteQuest],
+          masterQuest: null,
         },
         { 
           questDayUtc: '2026-02-17', 
           dayLabel: 'Past (Incomplete)', 
           isToday: false,
-          quests: [incompleteQuest] 
+          quests: [incompleteQuest],
+          masterQuest: null,
         },
         { 
           questDayUtc: '2026-02-16', 
           dayLabel: 'Past (Complete)', 
           isToday: false,
-          quests: [completedQuest]
+          quests: [completedQuest],
+          masterQuest: { ...completedQuest, id: 120, type: QuestTypeValues.masterDailyQuests, tier: 'master' },
         },
       ],
       isLoading: false,
@@ -298,7 +319,7 @@ describe('QuestsPage route', () => {
   it('displays loading more state', () => {
     mocks.useQuestPageState.mockReturnValue({
       daySections: [
-        { questDayUtc: '2026-02-17', dayLabel: 'Today', quests: [null] },
+        { questDayUtc: '2026-02-17', dayLabel: 'Today', quests: [], masterQuest: null },
       ],
       isLoading: false,
       isLoadingMore: true,

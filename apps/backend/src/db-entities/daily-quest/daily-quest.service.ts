@@ -156,7 +156,8 @@ export class DailyQuestService {
 
   async update(id: number, updateDailyQuestDto: UpdateDailyQuestDto) {
     const existingQuest = await this.getOrThrow(id);
-    const nextType = (updateDailyQuestDto.type ?? existingQuest.type) as QuestType;
+    const nextType = (updateDailyQuestDto.type ??
+      existingQuest.type) as QuestType;
     const nextModuleId = updateDailyQuestDto.moduleId ?? existingQuest.moduleId;
     const nextModuleUnitId =
       updateDailyQuestDto.moduleUnitId !== undefined

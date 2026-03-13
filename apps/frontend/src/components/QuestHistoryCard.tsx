@@ -1,14 +1,16 @@
 // Reusable quest history day card that renders a dynamic hex layout based on available quests.
-import type { QuestView } from '@scholarxp/api-contracts';
+import { QuestTypeValues, type QuestView } from '@scholarxp/api-contracts';
 import { AnimatePresence } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { BsHexagon } from 'react-icons/bs';
+import { GiLockedChest, GiOpenTreasureChest } from 'react-icons/gi';
 import { getQuestBadge } from '../constants/quest-constants';
 import QuestBadgeTooltip from './QuestBadgeTooltip';
 import styles from './QuestHistoryCard.module.css';
 
 type QuestHistoryCardProps = {
-  quests: Array<QuestView | null>;
+  quests: QuestView[];
+  masterQuest?: QuestView | null;
   className?: string;
   activeTooltipId?: string | null;
   onTooltipToggle?: (nextTooltipId: string | null) => void;
@@ -17,6 +19,7 @@ type QuestHistoryCardProps = {
 
 export default function QuestHistoryCard({
   quests,
+  masterQuest = null,
   className,
   activeTooltipId,
   onTooltipToggle,
@@ -29,7 +32,10 @@ export default function QuestHistoryCard({
     : openTooltipSlotIndex !== null;
 
   // Render exactly the number of quests provided; no hardcoded slot count.
-  const slots = quests;
+  const slots = quests.filter((q): q is QuestView => !!q && q.type !== QuestTypeValues.masterDailyQuests);
+  const MasterQuestIcon = masterQuest?.isCompleted
+    ? GiOpenTreasureChest
+    : GiLockedChest;
 
   useEffect(() => {
     if (!hasOpenTooltip) return;
@@ -62,8 +68,8 @@ export default function QuestHistoryCard({
     <div className={`${styles.card} ${className ?? ''}`.trim()}>
       <div className={styles.slotRow}>
         {slots.map((slotQuest, slotIndex) => {
-          // Determine if slot is incomplete (empty or quest not finished).
-          const isIncomplete = !slotQuest || !slotQuest.isCompleted;
+          // Daily quest slots keep badge treatment while the master quest gets a separate chest marker.
+          const isIncomplete = !slotQuest.isCompleted;
           const tooltipId = `${tooltipIdPrefix}-${slotIndex}`;
           const isTooltipOpen = isControlledTooltip
             ? activeTooltipId === tooltipId
@@ -77,39 +83,53 @@ export default function QuestHistoryCard({
               }`.trim()}
               data-testid="quest-slot"
             >
-              {slotQuest ? (
-                <>
-                  <button
-                    type="button"
-                    className={styles.badgeButton}
-                    aria-label={`${slotQuest.moduleTitle} quest details`}
-                    onClick={() => {
-                      if (isControlledTooltip) {
-                        onTooltipToggle(isTooltipOpen ? null : tooltipId);
-                        return;
-                      }
-                      setOpenTooltipSlotIndex((currentIndex) =>
-                        currentIndex === slotIndex ? null : slotIndex,
-                      );
-                    }}
-                  >
-                    <img
-                      src={getQuestBadge(slotQuest)}
-                      alt={`${slotQuest.moduleTitle} quest badge`}
-                      className={styles.badge}
-                    />
-                  </button>
-                  <AnimatePresence>
-                    {isTooltipOpen ? <QuestBadgeTooltip quest={slotQuest} /> : null}
-                  </AnimatePresence>
-                </>
-              ) : (
-                // Icon placeholder makes empty quest slots visually obvious when less than three quests exist for a day.
-                <BsHexagon className={styles.emptyIcon} aria-hidden="true" />
-              )}
+              <button
+                type="button"
+                className={styles.badgeButton}
+                aria-label={`${slotQuest.moduleTitle} quest details`}
+                onClick={() => {
+                  if (isControlledTooltip) {
+                    onTooltipToggle(isTooltipOpen ? null : tooltipId);
+                    return;
+                  }
+                  setOpenTooltipSlotIndex((currentIndex) =>
+                    currentIndex === slotIndex ? null : slotIndex,
+                  );
+                }}
+              >
+                <img
+                  src={getQuestBadge(slotQuest)}
+                  alt={`${slotQuest.moduleTitle} quest badge`}
+                  className={styles.badge}
+                />
+              </button>
+              <AnimatePresence>
+                {isTooltipOpen ? <QuestBadgeTooltip quest={slotQuest} /> : null}
+              </AnimatePresence>
             </div>
           );
         })}
+        {masterQuest ? (
+          <div
+            className={`${styles.slot} ${styles.masterQuestSlot} ${
+              masterQuest.isCompleted ? styles.masterQuestComplete : styles.masterQuestIncomplete
+            }`.trim()}
+            aria-label={
+              masterQuest.isCompleted
+                ? 'Master quest completed'
+                : 'Master quest incomplete'
+            }
+            role="img"
+            title={masterQuest.description}
+          >
+            <MasterQuestIcon className={styles.masterQuestIcon} aria-hidden="true" />
+          </div>
+        ) : (
+          // Legacy days without a generated master quest keep the layout balanced with a neutral placeholder.
+          <div className={`${styles.slot} ${styles.masterQuestSlot}`.trim()} aria-hidden="true">
+            <BsHexagon className={styles.emptyIcon} />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -99,6 +99,7 @@ export default function Header({
               <TodayQuestPopover
                 id="today-quest-popover"
                 quests={todayQuestList?.quests ?? []}
+                masterQuest={todayQuestList?.masterQuest ?? null}
                 completed={todayQuestList?.completed ?? 0}
                 max={todayQuestList?.max ?? 3}
                 isLoading={todayQuestListQuery.isPending}

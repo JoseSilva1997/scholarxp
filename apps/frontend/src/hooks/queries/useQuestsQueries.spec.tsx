@@ -5,6 +5,9 @@ import type { ReactNode } from 'react';
 import { QuestTypeValues, type QuestHistoryResponse } from '@scholarxp/api-contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  partitionQuestViewsByTier,
+  useRecordCompletedUnitReviewQuestProgressMutation,
+  useRecordDailyRevisionQuestProgressMutation,
   useQuestHistoryInfiniteQuery,
   useTodayQuestListQuery,
   useTodayQuestSummaryQuery,
@@ -12,10 +15,15 @@ import {
 
 const apiMocks = vi.hoisted(() => ({
   listQuests: vi.fn(),
+  recordDailyRevisionQuestProgress: vi.fn(),
+  recordCompletedUnitReviewQuestProgress: vi.fn(),
 }));
 
 vi.mock('../../api/quests', () => ({
   listQuests: apiMocks.listQuests,
+  recordDailyRevisionQuestProgress: apiMocks.recordDailyRevisionQuestProgress,
+  recordCompletedUnitReviewQuestProgress:
+    apiMocks.recordCompletedUnitReviewQuestProgress,
 }));
 
 const TODAY_STR = new Date().toISOString().slice(0, 10);
@@ -49,6 +57,23 @@ const mockQuests = [
     isCompleted: true,
     questDateUtc: YESTERDAY_STR,
   },
+  {
+    id: 4,
+    moduleId: null,
+    moduleUnitId: null,
+    moduleTitle: 'Master quest',
+    moduleUnitTitle: null,
+    type: QuestTypeValues.masterDailyQuests,
+    tier: 'master',
+    expGranted: 250,
+    isCompleted: false,
+    progressCurrent: 1,
+    progressTarget: 3,
+    description: 'Complete all 3 daily quests to unlock the master quest reward.',
+    questDateUtc: TODAY_STR,
+    generatedAt: `${TODAY_STR}T00:00:00.000Z`,
+    completedAt: null,
+  },
 ];
 
 function createWrapper(queryClient: QueryClient) {
@@ -67,6 +92,15 @@ describe('useQuestsQueries', () => {
       },
     });
     apiMocks.listQuests.mockReset();
+    apiMocks.recordDailyRevisionQuestProgress.mockReset();
+    apiMocks.recordCompletedUnitReviewQuestProgress.mockReset();
+  });
+
+  it('partitions daily quests away from the master quest', () => {
+    const result = partitionQuestViewsByTier(mockQuests as never);
+
+    expect(result.dailyQuests).toHaveLength(3);
+    expect(result.masterQuest?.type).toBe(QuestTypeValues.masterDailyQuests);
   });
 
   describe('useQuestHistoryInfiniteQuery', () => {
@@ -110,7 +144,7 @@ describe('useQuestsQueries', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      // TODAY_STR has 2 quests, 1 completed
+      // TODAY_STR has 2 visible daily quests, 1 completed. The master quest does not count toward the summary chip.
       expect(result.current.data).toEqual({
         completed: 1,
         total: 2,
@@ -140,7 +174,7 @@ describe('useQuestsQueries', () => {
 
   describe('useTodayQuestListQuery', () => {
     it('filters and limits quests to today only', async () => {
-      // Add more quests to test slicing
+      // Add more daily quests to test slicing while preserving the master quest separately.
       const manyQuests = [
         ...mockQuests,
         { ...mockQuests[0], id: 10, questDateUtc: TODAY_STR },
@@ -158,10 +192,13 @@ describe('useQuestsQueries', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      // Should have only 3 quests from today (slice 0, 3)
+      // Should have only 3 visible daily quests from today; the master quest is exposed separately.
       expect(result.current.data?.quests).toHaveLength(3);
       expect(result.current.data?.max).toBe(3);
       expect(result.current.data?.quests.every(q => q.questDateUtc === TODAY_STR)).toBe(true);
+      expect(result.current.data?.masterQuest?.type).toBe(
+        QuestTypeValues.masterDailyQuests,
+      );
       
       // Calculate completed among those 3.
       // initial mockQuests[0] is completed, mockQuests[1] is not, id 10 is completed.
@@ -184,6 +221,54 @@ describe('useQuestsQueries', () => {
       expect(result.current.data?.quests).toHaveLength(0);
       expect(result.current.data?.max).toBe(3);
       expect(result.current.data?.completed).toBe(0);
+      expect(result.current.data?.masterQuest).toBeNull();
+    });
+  });
+
+  describe('quest progress mutations', () => {
+    it('records daily revision progress and invalidates quest/auth caches', async () => {
+      const invalidateQueries = vi
+        .spyOn(queryClient, 'invalidateQueries')
+        .mockResolvedValue(undefined);
+      apiMocks.recordDailyRevisionQuestProgress.mockResolvedValue({
+        recorded: true,
+      });
+
+      const { result } = renderHook(
+        () => useRecordDailyRevisionQuestProgressMutation(12),
+        {
+          wrapper: createWrapper(queryClient),
+        },
+      );
+
+      await result.current.mutateAsync();
+
+      expect(apiMocks.recordDailyRevisionQuestProgress).toHaveBeenCalledWith(12);
+      expect(invalidateQueries).toHaveBeenCalledTimes(2);
+    });
+
+    it('records completed-unit review progress and invalidates quest/auth caches', async () => {
+      const invalidateQueries = vi
+        .spyOn(queryClient, 'invalidateQueries')
+        .mockResolvedValue(undefined);
+      apiMocks.recordCompletedUnitReviewQuestProgress.mockResolvedValue({
+        recorded: true,
+      });
+
+      const { result } = renderHook(
+        () => useRecordCompletedUnitReviewQuestProgressMutation(12),
+        {
+          wrapper: createWrapper(queryClient),
+        },
+      );
+
+      await result.current.mutateAsync(44);
+
+      expect(apiMocks.recordCompletedUnitReviewQuestProgress).toHaveBeenCalledWith(
+        12,
+        44,
+      );
+      expect(invalidateQueries).toHaveBeenCalledTimes(2);
     });
   });
 });

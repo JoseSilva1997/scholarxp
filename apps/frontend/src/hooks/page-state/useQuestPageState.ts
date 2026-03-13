@@ -7,7 +7,10 @@ import {
 } from '../../api/get-display-error';
 import { useAuth } from '../../context/AuthContext';
 import { logError } from '../../utils/logger';
-import { useQuestHistoryInfiniteQuery } from '../queries/useQuestsQueries';
+import {
+  partitionQuestViewsByTier,
+  useQuestHistoryInfiniteQuery,
+} from '../queries/useQuestsQueries';
 
 // Define the number of days to fetch per page for quest history
 const DAY_PAGE_SIZE = 14;
@@ -17,7 +20,8 @@ export type QuestDaySection = {
   questDayUtc: string;
   dayLabel: string;
   isToday: boolean;
-  quests: Array<QuestView | null>;
+  quests: QuestView[];
+  masterQuest: QuestView | null;
 };
 
 // The result type returned by the useQuestPageState hook
@@ -75,13 +79,18 @@ export function useQuestPageState(): UseQuestPageStateResult {
   // Transform grouped quest days into a format suitable for the UI
   const daySections = useMemo(() => {
     const todayUtc = formatDateToUtcDay(new Date());
-    return groupedQuestDays.map(([questDayUtc, dayQuests]) => ({
-      questDayUtc,
-      dayLabel: formatQuestDayLabel(questDayUtc),
-      isToday: questDayUtc === todayUtc,
-      // Use only available quests for the day; no fixed slot count padding.
-      quests: dayQuests,
-    }));
+    return groupedQuestDays.map(([questDayUtc, dayQuests]) => {
+      const { dailyQuests, masterQuest } = partitionQuestViewsByTier(dayQuests);
+
+      return {
+        questDayUtc,
+        dayLabel: formatQuestDayLabel(questDayUtc),
+        isToday: questDayUtc === todayUtc,
+        // The page renders only the three daily quests while the master quest gets its own chest treatment.
+        quests: dailyQuests,
+        masterQuest,
+      };
+    });
   }, [groupedQuestDays]);
 
   // Generate a user-friendly error message if the query fails

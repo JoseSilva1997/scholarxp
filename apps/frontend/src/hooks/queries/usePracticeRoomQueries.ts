@@ -81,7 +81,7 @@ export function useSubmitModuleUnitPracticeAttemptMutation(
           queryKey: queryKeys.modules.moduleUnitPracticeRoomBase(moduleId, moduleUnitId),
         }),
         queryClient.invalidateQueries({
-          queryKey: ['quests'],
+          queryKey: queryKeys.quests.all,
         }),
       ];
 

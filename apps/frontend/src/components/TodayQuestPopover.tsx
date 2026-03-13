@@ -11,12 +11,14 @@ import {
   BsLightningChargeFill,
   BsTrophyFill,
 } from 'react-icons/bs';
+import { GiLockedChest, GiOpenTreasureChest } from 'react-icons/gi';
 import { getQuestBadge } from '../constants/quest-constants';
 import styles from './TodayQuestPopover.module.css';
 
 type TodayQuestPopoverProps = {
   id: string;
   quests: QuestView[];
+  masterQuest: QuestView | null;
   completed: number;
   max: number;
   isLoading: boolean;
@@ -26,6 +28,7 @@ type TodayQuestPopoverProps = {
 export default function TodayQuestPopover({
   id,
   quests,
+  masterQuest,
   completed,
   max,
   isLoading,
@@ -41,6 +44,9 @@ export default function TodayQuestPopover({
 
   const selectedQuest = quests.find((q) => q.id === activeQuestId);
   const progressPercentage = max > 0 ? (completed / max) * 100 : 0;
+  const MasterQuestIcon = masterQuest?.isCompleted
+    ? GiOpenTreasureChest
+    : GiLockedChest;
 
   return (
     <motion.section
@@ -58,17 +64,30 @@ export default function TodayQuestPopover({
           <h2 className={styles.title}>Today&apos;s Quests</h2>
         </div>
         <div className={styles.progressContainer}>
-          <div className={styles.progressText}>
-            <span>Progress</span>
-            <span>{completed}/{max}</span>
+          <div
+            className={styles.masterQuestBadge}
+            aria-label={
+              masterQuest?.isCompleted
+                ? 'Master quest completed'
+                : 'Master quest incomplete'
+            }
+            title={masterQuest?.description ?? 'Complete all daily quests to unlock the master quest reward.'}
+          >
+            <MasterQuestIcon className={styles.masterQuestIcon} aria-hidden="true" />
           </div>
-          <div className={styles.progressBar}>
-            <motion.div
-              className={styles.progressFill}
-              initial={{ width: 0 }}
-              animate={{ width: `${progressPercentage}%` }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-            />
+          <div className={styles.progressDetails}>
+            <div className={styles.progressText}>
+              <span>Progress</span>
+              <span>{completed}/{max}</span>
+            </div>
+            <div className={styles.progressBar}>
+              <motion.div
+                className={styles.progressFill}
+                initial={{ width: 0 }}
+                animate={{ width: `${progressPercentage}%` }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+              />
+            </div>
           </div>
         </div>
       </header>

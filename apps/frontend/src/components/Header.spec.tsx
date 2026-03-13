@@ -35,7 +35,7 @@ describe('Header', () => {
   beforeEach(() => {
     mockUserBadgeProps = {};
     queryMocks.useTodayQuestListQuery.mockReturnValue({
-      data: { quests: [], completed: 0, max: 3 },
+      data: { quests: [], masterQuest: null, completed: 0, max: 3 },
       isPending: false,
     });
   });
@@ -117,6 +117,7 @@ describe('Header', () => {
               completedAt: null,
             },
           ],
+          masterQuest: null,
           completed: 0,
           max: 3,
         },

@@ -14,7 +14,11 @@ const mocks = vi.hoisted(() => ({
   createMutateAsync: vi.fn(),
   updateMutateAsync: vi.fn(),
   updateStatusMutateAsync: vi.fn(),
+  recordDailyRevisionMutateAsync: vi.fn(),
+  recordCompletedReviewMutateAsync: vi.fn(),
   setQueryData: vi.fn(),
+  assign: vi.fn(),
+  alert: vi.fn(),
 }));
 
 let moduleQueryState: {
@@ -96,6 +100,15 @@ vi.mock('../queries/useModulesQueries', () => ({
   }),
 }));
 
+vi.mock('../queries/useQuestsQueries', () => ({
+  useRecordDailyRevisionQuestProgressMutation: () => ({
+    mutateAsync: mocks.recordDailyRevisionMutateAsync,
+  }),
+  useRecordCompletedUnitReviewQuestProgressMutation: () => ({
+    mutateAsync: mocks.recordCompletedReviewMutateAsync,
+  }),
+}));
+
 describe('useSingleModulePageState', () => {
   beforeEach(() => {
     moduleQueryState = { data: null, isPending: false, error: null };
@@ -115,11 +128,21 @@ describe('useSingleModulePageState', () => {
     mocks.createMutateAsync.mockReset();
     mocks.updateMutateAsync.mockReset();
     mocks.updateStatusMutateAsync.mockReset();
+    mocks.recordDailyRevisionMutateAsync.mockReset();
+    mocks.recordCompletedReviewMutateAsync.mockReset();
     mocks.setQueryData.mockReset();
+    mocks.assign.mockReset();
+    mocks.alert.mockReset();
 
     mocks.canUserAccess.mockImplementation((permission: string) => permissionByKey[permission]);
     mocks.shouldLogApiError.mockReturnValue(true);
     mocks.getDisplayErrorMessage.mockImplementation((_error, options: { fallbackMessage: string }) => options.fallbackMessage);
+
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...window.location, assign: mocks.assign },
+    });
+    window.alert = mocks.alert;
   });
 
   it('returns not-found error when moduleId param is invalid', () => {
@@ -273,6 +296,66 @@ describe('useSingleModulePageState', () => {
       moduleUnitId: 40,
       payload: { title: 'Renamed lesson' },
     });
+  });
+
+  it('records daily revision quest progress before showing the placeholder alert', async () => {
+    moduleQueryState = {
+      data: {
+        id: 14,
+        title: 'History',
+      },
+      isPending: false,
+      error: null,
+    };
+    mocks.recordDailyRevisionMutateAsync.mockResolvedValue({ recorded: true });
+
+    const { result } = renderHook(() =>
+      useSingleModulePageState({ moduleIdParam: '14', user: mockUser }),
+    );
+
+    await act(async () => {
+      await result.current.handleDailyRevisionClick();
+    });
+
+    expect(mocks.recordDailyRevisionMutateAsync).toHaveBeenCalledTimes(1);
+    expect(mocks.alert).toHaveBeenCalledWith('Daily revision coming soon! 🎯');
+  });
+
+  it('records completed-review quest progress before opening a completed lesson', async () => {
+    moduleQueryState = {
+      data: {
+        id: 14,
+        title: 'History',
+      },
+      isPending: false,
+      error: null,
+    };
+    moduleUnitsQueryState = {
+      data: [
+        {
+          id: 40,
+          title: 'Completed lesson',
+          status: 'live',
+          isCompleted: true,
+          questionCount: 2,
+          questionGroups: [],
+        },
+      ],
+      isPending: false,
+      error: null,
+    };
+    mocks.recordCompletedReviewMutateAsync.mockResolvedValue({ recorded: true });
+
+    const { result } = renderHook(() =>
+      useSingleModulePageState({ moduleIdParam: '14', user: mockUser }),
+    );
+
+    await act(async () => {
+      await result.current.handleOpenStudentPracticeRoom('40');
+    });
+
+    expect(mocks.recordCompletedReviewMutateAsync).toHaveBeenCalledWith(40);
+    expect(mocks.assign).toHaveBeenCalledWith('/main/modules/14/40/practice-room');
   });
 
   it('logs and rethrows title-update errors when telemetry is enabled', async () => {
