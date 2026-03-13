@@ -56,6 +56,10 @@ export const MODULE_UNIT_COMPLETION_REWARDS = {
   SECOND_COMPLETION: 25,
   SUBSEQUENT_COMPLETIONS: 0,
 }
+// Quest completion reward (fixed) for baseline quests.
+export const QUEST_COMPLETION_REWARD = 50;
+// Master Quest completion reward (fixed) for completing all quests in a day.
+export const MASTER_QUEST_COMPLETION_REWARD = 250;
 
 export type MODULE_UNIT_COMPLETION_REWARD = typeof MODULE_UNIT_COMPLETION_REWARDS[keyof typeof MODULE_UNIT_COMPLETION_REWARDS];
 
