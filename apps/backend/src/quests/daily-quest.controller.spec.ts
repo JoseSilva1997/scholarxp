@@ -1,26 +1,26 @@
-// Verifies that DailyQuestController routes delegate to DailyQuestService with parsed IDs and authenticated user context.
+// Role: verifies quest routes stay thin and delegate authenticated reads to the quest orchestration service.
 import { Test, TestingModule } from '@nestjs/testing';
+import { AuthorizationGuard } from '../auth/guards/authorization.guard';
+import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
 import { DailyQuestController } from './daily-quest.controller';
-import { DailyQuestService } from './daily-quest.service';
-import { SessionAuthGuard } from '../../auth/guards/session-auth.guard';
-import { AuthorizationGuard } from '../../auth/guards/authorization.guard';
+import { QuestHistoryService } from './quest-history.service';
 
 describe('DailyQuestController', () => {
   let controller: DailyQuestController;
-  let service: {
-    create: jest.Mock;
+  let questHistoryService: {
     listHistoryForUser: jest.Mock;
   };
 
   beforeEach(async () => {
-    service = {
-      create: jest.fn(),
+    questHistoryService = {
       listHistoryForUser: jest.fn(),
     };
 
     const moduleRef: TestingModule = await Test.createTestingModule({
       controllers: [DailyQuestController],
-      providers: [{ provide: DailyQuestService, useValue: service }],
+      providers: [
+        { provide: QuestHistoryService, useValue: questHistoryService },
+      ],
     })
       .overrideGuard(SessionAuthGuard)
       .useValue({ canActivate: jest.fn().mockReturnValue(true) })
@@ -31,20 +31,23 @@ describe('DailyQuestController', () => {
     controller = moduleRef.get(DailyQuestController);
   });
 
-  afterEach(() => jest.resetAllMocks());
+  afterEach(() => {
+    jest.resetAllMocks();
+  });
 
   it('getMyQuestHistory forwards authenticated user id and query', async () => {
     const request = { user: { id: 7 } } as never;
     const query = { dayLimit: 14, dayOffset: 0 };
     const response = { quests: [], hasMore: false, nextDayOffset: null };
-    service.listHistoryForUser.mockResolvedValue(response);
+    questHistoryService.listHistoryForUser.mockResolvedValue(response);
 
     const result = await controller.getMyQuestHistory(request, query as never);
 
-    // Controller owns extracting session user id; service owns history selection logic.
-    expect(service.listHistoryForUser).toHaveBeenCalledWith(7, query);
+    // Controller owns extracting session user id; quest services own generation and read orchestration.
+    expect(questHistoryService.listHistoryForUser).toHaveBeenCalledWith(
+      7,
+      query,
+    );
     expect(result).toEqual(response);
   });
-
-  // Other CRUD endpoints were removed as they are unused by frontend flows.
 });

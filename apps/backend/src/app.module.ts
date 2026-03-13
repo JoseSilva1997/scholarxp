@@ -10,7 +10,6 @@ import { AvatarModule } from './db-entities/avatar/avatar.module';
 import { ModuleModule } from './db-entities/module/module.module';
 import { UserModuleModule } from './db-entities/user-module/user-module.module';
 import { ModuleInviteModule } from './db-entities/module-invite/module-invite.module';
-import { DailyQuestModule } from './db-entities/daily-quest/daily-quest.module';
 import { ModuleUnitModule } from './db-entities/module-unit/module-unit.module';
 import { PracticeSessionModule } from './db-entities/practice-session/practice-session.module';
 import { ModuleUnitQuestionGroupModule } from './db-entities/module-unit-question-group/module-unit-question-group.module';
@@ -22,6 +21,7 @@ import { AuthModule } from './auth/auth.module';
 import { EmailVerificationTokenModule } from './db-entities/email-verification-token/email-verification-token.module';
 import { MailerModule } from './mailer/mailer.module';
 import { PracticeRoomModule } from './practice-room/practice-room.module';
+import { QuestsModule } from './quests/quests.module';
 
 // Keep internal diagnostics routes out of production to reduce attack surface.
 const appControllers =
@@ -46,7 +46,6 @@ const appControllers =
     ModuleModule,
     UserModuleModule,
     ModuleInviteModule,
-    DailyQuestModule,
     ModuleUnitModule,
     PracticeSessionModule,
     ModuleUnitQuestionGroupModule,
@@ -59,6 +58,7 @@ const appControllers =
     EmailVerificationTokenModule,
     MailerModule,
     PracticeRoomModule,
+    QuestsModule,
   ],
   controllers: appControllers,
 })
