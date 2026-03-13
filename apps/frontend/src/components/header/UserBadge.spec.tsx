@@ -2,7 +2,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import UserBadge from './UserBadge';
-import type { AuthUser } from '../types/auth';
+import type { AuthUser } from '../../types/auth';
 
 const navigateMock = vi.fn();
 

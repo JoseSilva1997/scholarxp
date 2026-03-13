@@ -2,7 +2,7 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import TodayQuestPopover from './TodayQuestPopover';
-import { renderWithProviders } from '../test/utils';
+import { renderWithProviders } from '../../test/utils';
 import { QuestTypeValues, type QuestView } from '@scholarxp/api-contracts';
 
 // Mock getQuestBadge to avoid path resolution issues in tests

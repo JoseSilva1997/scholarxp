@@ -12,7 +12,7 @@ import {
   BsTrophyFill,
 } from 'react-icons/bs';
 import { GiLockedChest, GiOpenTreasureChest } from 'react-icons/gi';
-import { getQuestBadge } from '../constants/quest-constants';
+import { getQuestBadge } from '@/constants/quest-constants';
 import styles from './TodayQuestPopover.module.css';
 
 type TodayQuestPopoverProps = {

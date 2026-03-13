@@ -1,17 +1,15 @@
 // Verifies header branch rendering for authenticated and unauthenticated states,
 // including student/non-student roles, avatar presence, and prop overrides.
-import { fireEvent, screen } from '@testing-library/react';
-import { renderWithProviders } from '../test/utils';
+import { screen } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { renderWithProviders } from '@/test/utils';
+import type { AuthUser } from '@/types/auth';
 import Header from './Header';
-import type { AuthUser } from '../types/auth';
 
-const queryMocks = vi.hoisted(() => ({
-  useTodayQuestListQuery: vi.fn(),
-}));
-
-vi.mock('../hooks/queries/useQuestsQueries', () => ({
-  useTodayQuestListQuery: queryMocks.useTodayQuestListQuery,
+vi.mock('./TodayQuestChip', () => ({
+  default: ({ userId }: { userId: number }) => (
+    <div data-testid="today-quest-chip">today-quest-chip:{userId}</div>
+  ),
 }));
 
 // Mock UserBadge to track props passed to it, allowing assertion on level/exp values
@@ -34,11 +32,6 @@ vi.mock('./UserBadge', () => ({
 describe('Header', () => {
   beforeEach(() => {
     mockUserBadgeProps = {};
-    sessionStorage.clear();
-    queryMocks.useTodayQuestListQuery.mockReturnValue({
-      data: { quests: [], masterQuest: null, completed: 0, max: 3 },
-      isPending: false,
-    });
   });
 
   // ============================================================================
@@ -95,57 +88,10 @@ describe('Header', () => {
 );
 
       expect(screen.getByTestId('user-badge')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /today's quests/i })).toBeInTheDocument();
+      expect(screen.getByTestId('today-quest-chip')).toHaveTextContent(
+        'today-quest-chip:1',
+      );
       expect(screen.queryByRole('link', { name: 'Login' })).not.toBeInTheDocument();
-    });
-
-    it('opens the today quests popover when chip is clicked', () => {
-      queryMocks.useTodayQuestListQuery.mockReturnValue({
-        data: {
-          quests: [
-            {
-              id: 11,
-              moduleId: 4,
-              moduleUnitId: null,
-              moduleTitle: 'Biology',
-              moduleUnitTitle: null,
-              type: 'complete_daily_practice',
-              description: 'Complete your daily practice for Biology.',
-              expGranted: 25,
-              isCompleted: false,
-              questDateUtc: '2026-02-19',
-              generatedAt: '2026-02-19T00:00:00.000Z',
-              completedAt: null,
-            },
-          ],
-          masterQuest: null,
-          completed: 0,
-          max: 3,
-        },
-        isPending: false,
-      });
-
-      renderWithProviders(
-  <Header user={studentWithAvatar} />,
-);
-
-      fireEvent.click(screen.getByRole('button', { name: /today's quests/i }));
-
-      expect(screen.getByTestId('today-quest-popover')).toBeInTheDocument();
-      expect(screen.getByText('Quests')).toBeInTheDocument();
-      expect(screen.getByText('Biology')).toBeInTheDocument();
-    });
-
-    it('closes the today quests popover when clicking outside', () => {
-      renderWithProviders(
-  <Header user={studentWithAvatar} />,
-);
-
-      fireEvent.click(screen.getByRole('button', { name: /today's quests/i }));
-      expect(screen.getByTestId('today-quest-popover')).toBeInTheDocument();
-
-      fireEvent.mouseDown(document.body);
-      expect(screen.queryByTestId('today-quest-popover')).not.toBeInTheDocument();
     });
 
     it('passes student avatar data to UserBadge through user prop', () => {
@@ -154,66 +100,6 @@ describe('Header', () => {
       );
 
       expect(mockUserBadgeProps.user).toEqual(studentWithAvatar);
-    });
-
-    it('adds glow styling to the quest chip wrapper after quest progress exists', () => {
-      queryMocks.useTodayQuestListQuery.mockReturnValue({
-        data: { quests: [], masterQuest: null, completed: 1, max: 3 },
-        isPending: false,
-      });
-
-      renderWithProviders(
-        <Header user={studentWithAvatar} />,
-      );
-
-      expect(screen.getByTestId('today-chip-wrapper').className).toContain(
-        'todayChipWrapperGlow',
-      );
-    });
-
-    it('clears the glow after the chip is clicked, keeps it dismissed after refresh, and restores it when more quests are completed', () => {
-      let todayQuestData = {
-        quests: [],
-        masterQuest: null,
-        completed: 1,
-        max: 3,
-      };
-      queryMocks.useTodayQuestListQuery.mockImplementation(() => ({
-        data: todayQuestData,
-        isPending: false,
-      }));
-
-      const { rerender } = renderWithProviders(
-        <Header user={studentWithAvatar} />,
-      );
-
-      expect(screen.getByTestId('today-chip-wrapper').className).toContain(
-        'todayChipWrapperGlow',
-      );
-
-      fireEvent.click(screen.getByRole('button', { name: /today's quests/i }));
-
-      expect(screen.getByTestId('today-chip-wrapper').className).not.toContain(
-        'todayChipWrapperGlow',
-      );
-
-      rerender(<></>);
-      rerender(<Header user={studentWithAvatar} />);
-
-      expect(screen.getByTestId('today-chip-wrapper').className).not.toContain(
-        'todayChipWrapperGlow',
-      );
-
-      todayQuestData = {
-        ...todayQuestData,
-        completed: 2,
-      };
-
-      rerender(<Header user={studentWithAvatar} />);
-
-      expect(screen.getByTestId('today-chip-wrapper').className).toContain(
-        'todayChipWrapperGlow',
-      );
     });
   });
 
@@ -278,7 +164,7 @@ describe('Header', () => {
 );
 
       expect(screen.getByTestId('user-badge')).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /today's quests/i })).not.toBeInTheDocument();
+      expect(screen.queryByTestId('today-quest-chip')).not.toBeInTheDocument();
     });
 
     it('passes non-student users to UserBadge unchanged', () => {

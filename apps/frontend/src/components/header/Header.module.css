@@ -26,88 +26,6 @@
   gap: 12px;
 }
 
-.todayChipWrapper {
-  position: relative;
-}
-
-.todayChipWrapperGlow .todayChip {
-  box-shadow:
-    var(--shadow-md),
-    0 0 18px var(--color-secondary-shadow),
-    0 0 36px var(--color-secondary-glow),
-    inset 0 1px 1px var(--color-overlay-light-border);
-  border-color: var(--color-secondary-light);
-}
-
-.todayChipWrapperGlow .todayChipIcon {
-  color: var(--color-secondary-light);
-  filter: drop-shadow(0 0 8px var(--color-secondary-glow));
-}
-
-.todayChip {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  background: var(--color-overlay-light-hover);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--color-accent-soft);
-  color: var(--color-accent-light);
-  padding: 8px 14px 4px 12px;
-  border-radius: var(--radius-full);
-  font-weight: 700;
-  cursor: pointer;
-  font: inherit;
-  line-height: 1;
-  transition: all var(--transition-base);
-  box-shadow: 
-    var(--shadow-sm),
-    inset 0 1px 1px var(--color-overlay-light-border);
-}
-
-.todayChip:hover {
-  background: var(--color-overlay-light-active);
-  border-color: var(--color-accent);
-  transform: translateY(-2px);
-  box-shadow: 
-    var(--shadow-md),
-    0 0 15px var(--color-accent-soft);
-}
-
-.todayChipActive {
-  background: var(--color-accent-soft);
-  border-color: var(--color-accent-light);
-  box-shadow: 
-    0 0 20px var(--color-accent-soft),
-    inset 0 0 5px var(--color-accent-soft);
-}
-
-.todayChipIcon {
-  font-size: 1.1rem;
-  color: var(--color-accent-light);
-  filter: drop-shadow(0 0 4px var(--color-accent-soft));
-}
-
-.todayChipContent {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-}
-
-.todayChipLabel {
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--color-text-on-dark-vibrant);
-  font-weight: 800;
-}
-
-.todayChipValue {
-  font-size: 0.70rem;
-  color: var(--color-text-on-dark-vibrant);
-  font-weight: 600;
-}
-
 .brand {
   display: flex;
   align-items: center;
@@ -230,18 +148,6 @@
 
   .brandWrapper {
     gap: 12px;
-  }
-
-  .todayChip {
-    padding: 4px 8px;
-  }
-
-  .todayChipLabel {
-    display: none;
-  }
-
-  .todayChipValue {
-    font-size: 0.7rem;
   }
 
   .actions {

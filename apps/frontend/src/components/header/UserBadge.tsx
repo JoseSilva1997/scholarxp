@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { getProgressWithinLevel } from '@scholarxp/progression';
-import type { AuthUser } from '../types/auth';
-import defaultAvatar from '../assets/default-profile-pic.png';
+import type { AuthUser } from '@/types/auth';
+import defaultAvatar from '@/assets/default-profile-pic.png';
 import styles from './UserBadge.module.css';
 
 type UserBadgeProps = {

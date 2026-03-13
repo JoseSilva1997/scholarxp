@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import type { Location } from 'react-router-dom';
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import './App.css';
-import Header from './components/Header';
+import Header from './components/header/Header';
 import Footer from './components/Footer';
 import Landing from './routes/Landing';
 import Login from './routes/Login';
