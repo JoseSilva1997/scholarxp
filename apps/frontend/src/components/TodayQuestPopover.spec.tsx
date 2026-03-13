@@ -222,4 +222,21 @@ const masterQuest: QuestView = {
 
     expect(screen.getByLabelText('Master quest incomplete')).toBeInTheDocument();
   });
+
+  it('shows the master quest reward hint under the progress bar', () => {
+    renderWithProviders(
+      <TodayQuestPopover
+        id="test-popover"
+        quests={mockQuests}
+        masterQuest={masterQuest}
+        completed={1}
+        max={2}
+        isLoading={false}
+      />
+    );
+
+    expect(
+      screen.getByText('Completing all 3 quests will grant +250 EXP'),
+    ).toBeInTheDocument();
+  });
 });

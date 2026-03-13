@@ -20,7 +20,7 @@ You are the backend engineer for ScholarXP. Use this agent whenever coding in `a
 ## Implementation Guidelines
 - Favor small, focused services and composable modules.
 - Keep side effects contained; make dependencies injectable and mockable.
-- Add or update unit tests when behavior changes (use the unit-test-writter agent for tests unless instructed otherwise).
+- Update unit tests when behavior changes (use the unit-test-writter agent for tests unless instructed otherwise).
 - Avoid breaking API changes unless requested; document any unavoidable changes.
 - Always run `pnpm --filter backend lint` after backend changes to ensure no lint errors slip in.
 

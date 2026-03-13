@@ -65,7 +65,11 @@ export default function TodayQuestPopover({
         </div>
         <div className={styles.progressContainer}>
           <div
-            className={styles.masterQuestBadge}
+            className={`${styles.masterQuestBadge} ${
+              masterQuest?.isCompleted
+                ? styles.masterQuestBadgeComplete
+                : styles.masterQuestBadgeIncomplete
+            }`.trim()}
             aria-label={
               masterQuest?.isCompleted
                 ? 'Master quest completed'
@@ -88,6 +92,9 @@ export default function TodayQuestPopover({
                 transition={{ duration: 0.5, delay: 0.1 }}
               />
             </div>
+            <p className={styles.rewardHint}>
+              Completing all 3 quests will grant +250 EXP
+            </p>
           </div>
         </div>
       </header>

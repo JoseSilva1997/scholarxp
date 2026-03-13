@@ -41,6 +41,51 @@ describe('QuestsPage route', () => {
     expect(loadMore).toHaveBeenCalledTimes(1);
   });
 
+  it('renders the master quest indicator at the end of the day section', () => {
+    const completedQuest = {
+      id: 1,
+      moduleId: 10,
+      moduleUnitId: null,
+      moduleTitle: 'Biology 101',
+      moduleUnitTitle: null,
+      type: QuestTypeValues.completeDailyPractice,
+      tier: 'daily',
+      expGranted: 25,
+      isCompleted: true,
+      progressCurrent: 1,
+      progressTarget: 1,
+      description: 'Quest description',
+      questDateUtc: '2026-02-17',
+      generatedAt: '2026-02-17T00:00:00.000Z',
+      completedAt: '2026-02-17T00:05:00.000Z',
+    } as QuestView;
+
+    mocks.useQuestPageState.mockReturnValue({
+      daySections: [
+        {
+          questDayUtc: '2026-02-17',
+          dayLabel: 'Today',
+          quests: [completedQuest],
+          masterQuest: {
+            ...completedQuest,
+            id: 99,
+            type: QuestTypeValues.masterDailyQuests,
+            tier: 'master',
+          },
+        },
+      ],
+      isLoading: false,
+      isLoadingMore: false,
+      pageError: null,
+      canLoadMore: false,
+      loadMore: vi.fn(),
+    });
+
+    render(<QuestsPage />);
+
+    expect(screen.getByLabelText('Master quest completed')).toBeInTheDocument();
+  });
+
   it('keeps only one tooltip open across different quest history cards', async () => {
     const user = userEvent.setup();
     const firstQuest: QuestView = {

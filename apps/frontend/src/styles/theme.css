@@ -179,6 +179,11 @@
   --color-quest-gold-soft: rgba(243, 206, 48, 0.3);
   --color-quest-gold-glow: rgba(243, 206, 48, 0.5);
   --color-quest-gold-surface: #fffef0;
+  --color-quest-wood: #8b5e34;
+  --color-quest-wood-dark: #5f3b1f;
+  --color-quest-wood-soft: rgba(139, 94, 52, 0.18);
+  --color-quest-wood-glow: rgba(139, 94, 52, 0.28);
+  --color-quest-wood-surface: #f5eadc;
 
   /* Badge Profile Level Gold */
   --color-badge-gold-light: #FFF7A1;
@@ -297,6 +302,9 @@
     --color-quest-gold-soft: rgba(243, 206, 48, 0.2);
     --color-quest-gold-glow: rgba(243, 206, 48, 0.4);
     --color-quest-gold-surface: #262518;
+    --color-quest-wood-soft: rgba(139, 94, 52, 0.24);
+    --color-quest-wood-glow: rgba(139, 94, 52, 0.36);
+    --color-quest-wood-surface: #2b2118;
 
     /* Glassmorphism Overrides */
     --color-glass-bg: rgba(28, 35, 51, 0.5);

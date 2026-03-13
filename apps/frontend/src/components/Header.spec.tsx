@@ -154,6 +154,21 @@ describe('Header', () => {
 
       expect(mockUserBadgeProps.user).toEqual(studentWithAvatar);
     });
+
+    it('adds glow styling to the quest chip wrapper after quest progress exists', () => {
+      queryMocks.useTodayQuestListQuery.mockReturnValue({
+        data: { quests: [], masterQuest: null, completed: 1, max: 3 },
+        isPending: false,
+      });
+
+      renderWithProviders(
+        <Header user={studentWithAvatar} />,
+      );
+
+      expect(screen.getByTestId('today-chip-wrapper').className).toContain(
+        'todayChipWrapperGlow',
+      );
+    });
   });
 
   // ============================================================================

@@ -207,8 +207,11 @@ export class QuestGenerationService {
           in: moduleIds,
         },
         status: 'live',
-        questionCount: {
-          gt: 0,
+        // Student-facing unit cards derive question count from active questions, so quest generation must use the same source of truth.
+        questionUnits: {
+          some: {
+            isArchived: false,
+          },
         },
         userProgress: {
           none: {
@@ -239,8 +242,11 @@ export class QuestGenerationService {
             in: moduleIds,
           },
           status: 'live',
-          questionCount: {
-            gt: 0,
+          // Retry quests should also ignore stale denormalized counts and require at least one active question.
+          questionUnits: {
+            some: {
+              isArchived: false,
+            },
           },
         },
       },

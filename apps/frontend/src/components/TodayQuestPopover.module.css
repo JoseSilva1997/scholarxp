@@ -73,15 +73,31 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-glass-bg-subtle);
-  border: 1px solid var(--color-glass-accent-light);
-  box-shadow: 0 0 16px var(--color-glass-accent-soft);
   flex-shrink: 0;
 }
 
 .masterQuestIcon {
   width: 1.4rem;
   height: 1.4rem;
+}
+
+.masterQuestBadgeIncomplete {
+  background:transparent;
+  border: 1px solid var(--color-quest-wood);
+}
+
+.masterQuestBadgeIncomplete .masterQuestIcon {
+  color: var(--color-quest-wood);
+  filter: drop-shadow(0 0 6px var(--color-quest-wood-glow));
+}
+
+.masterQuestBadgeComplete {
+  background: transparent;
+  border: 1px solid var(--color-glass-accent-light);
+  box-shadow: 0 0 16px var(--color-glass-accent-soft);
+}
+
+.masterQuestBadgeComplete .masterQuestIcon {
   color: var(--color-accent-light);
   filter: drop-shadow(0 0 8px var(--color-glass-accent-medium));
 }
@@ -99,6 +115,13 @@
   background: linear-gradient(90deg, var(--color-accent-light), var(--color-accent));
   border-radius: 10px;
   box-shadow: 0 0 10px var(--color-glass-accent-medium);
+}
+
+.rewardHint {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--color-text-on-dark-subtle);
 }
 
 .content {

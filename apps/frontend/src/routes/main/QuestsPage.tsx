@@ -1,6 +1,7 @@
 // Quest history route with polished UI, strategic layout, and excellent user experience.
 import { useMemo, useState } from 'react';
 import { BsCheckCircleFill, BsFire, BsStarFill, BsTrophy, BsHexagon } from 'react-icons/bs';
+import { GiLockedChest, GiOpenTreasureChest } from 'react-icons/gi';
 import MainSection from '../../components/MainSection';
 import QuestHistoryCard from '../../components/QuestHistoryCard';
 import { useQuestPageState } from '../../hooks/page-state/useQuestPageState';
@@ -116,6 +117,9 @@ export default function QuestsPage() {
                 daySection.masterQuest?.isCompleted ??
                 (completedQuestsCount === daySection.quests.length &&
                   daySection.quests.length > 0);
+              const MasterQuestIcon = allQuestsComplete
+                ? GiOpenTreasureChest
+                : GiLockedChest;
 
               return (
                 <div key={daySection.questDayUtc} className={styles.dayWrapper}>
@@ -141,13 +145,37 @@ export default function QuestsPage() {
                         {completedQuestsCount}/3 Quests Completed
                       </p>
                     </div>
-                    <QuestHistoryCard
-                      quests={daySection.quests}
-                      masterQuest={daySection.masterQuest}
-                      activeTooltipId={activeTooltipId}
-                      onTooltipToggle={setActiveTooltipId}
-                      tooltipIdPrefix={daySection.questDayUtc}
-                    />
+                    <div className={styles.dayQuestRow}>
+                      <QuestHistoryCard
+                        quests={daySection.quests}
+                        activeTooltipId={activeTooltipId}
+                        onTooltipToggle={setActiveTooltipId}
+                        tooltipIdPrefix={daySection.questDayUtc}
+                      />
+                      <div className={styles.masterQuestSeparator} aria-hidden="true" />
+                      <div
+                        className={`${styles.masterQuestIndicator} ${
+                          allQuestsComplete
+                            ? styles.masterQuestIndicatorComplete
+                            : styles.masterQuestIndicatorIncomplete
+                        }`.trim()}
+                        role="img"
+                        aria-label={
+                          allQuestsComplete
+                            ? 'Master quest completed'
+                            : 'Master quest incomplete'
+                        }
+                        title={
+                          daySection.masterQuest?.description ??
+                          'Complete all 3 daily quests to unlock the master quest reward.'
+                        }
+                      >
+                        <MasterQuestIcon
+                          className={styles.masterQuestIndicatorIcon}
+                          aria-hidden="true"
+                        />
+                      </div>
+                    </div>
                   </section>
                 </div>
               );

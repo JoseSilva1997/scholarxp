@@ -23,6 +23,8 @@ export default function Header({
   showSidebarToggle = false,
 }: HeaderProps) {
   const [isTodayPopoverOpen, setIsTodayPopoverOpen] = useState(false);
+  // Track whether the glow has been dismissed by the user clicking the chip
+  const [hasGlowBeenDismissed, setHasGlowBeenDismissed] = useState(false);
   const todayChipWrapperRef = useRef<HTMLDivElement | null>(null);
   const isStudent = user?.globalRole === 'student';
   const todayQuestListQuery = useTodayQuestListQuery(
@@ -33,6 +35,16 @@ export default function Header({
   const todayQuestLabel = todayQuestList
     ? `${todayQuestList.completed}/${todayQuestList.max}`
     : '--/3';
+  // Show glow only if quests are completed and the user hasn't dismissed the glow by clicking
+  const shouldGlowTodayChip =
+    (todayQuestList?.completed ?? 0) > 0 && !hasGlowBeenDismissed;
+
+  // Reset the glow dismissal state whenever new quests are completed
+  useEffect(() => {
+    if ((todayQuestList?.completed ?? 0) > 0) {
+      setHasGlowBeenDismissed(false);
+    }
+  }, [todayQuestList?.completed]);
 
   useEffect(() => {
     if (!isTodayPopoverOpen) return;
@@ -80,14 +92,24 @@ export default function Header({
           <span className={styles.wordmark}>ScholarXP</span>
         </Link>
         {isStudent ? (
-          <div className={styles.todayChipWrapper} ref={todayChipWrapperRef}>
+          <div
+            className={`${styles.todayChipWrapper} ${
+              shouldGlowTodayChip ? styles.todayChipWrapperGlow : ''
+            }`.trim()}
+            ref={todayChipWrapperRef}
+            data-testid="today-chip-wrapper"
+          >
             <button
               type="button"
               className={`${styles.todayChip} ${isTodayPopoverOpen ? styles.todayChipActive : ''}`}
               aria-label={`Today's quests ${todayQuestLabel}`}
               aria-expanded={isTodayPopoverOpen}
               aria-controls="today-quest-popover"
-              onClick={() => setIsTodayPopoverOpen((isOpen) => !isOpen)}
+              onClick={() => {
+                setIsTodayPopoverOpen((isOpen) => !isOpen);
+                // Dismiss the glow when the user clicks the chip
+                setHasGlowBeenDismissed(true);
+              }}
             >
               <BsTrophyFill className={styles.todayChipIcon} />
               <div className={styles.todayChipContent}>

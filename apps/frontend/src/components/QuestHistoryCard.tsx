@@ -2,15 +2,12 @@
 import { QuestTypeValues, type QuestView } from '@scholarxp/api-contracts';
 import { AnimatePresence } from 'motion/react';
 import { useEffect, useState } from 'react';
-import { BsHexagon } from 'react-icons/bs';
-import { GiLockedChest, GiOpenTreasureChest } from 'react-icons/gi';
 import { getQuestBadge } from '../constants/quest-constants';
 import QuestBadgeTooltip from './QuestBadgeTooltip';
 import styles from './QuestHistoryCard.module.css';
 
 type QuestHistoryCardProps = {
   quests: QuestView[];
-  masterQuest?: QuestView | null;
   className?: string;
   activeTooltipId?: string | null;
   onTooltipToggle?: (nextTooltipId: string | null) => void;
@@ -19,7 +16,6 @@ type QuestHistoryCardProps = {
 
 export default function QuestHistoryCard({
   quests,
-  masterQuest = null,
   className,
   activeTooltipId,
   onTooltipToggle,
@@ -33,9 +29,6 @@ export default function QuestHistoryCard({
 
   // Render exactly the number of quests provided; no hardcoded slot count.
   const slots = quests.filter((q): q is QuestView => !!q && q.type !== QuestTypeValues.masterDailyQuests);
-  const MasterQuestIcon = masterQuest?.isCompleted
-    ? GiOpenTreasureChest
-    : GiLockedChest;
 
   useEffect(() => {
     if (!hasOpenTooltip) return;
@@ -68,7 +61,6 @@ export default function QuestHistoryCard({
     <div className={`${styles.card} ${className ?? ''}`.trim()}>
       <div className={styles.slotRow}>
         {slots.map((slotQuest, slotIndex) => {
-          // Daily quest slots keep badge treatment while the master quest gets a separate chest marker.
           const isIncomplete = !slotQuest.isCompleted;
           const tooltipId = `${tooltipIdPrefix}-${slotIndex}`;
           const isTooltipOpen = isControlledTooltip
@@ -109,27 +101,6 @@ export default function QuestHistoryCard({
             </div>
           );
         })}
-        {masterQuest ? (
-          <div
-            className={`${styles.slot} ${styles.masterQuestSlot} ${
-              masterQuest.isCompleted ? styles.masterQuestComplete : styles.masterQuestIncomplete
-            }`.trim()}
-            aria-label={
-              masterQuest.isCompleted
-                ? 'Master quest completed'
-                : 'Master quest incomplete'
-            }
-            role="img"
-            title={masterQuest.description}
-          >
-            <MasterQuestIcon className={styles.masterQuestIcon} aria-hidden="true" />
-          </div>
-        ) : (
-          // Legacy days without a generated master quest keep the layout balanced with a neutral placeholder.
-          <div className={`${styles.slot} ${styles.masterQuestSlot}`.trim()} aria-hidden="true">
-            <BsHexagon className={styles.emptyIcon} />
-          </div>
-        )}
       </div>
     </div>
   );

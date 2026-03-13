@@ -79,6 +79,29 @@ describe('QuestGenerationService', () => {
       ],
       skipDuplicates: true,
     });
+    expect(prisma.moduleUnit.findFirst).toHaveBeenCalledWith({
+      where: {
+        moduleId: {
+          in: [1],
+        },
+        status: 'live',
+        questionUnits: {
+          some: {
+            isArchived: false,
+          },
+        },
+        userProgress: {
+          none: {
+            studentId: 42,
+            isCompleted: true,
+          },
+        },
+      },
+      orderBy: [{ moduleId: 'asc' }, { sortOrder: 'asc' }, { id: 'asc' }],
+      select: {
+        moduleId: true,
+      },
+    });
   });
 
   it('falls back to a retry lesson quest when no new lesson remains', async () => {
@@ -106,6 +129,72 @@ describe('QuestGenerationService', () => {
           moduleId: 2,
           moduleUnitId: null,
           expGranted: 50,
+        }),
+      ]),
+      skipDuplicates: true,
+    });
+    expect(prisma.moduleUnitUserProgress.findFirst).toHaveBeenCalledWith({
+      where: {
+        studentId: 42,
+        isCompleted: true,
+        moduleUnit: {
+          moduleId: {
+            in: [2],
+          },
+          status: 'live',
+          questionUnits: {
+            some: {
+              isArchived: false,
+            },
+          },
+        },
+      },
+      orderBy: [{ completedAt: 'asc' }, { moduleUnitId: 'asc' }],
+      select: {
+        moduleUnit: {
+          select: {
+            moduleId: true,
+          },
+        },
+      },
+    });
+  });
+
+  it('anchors all generated daily quests to the eligible lesson module when the first enrolled module has no units', async () => {
+    prisma.dailyQuest.findMany.mockResolvedValue([]);
+    prisma.userModule.findFirst.mockResolvedValue({
+      moduleId: 1,
+    } as never);
+    prisma.userModule.findMany.mockResolvedValue([
+      { moduleId: 1 },
+      { moduleId: 2 },
+    ] as never);
+    prisma.moduleUnit.findFirst.mockResolvedValue({
+      moduleId: 2,
+    } as never);
+
+    await service.ensureQuestDayGeneratedForUser(
+      42,
+      new Date('2026-03-13T12:30:00.000Z'),
+    );
+
+    expect(prisma.dailyQuest.createMany).toHaveBeenCalledWith({
+      data: expect.arrayContaining([
+        expect.objectContaining({
+          type: QuestTypeValues.completeDailyPractice,
+          moduleId: 2,
+        }),
+        expect.objectContaining({
+          type: QuestTypeValues.dailyPracticeStreak,
+          moduleId: 2,
+        }),
+        expect.objectContaining({
+          type: QuestTypeValues.completeNewUnit,
+          moduleId: 2,
+        }),
+        expect.objectContaining({
+          type: QuestTypeValues.masterDailyQuests,
+          moduleId: null,
         }),
       ]),
       skipDuplicates: true,

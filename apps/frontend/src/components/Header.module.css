@@ -30,6 +30,20 @@
   position: relative;
 }
 
+.todayChipWrapperGlow .todayChip {
+  box-shadow:
+    var(--shadow-md),
+    0 0 18px var(--color-secondary-shadow),
+    0 0 36px var(--color-secondary-glow),
+    inset 0 1px 1px var(--color-overlay-light-border);
+  border-color: var(--color-secondary-light);
+}
+
+.todayChipWrapperGlow .todayChipIcon {
+  color: var(--color-secondary-light);
+  filter: drop-shadow(0 0 8px var(--color-secondary-glow));
+}
+
 .todayChip {
   display: inline-flex;
   align-items: center;

@@ -9,11 +9,16 @@
   box-shadow: none;
   transition: all 0.3s ease;
   position: relative;
+  /* Ensure card respects flex parent constraints */
+  min-width: 0;
+  flex: 1;
 }
 
 @media (min-width: 768px) {
   .card {
     width: auto;
+    flex: 1;
+    min-width: 0;
   }
 }
 
@@ -25,6 +30,9 @@
   gap: 12px;
   position: relative;
   z-index: 1;
+  /* Allow shrinking to fit parent constraints while maintaining 3 in a row */
+  min-width: 0;
+  flex: 0 1 auto;
 }
 
 @media (min-width: 768px) {
@@ -50,7 +58,9 @@
 
 @media (min-width: 768px) {
   .slot {
-    flex-shrink: 0;
+    /* Allow shrinking equally to fit container while maintaining aspect ratio */
+    flex-shrink: 1;
+    flex-basis: auto;
   }
 }
 
@@ -131,34 +141,4 @@
   color: var(--color-accent-soft);
   transform: scale(1.2);
   opacity: 1;
-}
-
-.masterQuestSlot {
-  border-radius: 999px;
-  width: calc(var(--quest-badge-size) - 10px);
-  height: calc(var(--quest-badge-size) - 10px);
-  flex-shrink: 0;
-}
-
-.masterQuestIcon {
-  width: 56%;
-  height: 56%;
-  color: var(--color-text-muted);
-  filter: drop-shadow(0 6px 12px var(--color-shadow-base));
-}
-
-.masterQuestIncomplete {
-  background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-bg) 100%);
-  border-style: solid;
-}
-
-.masterQuestComplete {
-  background: radial-gradient(circle, var(--color-quest-gold-surface) 0%, var(--color-surface) 100%);
-  border: 2px solid var(--color-quest-gold);
-  box-shadow: 0 0 24px var(--color-quest-gold-soft);
-}
-
-.masterQuestComplete .masterQuestIcon {
-  color: var(--color-quest-gold);
-  filter: drop-shadow(0 0 12px var(--color-quest-gold-glow));
 }
