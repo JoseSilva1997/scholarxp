@@ -34,6 +34,7 @@ vi.mock('./UserBadge', () => ({
 describe('Header', () => {
   beforeEach(() => {
     mockUserBadgeProps = {};
+    sessionStorage.clear();
     queryMocks.useTodayQuestListQuery.mockReturnValue({
       data: { quests: [], masterQuest: null, completed: 0, max: 3 },
       isPending: false,
@@ -164,6 +165,51 @@ describe('Header', () => {
       renderWithProviders(
         <Header user={studentWithAvatar} />,
       );
+
+      expect(screen.getByTestId('today-chip-wrapper').className).toContain(
+        'todayChipWrapperGlow',
+      );
+    });
+
+    it('clears the glow after the chip is clicked, keeps it dismissed after refresh, and restores it when more quests are completed', () => {
+      let todayQuestData = {
+        quests: [],
+        masterQuest: null,
+        completed: 1,
+        max: 3,
+      };
+      queryMocks.useTodayQuestListQuery.mockImplementation(() => ({
+        data: todayQuestData,
+        isPending: false,
+      }));
+
+      const { rerender } = renderWithProviders(
+        <Header user={studentWithAvatar} />,
+      );
+
+      expect(screen.getByTestId('today-chip-wrapper').className).toContain(
+        'todayChipWrapperGlow',
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: /today's quests/i }));
+
+      expect(screen.getByTestId('today-chip-wrapper').className).not.toContain(
+        'todayChipWrapperGlow',
+      );
+
+      rerender(<></>);
+      rerender(<Header user={studentWithAvatar} />);
+
+      expect(screen.getByTestId('today-chip-wrapper').className).not.toContain(
+        'todayChipWrapperGlow',
+      );
+
+      todayQuestData = {
+        ...todayQuestData,
+        completed: 2,
+      };
+
+      rerender(<Header user={studentWithAvatar} />);
 
       expect(screen.getByTestId('today-chip-wrapper').className).toContain(
         'todayChipWrapperGlow',

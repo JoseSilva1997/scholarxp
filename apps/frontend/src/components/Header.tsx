@@ -9,6 +9,50 @@ import { BsTrophyFill } from 'react-icons/bs';
 import TodayQuestPopover from './TodayQuestPopover';
 import styles from './Header.module.css';
 
+type TodayChipAcknowledgement = {
+  userId: number;
+  dayKey: string;
+  completedCount: number;
+};
+
+const buildTodayChipAcknowledgementStorageKey = (userId: number) =>
+  `today-quest-chip-acknowledgement:${userId}`;
+
+const readTodayChipAcknowledgement = (
+  userId?: number,
+): TodayChipAcknowledgement | null => {
+  if (typeof window === 'undefined' || !userId) {
+    return null;
+  }
+
+  const storedValue = window.sessionStorage.getItem(
+    buildTodayChipAcknowledgementStorageKey(userId),
+  );
+
+  if (!storedValue) {
+    return null;
+  }
+
+  try {
+    const parsedValue = JSON.parse(storedValue) as Partial<TodayChipAcknowledgement>;
+    if (
+      parsedValue.userId !== userId ||
+      typeof parsedValue.dayKey !== 'string' ||
+      typeof parsedValue.completedCount !== 'number'
+    ) {
+      return null;
+    }
+
+    return {
+      userId: parsedValue.userId,
+      dayKey: parsedValue.dayKey,
+      completedCount: parsedValue.completedCount,
+    };
+  } catch {
+    return null;
+  }
+};
+
 type HeaderProps = {
   user?: AuthUser | null;
   onLogout?: () => Promise<void> | void;
@@ -23,8 +67,10 @@ export default function Header({
   showSidebarToggle = false,
 }: HeaderProps) {
   const [isTodayPopoverOpen, setIsTodayPopoverOpen] = useState(false);
-  // Track whether the glow has been dismissed by the user clicking the chip
-  const [hasGlowBeenDismissed, setHasGlowBeenDismissed] = useState(false);
+  const [todayChipAcknowledgement, setTodayChipAcknowledgement] =
+    useState<TodayChipAcknowledgement | null>(() =>
+      readTodayChipAcknowledgement(user?.id),
+    );
   const todayChipWrapperRef = useRef<HTMLDivElement | null>(null);
   const isStudent = user?.globalRole === 'student';
   const todayQuestListQuery = useTodayQuestListQuery(
@@ -35,16 +81,20 @@ export default function Header({
   const todayQuestLabel = todayQuestList
     ? `${todayQuestList.completed}/${todayQuestList.max}`
     : '--/3';
-  // Show glow only if quests are completed and the user hasn't dismissed the glow by clicking
+  const effectiveTodayChipAcknowledgement =
+    todayChipAcknowledgement?.userId === user?.id
+      ? todayChipAcknowledgement
+      : readTodayChipAcknowledgement(user?.id);
+  const todayQuestDayKey =
+    todayQuestList?.quests[0]?.questDateUtc ??
+    todayQuestList?.masterQuest?.questDateUtc ??
+    new Date().toISOString().slice(0, 10);
+  const completedQuestCount = todayQuestList?.completed ?? 0;
+  // The glow is an attention cue for newly completed quests, so dismissing it should only last until the count increases again.
   const shouldGlowTodayChip =
-    (todayQuestList?.completed ?? 0) > 0 && !hasGlowBeenDismissed;
-
-  // Reset the glow dismissal state whenever new quests are completed
-  useEffect(() => {
-    if ((todayQuestList?.completed ?? 0) > 0) {
-      setHasGlowBeenDismissed(false);
-    }
-  }, [todayQuestList?.completed]);
+    completedQuestCount > 0 &&
+    (effectiveTodayChipAcknowledgement?.dayKey !== todayQuestDayKey ||
+      completedQuestCount > effectiveTodayChipAcknowledgement.completedCount);
 
   useEffect(() => {
     if (!isTodayPopoverOpen) return;
@@ -107,8 +157,23 @@ export default function Header({
               aria-controls="today-quest-popover"
               onClick={() => {
                 setIsTodayPopoverOpen((isOpen) => !isOpen);
-                // Dismiss the glow when the user clicks the chip
-                setHasGlowBeenDismissed(true);
+                if (!user?.id) {
+                  return;
+                }
+
+                const acknowledgement = {
+                  userId: user.id,
+                  dayKey: todayQuestDayKey,
+                  completedCount: completedQuestCount,
+                };
+
+                // Persist the acknowledgement across refreshes so the chip only
+                // glows after new quest completions, not because the page reloaded.
+                window.sessionStorage.setItem(
+                  buildTodayChipAcknowledgementStorageKey(user.id),
+                  JSON.stringify(acknowledgement),
+                );
+                setTodayChipAcknowledgement(acknowledgement);
               }}
             >
               <BsTrophyFill className={styles.todayChipIcon} />
