@@ -158,7 +158,13 @@ describe('ExpAwardingService', () => {
     });
 
     expect(awarded).toBe(0);
-    expect(expLedgerService.recordEvent).not.toHaveBeenCalled();
+    expect(expLedgerService.recordEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: ExpLedgerEventTypes.COMPLETE_MODULE_UNIT,
+        awardedExp: 0,
+      }),
+      prisma,
+    );
     expect(avatarService.addStudentExp).not.toHaveBeenCalled();
     expect(expLedgerService.acquireDailyCompletionLock).toHaveBeenCalled();
   });

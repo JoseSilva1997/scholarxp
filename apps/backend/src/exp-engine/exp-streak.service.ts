@@ -69,12 +69,13 @@ export class ExpStreakService {
     moduleUnitId: number,
     studentId: number,
     sessionId: string,
+    tx?: PrismaClientLike,
   ): Promise<{ currentStreak: number; highestStreak: number }> {
     return this.computeStreakSnapshot(
       moduleUnitId,
       studentId,
       sessionId,
-      this.prisma,
+      tx ?? this.prisma,
     );
   }
 

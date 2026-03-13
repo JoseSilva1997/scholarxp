@@ -254,12 +254,7 @@ export class ExpAwardingService {
       this.expCalculationService.resolveDailyCompletionReward(
         completionCountToday,
       );
-    // Skip writes entirely for zero-reward tiers.
-    if (reward <= 0) {
-      return 0;
-    }
-
-    // Idempotency by user+unit ensures one completion payout per lesson.
+    // Idempotency by user+unit ensures one completion event per lesson even when later daily tiers award 0 XP.
     const idempotencyKey = `completion_exp:user:${params.studentId}:unit:${params.moduleUnitId}`;
     const ledgerResult = await this.expLedgerService.recordEvent(
       {
@@ -280,11 +275,13 @@ export class ExpAwardingService {
     }
 
     // Account XP update follows ledger success so audit trail and progression stay in sync.
-    await this.avatarService.addStudentExp(
-      params.studentId,
-      ledgerResult.awardedExp,
-      prismaClient,
-    );
+    if (ledgerResult.awardedExp > 0) {
+      await this.avatarService.addStudentExp(
+        params.studentId,
+        ledgerResult.awardedExp,
+        prismaClient,
+      );
+    }
     return ledgerResult.awardedExp;
   }
 }

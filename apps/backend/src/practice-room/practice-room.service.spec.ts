@@ -8,6 +8,7 @@ import { StudentModuleUnitProgressService } from './student-module-unit-progress
 import { ExpAwardingService } from '../exp-engine/exp-awarding.service';
 import { ExpStreakService } from '../exp-engine/exp-streak.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { QuestProgressService } from '../quests/quest-progress.service';
 import { createPrismaMock, type PrismaMock } from '../test/test-helpers';
 import type {
   LatestAttemptSnapshot,
@@ -28,6 +29,9 @@ describe('PracticeRoomService', () => {
   };
   let expStreakService: {
     getSessionStreak: jest.Mock;
+  };
+  let questProgressService: {
+    recordModuleUnitCompletion: jest.Mock;
   };
 
   // Mock data builders for consistent test setup
@@ -122,6 +126,9 @@ describe('PracticeRoomService', () => {
         .fn()
         .mockResolvedValue({ currentStreak: 0, highestStreak: 0 }),
     };
+    questProgressService = {
+      recordModuleUnitCompletion: jest.fn().mockResolvedValue(undefined),
+    };
 
     practiceRewardService = {
       awardAttemptModuleExp: jest.fn().mockResolvedValue({
@@ -167,6 +174,10 @@ describe('PracticeRoomService', () => {
         {
           provide: ExpStreakService,
           useValue: expStreakService,
+        },
+        {
+          provide: QuestProgressService,
+          useValue: questProgressService,
         },
       ],
     }).compile();
@@ -874,6 +885,9 @@ describe('PracticeRoomService', () => {
         prisma,
       );
       expect(practiceRewardService.awardCompletionExp).not.toHaveBeenCalled();
+      expect(
+        questProgressService.recordModuleUnitCompletion,
+      ).not.toHaveBeenCalled();
     });
 
     it('returns firstAttemptBonus reason hint_used when first submit is correct with hint unlocked', async () => {
@@ -1058,6 +1072,16 @@ describe('PracticeRoomService', () => {
           moduleId: 1,
           moduleUnitId: 10,
           sessionId: '11111111-1111-4111-8111-111111111077',
+          completedAt: expect.any(Date),
+        },
+        prisma,
+      );
+      expect(
+        questProgressService.recordModuleUnitCompletion,
+      ).toHaveBeenCalledWith(
+        {
+          userId: 100,
+          moduleId: 1,
           completedAt: expect.any(Date),
         },
         prisma,

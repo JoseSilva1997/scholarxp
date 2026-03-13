@@ -58,10 +58,9 @@ describe('DailyQuestService quest target validation', () => {
     jest.resetAllMocks();
   });
 
-  it('rejects complete_new_unit quests when moduleUnitId is missing', async () => {
+  it('rejects module-scoped quest types when moduleId is missing', async () => {
     await expect(
       service.create({
-        moduleId: 11,
         userId: 22,
         type: QuestTypeValues.completeNewUnit,
         expGranted: 15,
@@ -88,21 +87,11 @@ describe('DailyQuestService quest target validation', () => {
     expect(prisma.dailyQuest.create).not.toHaveBeenCalled();
   });
 
-  it('creates complete_new_unit quests when the targeted module unit belongs to the module', async () => {
-    prisma.moduleUnit.findUnique.mockResolvedValue({
-      id: 44,
-      moduleId: 11,
-      variantContext: null,
-      title: 'Lesson 1',
-      questionCount: 4,
-      status: 'live',
-      sortOrder: 1,
-      createdAt: new Date('2026-02-19T00:00:00.000Z'),
-    });
+  it('creates complete_new_unit quests when the quest targets a module', async () => {
     prisma.dailyQuest.create.mockResolvedValue({
       id: 100,
       moduleId: 11,
-      moduleUnitId: 44,
+      moduleUnitId: null,
       userId: 22,
       type: QuestTypeValues.completeNewUnit,
       expGranted: 15,
@@ -114,27 +103,49 @@ describe('DailyQuestService quest target validation', () => {
 
     await service.create({
       moduleId: 11,
-      moduleUnitId: 44,
       userId: 22,
       type: QuestTypeValues.completeNewUnit,
       expGranted: 15,
       questDateUtc: '2026-02-19',
     });
 
-    expect(prisma.moduleUnit.findUnique).toHaveBeenCalledWith({
-      where: { id: 44 },
-      select: { moduleId: true },
-    });
+    expect(prisma.moduleUnit.findUnique).not.toHaveBeenCalled();
     expect(prisma.dailyQuest.create).toHaveBeenCalled();
   });
 
-  it('rejects module_unit_retry quests when moduleUnitId is missing', async () => {
+  it('creates module_unit_retry quests when the quest targets a module', async () => {
+    prisma.dailyQuest.create.mockResolvedValue({
+      id: 101,
+      moduleId: 11,
+      moduleUnitId: null,
+      userId: 22,
+      type: QuestTypeValues.moduleUnitRetry,
+      expGranted: 50,
+      isCompleted: false,
+      questDateUtc: new Date('2026-02-19T00:00:00.000Z'),
+      generatedAt: new Date('2026-02-19T00:00:00.000Z'),
+      completedAt: null,
+    });
+
+    await service.create({
+      moduleId: 11,
+      userId: 22,
+      type: QuestTypeValues.moduleUnitRetry,
+      expGranted: 50,
+      questDateUtc: '2026-02-19',
+    });
+
+    expect(prisma.moduleUnit.findUnique).not.toHaveBeenCalled();
+    expect(prisma.dailyQuest.create).toHaveBeenCalled();
+  });
+
+  it('rejects master quests when a module target is provided', async () => {
     await expect(
       service.create({
         moduleId: 11,
         userId: 22,
-        type: QuestTypeValues.moduleUnitRetry,
-        expGranted: 50,
+        type: QuestTypeValues.masterDailyQuests,
+        expGranted: 250,
         questDateUtc: '2026-02-19',
       }),
     ).rejects.toThrow(BadRequestException);
@@ -184,7 +195,7 @@ describe('DailyQuestService quest target validation', () => {
           progressCurrent: 0,
           progressTarget: 3,
           description:
-            'Reach a streak of 3 correct answers during a daily practice set.',
+            'Build your daily revision streak for the Biology module.',
           questDateUtc: '2026-02-19',
           generatedAt: '2026-02-19T00:00:00.000Z',
           completedAt: null,

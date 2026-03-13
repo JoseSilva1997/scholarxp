@@ -32,9 +32,9 @@ export class ExpLedgerService {
     params: RecordExpLedgerEventParams,
     tx?: PrismaClientLike,
   ): Promise<RecordExpLedgerEventResult> {
-    if (params.awardedExp <= 0) {
+    if (params.awardedExp < 0) {
       throw new BadRequestException(
-        'Awarded experience must be greater than zero.',
+        'Awarded experience must be zero or greater.',
       );
     }
     if (params.idempotencyKey.trim().length === 0) {

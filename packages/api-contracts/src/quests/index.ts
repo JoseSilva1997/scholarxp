@@ -26,6 +26,7 @@ export type QuestTier = 'daily' | 'master';
 export type QuestDefinition = {
   tier: QuestTier;
   expReward: number;
+  requiresModuleTarget: boolean;
   requiresModuleUnitTarget: boolean;
   // Progress target stays shared so the backend can expose generic progress fields
   // and the frontend can render all quests, including master quests, without type branching.
@@ -47,30 +48,35 @@ export const QUEST_DEFINITIONS = {
   [QuestTypeValues.completeDailyPractice]: {
     tier: 'daily',
     expReward: QUEST_COMPLETION_REWARD,
+    requiresModuleTarget: true,
     requiresModuleUnitTarget: false,
     defaultProgressTarget: 1,
   },
   [QuestTypeValues.completeNewUnit]: {
     tier: 'daily',
     expReward: QUEST_COMPLETION_REWARD,
-    requiresModuleUnitTarget: true,
+    requiresModuleTarget: true,
+    requiresModuleUnitTarget: false,
     defaultProgressTarget: 1,
   },
   [QuestTypeValues.moduleUnitRetry]: {
     tier: 'daily',
     expReward: QUEST_COMPLETION_REWARD,
-    requiresModuleUnitTarget: true,
+    requiresModuleTarget: true,
+    requiresModuleUnitTarget: false,
     defaultProgressTarget: 1,
   },
   [QuestTypeValues.dailyPracticeStreak]: {
     tier: 'daily',
     expReward: QUEST_COMPLETION_REWARD,
+    requiresModuleTarget: true,
     requiresModuleUnitTarget: false,
     defaultProgressTarget: 3,
   },
   [QuestTypeValues.masterDailyQuests]: {
     tier: 'master',
     expReward: MASTER_QUEST_COMPLETION_REWARD,
+    requiresModuleTarget: false,
     requiresModuleUnitTarget: false,
     defaultProgressTarget: 3,
   },

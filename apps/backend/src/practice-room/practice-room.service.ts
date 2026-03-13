@@ -15,6 +15,7 @@ import {
 import { ExpAwardingService } from '../exp-engine/exp-awarding.service';
 import { ExpStreakService } from '../exp-engine/exp-streak.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { QuestProgressService } from '../quests/quest-progress.service';
 import {
   ExpLedgerEventTypes,
   MODULE_UNIT_BASELINE_EXP,
@@ -57,6 +58,7 @@ export class PracticeRoomService {
     private readonly studentModuleUnitProgressService: StudentModuleUnitProgressService,
     private readonly expAwardingService: ExpAwardingService,
     private readonly expStreakService: ExpStreakService,
+    private readonly questProgressService: QuestProgressService,
   ) {}
 
   // Builds the initial room state for one student in one module unit and either resumes a provided session or opens a fresh one.
@@ -210,6 +212,16 @@ export class PracticeRoomService {
             moduleId,
             moduleUnitId,
             sessionId: payload.sessionId,
+            completedAt: attemptedAt,
+          },
+          tx,
+        );
+      }
+      if (syncedProgress.isCompleted) {
+        await this.questProgressService.recordModuleUnitCompletion(
+          {
+            userId: studentId,
+            moduleId,
             completedAt: attemptedAt,
           },
           tx,
