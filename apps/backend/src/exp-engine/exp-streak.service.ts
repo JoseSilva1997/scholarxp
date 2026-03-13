@@ -108,7 +108,9 @@ export class ExpStreakService {
 
     // Seed with previously solved questions from other sessions so repeat-correct
     // answers on return sessions never inflate streak progression.
-    const alreadyCorrectQuestions = new Set<number>(historicallySolvedQuestionIds);
+    const alreadyCorrectQuestions = new Set<number>(
+      historicallySolvedQuestionIds,
+    );
     let currentStreak = 0;
     let highestStreak = 0;
 

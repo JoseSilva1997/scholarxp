@@ -271,10 +271,12 @@ describe('ExpAwardingService', () => {
       prisma,
     );
 
-    const firstAttemptEventCalls = expLedgerService.recordEvent.mock.calls.filter(
-      ([params]) =>
-        params.eventType === ExpLedgerEventTypes.PRACTICE_ROOM_CORRECT_AT_FIRST_ATTEMPT,
-    );
+    const firstAttemptEventCalls =
+      expLedgerService.recordEvent.mock.calls.filter(
+        ([params]) =>
+          params.eventType ===
+          ExpLedgerEventTypes.PRACTICE_ROOM_CORRECT_AT_FIRST_ATTEMPT,
+      );
     expect(firstAttemptEventCalls).toHaveLength(0);
     expect(userModuleService.addStudentModuleExp).toHaveBeenCalledTimes(1);
     expect(userModuleService.addStudentModuleExp).toHaveBeenCalledWith(

@@ -1,11 +1,12 @@
 import {
   IsBoolean,
   IsDateString,
+  IsIn,
   IsInt,
   IsNotEmpty,
   IsOptional,
-  IsString,
 } from 'class-validator';
+import { QuestTypeValues, type QuestType } from '@scholarxp/api-contracts';
 
 export class CreateDailyQuestDto {
   @IsInt()
@@ -20,9 +21,9 @@ export class CreateDailyQuestDto {
   @IsNotEmpty()
   userId: number;
 
-  @IsString()
+  @IsIn(Object.values(QuestTypeValues))
   @IsNotEmpty()
-  type: string;
+  type: QuestType;
 
   @IsInt()
   @IsNotEmpty()

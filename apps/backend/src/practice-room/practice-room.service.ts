@@ -287,7 +287,7 @@ export class PracticeRoomService {
           ? 'not_first_try'
           : params.hintUnlockedOnSubmit
             ? 'hint_used'
-          : 'already_earned';
+            : 'already_earned';
 
     return {
       baseQuestionExp,
@@ -633,7 +633,11 @@ export class PracticeRoomService {
 
   // One pass over sorted attempts keeps reward-state derivation deterministic and easy to unit-test.
   private reduceQuestionRewardStateFromAttempts(
-    attempts: Array<{ questionId: number; isCorrect: boolean; hintsUsed: number }>,
+    attempts: Array<{
+      questionId: number;
+      isCorrect: boolean;
+      hintsUsed: number;
+    }>,
   ): Map<number, PracticeQuestionRewardState> {
     const rewardStateByQuestionId = new Map<
       number,
