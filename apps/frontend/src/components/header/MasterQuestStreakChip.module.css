@@ -21,7 +21,9 @@
     transform var(--transition-fast),
     border-color var(--transition-fast),
     box-shadow var(--transition-fast),
-    background var(--transition-fast);
+    background var(--transition-fast),
+    gap var(--transition-fast),
+    padding var(--transition-fast);
 }
 
 .chip:hover {
@@ -33,29 +35,63 @@
     inset 0 1px 1px var(--color-overlay-light-border);
 }
 
-.chipCollapsed {
-  gap: 10px;
-  padding-right: 14px;
+.chip:hover .flame {
+  transform: scale(1.1);
 }
 
-.visualGroup {
+.chip:active {
+  transform: translateY(0);
+  box-shadow:
+    var(--shadow-sm),
+    0 0 18px rgba(59, 130, 246, 0.14),
+    inset 0 1px 1px var(--color-overlay-light-border);
+}
+
+.chipCollapsed {
+  gap: 0;
+  padding: 8px 10px;
+}
+
+.flameContainer {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.flame {
+  font-size: 1.05rem;
+  color: var(--color-primary-light);
+  filter: drop-shadow(0 0 8px rgba(96, 165, 250, 0.6));
+  transition: transform var(--transition-fast);
+}
+
+.beadsContainer {
   display: flex;
   align-items: center;
   gap: 12px;
   min-width: 0;
+  overflow: hidden;
+  transition: max-width var(--transition-fast), gap var(--transition-fast), margin var(--transition-fast);
 }
 
-.flame {
-  flex-shrink: 0;
-  font-size: 1.05rem;
-  color: var(--color-primary-light);
-  filter: drop-shadow(0 0 8px rgba(96, 165, 250, 0.6));
+.chipCollapsed .beadsContainer {
+  /* Collapse the beads container completely when chip is collapsed */
+  max-width: 0;
+  gap: 0;
+  margin: 0;
 }
 
 .beadRow {
   display: flex;
   align-items: center;
   gap: 6px;
+  /* Ensures smooth collapse/expand animation with height transition */
+  max-height: 24px;
+  opacity: 1;
+  transition:
+    max-height var(--transition-fast),
+    opacity var(--transition-fast),
+    margin var(--transition-fast);
 }
 
 .bead {
@@ -87,6 +123,11 @@
   font-weight: 700;
   text-align: right;
   color: var(--color-text-on-dark);
+  transition: transform var(--transition-fast), font-size var(--transition-fast);
+}
+
+.chip:hover .count {
+  transform: scale(1.05);
 }
 
 .screenReaderLabel {
@@ -107,16 +148,66 @@
     gap: 10px;
   }
 
-  .visualGroup {
+  .chipCollapsed {
+    gap: 0;
+    padding: 6px 8px;
+  }
+
+  .beadsContainer {
     gap: 10px;
   }
 
   .beadRow {
     gap: 5px;
+    max-height: 22px;
   }
 
   .bead {
     width: 7px;
     height: 7px;
+  }
+
+  .flame {
+    font-size: 1rem;
+  }
+
+  .count {
+    min-width: 1.25rem;
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .chip {
+    padding: 5px 8px;
+    gap: 8px;
+  }
+
+  .chipCollapsed {
+    gap: 0;
+    padding: 5px 8px;
+  }
+
+  .beadsContainer {
+    gap: 8px;
+  }
+
+  .beadRow {
+    gap: 4px;
+    max-height: 20px;
+  }
+
+  .bead {
+    width: 6px;
+    height: 6px;
+  }
+
+  .flame {
+    font-size: 0.95rem;
+  }
+
+  .count {
+    min-width: 1.1rem;
+    font-size: 0.8rem;
   }
 }

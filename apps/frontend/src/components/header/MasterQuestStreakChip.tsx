@@ -83,19 +83,19 @@ export default function MasterQuestStreakChip({
       <span className={styles.screenReaderLabel}>
         Master quest streak bonus {streakStatus.bonusPercent} percent
       </span>
-      <div className={styles.visualGroup}>
+      <div className={styles.flameContainer}>
         <FaFire className={styles.flame} aria-hidden="true" />
-        {!isCollapsed ? (
-          <div className={styles.beadRow} aria-hidden="true">
-            {beadSlots.map((slot) => (
-              <span
-                key={slot}
-                className={`${styles.bead} ${slot < beadCount ? styles.beadActive : ''}`.trim()}
-                data-testid={`master-streak-bead-${slot + 1}`}
-              />
-            ))}
-          </div>
-        ) : null}
+      </div>
+      <div className={styles.beadsContainer} aria-hidden="true">
+        <div className={styles.beadRow}>
+          {beadSlots.map((slot) => (
+            <span
+              key={slot}
+              className={`${styles.bead} ${slot < beadCount ? styles.beadActive : ''}`.trim()}
+              data-testid={`master-streak-bead-${slot + 1}`}
+            />
+          ))}
+        </div>
       </div>
       <span className={styles.count}>{streakStatus.currentStreak}</span>
     </button>
