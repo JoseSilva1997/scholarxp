@@ -183,6 +183,12 @@ describe('useSubmitModuleUnitPracticeAttemptMutation', () => {
     expect(invalidateQueriesMock).toHaveBeenCalledWith({
       queryKey: queryKeys.modules.moduleUnitPracticeRoomBase(5, 2),
     });
+    expect(invalidateQueriesMock).toHaveBeenCalledWith({
+      queryKey: queryKeys.quests.masterStreakAll,
+    });
+    expect(invalidateQueriesMock).toHaveBeenCalledWith({
+      queryKey: queryKeys.auth.me,
+    });
   });
 });
 

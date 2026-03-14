@@ -32,10 +32,11 @@ export class QuestStreakService {
     tx?: PrismaClientLike,
   ): Promise<MasterQuestStreakResponse> {
     const prismaClient = tx ?? this.prisma;
-    const { dayStartUtc } = DateHelpers.getUtcDayBounds(timestamp);
+    const { dayStartUtc, nextDayStartUtc } =
+      DateHelpers.getUtcDayBounds(timestamp);
     const recentQuestDays = await this.loadRecentCompletedMasterQuestDays(
       userId,
-      dayStartUtc,
+      nextDayStartUtc,
       prismaClient,
     );
     const lastCompletedQuestDay = recentQuestDays[0] ?? null;
@@ -48,9 +49,10 @@ export class QuestStreakService {
 
     const yesterdayStartUtc = new Date(dayStartUtc.getTime() - UTC_DAY_IN_MS);
     const anchorDayUtc =
-      lastCompletedQuestDay.getTime() === dayStartUtc.getTime()
+      this.toUtcDayKey(lastCompletedQuestDay) === this.toUtcDayKey(dayStartUtc)
         ? dayStartUtc
-        : lastCompletedQuestDay.getTime() === yesterdayStartUtc.getTime()
+        : this.toUtcDayKey(lastCompletedQuestDay) ===
+            this.toUtcDayKey(yesterdayStartUtc)
           ? yesterdayStartUtc
           : null;
     if (!anchorDayUtc) {
@@ -76,14 +78,12 @@ export class QuestStreakService {
       completedAt,
       tx,
     );
-    const todayQuestDateUtc = this.toUtcDayKey(
-      DateHelpers.getUtcDayBounds(completedAt).dayStartUtc,
+    // Product rule: today's reward is based on the streak value before today's completion,
+    // then the completion increments the streak for the next day.
+    const streakCount = Math.min(
+      currentStatus.currentStreak,
+      MASTER_QUEST_STREAK_MAX,
     );
-    const alreadyCompletedToday =
-      currentStatus.lastCompletedQuestDateUtc === todayQuestDateUtc;
-    const streakCount = alreadyCompletedToday
-      ? currentStatus.currentStreak
-      : Math.min(currentStatus.currentStreak + 1, MASTER_QUEST_STREAK_MAX);
     const bonusPercent = streakCount * MASTER_QUEST_STREAK_PERCENT_PER_STEP;
 
     return {
@@ -97,7 +97,7 @@ export class QuestStreakService {
 
   private async loadRecentCompletedMasterQuestDays(
     userId: number,
-    dayStartUtc: Date,
+    nextDayStartUtc: Date,
     prismaClient: PrismaClientLike,
   ): Promise<Date[]> {
     const rows = await prismaClient.dailyQuest.findMany({
@@ -106,7 +106,7 @@ export class QuestStreakService {
         type: QuestTypeValues.masterDailyQuests,
         isCompleted: true,
         questDateUtc: {
-          lte: dayStartUtc,
+          lt: nextDayStartUtc,
         },
       },
       orderBy: [{ questDateUtc: 'desc' }, { id: 'desc' }],
@@ -117,7 +117,10 @@ export class QuestStreakService {
       take: MASTER_QUEST_STREAK_MAX,
     });
 
-    return rows.map((row) => row.questDateUtc);
+    // Normalize DB dates to UTC day starts before streak comparison so date-column parsing quirks cannot zero the streak.
+    return rows.map(
+      (row) => DateHelpers.getUtcDayBounds(row.questDateUtc).dayStartUtc,
+    );
   }
 
   private countConsecutiveQuestDays(
@@ -128,7 +131,9 @@ export class QuestStreakService {
     let expectedQuestDayMs = anchorDayUtc.getTime();
 
     for (const questDay of recentQuestDays) {
-      if (questDay.getTime() !== expectedQuestDayMs) {
+      const normalizedQuestDayMs =
+        DateHelpers.getUtcDayBounds(questDay).dayStartUtc.getTime();
+      if (normalizedQuestDayMs !== expectedQuestDayMs) {
         break;
       }
 

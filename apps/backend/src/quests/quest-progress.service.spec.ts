@@ -43,9 +43,9 @@ describe('QuestProgressService', () => {
     };
     questStreakService = {
       getRewardForNextMasterQuestCompletion: jest.fn().mockResolvedValue({
-        streakCount: 1,
-        bonusPercent: 10,
-        awardedExp: 275,
+        streakCount: 0,
+        bonusPercent: 0,
+        awardedExp: 250,
       }),
     };
     prisma.dailyQuest.updateMany.mockResolvedValue({ count: 1 } as never);
@@ -287,7 +287,7 @@ describe('QuestProgressService', () => {
     expect(avatarService.addStudentExp).toHaveBeenNthCalledWith(
       3,
       42,
-      275,
+      250,
       prisma,
     );
     expect(

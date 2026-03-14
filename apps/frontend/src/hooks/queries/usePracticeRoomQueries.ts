@@ -83,16 +83,13 @@ export function useSubmitModuleUnitPracticeAttemptMutation(
         queryClient.invalidateQueries({
           queryKey: queryKeys.quests.all,
         }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.quests.masterStreakAll,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.auth.me,
+        }),
       ];
-
-      // Completion rewards change account/avatar XP, so refresh auth snapshot when account XP was granted.
-      if (data.awards.accountExp > 0) {
-        invalidations.push(
-          queryClient.invalidateQueries({
-            queryKey: queryKeys.auth.me,
-          }),
-        );
-      }
 
       if (!data.updatedModuleProgress) {
         invalidations.push(

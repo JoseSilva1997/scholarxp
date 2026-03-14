@@ -22,6 +22,7 @@ export const queryKeys = {
     history: (dayLimit: number) => ['quests', 'history', dayLimit] as const,
     todaySummary: (userId: number | null) => ['quests', 'today-summary', userId] as const,
     todayList: (userId: number | null) => ['quests', 'today-list', userId] as const,
+    masterStreakAll: ['quests', 'master-streak'] as const,
     masterStreak: (userId: number | null) =>
       ['quests', 'master-streak', userId] as const,
   },

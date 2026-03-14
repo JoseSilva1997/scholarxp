@@ -96,6 +96,55 @@ describe('QuestStreakService', () => {
     });
   });
 
+  it('normalizes persisted quest dates before comparing streak days', async () => {
+    prisma.dailyQuest.findMany.mockResolvedValue([
+      { questDateUtc: new Date('2026-03-14T13:42:00.000Z') },
+      { questDateUtc: new Date('2026-03-13T08:15:00.000Z') },
+    ] as never);
+
+    await expect(
+      service.getCurrentStreakStatus(42, new Date('2026-03-14T22:00:00.000Z')),
+    ).resolves.toEqual({
+      currentStreak: 2,
+      maxStreak: 5,
+      bonusPercent: 20,
+      bonusPercentPerStep: 10,
+      lastCompletedQuestDateUtc: '2026-03-14',
+    });
+  });
+
+  it('grants base reward when the student has no streak before today', async () => {
+    prisma.dailyQuest.findMany.mockResolvedValue([]);
+
+    await expect(
+      service.getRewardForNextMasterQuestCompletion(
+        42,
+        new Date('2026-03-14T09:00:00.000Z'),
+      ),
+    ).resolves.toEqual({
+      streakCount: 0,
+      bonusPercent: 0,
+      awardedExp: MASTER_QUEST_COMPLETION_REWARD,
+    });
+  });
+
+  it('grants reward from the pre-completion streak instead of the incremented streak', async () => {
+    prisma.dailyQuest.findMany.mockResolvedValue([
+      { questDateUtc: new Date('2026-03-13T00:00:00.000Z') },
+    ] as never);
+
+    await expect(
+      service.getRewardForNextMasterQuestCompletion(
+        42,
+        new Date('2026-03-14T09:00:00.000Z'),
+      ),
+    ).resolves.toEqual({
+      streakCount: 1,
+      bonusPercent: 10,
+      awardedExp: Math.round(MASTER_QUEST_COMPLETION_REWARD * 1.1),
+    });
+  });
+
   it('computes the next master-quest reward from the derived streak and caps it at five days', async () => {
     prisma.dailyQuest.findMany.mockResolvedValue([
       { questDateUtc: new Date('2026-03-13T00:00:00.000Z') },

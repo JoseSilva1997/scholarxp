@@ -156,6 +156,9 @@ export function useRecordDailyRevisionQuestProgressMutation(moduleId: number | n
       // Quest triggers can award both a daily quest and the master quest, so refresh quest reads and avatar XP together.
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.quests.all }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.quests.masterStreakAll,
+        }),
         queryClient.invalidateQueries({ queryKey: queryKeys.auth.me }),
       ]);
     },
@@ -180,6 +183,9 @@ export function useRecordCompletedUnitReviewQuestProgressMutation(
       // Review triggers can complete both the retry quest and the master quest, so stale quest and avatar data must be refreshed.
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.quests.all }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.quests.masterStreakAll,
+        }),
         queryClient.invalidateQueries({ queryKey: queryKeys.auth.me }),
       ]);
     },

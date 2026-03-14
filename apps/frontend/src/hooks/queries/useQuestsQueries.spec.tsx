@@ -4,6 +4,7 @@ import { renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { QuestTypeValues, type QuestHistoryResponse } from '@scholarxp/api-contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { queryKeys } from '../query-keys';
 import {
   partitionQuestViewsByTier,
   useRecordCompletedUnitReviewQuestProgressMutation,
@@ -244,7 +245,10 @@ describe('useQuestsQueries', () => {
       await result.current.mutateAsync();
 
       expect(apiMocks.recordDailyRevisionQuestProgress).toHaveBeenCalledWith(12);
-      expect(invalidateQueries).toHaveBeenCalledTimes(2);
+      expect(invalidateQueries).toHaveBeenCalledTimes(3);
+      expect(invalidateQueries).toHaveBeenCalledWith({
+        queryKey: queryKeys.quests.masterStreakAll,
+      });
     });
 
     it('records completed-unit review progress and invalidates quest/auth caches', async () => {
@@ -268,7 +272,10 @@ describe('useQuestsQueries', () => {
         12,
         44,
       );
-      expect(invalidateQueries).toHaveBeenCalledTimes(2);
+      expect(invalidateQueries).toHaveBeenCalledTimes(3);
+      expect(invalidateQueries).toHaveBeenCalledWith({
+        queryKey: queryKeys.quests.masterStreakAll,
+      });
     });
   });
 });
