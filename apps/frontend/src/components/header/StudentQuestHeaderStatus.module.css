@@ -1,0 +1,13 @@
+/* Student quest header status layout keeps the quest chip and streak chip aligned as one header cluster. */
+.statusGroup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .statusGroup {
+    gap: 8px;
+  }
+}

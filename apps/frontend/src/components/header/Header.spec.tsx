@@ -6,9 +6,11 @@ import { renderWithProviders } from '@/test/utils';
 import type { AuthUser } from '@/types/auth';
 import Header from './Header';
 
-vi.mock('./TodayQuestChip', () => ({
+vi.mock('./StudentQuestHeaderStatus', () => ({
   default: ({ userId }: { userId: number }) => (
-    <div data-testid="today-quest-chip">today-quest-chip:{userId}</div>
+    <div data-testid="student-quest-header-status">
+      student-quest-header-status:{userId}
+    </div>
   ),
 }));
 
@@ -88,8 +90,8 @@ describe('Header', () => {
 );
 
       expect(screen.getByTestId('user-badge')).toBeInTheDocument();
-      expect(screen.getByTestId('today-quest-chip')).toHaveTextContent(
-        'today-quest-chip:1',
+      expect(screen.getByTestId('student-quest-header-status')).toHaveTextContent(
+        'student-quest-header-status:1',
       );
       expect(screen.queryByRole('link', { name: 'Login' })).not.toBeInTheDocument();
     });
@@ -164,7 +166,9 @@ describe('Header', () => {
 );
 
       expect(screen.getByTestId('user-badge')).toBeInTheDocument();
-      expect(screen.queryByTestId('today-quest-chip')).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('student-quest-header-status'),
+      ).not.toBeInTheDocument();
     });
 
     it('passes non-student users to UserBadge unchanged', () => {

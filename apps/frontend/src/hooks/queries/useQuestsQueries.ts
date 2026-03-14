@@ -1,11 +1,13 @@
 // Quests query hooks keep server-state fetch behavior centralized and cache-keyed consistently.
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  type MasterQuestStreakResponse,
   QuestTypeValues,
   type QuestHistoryResponse,
   type QuestView,
 } from '@scholarxp/api-contracts';
 import {
+  getMasterQuestStreak,
   listQuests,
   recordCompletedUnitReviewQuestProgress,
   recordDailyRevisionQuestProgress,
@@ -127,6 +129,16 @@ export function useTodayQuestListQuery(enabled: boolean, userId?: number) {
         max: todayQuests.length || TODAY_QUEST_MAX,
       };
     },
+  });
+}
+
+export function useMasterQuestStreakQuery(enabled: boolean, userId?: number) {
+  return useQuery<MasterQuestStreakResponse>({
+    queryKey: queryKeys.quests.masterStreak(userId ?? null),
+    queryFn: getMasterQuestStreak,
+    // Header reads should wait for auth bootstrap so anonymous shells do not fire quest requests.
+    enabled,
+    staleTime: 30_000,
   });
 }
 

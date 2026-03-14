@@ -39,7 +39,7 @@ vi.mock('../context/UiLayoutContext', () => ({
   useUiLayout: () => uiState,
 }));
 
-vi.mock('../components/Header', () => ({
+vi.mock('../components/header/Header', () => ({
   default: ({
     onLogout,
     onToggleSidebar,

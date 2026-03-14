@@ -1,5 +1,6 @@
 // Quests API helpers keep the frontend strictly aligned with the shared quest read and trigger contracts.
 import type {
+  MasterQuestStreakResponse,
   QuestHistoryQuery,
   QuestHistoryResponse,
   QuestProgressResponse,
@@ -24,6 +25,12 @@ export async function listQuests(
       method: 'GET',
     },
   );
+}
+
+export async function getMasterQuestStreak(): Promise<MasterQuestStreakResponse> {
+  return apiFetch<MasterQuestStreakResponse>('/daily-quest/master-streak', {
+    method: 'GET',
+  });
 }
 
 export async function recordDailyRevisionQuestProgress(

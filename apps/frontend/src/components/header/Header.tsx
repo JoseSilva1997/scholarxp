@@ -2,8 +2,8 @@ import { Link } from 'react-router-dom';
 import type { AuthUser } from '@/types/auth';
 import logo from '@/assets/logo.svg';
 import ThemeToggle from '@/components/ThemeToggle';
+import StudentQuestHeaderStatus from './StudentQuestHeaderStatus';
 import UserBadge from './UserBadge';
-import TodayQuestChip from './TodayQuestChip';
 import styles from './Header.module.css';
 
 type HeaderProps = {
@@ -42,8 +42,8 @@ export default function Header({
           <img src={logo} alt="ScholarXP logo" className={styles.logo} />
           <span className={styles.wordmark}>ScholarXP</span>
         </Link>
-        {/* Student quest status lives in its own component so Header stays a presentational shell. */}
-        {isStudent && user ? <TodayQuestChip userId={user.id} /> : null}
+        {/* Student-only header widgets stay grouped so Header remains focused on shell layout branches. */}
+        {isStudent && user ? <StudentQuestHeaderStatus userId={user.id} /> : null}
       </div>
       <div className={styles.headerRight}>
         <ThemeToggle />
