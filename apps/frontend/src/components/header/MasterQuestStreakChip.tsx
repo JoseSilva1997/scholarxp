@@ -1,6 +1,6 @@
 // MasterQuestStreakChip renders the student's global master-quest streak in the header and keeps the collapse preference local to the browser.
 import { useEffect, useState } from 'react';
-import { FaFire } from 'react-icons/fa6';
+import { FaCircleInfo, FaFire } from 'react-icons/fa6';
 import {
   MASTER_QUEST_STREAK_MAX,
   MASTER_QUEST_STREAK_PERCENT_PER_STEP,
@@ -58,46 +58,72 @@ export default function MasterQuestStreakChip({
   }, [userId]);
 
   return (
-    <button
-      type="button"
-      className={`${styles.chip} ${isCollapsed ? styles.chipCollapsed : ''}`.trim()}
-      aria-expanded={!isCollapsed}
-      aria-label={`Master quest streak ${streakStatus.currentStreak} out of ${streakStatus.maxStreak}. ${
-        isCollapsed ? 'Expand streak details.' : 'Collapse streak details.'
-      }`}
-      data-testid="master-quest-streak-chip"
-      onClick={() => {
-        setIsCollapsed((previousValue) => {
-          const nextValue = !previousValue;
+    <div className={styles.chipGroup} data-testid="master-quest-streak-group">
+      <button
+        type="button"
+        className={`${styles.chip} ${isCollapsed ? styles.chipCollapsed : ''}`.trim()}
+        aria-expanded={!isCollapsed}
+        aria-label={`Master quest streak ${streakStatus.currentStreak} out of ${streakStatus.maxStreak}. ${
+          isCollapsed ? 'Expand streak details.' : 'Collapse streak details.'
+        }`}
+        data-testid="master-quest-streak-chip"
+        onClick={() => {
+          setIsCollapsed((previousValue) => {
+            const nextValue = !previousValue;
 
-          // Persist only the collapse preference because the streak count itself is backend-owned state.
-          window.localStorage.setItem(
-            buildCollapseStorageKey(userId),
-            String(nextValue),
-          );
+            // Persist only the collapse preference because the streak count itself is backend-owned state.
+            window.localStorage.setItem(
+              buildCollapseStorageKey(userId),
+              String(nextValue),
+            );
 
-          return nextValue;
-        });
-      }}
-    >
-      <span className={styles.screenReaderLabel}>
-        Master quest streak bonus {streakStatus.bonusPercent} percent
-      </span>
-      <div className={styles.flameContainer}>
-        <FaFire className={styles.flame} aria-hidden="true" />
-      </div>
-      <div className={styles.beadsContainer} aria-hidden="true">
-        <div className={styles.beadRow}>
-          {beadSlots.map((slot) => (
-            <span
-              key={slot}
-              className={`${styles.bead} ${slot < beadCount ? styles.beadActive : ''}`.trim()}
-              data-testid={`master-streak-bead-${slot + 1}`}
-            />
-          ))}
+            return nextValue;
+          });
+        }}
+      >
+        <span className={styles.screenReaderLabel}>
+          Master quest streak bonus {streakStatus.bonusPercent} percent
+        </span>
+        <div className={styles.flameContainer}>
+          <FaFire className={styles.flame} aria-hidden="true" />
+        </div>
+        <div className={styles.beadsContainer} aria-hidden="true">
+          <div className={styles.beadRow}>
+            {beadSlots.map((slot) => (
+              <span
+                key={slot}
+                className={`${styles.bead} ${slot < beadCount ? styles.beadActive : ''}`.trim()}
+                data-testid={`master-streak-bead-${slot + 1}`}
+              />
+            ))}
+          </div>
+        </div>
+        <span className={styles.count}>{streakStatus.currentStreak}</span>
+      </button>
+      <div
+        className={styles.infoWrapper}
+        tabIndex={0}
+        role="note"
+        aria-label="Master quest streak help"
+        data-testid="master-quest-streak-help"
+      >
+        <FaCircleInfo className={styles.infoIcon} aria-hidden="true" />
+        {/* CSS-only tooltip keeps the help affordance lightweight and avoids mixing tooltip state with chip collapse state. */}
+        <div className={styles.infoBubble} role="tooltip">
+          <p className={styles.infoHeading}>What this means</p>
+          <p className={styles.infoText}>
+            Complete the master quest on consecutive days to build your
+            streak.
+          </p>
+          <p className={styles.infoText}>
+            Each increment adds 10% to the next master quest reward, up to 50%.
+            Missing a day resets the streak.
+          </p>
+          <p className={styles.infoText}>
+            Today&apos;s reward uses your current streak.
+          </p>
         </div>
       </div>
-      <span className={styles.count}>{streakStatus.currentStreak}</span>
-    </button>
+    </div>
   );
 }

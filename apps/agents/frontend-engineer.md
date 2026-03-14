@@ -79,6 +79,12 @@ You are the frontend engineer for ScholarXP. Use this agent whenever coding in `
 - Required verification commands after frontend changes:
   - `cd /home/shade/scholar_xp && pnpm --filter frontend lint`
   - `cd /home/shade/scholar_xp && pnpm --filter frontend test`
+- Test command argument forwarding:
+  - When running a specific frontend test file with `pnpm`, pass the file path directly after `test` and do not insert `--` before the file path.
+  - Correct: `cd /home/shade/scholar_xp && pnpm --filter frontend test src/components/header/MasterQuestStreakChip.spec.tsx`
+  - Incorrect: `cd /home/shade/scholar_xp && pnpm --filter frontend test -- src/components/header/MasterQuestStreakChip.spec.tsx`
+  - Use `--` only when forwarding dash-prefixed flags to Vitest itself, for example:
+    `cd /home/shade/scholar_xp && pnpm --filter frontend test -- --reporter=verbose`
 
 ## Output Expectations
 - Provide clean, idiomatic TypeScript/TSX with minimal surface area changes.

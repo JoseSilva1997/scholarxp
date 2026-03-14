@@ -1,4 +1,11 @@
 /* Master quest streak chip styles keep the header streak affordance compact while still showing all five beads when expanded. */
+.chipGroup {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .chip {
   display: inline-flex;
   align-items: center;
@@ -142,7 +149,97 @@
   border: 0;
 }
 
+.infoWrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+  color: var(--color-text-on-dark-muted);
+  cursor: help;
+  outline: none;
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.infoWrapper:hover,
+.infoWrapper:focus-within {
+  color: var(--color-primary-light);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.infoWrapper:focus-visible {
+  outline: 2px solid var(--color-primary-light);
+  outline-offset: 2px;
+}
+
+.infoIcon {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.infoBubble {
+  display: none;
+  position: absolute;
+  top: calc(100% + 10px);
+  right: -4px;
+  width: 270px;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--color-glass-border-strong);
+  border-radius: var(--radius-md);
+  background: rgba(15, 23, 42, 0.96);
+  box-shadow: var(--shadow-floating-dark);
+  z-index: 220;
+  pointer-events: none;
+}
+
+.infoWrapper:hover .infoBubble,
+.infoWrapper:focus-within .infoBubble {
+  display: block;
+}
+
+.infoBubble::before {
+  content: '';
+  position: absolute;
+  top: -7px;
+  right: 10px;
+  width: 12px;
+  height: 12px;
+  background: rgba(15, 23, 42, 0.96);
+  border-left: 1px solid var(--color-glass-border-strong);
+  border-top: 1px solid var(--color-glass-border-strong);
+  transform: rotate(45deg);
+}
+
+.infoHeading {
+  margin: 0 0 0.55rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-on-dark-subtle);
+}
+
+.infoText {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--color-text-on-dark-vibrant);
+}
+
+.infoText + .infoText {
+  margin-top: 0.5rem;
+}
+
 @media (max-width: 768px) {
+  .chipGroup {
+    gap: 6px;
+  }
+
   .chip {
     padding: 6px 10px;
     gap: 10px;
@@ -175,9 +272,18 @@
     min-width: 1.25rem;
     font-size: 0.875rem;
   }
+
+  .infoBubble {
+    right: -20px;
+    width: min(270px, calc(100vw - 32px));
+  }
 }
 
 @media (max-width: 480px) {
+  .chipGroup {
+    gap: 4px;
+  }
+
   .chip {
     padding: 5px 8px;
     gap: 8px;
@@ -209,5 +315,14 @@
   .count {
     min-width: 1.1rem;
     font-size: 0.8rem;
+  }
+
+  .infoWrapper {
+    width: 1.35rem;
+    height: 1.35rem;
+  }
+
+  .infoBubble {
+    right: -28px;
   }
 }

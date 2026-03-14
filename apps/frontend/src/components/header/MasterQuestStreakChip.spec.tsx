@@ -67,7 +67,9 @@ describe('MasterQuestStreakChip', () => {
       'aria-expanded',
       'false',
     );
-    expect(screen.queryByTestId('master-streak-bead-1')).not.toBeInTheDocument();
+    expect(screen.getByTestId('master-quest-streak-chip').className).toContain(
+      'chipCollapsed',
+    );
     expect(localStorage.getItem('master-quest-streak-chip-collapsed:7')).toBe(
       'true',
     );
@@ -94,6 +96,24 @@ describe('MasterQuestStreakChip', () => {
       'aria-expanded',
       'false',
     );
-    expect(screen.queryByTestId('master-streak-bead-1')).not.toBeInTheDocument();
+    expect(screen.getByTestId('master-quest-streak-chip').className).toContain(
+      'chipCollapsed',
+    );
+  });
+
+  it('renders help copy for the streak tooltip trigger', () => {
+    renderWithProviders(<MasterQuestStreakChip userId={7} />);
+
+    expect(screen.getByTestId('master-quest-streak-help')).toHaveAttribute(
+      'aria-label',
+      'Master quest streak help',
+    );
+    const tooltip = screen.getByRole('tooltip', { hidden: true });
+    expect(tooltip).toHaveTextContent(
+      'Complete the master quest on consecutive UTC days to build your streak.',
+    );
+    expect(tooltip).toHaveTextContent(
+      "Today's reward uses your current streak, then today's completion adds one bead for tomorrow.",
+    );
   });
 });
