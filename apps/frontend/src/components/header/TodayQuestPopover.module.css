@@ -183,9 +183,6 @@
   transform: scale(1.1);
 }
 
-.incompleteSlot .badge {
-  filter: opacity(0.8);
-}
 
 .slotCheck {
   position: absolute;

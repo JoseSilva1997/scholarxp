@@ -2,7 +2,7 @@
 import { QuestTypeValues, type QuestView } from '@scholarxp/api-contracts';
 import { AnimatePresence } from 'motion/react';
 import { useEffect, useState } from 'react';
-import { getQuestBadge } from '../constants/quest-constants';
+import { getQuestBadge } from '@/constants/quest-constants';
 import QuestBadgeTooltip from './QuestBadgeTooltip';
 import styles from './QuestHistoryCard.module.css';
 

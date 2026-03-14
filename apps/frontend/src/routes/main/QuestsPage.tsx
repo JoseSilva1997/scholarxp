@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { BsCheckCircleFill, BsFire, BsStarFill, BsTrophy, BsHexagon } from 'react-icons/bs';
 import { GiLockedChest, GiOpenTreasureChest } from 'react-icons/gi';
 import MainSection from '../../components/MainSection';
-import QuestHistoryCard from '../../components/QuestHistoryCard';
+import QuestHistoryCard from '../../components/quest-history/QuestHistoryCard';
 import { useQuestPageState } from '../../hooks/page-state/useQuestPageState';
 import styles from './QuestsPage.module.css';
 
