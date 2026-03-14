@@ -15,8 +15,10 @@ import { AuthorizationGuard } from '../auth/guards/authorization.guard';
 import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
 import { GetQuestHistoryQueryDto } from '../db-entities/daily-quest/dto/get-quest-history-query.dto';
 import type { AuthUser } from '../types/auth-user.type';
+import { MasterQuestStreakResponseDto } from './dto/master-quest-streak-response.dto';
 import { QuestHistoryService } from './quest-history.service';
 import { QuestProgressService } from './quest-progress.service';
+import { QuestStreakService } from './quest-streak.service';
 import { QuestProgressResponseDto } from './dto/quest-progress-response.dto';
 import { RecordCompletedUnitReviewParamsDto } from './dto/record-completed-unit-review-params.dto';
 import { RecordDailyRevisionParamsDto } from './dto/record-daily-revision-params.dto';
@@ -30,6 +32,7 @@ export class DailyQuestController {
   constructor(
     private readonly questHistoryService: QuestHistoryService,
     private readonly questProgressService: QuestProgressService,
+    private readonly questStreakService: QuestStreakService,
   ) {}
 
   @Get('history')
@@ -43,6 +46,19 @@ export class DailyQuestController {
     return this.questHistoryService.listHistoryForUser(
       (request.user as AuthUser).id,
       query,
+    );
+  }
+
+  @Get('master-streak')
+  @UseGuards(SessionAuthGuard, AuthorizationGuard)
+  @Authorize({ capability: features.navigation.quests, scope: 'global' })
+  getMyMasterQuestStreak(
+    @Req() request: DailyQuestHistoryRequest,
+  ): Promise<MasterQuestStreakResponseDto> {
+    // Header reads use a dedicated streak service so streak derivation stays out of the controller and UI layers.
+    return this.questStreakService.getCurrentStreakStatus(
+      (request.user as AuthUser).id,
+      new Date(),
     );
   }
 

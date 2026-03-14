@@ -60,6 +60,10 @@ export const MODULE_UNIT_COMPLETION_REWARDS = {
 export const QUEST_COMPLETION_REWARD = 50;
 // Master Quest completion reward (fixed) for completing all quests in a day.
 export const MASTER_QUEST_COMPLETION_REWARD = 250;
+// Master quest streak caps at five days so the reward boost tops out at 50%.
+export const MASTER_QUEST_STREAK_MAX = 5;
+// Each streak point adds 10% of the base master-quest reward.
+export const MASTER_QUEST_STREAK_PERCENT_PER_STEP = 10;
 
 export type MODULE_UNIT_COMPLETION_REWARD = typeof MODULE_UNIT_COMPLETION_REWARDS[keyof typeof MODULE_UNIT_COMPLETION_REWARDS];
 

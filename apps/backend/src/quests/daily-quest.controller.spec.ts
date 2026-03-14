@@ -5,6 +5,7 @@ import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
 import { DailyQuestController } from './daily-quest.controller';
 import { QuestHistoryService } from './quest-history.service';
 import { QuestProgressService } from './quest-progress.service';
+import { QuestStreakService } from './quest-streak.service';
 
 describe('DailyQuestController', () => {
   let controller: DailyQuestController;
@@ -15,6 +16,9 @@ describe('DailyQuestController', () => {
     recordDailyRevisionButtonClick: jest.Mock;
     recordCompletedUnitReview: jest.Mock;
   };
+  let questStreakService: {
+    getCurrentStreakStatus: jest.Mock;
+  };
 
   beforeEach(async () => {
     questHistoryService = {
@@ -24,12 +28,16 @@ describe('DailyQuestController', () => {
       recordDailyRevisionButtonClick: jest.fn(),
       recordCompletedUnitReview: jest.fn(),
     };
+    questStreakService = {
+      getCurrentStreakStatus: jest.fn(),
+    };
 
     const moduleRef: TestingModule = await Test.createTestingModule({
       controllers: [DailyQuestController],
       providers: [
         { provide: QuestHistoryService, useValue: questHistoryService },
         { provide: QuestProgressService, useValue: questProgressService },
+        { provide: QuestStreakService, useValue: questStreakService },
       ],
     })
       .overrideGuard(SessionAuthGuard)
@@ -57,6 +65,26 @@ describe('DailyQuestController', () => {
     expect(questHistoryService.listHistoryForUser).toHaveBeenCalledWith(
       7,
       query,
+    );
+    expect(result).toEqual(response);
+  });
+
+  it('getMyMasterQuestStreak forwards the authenticated user id to the streak service', async () => {
+    const request = { user: { id: 7 } } as never;
+    const response = {
+      currentStreak: 2,
+      maxStreak: 5,
+      bonusPercent: 20,
+      bonusPercentPerStep: 10,
+      lastCompletedQuestDateUtc: '2026-03-13',
+    };
+    questStreakService.getCurrentStreakStatus.mockResolvedValue(response);
+
+    const result = await controller.getMyMasterQuestStreak(request);
+
+    expect(questStreakService.getCurrentStreakStatus).toHaveBeenCalledWith(
+      7,
+      expect.any(Date),
     );
     expect(result).toEqual(response);
   });

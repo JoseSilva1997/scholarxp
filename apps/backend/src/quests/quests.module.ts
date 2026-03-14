@@ -8,6 +8,7 @@ import { DailyQuestController } from './daily-quest.controller';
 import { QuestGenerationService } from './quest-generation.service';
 import { QuestHistoryService } from './quest-history.service';
 import { QuestProgressService } from './quest-progress.service';
+import { QuestStreakService } from './quest-streak.service';
 
 @Module({
   imports: [AuthModule, AvatarModule, DailyQuestModule, ExpEngineModule],
@@ -16,7 +17,13 @@ import { QuestProgressService } from './quest-progress.service';
     QuestGenerationService,
     QuestHistoryService,
     QuestProgressService,
+    QuestStreakService,
   ],
-  exports: [QuestGenerationService, QuestHistoryService, QuestProgressService],
+  exports: [
+    QuestGenerationService,
+    QuestHistoryService,
+    QuestProgressService,
+    QuestStreakService,
+  ],
 })
 export class QuestsModule {}

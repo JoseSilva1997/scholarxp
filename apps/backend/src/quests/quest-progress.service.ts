@@ -8,6 +8,7 @@ import { ExpLedgerService } from '../db-entities/exp-ledger/exp-ledger.service';
 import { DateHelpers } from '../helpers/helpers';
 import { PrismaService } from '../prisma/prisma.service';
 import { QuestGenerationService } from './quest-generation.service';
+import { QuestStreakService } from './quest-streak.service';
 
 type PrismaClientLike = Prisma.TransactionClient | PrismaService;
 
@@ -48,6 +49,7 @@ export class QuestProgressService {
     private readonly questGenerationService: QuestGenerationService,
     private readonly expLedgerService: ExpLedgerService,
     private readonly avatarService: AvatarService,
+    private readonly questStreakService: QuestStreakService,
   ) {}
 
   // Daily revision clicks will eventually come from the dedicated daily-revision room entry button.
@@ -293,20 +295,35 @@ export class QuestProgressService {
       return;
     }
 
-    await this.completeQuest(masterQuest, timestamp, prismaClient);
+    const rewardState =
+      await this.questStreakService.getRewardForNextMasterQuestCompletion(
+        userId,
+        timestamp,
+        prismaClient,
+      );
+    await this.completeQuest(
+      masterQuest,
+      timestamp,
+      prismaClient,
+      rewardState.awardedExp,
+    );
   }
 
   private async completeQuest(
     quest: PersistedQuest,
     completedAt: Date,
     prismaClient: PrismaClientLike,
+    awardedExpOverride?: number,
   ): Promise<boolean> {
+    const awardedExp = awardedExpOverride ?? quest.expGranted;
     const updateResult = await prismaClient.dailyQuest.updateMany({
       where: {
         id: quest.id,
         isCompleted: false,
       },
       data: {
+        // Persist the final reward amount on the quest row so history reads match the ledger-backed award.
+        expGranted: awardedExp,
         isCompleted: true,
         completedAt,
       },
@@ -323,7 +340,7 @@ export class QuestProgressService {
         sessionId: null,
         questId: quest.id,
         eventType: ExpLedgerEventTypes.COMPLETE_QUEST,
-        awardedExp: quest.expGranted,
+        awardedExp,
         idempotencyKey: `quest_completion:quest:${quest.id}`,
       },
       prismaClient,

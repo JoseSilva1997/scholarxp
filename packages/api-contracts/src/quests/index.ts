@@ -4,6 +4,8 @@
 
 import {
   MASTER_QUEST_COMPLETION_REWARD,
+  MASTER_QUEST_STREAK_MAX,
+  MASTER_QUEST_STREAK_PERCENT_PER_STEP,
   QUEST_COMPLETION_REWARD,
 } from '@scholarxp/constants';
 
@@ -148,6 +150,15 @@ export interface QuestHistoryResponse extends QuestResponse {
 // Mutation responses stay intentionally small because clients invalidate quest reads after trigger events.
 export interface QuestProgressResponse {
   recorded: boolean;
+}
+
+// Shared streak payload keeps the student header and backend reward logic aligned on one master-quest streak shape.
+export interface MasterQuestStreakResponse {
+  currentStreak: number;
+  maxStreak: typeof MASTER_QUEST_STREAK_MAX;
+  bonusPercent: number;
+  bonusPercentPerStep: typeof MASTER_QUEST_STREAK_PERCENT_PER_STEP;
+  lastCompletedQuestDateUtc: string | null;
 }
 
 export {};

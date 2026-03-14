@@ -7,6 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock, type PrismaMock } from '../test/test-helpers';
 import { QuestGenerationService } from './quest-generation.service';
 import { QuestProgressService } from './quest-progress.service';
+import { QuestStreakService } from './quest-streak.service';
 
 describe('QuestProgressService', () => {
   let service: QuestProgressService;
@@ -19,6 +20,9 @@ describe('QuestProgressService', () => {
   };
   let avatarService: {
     addStudentExp: jest.Mock;
+  };
+  let questStreakService: {
+    getRewardForNextMasterQuestCompletion: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -37,6 +41,13 @@ describe('QuestProgressService', () => {
     avatarService = {
       addStudentExp: jest.fn().mockResolvedValue({ id: 1, totalExp: 400 }),
     };
+    questStreakService = {
+      getRewardForNextMasterQuestCompletion: jest.fn().mockResolvedValue({
+        streakCount: 1,
+        bonusPercent: 10,
+        awardedExp: 275,
+      }),
+    };
     prisma.dailyQuest.updateMany.mockResolvedValue({ count: 1 } as never);
 
     const moduleRef: TestingModule = await Test.createTestingModule({
@@ -54,6 +65,10 @@ describe('QuestProgressService', () => {
         {
           provide: AvatarService,
           useValue: avatarService,
+        },
+        {
+          provide: QuestStreakService,
+          useValue: questStreakService,
         },
       ],
     }).compile();
@@ -272,9 +287,12 @@ describe('QuestProgressService', () => {
     expect(avatarService.addStudentExp).toHaveBeenNthCalledWith(
       3,
       42,
-      250,
+      275,
       prisma,
     );
+    expect(
+      questStreakService.getRewardForNextMasterQuestCompletion,
+    ).toHaveBeenCalledWith(42, new Date('2026-03-13T09:12:00.000Z'), prisma);
   });
 
   it('completes the module-scoped new unit quest when a completion ledger event exists for the module', async () => {
