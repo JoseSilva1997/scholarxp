@@ -37,6 +37,7 @@ type TodayQuestSummary = {
   completed: number;
   total: number;
   max: number;
+  hasDailyQuests: boolean;
 };
 
 export type TodayQuestList = {
@@ -44,6 +45,7 @@ export type TodayQuestList = {
   masterQuest: QuestView | null;
   completed: number;
   max: number;
+  hasDailyQuests: boolean;
 };
 
 const TODAY_QUEST_MAX = 3;
@@ -51,6 +53,13 @@ const TODAY_QUEST_MAX = 3;
 type PartitionedQuestViews = {
   dailyQuests: QuestView[];
   masterQuest: QuestView | null;
+};
+
+type TodayDailyQuestState = {
+  quests: QuestView[];
+  completed: number;
+  max: number;
+  hasDailyQuests: boolean;
 };
 
 export function partitionQuestViewsByTier(quests: QuestView[]): PartitionedQuestViews {
@@ -75,6 +84,24 @@ export function partitionQuestViewsByTier(quests: QuestView[]): PartitionedQuest
   };
 }
 
+function selectTodayDailyQuestState(quests: QuestView[]): TodayDailyQuestState {
+  const todayUtc = new Date().toISOString().slice(0, 10);
+  const allTodayQuests = quests.filter((quest) => quest.questDateUtc === todayUtc);
+  const { dailyQuests } = partitionQuestViewsByTier(allTodayQuests);
+  const todayDailyQuests = dailyQuests.slice(0, TODAY_QUEST_MAX);
+  const completedCount = todayDailyQuests.filter((quest) => quest.isCompleted).length;
+
+  // An empty quest list is a real "no quests available" state, not zero progress toward a 3-quest target.
+  const hasDailyQuests = todayDailyQuests.length > 0;
+
+  return {
+    quests: todayDailyQuests,
+    completed: completedCount,
+    max: hasDailyQuests ? todayDailyQuests.length : 0,
+    hasDailyQuests,
+  };
+}
+
 export function useTodayQuestSummaryQuery(enabled: boolean, userId?: number) {
   return useQuery<QuestHistoryResponse, Error, TodayQuestSummary>({
     queryKey: queryKeys.quests.todaySummary(userId ?? null),
@@ -87,19 +114,13 @@ export function useTodayQuestSummaryQuery(enabled: boolean, userId?: number) {
     staleTime: 30_000,
     // Derive today-only progress in one place so global chips and pages stay consistent.
     select: (response) => {
-      const todayUtc = new Date().toISOString().slice(0, 10);
-      const allTodayQuests = response.quests.filter(
-        (quest) => quest.questDateUtc === todayUtc,
-      );
-      const { dailyQuests } = partitionQuestViewsByTier(allTodayQuests);
-      const visibleDailyQuests = dailyQuests.slice(0, TODAY_QUEST_MAX);
-      const completedCount = visibleDailyQuests.filter((quest) => quest.isCompleted).length;
-      const displayQuestsCount = visibleDailyQuests.length;
+      const todayDailyQuestState = selectTodayDailyQuestState(response.quests);
 
       return {
-        completed: completedCount,
-        total: visibleDailyQuests.length,
-        max: displayQuestsCount || TODAY_QUEST_MAX,
+        completed: todayDailyQuestState.completed,
+        total: todayDailyQuestState.quests.length,
+        max: todayDailyQuestState.max,
+        hasDailyQuests: todayDailyQuestState.hasDailyQuests,
       };
     },
   });
@@ -119,14 +140,15 @@ export function useTodayQuestListQuery(enabled: boolean, userId?: number) {
     select: (response) => {
       const todayUtc = new Date().toISOString().slice(0, 10);
       const allToday = response.quests.filter((quest) => quest.questDateUtc === todayUtc);
-      const { dailyQuests, masterQuest } = partitionQuestViewsByTier(allToday);
-      const todayQuests = dailyQuests.slice(0, TODAY_QUEST_MAX);
+      const { masterQuest } = partitionQuestViewsByTier(allToday);
+      const todayDailyQuestState = selectTodayDailyQuestState(response.quests);
 
       return {
-        quests: todayQuests,
+        quests: todayDailyQuestState.quests,
         masterQuest,
-        completed: todayQuests.filter((quest) => quest.isCompleted).length,
-        max: todayQuests.length || TODAY_QUEST_MAX,
+        completed: todayDailyQuestState.completed,
+        max: todayDailyQuestState.max,
+        hasDailyQuests: todayDailyQuestState.hasDailyQuests,
       };
     },
   });

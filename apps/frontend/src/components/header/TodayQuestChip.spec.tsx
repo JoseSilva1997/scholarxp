@@ -17,8 +17,16 @@ vi.mock('@/hooks/queries/useQuestsQueries', () => ({
 describe('TodayQuestChip', () => {
   beforeEach(() => {
     sessionStorage.clear();
+    queryMocks.useTodayQuestListQuery.mockReset();
+    queryMocks.useMasterQuestStreakQuery.mockReset();
     queryMocks.useTodayQuestListQuery.mockReturnValue({
-      data: { quests: [], masterQuest: null, completed: 0, max: 3 },
+      data: {
+        quests: [],
+        masterQuest: null,
+        completed: 0,
+        max: 0,
+        hasDailyQuests: false,
+      },
       isPending: false,
     });
     queryMocks.useMasterQuestStreakQuery.mockReturnValue({
@@ -54,6 +62,7 @@ describe('TodayQuestChip', () => {
         masterQuest: null,
         completed: 0,
         max: 3,
+        hasDailyQuests: true,
       },
       isPending: false,
     });
@@ -79,7 +88,13 @@ describe('TodayQuestChip', () => {
 
   it('adds glow styling after quest progress exists', () => {
     queryMocks.useTodayQuestListQuery.mockReturnValue({
-      data: { quests: [], masterQuest: null, completed: 1, max: 3 },
+      data: {
+        quests: [],
+        masterQuest: null,
+        completed: 1,
+        max: 3,
+        hasDailyQuests: true,
+      },
       isPending: false,
     });
 
@@ -96,6 +111,7 @@ describe('TodayQuestChip', () => {
       masterQuest: null,
       completed: 1,
       max: 3,
+      hasDailyQuests: true,
     };
     queryMocks.useTodayQuestListQuery.mockImplementation(() => ({
       data: todayQuestData,
@@ -131,5 +147,12 @@ describe('TodayQuestChip', () => {
     expect(screen.getByTestId('today-chip-wrapper').className).toContain(
       'todayChipWrapperGlow',
     );
+  });
+
+  it('renders a neutral chip label when no daily quests are available', () => {
+    renderWithProviders(<TodayQuestChip userId={1} />);
+
+    expect(screen.getByRole('button', { name: /today's quests 0\/0/i })).toBeInTheDocument();
+    expect(screen.getByText('0/0')).toBeInTheDocument();
   });
 });

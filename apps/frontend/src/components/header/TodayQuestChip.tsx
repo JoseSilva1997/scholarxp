@@ -65,7 +65,7 @@ export default function TodayQuestChip({ userId }: TodayQuestChipProps) {
   const todayQuestList = todayQuestListQuery.data;
   const todayQuestLabel = todayQuestList
     ? `${todayQuestList.completed}/${todayQuestList.max}`
-    : '--/3';
+    : '--';
   const effectiveTodayChipAcknowledgement =
     todayChipAcknowledgement?.userId === userId
       ? todayChipAcknowledgement
@@ -155,7 +155,8 @@ export default function TodayQuestChip({ userId }: TodayQuestChipProps) {
           quests={todayQuestList?.quests ?? []}
           masterQuest={todayQuestList?.masterQuest ?? null}
           completed={todayQuestList?.completed ?? 0}
-          max={todayQuestList?.max ?? 3}
+          max={todayQuestList?.max ?? 0}
+          hasDailyQuests={todayQuestList?.hasDailyQuests ?? false}
           isLoading={todayQuestListQuery.isPending}
           onNavigateToHistory={() => setIsTodayPopoverOpen(false)}
         />

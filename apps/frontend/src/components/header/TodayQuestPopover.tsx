@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { type QuestView, QuestTypeValues } from '@scholarxp/api-contracts';
+import { MASTER_QUEST_COMPLETION_REWARD } from '@scholarxp/constants';
 import { AnimatePresence, motion } from 'motion/react';
 import { useState, useMemo } from 'react';
 import {
@@ -14,7 +15,6 @@ import {
 import { GiLockedChest, GiOpenTreasureChest } from 'react-icons/gi';
 import { getQuestBadge } from '@/constants/quest-constants';
 import styles from './TodayQuestPopover.module.css';
-import { MASTER_QUEST_COMPLETION_REWARD } from '@scholarxp/constants';
 
 type TodayQuestPopoverProps = {
   id: string;
@@ -22,6 +22,7 @@ type TodayQuestPopoverProps = {
   masterQuest: QuestView | null;
   completed: number;
   max: number;
+  hasDailyQuests: boolean;
   isLoading: boolean;
   onNavigateToHistory?: () => void;
 };
@@ -32,6 +33,7 @@ export default function TodayQuestPopover({
   masterQuest,
   completed,
   max,
+  hasDailyQuests,
   isLoading,
   onNavigateToHistory,
 }: TodayQuestPopoverProps) {
@@ -64,45 +66,50 @@ export default function TodayQuestPopover({
           <BsTrophyFill className={styles.headerIcon} />
           <h2 className={styles.title}>Today&apos;s Quests</h2>
         </div>
-        <div className={styles.progressContainer}>
-          <div
-            className={`${styles.masterQuestBadge} ${
-              masterQuest?.isCompleted
-                ? styles.masterQuestBadgeComplete
-                : styles.masterQuestBadgeIncomplete
-            }`.trim()}
-            aria-label={
-              masterQuest?.isCompleted
-                ? 'Master quest completed'
-                : 'Master quest incomplete'
-            }
-            title={masterQuest?.description ?? 'Complete all daily quests to unlock the master quest reward.'}
-          >
-            <MasterQuestIcon className={styles.masterQuestIcon} aria-hidden="true" />
-          </div>
-          <div className={styles.progressDetails}>
-            <div className={styles.progressText}>
-              <span>Progress</span>
-              <span>{completed}/{max}</span>
+        {hasDailyQuests ? (
+          <div className={styles.progressContainer}>
+            <div
+              className={`${styles.masterQuestBadge} ${
+                masterQuest?.isCompleted
+                  ? styles.masterQuestBadgeComplete
+                  : styles.masterQuestBadgeIncomplete
+              }`.trim()}
+              aria-label={
+                masterQuest?.isCompleted
+                  ? 'Master quest completed'
+                  : 'Master quest incomplete'
+              }
+              title={
+                masterQuest?.description ??
+                'Complete all daily quests to unlock the master quest reward.'
+              }
+            >
+              <MasterQuestIcon className={styles.masterQuestIcon} aria-hidden="true" />
             </div>
-            <div className={styles.progressBar}>
-              <motion.div
-                className={styles.progressFill}
-                initial={{ width: 0 }}
-                animate={{ width: `${progressPercentage}%` }}
-                transition={{ duration: 0.5, delay: 0.1 }}
-              />
-            </div>
-            <div className={styles.masterQuestInfo}>
-              <span className={styles.rewardHint}>
-                Completing all 3 quests will grant
-                <span className={styles.expBadge}>
-                  <BsLightningChargeFill /> +{MASTER_QUEST_COMPLETION_REWARD}
+            <div className={styles.progressDetails}>
+              <div className={styles.progressText}>
+                <span>Progress</span>
+                <span>{completed}/{max}</span>
+              </div>
+              <div className={styles.progressBar}>
+                <motion.div
+                  className={styles.progressFill}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progressPercentage}%` }}
+                  transition={{ duration: 0.5, delay: 0.1 }}
+                />
+              </div>
+              <div className={styles.masterQuestInfo}>
+                <span className={styles.rewardHint}>
+                  Completing all 3 quests will grant
+                  <span className={styles.expBadge}>
+                    <BsLightningChargeFill /> +{MASTER_QUEST_COMPLETION_REWARD}
+                  </span>
                 </span>
-              </span>
+              </div>
             </div>
           </div>
-        </div>
+        ) : null}
       </header>
 
       <div className={styles.content}>
@@ -113,14 +120,14 @@ export default function TodayQuestPopover({
           </div>
         ) : null}
 
-        {!isLoading && quests.length === 0 ? (
+        {!isLoading && !hasDailyQuests ? (
           <div className={styles.placeholder}>
             <BsBoxSeam className={styles.emptyIcon} />
-            <p>No quests available for today.</p>
+            <p>You don&apos;t have any daily quests yet.</p>
           </div>
         ) : null}
 
-        {!isLoading && quests.length > 0 ? (
+        {!isLoading && hasDailyQuests ? (
           <div className={styles.mainLayout}>
             <div className={styles.slotRow}>
               {quests.map((quest) => (

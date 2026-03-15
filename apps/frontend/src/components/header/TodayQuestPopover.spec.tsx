@@ -74,6 +74,7 @@ const masterQuest: QuestView = {
         masterQuest={null}
         completed={0} 
         max={3} 
+        hasDailyQuests={false}
         isLoading={true} 
       />
     );
@@ -88,10 +89,17 @@ const masterQuest: QuestView = {
         masterQuest={null}
         completed={0} 
         max={0} 
+        hasDailyQuests={false}
         isLoading={false} 
       />
     );
-    expect(screen.getByText('No quests available for today.')).toBeInTheDocument();
+    expect(screen.getByText("You don't have any daily quests yet.")).toBeInTheDocument();
+    expect(screen.queryByText('Progress')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText((content) =>
+        content.includes('Completing all 3 quests will grant'),
+      ),
+    ).not.toBeInTheDocument();
   });
 
   it('renders quest slots and identifies the active quest', () => {
@@ -102,6 +110,7 @@ const masterQuest: QuestView = {
         masterQuest={masterQuest}
         completed={1} 
         max={2} 
+        hasDailyQuests={true}
         isLoading={false} 
       />
     );
@@ -126,6 +135,7 @@ const masterQuest: QuestView = {
         masterQuest={masterQuest}
         completed={1} 
         max={2} 
+        hasDailyQuests={true}
         isLoading={false} 
       />
     );
@@ -154,6 +164,7 @@ const masterQuest: QuestView = {
         masterQuest={masterQuest}
         completed={1} 
         max={2} 
+        hasDailyQuests={true}
         isLoading={false} 
       />
     );
@@ -180,6 +191,7 @@ const masterQuest: QuestView = {
         masterQuest={masterQuest}
         completed={1} 
         max={2} 
+        hasDailyQuests={true}
         isLoading={false} 
         onNavigateToHistory={onNavigate}
       />
@@ -192,7 +204,7 @@ const masterQuest: QuestView = {
     expect(link.closest('a')).toHaveAttribute('href', '/main/quests');
   });
 
-  it('calculates 0% progress when max is 0', () => {
+  it('keeps the empty state stable when no daily quests are available', () => {
     renderWithProviders(
       <TodayQuestPopover 
         id="test-popover" 
@@ -200,12 +212,13 @@ const masterQuest: QuestView = {
         masterQuest={null}
         completed={0} 
         max={0} 
+        hasDailyQuests={false}
         isLoading={false} 
       />
     );
-    
-    // The Progress bar is present but we should just ensure it doesn't crash
-    expect(screen.getByText('0/0')).toBeInTheDocument();
+
+    expect(screen.getByText("You don't have any daily quests yet.")).toBeInTheDocument();
+    expect(screen.queryByText('0/0')).not.toBeInTheDocument();
   });
 
   it('shows the master quest chest state beside progress', () => {
@@ -216,6 +229,7 @@ const masterQuest: QuestView = {
         masterQuest={masterQuest}
         completed={1}
         max={2}
+        hasDailyQuests={true}
         isLoading={false}
       />
     );
@@ -231,6 +245,7 @@ const masterQuest: QuestView = {
         masterQuest={masterQuest}
         completed={1}
         max={2}
+        hasDailyQuests={true}
         isLoading={false}
       />
     );

@@ -150,6 +150,7 @@ describe('useQuestsQueries', () => {
         completed: 1,
         total: 2,
         max: 2,
+        hasDailyQuests: true,
       });
 
       expect(apiMocks.listQuests).toHaveBeenCalledWith({
@@ -196,6 +197,7 @@ describe('useQuestsQueries', () => {
       // Should have only 3 visible daily quests from today; the master quest is exposed separately.
       expect(result.current.data?.quests).toHaveLength(3);
       expect(result.current.data?.max).toBe(3);
+      expect(result.current.data?.hasDailyQuests).toBe(true);
       expect(result.current.data?.quests.every(q => q.questDateUtc === TODAY_STR)).toBe(true);
       expect(result.current.data?.masterQuest?.type).toBe(
         QuestTypeValues.masterDailyQuests,
@@ -220,8 +222,9 @@ describe('useQuestsQueries', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(result.current.data?.quests).toHaveLength(0);
-      expect(result.current.data?.max).toBe(3);
+      expect(result.current.data?.max).toBe(0);
       expect(result.current.data?.completed).toBe(0);
+      expect(result.current.data?.hasDailyQuests).toBe(false);
       expect(result.current.data?.masterQuest).toBeNull();
     });
   });
