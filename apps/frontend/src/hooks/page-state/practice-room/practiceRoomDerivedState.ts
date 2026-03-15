@@ -1,10 +1,12 @@
 // Centralizes pure practice-room derivation helpers so page-state orchestration can stay
 // focused on wiring hooks together while tests cover business rules in isolation.
 import type {
+  PracticeSessionType,
   PracticeAttemptSnapshot,
   PracticeQuestionRewardState,
   PracticeQuestionUnit,
 } from '@scholarxp/api-contracts';
+import { PracticeSessionTypeValues } from '@scholarxp/api-contracts';
 import { isUuidString } from './usePracticeRoomPersistence';
 
 // Minimal question-data shape used to render selectable options in the current practice-room panel.
@@ -131,6 +133,19 @@ export function parsePracticeRoomSessionIdQuery(
     return null;
   }
   return sessionIdParam;
+}
+
+export function parsePracticeRoomSessionTypeQuery(
+  sessionTypeParam: string | null,
+): PracticeSessionType | null {
+  if (!sessionTypeParam) {
+    return null;
+  }
+
+  const supportedSessionTypes = new Set(Object.values(PracticeSessionTypeValues));
+  return supportedSessionTypes.has(sessionTypeParam as PracticeSessionType)
+    ? (sessionTypeParam as PracticeSessionType)
+    : null;
 }
 
 export function parsePracticeRoomQuestionUnitIdQuery(

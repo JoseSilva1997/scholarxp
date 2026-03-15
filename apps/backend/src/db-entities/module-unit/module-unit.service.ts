@@ -5,6 +5,7 @@ import type { QuestionData } from '@scholarxp/question-type-dtos';
 import {
   getModuleUnitGroupName,
   MODULE_UNIT_GROUP_START_ORDER,
+  PracticeSessionTypeValues,
   type QuestionAttemptResult,
   type QuestionSource,
 } from '@scholarxp/api-contracts';
@@ -324,6 +325,13 @@ export class ModuleUnitService {
       where: {
         moduleUnitId: { in: moduleUnitIds },
         studentId,
+        session: {
+          is: {
+            sessionType: {
+              not: PracticeSessionTypeValues.retry,
+            },
+          },
+        },
       },
       orderBy: [{ attemptedAt: 'desc' }, { id: 'desc' }],
       select: {

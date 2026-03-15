@@ -31,6 +31,14 @@ type RecordCompletedUnitReviewParams = {
   viewedAt: Date;
 };
 
+type RecordRetrySessionProgressParams = {
+  userId: number;
+  moduleId: number;
+  moduleUnitId: number;
+  sessionId: string;
+  attemptedAt: Date;
+};
+
 type PersistedQuest = {
   id: number;
   userId: number;
@@ -185,21 +193,44 @@ export class QuestProgressService {
     }
   }
 
-  // Viewing answers on an already completed lesson is the planned retry trigger until retry mode exists.
+  // Viewing answers is now informational only; retry quest progress is owned by retry submissions.
   async recordCompletedUnitReview(
     params: RecordCompletedUnitReviewParams,
     tx?: PrismaClientLike,
   ): Promise<void> {
     const prismaClient = tx ?? this.prisma;
+    const completedProgress =
+      await prismaClient.moduleUnitUserProgress.findUnique({
+        where: {
+          moduleUnitId_studentId: {
+            moduleUnitId: params.moduleUnitId,
+            studentId: params.userId,
+          },
+        },
+        select: {
+          isCompleted: true,
+        },
+      });
+    if (!completedProgress?.isCompleted) {
+      return;
+    }
+  }
+
+  // Retry quest completion requires distinct correct answers in the current retry session.
+  async recordRetrySessionProgress(
+    params: RecordRetrySessionProgressParams,
+    tx?: PrismaClientLike,
+  ): Promise<void> {
+    const prismaClient = tx ?? this.prisma;
     await this.questGenerationService.ensureQuestDayGeneratedForUser(
       params.userId,
-      params.viewedAt,
+      params.attemptedAt,
       prismaClient,
     );
 
     const todaysQuests = await this.loadTodaysQuests(
       params.userId,
-      params.viewedAt,
+      params.attemptedAt,
       prismaClient,
     );
     if (todaysQuests.length === 0) {
@@ -232,15 +263,48 @@ export class QuestProgressService {
       return;
     }
 
+    const totalQuestions = await prismaClient.questionUnit.count({
+      where: {
+        moduleUnitId: params.moduleUnitId,
+        isArchived: false,
+        contents: {
+          some: {
+            isCore: true,
+            isArchived: false,
+          },
+        },
+      },
+    });
+    if (totalQuestions <= 0) {
+      return;
+    }
+
+    const requiredCorrectAnswers = Math.ceil(totalQuestions * 0.7);
+    const correctRetryAttempts = await prismaClient.questionAttempt.findMany({
+      where: {
+        moduleUnitId: params.moduleUnitId,
+        studentId: params.userId,
+        sessionId: params.sessionId,
+        isCorrect: true,
+      },
+      select: {
+        questionId: true,
+      },
+      distinct: ['questionId'],
+    });
+    if (correctRetryAttempts.length < requiredCorrectAnswers) {
+      return;
+    }
+
     const completed = await this.completeQuest(
       retryQuest,
-      params.viewedAt,
+      params.attemptedAt,
       prismaClient,
     );
     if (completed) {
       await this.completeMasterQuestIfEligible(
         params.userId,
-        params.viewedAt,
+        params.attemptedAt,
         prismaClient,
       );
     }

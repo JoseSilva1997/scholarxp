@@ -1,6 +1,10 @@
 // Query hook for loading practice-room data while keeping route components free of fetch orchestration.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { SubmitAttemptPayload, SubmitAttemptResponse } from '@scholarxp/api-contracts';
+import type {
+  PracticeSessionType,
+  SubmitAttemptPayload,
+  SubmitAttemptResponse,
+} from '@scholarxp/api-contracts';
 import {
   closePracticeRoomSession,
   getPracticeRoom,
@@ -12,6 +16,7 @@ export function useModuleUnitPracticeRoomQuery(
   moduleId: number | null,
   moduleUnitId: number | null,
   sessionId: string | null,
+  sessionType: PracticeSessionType | null,
 ) {
   const queryClient = useQueryClient();
 
@@ -22,11 +27,13 @@ export function useModuleUnitPracticeRoomQuery(
             moduleId,
             moduleUnitId,
             sessionId ?? undefined,
+            sessionType ?? undefined,
           )
         : queryKeys.modules.moduleUnitPracticeRoom(0, 0),
     queryFn: async () => {
       const response = await getPracticeRoom(moduleId!, moduleUnitId!, {
         sessionId: sessionId ?? undefined,
+        sessionType: sessionType ?? undefined,
       });
 
       // Synchronize the module detail cache with the progress returned in the room response.

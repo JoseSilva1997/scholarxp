@@ -25,6 +25,7 @@ const mocks = vi.hoisted(() => ({
   setIsStudentViewEnabled: vi.fn(),
   setShowCreateUnit: vi.fn(),
   setIsSettingsOpen: vi.fn(),
+  handleRetryStudentPracticeRoom: vi.fn(),
   handleCreateUnit: vi.fn(),
   handleChangeUnitStatus: vi.fn(),
   handleModuleSaved: vi.fn(),
@@ -83,6 +84,7 @@ vi.mock('../../hooks/page-state/useSingleModulePageState', () => ({
     setIsStudentViewEnabled: mocks.setIsStudentViewEnabled,
     setShowCreateUnit: mocks.setShowCreateUnit,
     setIsSettingsOpen: mocks.setIsSettingsOpen,
+    handleRetryStudentPracticeRoom: mocks.handleRetryStudentPracticeRoom,
     handleCreateUnit: mocks.handleCreateUnit,
     handleChangeUnitStatus: mocks.handleChangeUnitStatus,
     handleModuleSaved: mocks.handleModuleSaved,
@@ -153,6 +155,7 @@ describe('SingleModulePage route', () => {
     mocks.setIsStudentViewEnabled.mockReset();
     mocks.setShowCreateUnit.mockReset();
     mocks.setIsSettingsOpen.mockReset();
+    mocks.handleRetryStudentPracticeRoom.mockReset();
     mocks.handleCreateUnit.mockReset();
     mocks.handleChangeUnitStatus.mockReset();
     mocks.handleModuleSaved.mockReset();

@@ -24,7 +24,14 @@ function buildQuestion(
     type: 'mcq',
     questionStem: `Question ${id}`,
     questionData: {
-      options: [{ optionText }, { optionText: `${optionText} alt` }],
+      // Shared MCQ contracts require four options, so tests should mirror the
+      // canonical payload shape instead of relying on unsafe casts.
+      options: [
+        { optionText },
+        { optionText: `${optionText} alt 1` },
+        { optionText: `${optionText} alt 2` },
+        { optionText: `${optionText} alt 3` },
+      ],
       correctOptionIndex: 0,
     } as PracticeQuestion['questionData'],
     hint: null,

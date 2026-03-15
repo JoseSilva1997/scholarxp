@@ -43,7 +43,7 @@ describe('PracticeRoomSessionService', () => {
       const result = await service.resolveRoomSession(
         TEST_MODULE_ID,
         TEST_STUDENT_ID,
-        false,
+        PracticeSessionTypeValues.practiceRoom,
         existingSession.id,
       );
 
@@ -65,7 +65,7 @@ describe('PracticeRoomSessionService', () => {
       const result = await service.resolveRoomSession(
         TEST_MODULE_ID,
         TEST_STUDENT_ID,
-        true,
+        PracticeSessionTypeValues.viewAnswers,
       );
 
       expect(prisma.practiceSession.create).toHaveBeenCalledWith({
@@ -78,6 +78,31 @@ describe('PracticeRoomSessionService', () => {
         select: { id: true, sessionType: true, endTime: true },
       });
       expect(result.sessionType).toBe(PracticeSessionTypeValues.viewAnswers);
+    });
+
+    it('creates retry sessions when the caller explicitly requests retry mode', async () => {
+      prisma.practiceSession.create.mockResolvedValue({
+        id: TEST_SESSION_ID,
+        sessionType: PracticeSessionTypeValues.retry,
+        endTime: null,
+      } as never);
+
+      const result = await service.resolveRoomSession(
+        TEST_MODULE_ID,
+        TEST_STUDENT_ID,
+        PracticeSessionTypeValues.retry,
+      );
+
+      expect(prisma.practiceSession.create).toHaveBeenCalledWith({
+        data: {
+          moduleId: TEST_MODULE_ID,
+          userId: TEST_STUDENT_ID,
+          sessionType: PracticeSessionTypeValues.retry,
+          startTime: expect.any(Date),
+        },
+        select: { id: true, sessionType: true, endTime: true },
+      });
+      expect(result.sessionType).toBe(PracticeSessionTypeValues.retry);
     });
   });
 

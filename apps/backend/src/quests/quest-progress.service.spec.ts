@@ -357,7 +357,31 @@ describe('QuestProgressService', () => {
     expect(avatarService.addStudentExp).toHaveBeenCalledWith(42, 50, prisma);
   });
 
-  it('completes the retry quest when answers are viewed for an already completed unit', async () => {
+  it('does not complete the retry quest when a completed lesson is only viewed', async () => {
+    prisma.moduleUnitUserProgress.findUnique.mockResolvedValue({
+      isCompleted: true,
+    } as never);
+
+    await service.recordCompletedUnitReview(
+      {
+        userId: 42,
+        moduleId: 1,
+        moduleUnitId: 10,
+        viewedAt: new Date('2026-03-13T09:10:00.000Z'),
+      },
+      prisma,
+    );
+
+    expect(
+      questGenerationService.ensureQuestDayGeneratedForUser,
+    ).not.toHaveBeenCalled();
+    expect(prisma.dailyQuest.findMany).not.toHaveBeenCalled();
+    expect(prisma.dailyQuest.updateMany).not.toHaveBeenCalled();
+    expect(expLedgerService.recordEvent).not.toHaveBeenCalled();
+    expect(avatarService.addStudentExp).not.toHaveBeenCalled();
+  });
+
+  it('completes the retry quest once the retry session reaches 70 percent correct answers', async () => {
     prisma.dailyQuest.findMany
       .mockResolvedValueOnce([
         {
@@ -386,19 +410,96 @@ describe('QuestProgressService', () => {
     prisma.moduleUnitUserProgress.findUnique.mockResolvedValue({
       isCompleted: true,
     } as never);
+    prisma.questionUnit.count.mockResolvedValue(10 as never);
+    prisma.questionAttempt.findMany.mockResolvedValue([
+      { questionId: 1 },
+      { questionId: 2 },
+      { questionId: 3 },
+      { questionId: 4 },
+      { questionId: 5 },
+      { questionId: 6 },
+      { questionId: 7 },
+    ] as never);
 
-    await service.recordCompletedUnitReview(
+    await service.recordRetrySessionProgress(
       {
         userId: 42,
         moduleId: 1,
         moduleUnitId: 10,
-        viewedAt: new Date('2026-03-13T09:10:00.000Z'),
+        sessionId: '11111111-1111-4111-8111-111111111123',
+        attemptedAt: new Date('2026-03-13T09:10:00.000Z'),
       },
       prisma,
     );
 
+    expect(prisma.questionUnit.count).toHaveBeenCalledWith({
+      where: {
+        moduleUnitId: 10,
+        isArchived: false,
+        contents: {
+          some: {
+            isCore: true,
+            isArchived: false,
+          },
+        },
+      },
+    });
+    expect(prisma.questionAttempt.findMany).toHaveBeenCalledWith({
+      where: {
+        moduleUnitId: 10,
+        studentId: 42,
+        sessionId: '11111111-1111-4111-8111-111111111123',
+        isCorrect: true,
+      },
+      select: {
+        questionId: true,
+      },
+      distinct: ['questionId'],
+    });
     expect(prisma.dailyQuest.updateMany).toHaveBeenCalledTimes(1);
     expect(expLedgerService.recordEvent).toHaveBeenCalledTimes(1);
     expect(avatarService.addStudentExp).toHaveBeenCalledWith(42, 50, prisma);
+  });
+
+  it('leaves the retry quest incomplete while the retry session is below the 70 percent threshold', async () => {
+    prisma.dailyQuest.findMany.mockResolvedValueOnce([
+      {
+        id: 21,
+        userId: 42,
+        moduleId: 1,
+        moduleUnitId: null,
+        type: QuestTypeValues.moduleUnitRetry,
+        expGranted: 50,
+        isCompleted: false,
+        questDateUtc: new Date('2026-03-13T00:00:00.000Z'),
+      },
+    ] as never);
+    prisma.moduleUnitUserProgress.findUnique.mockResolvedValue({
+      isCompleted: true,
+    } as never);
+    prisma.questionUnit.count.mockResolvedValue(10 as never);
+    prisma.questionAttempt.findMany.mockResolvedValue([
+      { questionId: 1 },
+      { questionId: 2 },
+      { questionId: 3 },
+      { questionId: 4 },
+      { questionId: 5 },
+      { questionId: 6 },
+    ] as never);
+
+    await service.recordRetrySessionProgress(
+      {
+        userId: 42,
+        moduleId: 1,
+        moduleUnitId: 10,
+        sessionId: '11111111-1111-4111-8111-111111111123',
+        attemptedAt: new Date('2026-03-13T09:10:00.000Z'),
+      },
+      prisma,
+    );
+
+    expect(prisma.dailyQuest.updateMany).not.toHaveBeenCalled();
+    expect(expLedgerService.recordEvent).not.toHaveBeenCalled();
+    expect(avatarService.addStudentExp).not.toHaveBeenCalled();
   });
 });

@@ -104,6 +104,8 @@ export interface CreateModuleUnitPracticeRoomPayload {
 // Optional query params for loading a room; when provided, sessionId resumes an in-progress session.
 export interface GetModuleUnitPracticeRoomQuery {
   sessionId?: string;
+  // Explicit entry mode is only used when opening a fresh session; resumed sessions keep their persisted type.
+  sessionType?: PracticeSessionType;
 }
 
 // Top-level response used by the module-unit practice room page on initial load.

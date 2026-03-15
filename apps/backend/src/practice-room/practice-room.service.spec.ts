@@ -64,9 +64,11 @@ describe('PracticeRoomService', () => {
   };
   let expStreakService: {
     getSessionStreak: jest.Mock;
+    getHistoricalHighestPracticeStreak: jest.Mock;
   };
   let questProgressService: {
     recordModuleUnitCompletion: jest.Mock;
+    recordRetrySessionProgress: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -112,9 +114,11 @@ describe('PracticeRoomService', () => {
     };
     expStreakService = {
       getSessionStreak: jest.fn(),
+      getHistoricalHighestPracticeStreak: jest.fn(),
     };
     questProgressService = {
       recordModuleUnitCompletion: jest.fn(),
+      recordRetrySessionProgress: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -186,6 +190,7 @@ describe('PracticeRoomService', () => {
         TEST_MODULE_ID,
         TEST_MODULE_UNIT_ID,
         TEST_STUDENT_ID,
+        undefined,
         undefined,
       );
       expect(expStreakService.getSessionStreak).toHaveBeenCalledWith(
@@ -264,7 +269,11 @@ describe('PracticeRoomService', () => {
       ).toHaveBeenCalledWith('practice_room');
       expect(
         practiceRoomReadService.assertModuleUnitAllowsSubmissions,
-      ).toHaveBeenCalledWith(TEST_MODULE_UNIT_ID, TEST_STUDENT_ID);
+      ).toHaveBeenCalledWith(
+        TEST_MODULE_UNIT_ID,
+        TEST_STUDENT_ID,
+        'practice_room',
+      );
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       expect(
         practiceRoomAttemptService.createAttemptRecord,
@@ -354,6 +363,78 @@ describe('PracticeRoomService', () => {
         questProgressService.recordModuleUnitCompletion,
       ).not.toHaveBeenCalled();
       expect(result.updatedModuleProgress).toBeUndefined();
+    });
+
+    it('stores retry attempts without awarding XP or mutating completion progress', async () => {
+      const payload = buildSubmitAttemptPayload();
+
+      practiceRoomSessionService.getOwnedPracticeSessionOrThrow.mockResolvedValue(
+        buildOwnedPracticeSession({ sessionType: 'retry' }),
+      );
+      practiceRoomAttemptService.computeIsCorrectForPayload.mockResolvedValue(
+        true,
+      );
+      practiceRoomAttemptService.hasAnyAttempt.mockResolvedValue(true);
+      practiceRoomAttemptService.hasAnyCorrectAttempt.mockResolvedValue(true);
+      practiceRoomAttemptService.resolveSubmitAwardReasons.mockReturnValue({
+        baseQuestionExp: 'already_earned',
+        firstAttemptBonus: 'not_first_try',
+      });
+      expStreakService.getHistoricalHighestPracticeStreak.mockResolvedValue(5);
+
+      const result = await service.submitAttempt(
+        TEST_MODULE_ID,
+        TEST_MODULE_UNIT_ID,
+        TEST_STUDENT_ID,
+        payload,
+      );
+
+      expect(
+        practiceRoomReadService.assertModuleUnitAllowsSubmissions,
+      ).toHaveBeenCalledWith(TEST_MODULE_UNIT_ID, TEST_STUDENT_ID, 'retry');
+      expect(
+        studentModuleUnitProgressService.syncFromAttempts,
+      ).not.toHaveBeenCalled();
+      expect(
+        practiceRoomSessionService.closeSessionOnCompletionIfNeeded,
+      ).not.toHaveBeenCalled();
+      expect(expAwardingService.awardAttemptModuleExp).not.toHaveBeenCalled();
+      expect(expAwardingService.awardCompletionExp).not.toHaveBeenCalled();
+      expect(
+        questProgressService.recordModuleUnitCompletion,
+      ).not.toHaveBeenCalled();
+      expect(
+        questProgressService.recordRetrySessionProgress,
+      ).toHaveBeenCalledWith(
+        {
+          userId: TEST_STUDENT_ID,
+          moduleId: TEST_MODULE_ID,
+          moduleUnitId: TEST_MODULE_UNIT_ID,
+          sessionId: TEST_SESSION_ID,
+          attemptedAt: expect.any(Date),
+        },
+        prisma,
+      );
+      expect(expStreakService.getSessionStreak).not.toHaveBeenCalled();
+      expect(
+        expStreakService.getHistoricalHighestPracticeStreak,
+      ).toHaveBeenCalledWith(TEST_MODULE_UNIT_ID, TEST_STUDENT_ID);
+      expect(result).toEqual({
+        awards: {
+          baseQuestionExp: 0,
+          firstAttemptBonus: 0,
+          streakBonus: 0,
+          accountExp: 0,
+        },
+        awardReasons: {
+          baseQuestionExp: 'already_earned',
+          firstAttemptBonus: 'not_first_try',
+        },
+        hasCorrectAttempt: true,
+        updatedModuleProgress: undefined,
+        currentStreak: 5,
+        highestStreak: 5,
+      });
     });
   });
 

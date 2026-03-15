@@ -32,6 +32,7 @@ import {
   buildStreakRewardIndicators,
   parsePracticeRoomQuestionUnitIdQuery,
   parsePracticeRoomSessionIdQuery,
+  parsePracticeRoomSessionTypeQuery,
   resolveFirstTryBonusStatus,
 } from './practiceRoomDerivedState';
 import { usePracticeRoomSessionState } from './usePracticeRoomSessionState';
@@ -66,6 +67,9 @@ export function usePracticeRoomPageState({
   const requestedSessionId = parsePracticeRoomSessionIdQuery(
     searchParams.get('sessionId'),
   );
+  const requestedSessionType = parsePracticeRoomSessionTypeQuery(
+    searchParams.get('sessionType'),
+  );
   const requestedQuestionUnitId = parsePracticeRoomQuestionUnitIdQuery(
     searchParams.get('questionId'),
   );
@@ -76,6 +80,7 @@ export function usePracticeRoomPageState({
     parsedModuleId,
     parsedUnitId,
     requestedSessionId,
+    requestedSessionType,
   );
   const submitAttemptMutation = useSubmitModuleUnitPracticeAttemptMutation(
     parsedModuleId,

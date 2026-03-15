@@ -40,6 +40,7 @@ export class PracticeRoomController {
       params.moduleUnitId,
       user.id,
       query.sessionId,
+      query.sessionType,
     );
   }
 

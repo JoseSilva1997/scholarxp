@@ -1,7 +1,10 @@
 // Tests single-module page-state orchestration for routing params, capability gating, and action side effects.
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { AuthUser } from '@scholarxp/api-contracts';
+import {
+  PracticeSessionTypeValues,
+  type AuthUser,
+} from '@scholarxp/api-contracts';
 import { useSingleModulePageState } from './useSingleModulePageState';
 import { features } from '@scholarxp/permissions';
 
@@ -15,7 +18,6 @@ const mocks = vi.hoisted(() => ({
   updateMutateAsync: vi.fn(),
   updateStatusMutateAsync: vi.fn(),
   recordDailyRevisionMutateAsync: vi.fn(),
-  recordCompletedReviewMutateAsync: vi.fn(),
   setQueryData: vi.fn(),
   assign: vi.fn(),
   alert: vi.fn(),
@@ -104,9 +106,6 @@ vi.mock('../queries/useQuestsQueries', () => ({
   useRecordDailyRevisionQuestProgressMutation: () => ({
     mutateAsync: mocks.recordDailyRevisionMutateAsync,
   }),
-  useRecordCompletedUnitReviewQuestProgressMutation: () => ({
-    mutateAsync: mocks.recordCompletedReviewMutateAsync,
-  }),
 }));
 
 describe('useSingleModulePageState', () => {
@@ -129,7 +128,6 @@ describe('useSingleModulePageState', () => {
     mocks.updateMutateAsync.mockReset();
     mocks.updateStatusMutateAsync.mockReset();
     mocks.recordDailyRevisionMutateAsync.mockReset();
-    mocks.recordCompletedReviewMutateAsync.mockReset();
     mocks.setQueryData.mockReset();
     mocks.assign.mockReset();
     mocks.alert.mockReset();
@@ -321,7 +319,7 @@ describe('useSingleModulePageState', () => {
     expect(mocks.alert).toHaveBeenCalledWith('Daily revision coming soon! 🎯');
   });
 
-  it('records completed-review quest progress before opening a completed lesson', async () => {
+  it('opens completed lessons in view-answer mode without recording retry quest progress', async () => {
     moduleQueryState = {
       data: {
         id: 14,
@@ -344,8 +342,6 @@ describe('useSingleModulePageState', () => {
       isPending: false,
       error: null,
     };
-    mocks.recordCompletedReviewMutateAsync.mockResolvedValue({ recorded: true });
-
     const { result } = renderHook(() =>
       useSingleModulePageState({ moduleIdParam: '14', user: mockUser }),
     );
@@ -354,8 +350,44 @@ describe('useSingleModulePageState', () => {
       await result.current.handleOpenStudentPracticeRoom('40');
     });
 
-    expect(mocks.recordCompletedReviewMutateAsync).toHaveBeenCalledWith(40);
     expect(mocks.assign).toHaveBeenCalledWith('/main/modules/14/40/practice-room');
+  });
+
+  it('opens retry mode without recording the completed-review quest trigger', async () => {
+    moduleQueryState = {
+      data: {
+        id: 14,
+        title: 'History',
+      },
+      isPending: false,
+      error: null,
+    };
+    moduleUnitsQueryState = {
+      data: [
+        {
+          id: 40,
+          title: 'Completed lesson',
+          status: 'live',
+          isCompleted: true,
+          questionCount: 2,
+          questionGroups: [],
+        },
+      ],
+      isPending: false,
+      error: null,
+    };
+
+    const { result } = renderHook(() =>
+      useSingleModulePageState({ moduleIdParam: '14', user: mockUser }),
+    );
+
+    await act(async () => {
+      await result.current.handleRetryStudentPracticeRoom('40');
+    });
+
+    expect(mocks.assign).toHaveBeenCalledWith(
+      `/main/modules/14/40/practice-room?sessionType=${PracticeSessionTypeValues.retry}`,
+    );
   });
 
   it('logs and rethrows title-update errors when telemetry is enabled', async () => {

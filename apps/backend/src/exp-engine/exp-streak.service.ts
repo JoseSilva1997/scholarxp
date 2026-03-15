@@ -1,5 +1,6 @@
 // Service role: owns streak reconstruction and ledger writes.
 import { Injectable } from '@nestjs/common';
+import { PracticeSessionTypeValues } from '@scholarxp/api-contracts';
 import {
   STREAK_BONUS_EXP_PER_DELTA,
   ExpLedgerEventTypes,
@@ -79,6 +80,39 @@ export class ExpStreakService {
     );
   }
 
+  // Retry mode displays the learner's best previously achieved practice streak, so
+  // retry submissions never rewrite the historical indicator state.
+  async getHistoricalHighestPracticeStreak(
+    moduleUnitId: number,
+    studentId: number,
+    tx?: PrismaClientLike,
+  ): Promise<number> {
+    const prismaClient = tx ?? this.prisma;
+    const attempts = await prismaClient.questionAttempt.findMany({
+      where: {
+        moduleUnitId,
+        studentId,
+        session: {
+          is: {
+            sessionType: PracticeSessionTypeValues.practiceRoom,
+          },
+        },
+      },
+      orderBy: [
+        { session: { startTime: 'asc' } },
+        { attemptedAt: 'asc' },
+        { id: 'asc' },
+      ],
+      select: {
+        sessionId: true,
+        questionId: true,
+        isCorrect: true,
+      },
+    });
+
+    return this.computeHistoricalHighestStreak(attempts);
+  }
+
   private async computeStreakSnapshot(
     moduleUnitId: number,
     studentId: number,
@@ -155,5 +189,48 @@ export class ExpStreakService {
       distinct: ['questionId'],
     });
     return solvedAttempts.map((attempt) => attempt.questionId);
+  }
+
+  // Historical streak reconstruction replays practice sessions in chronological
+  // order so previously solved questions stay ineligible for later-session streak growth.
+  private computeHistoricalHighestStreak(
+    attempts: Array<{
+      sessionId: string;
+      questionId: number;
+      isCorrect: boolean;
+    }>,
+  ): number {
+    const historicallySolvedQuestionIds = new Set<number>();
+    const sessionSolvedQuestionIds = new Set<number>();
+    let activeSessionId: string | null = null;
+    let currentStreak = 0;
+    let highestStreak = 0;
+
+    for (const attempt of attempts) {
+      if (attempt.sessionId !== activeSessionId) {
+        activeSessionId = attempt.sessionId;
+        sessionSolvedQuestionIds.clear();
+        for (const questionId of historicallySolvedQuestionIds) {
+          sessionSolvedQuestionIds.add(questionId);
+        }
+        currentStreak = 0;
+      }
+
+      if (!attempt.isCorrect) {
+        currentStreak = 0;
+        continue;
+      }
+
+      if (sessionSolvedQuestionIds.has(attempt.questionId)) {
+        continue;
+      }
+
+      sessionSolvedQuestionIds.add(attempt.questionId);
+      historicallySolvedQuestionIds.add(attempt.questionId);
+      currentStreak += 1;
+      highestStreak = Math.max(highestStreak, currentStreak);
+    }
+
+    return highestStreak;
   }
 }

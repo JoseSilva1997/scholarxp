@@ -3,6 +3,7 @@
  */
 import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { PracticeSessionTypeValues } from '@scholarxp/api-contracts';
 import { MODULE_UNIT_BASELINE_EXP } from '@scholarxp/constants';
 import { PracticeRoomMapper } from './practice-room.mapper';
 import { PracticeRoomReadService } from './practice-room-read.service';
@@ -77,7 +78,12 @@ describe('PracticeRoomReadService', () => {
 
       expect(
         practiceRoomSessionService.resolveRoomSession,
-      ).toHaveBeenCalledWith(TEST_MODULE_ID, TEST_STUDENT_ID, false, undefined);
+      ).toHaveBeenCalledWith(
+        TEST_MODULE_ID,
+        TEST_STUDENT_ID,
+        PracticeSessionTypeValues.practiceRoom,
+        undefined,
+      );
       expect(practiceRoomMapper.toQuestionUnitDrafts).toHaveBeenCalledWith(
         moduleUnit,
       );
@@ -87,6 +93,39 @@ describe('PracticeRoomReadService', () => {
         session,
         questionUnitDrafts: drafts,
       });
+    });
+
+    it('opens completed lessons in retry mode when explicitly requested', async () => {
+      const moduleUnit = buildLoadedModuleUnit();
+      const drafts = [buildQuestionUnitDraft()];
+      const session = buildOwnedPracticeSession({
+        sessionType: PracticeSessionTypeValues.retry,
+      });
+
+      prisma.moduleUnit.findFirst.mockResolvedValue(moduleUnit as never);
+      prisma.moduleUnitUserProgress.findFirst.mockResolvedValue({
+        isCompleted: true,
+      } as never);
+      practiceRoomSessionService.resolveRoomSession.mockResolvedValue(session);
+      practiceRoomMapper.toQuestionUnitDrafts.mockReturnValue(drafts);
+
+      const result = await service.loadRoomContext(
+        TEST_MODULE_ID,
+        TEST_MODULE_UNIT_ID,
+        TEST_STUDENT_ID,
+        PracticeSessionTypeValues.retry,
+      );
+
+      expect(
+        practiceRoomSessionService.resolveRoomSession,
+      ).toHaveBeenCalledWith(
+        TEST_MODULE_ID,
+        TEST_STUDENT_ID,
+        PracticeSessionTypeValues.retry,
+        undefined,
+      );
+      expect(result.isReadOnly).toBe(false);
+      expect(result.session.sessionType).toBe(PracticeSessionTypeValues.retry);
     });
   });
 
@@ -158,6 +197,41 @@ describe('PracticeRoomReadService', () => {
       });
       expect(result).toHaveLength(1);
       expect(result[0]?.questionId).toBe(TEST_QUESTION_UNIT_ID);
+    });
+
+    it('scopes retry latest-attempt reads to the active retry session', async () => {
+      const drafts = [buildQuestionUnitDraft()];
+      prisma.questionAttempt.findMany.mockResolvedValue([] as never);
+
+      await service.getLatestAttempts(
+        TEST_MODULE_UNIT_ID,
+        TEST_STUDENT_ID,
+        drafts,
+        '11111111-1111-4111-8111-111111111222',
+        PracticeSessionTypeValues.retry,
+      );
+
+      expect(prisma.questionAttempt.findMany).toHaveBeenCalledWith({
+        where: {
+          moduleUnitId: TEST_MODULE_UNIT_ID,
+          studentId: TEST_STUDENT_ID,
+          sessionId: '11111111-1111-4111-8111-111111111222',
+          questionId: {
+            in: [TEST_QUESTION_UNIT_ID],
+          },
+          contentId: {
+            in: [TEST_QUESTION_CONTENT_ID],
+          },
+        },
+        orderBy: [{ attemptedAt: 'desc' }, { id: 'desc' }],
+        select: {
+          questionId: true,
+          contentId: true,
+          studentAnswer: true,
+          isCorrect: true,
+          attemptedAt: true,
+        },
+      });
     });
   });
 
@@ -243,8 +317,23 @@ describe('PracticeRoomReadService', () => {
         service.assertModuleUnitAllowsSubmissions(
           TEST_MODULE_UNIT_ID,
           TEST_STUDENT_ID,
+          PracticeSessionTypeValues.practiceRoom,
         ),
       ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('allows completed lessons to accept retry submissions', async () => {
+      prisma.moduleUnitUserProgress.findFirst.mockResolvedValue({
+        isCompleted: true,
+      } as never);
+
+      await expect(
+        service.assertModuleUnitAllowsSubmissions(
+          TEST_MODULE_UNIT_ID,
+          TEST_STUDENT_ID,
+          PracticeSessionTypeValues.retry,
+        ),
+      ).resolves.toBeUndefined();
     });
   });
 });

@@ -219,6 +219,13 @@ describe('ModuleUnitService.findByModule', () => {
       where: {
         moduleUnitId: { in: [1] },
         studentId: 42,
+        session: {
+          is: {
+            sessionType: {
+              not: 'retry',
+            },
+          },
+        },
       },
       orderBy: [{ attemptedAt: 'desc' }, { id: 'desc' }],
       select: {
@@ -250,6 +257,52 @@ describe('ModuleUnitService.findByModule', () => {
       { id: 102, title: 'Q2', lastAttemptResult: 'incorrect' },
     ]);
     expect(result[0]?.isCompleted).toBe(true);
+  });
+
+  it('ignores retry-session attempts when deriving student card question status', async () => {
+    prisma.moduleUnit.findMany.mockResolvedValue([
+      {
+        id: 1,
+        moduleId: 77,
+        variantContext: '',
+        title: 'Unit A',
+        questionCount: 0,
+        status: ModuleUnitStatus.live,
+        sortOrder: 1,
+        createdAt: new Date(),
+        questionGroups: [
+          { id: 11, moduleUnitId: 1, name: 'Group 1', sortOrder: 1 },
+        ],
+        questionUnits: [{ id: 101, title: 'Q1', questionGroupId: 11 }],
+        userProgress: [{ isCompleted: true }],
+      },
+    ] as any);
+    prisma.questionAttempt.findMany.mockResolvedValue([
+      {
+        moduleUnitId: 1,
+        questionId: 101,
+        isCorrect: true,
+      },
+    ] as any);
+
+    const result = await service.findByModule(77, 42);
+
+    expect(prisma.questionAttempt.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          session: {
+            is: {
+              sessionType: {
+                not: 'retry',
+              },
+            },
+          },
+        }),
+      }),
+    );
+    expect(result[0]?.questionGroups[0]?.questions).toEqual([
+      { id: 101, title: 'Q1', lastAttemptResult: 'correct' },
+    ]);
   });
 });
 

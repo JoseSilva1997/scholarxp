@@ -43,6 +43,7 @@ export default function SingleModulePage() {
     isCreatingUnit,
     handleDailyRevisionClick,
     handleOpenStudentPracticeRoom,
+    handleRetryStudentPracticeRoom,
     handleCreateUnit,
     handleChangeUnitStatus,
     handleUpdateUnitTitle,
@@ -200,6 +201,7 @@ export default function SingleModulePage() {
                       key={unit.id}
                       unit={unit}
                       onOpenPracticeRoom={handleOpenStudentPracticeRoom}
+                      onRetryPracticeRoom={handleRetryStudentPracticeRoom}
                     />
                   ) : null;
                 })}

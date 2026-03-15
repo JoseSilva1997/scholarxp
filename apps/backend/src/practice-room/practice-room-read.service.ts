@@ -6,7 +6,11 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type { PracticeQuestionRewardState } from '@scholarxp/api-contracts';
+import {
+  PracticeSessionTypeValues,
+  type PracticeQuestionRewardState,
+  type PracticeSessionType,
+} from '@scholarxp/api-contracts';
 import {
   ExpLedgerEventTypes,
   MODULE_UNIT_BASELINE_EXP,
@@ -34,23 +38,28 @@ export class PracticeRoomReadService {
     moduleId: number,
     moduleUnitId: number,
     studentId: number,
+    requestedSessionType?: PracticeSessionType,
     existingSessionId?: string,
   ): Promise<RoomContext> {
     const moduleUnit = await this.getModuleUnitOrThrow(moduleId, moduleUnitId);
-    const isReadOnly = await this.isModuleUnitCompleted(
+    const isCompleted = await this.isModuleUnitCompleted(
       moduleUnitId,
       studentId,
+    );
+    const resolvedSessionType = this.resolveEntrySessionType(
+      isCompleted,
+      requestedSessionType,
     );
     const session = await this.practiceRoomSessionService.resolveRoomSession(
       moduleId,
       studentId,
-      isReadOnly,
+      resolvedSessionType,
       existingSessionId,
     );
 
     return {
       moduleUnit,
-      isReadOnly,
+      isReadOnly: resolvedSessionType === PracticeSessionTypeValues.viewAnswers,
       session,
       questionUnitDrafts:
         this.practiceRoomMapper.toQuestionUnitDrafts(moduleUnit),
@@ -92,9 +101,17 @@ export class PracticeRoomReadService {
     moduleUnitId: number,
     studentId: number,
     questionUnitDrafts: RoomQuestionUnitDraft[],
+    sessionId?: string,
+    sessionType?: PracticeSessionType,
   ) {
     return this.practiceRoomMapper.toLatestAttemptMap(
-      await this.getLatestAttempts(moduleUnitId, studentId, questionUnitDrafts),
+      await this.getLatestAttempts(
+        moduleUnitId,
+        studentId,
+        questionUnitDrafts,
+        sessionId,
+        sessionType,
+      ),
     );
   }
 
@@ -103,6 +120,8 @@ export class PracticeRoomReadService {
     moduleUnitId: number,
     studentId: number,
     questionUnitDrafts: RoomQuestionUnitDraft[],
+    sessionId?: string,
+    sessionType?: PracticeSessionType,
   ): Promise<LatestAttemptSnapshot[]> {
     const questionUnitIds = questionUnitDrafts.map(
       (questionUnit) => questionUnit.questionUnitId,
@@ -118,6 +137,9 @@ export class PracticeRoomReadService {
             where: {
               moduleUnitId,
               studentId,
+              ...(sessionType === PracticeSessionTypeValues.retry && sessionId
+                ? { sessionId }
+                : {}),
               questionId: { in: questionUnitIds },
               contentId: { in: contentIds },
             },
@@ -225,7 +247,12 @@ export class PracticeRoomReadService {
   async assertModuleUnitAllowsSubmissions(
     moduleUnitId: number,
     studentId: number,
+    sessionType: string,
   ) {
+    if (sessionType === PracticeSessionTypeValues.retry) {
+      return;
+    }
+
     if (await this.isModuleUnitCompleted(moduleUnitId, studentId)) {
       throw new ForbiddenException(
         'This unit is completed. Viewing answers is read-only.',
@@ -306,5 +333,21 @@ export class PracticeRoomReadService {
       baseQuestionExpStatus: 'available',
       firstAttemptBonusStatus: 'available',
     };
+  }
+
+  // Completed lessons default to review mode unless the caller explicitly asks for retry.
+  private resolveEntrySessionType(
+    isCompleted: boolean,
+    requestedSessionType?: PracticeSessionType,
+  ): PracticeSessionType {
+    if (!isCompleted) {
+      return PracticeSessionTypeValues.practiceRoom;
+    }
+
+    if (requestedSessionType === PracticeSessionTypeValues.retry) {
+      return PracticeSessionTypeValues.retry;
+    }
+
+    return PracticeSessionTypeValues.viewAnswers;
   }
 }

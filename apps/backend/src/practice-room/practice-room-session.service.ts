@@ -24,7 +24,7 @@ export class PracticeRoomSessionService {
   async resolveRoomSession(
     moduleId: number,
     studentId: number,
-    isReadOnly: boolean,
+    sessionType: PracticeSessionType,
     existingSessionId?: string,
   ): Promise<OwnedPracticeSession> {
     if (existingSessionId) {
@@ -34,10 +34,6 @@ export class PracticeRoomSessionService {
         existingSessionId,
       );
     }
-
-    const sessionType = isReadOnly
-      ? PracticeSessionTypeValues.viewAnswers
-      : PracticeSessionTypeValues.practiceRoom;
 
     return this.createPracticeSession(moduleId, studentId, sessionType);
   }

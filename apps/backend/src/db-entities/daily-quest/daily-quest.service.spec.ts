@@ -194,8 +194,7 @@ describe('DailyQuestService quest target validation', () => {
           isCompleted: false,
           progressCurrent: 0,
           progressTarget: 3,
-          description:
-            'Build your daily revision streak for the Biology module.',
+          description: 'Reach a 30% streak in the Biology daily practice set.',
           questDateUtc: '2026-02-19',
           generatedAt: '2026-02-19T00:00:00.000Z',
           completedAt: null,

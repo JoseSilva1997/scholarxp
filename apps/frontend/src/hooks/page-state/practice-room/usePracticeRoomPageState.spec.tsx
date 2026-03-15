@@ -196,6 +196,22 @@ describe('usePracticeRoomPageState (composition)', () => {
       1,
       1,
       '11111111-1111-4111-8111-111111111077',
+      null,
+    );
+  });
+
+  it('passes retry sessionType from the URL into the practice-room query hook', () => {
+    renderHookWithParams(
+      '1',
+      '1',
+      '/main/modules/1/1/practice-room?sessionType=retry',
+    );
+
+    expect(useModuleUnitPracticeRoomQueryMock).toHaveBeenCalledWith(
+      1,
+      1,
+      null,
+      'retry',
     );
   });
 

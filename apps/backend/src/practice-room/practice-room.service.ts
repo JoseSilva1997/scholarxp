@@ -9,6 +9,7 @@ import {
 import { MODULE_UNIT_BASELINE_EXP } from '@scholarxp/constants';
 import { ExpAwardingService } from '../exp-engine/exp-awarding.service';
 import { ExpStreakService } from '../exp-engine/exp-streak.service';
+import type { AttemptModuleExpRewardResult } from '../exp-engine/exp-engine.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { QuestProgressService } from '../quests/quest-progress.service';
 import { ModuleUnitPracticeRoomResponseDto } from './dto/practice-room-response.dto';
@@ -40,11 +41,13 @@ export class PracticeRoomService {
     moduleUnitId: number,
     studentId: number,
     existingSessionId?: string,
+    requestedSessionType?: PracticeSessionType,
   ): Promise<ModuleUnitPracticeRoomResponseDto> {
     const roomContext = await this.practiceRoomReadService.loadRoomContext(
       moduleId,
       moduleUnitId,
       studentId,
+      requestedSessionType,
       existingSessionId,
     );
     const latestAttemptByKey =
@@ -52,6 +55,8 @@ export class PracticeRoomService {
         moduleUnitId,
         studentId,
         roomContext.questionUnitDrafts,
+        roomContext.session.id,
+        normalizeSessionType(roomContext.session.sessionType),
       );
     const moduleProgress =
       await this.practiceRoomReadService.getModuleProgressSnapshot(
@@ -70,16 +75,29 @@ export class PracticeRoomService {
         moduleUnitId,
         studentId,
       );
+    const sessionType = normalizeSessionType(roomContext.session.sessionType);
+    const retryReferenceHighestStreak =
+      sessionType === PracticeSessionTypeValues.retry
+        ? await this.expStreakService.getHistoricalHighestPracticeStreak(
+            moduleUnitId,
+            studentId,
+          )
+        : null;
     const { currentStreak, highestStreak } =
-      await this.expStreakService.getSessionStreak(
-        moduleUnitId,
-        studentId,
-        roomContext.session.id,
-      );
+      retryReferenceHighestStreak !== null
+        ? {
+            currentStreak: retryReferenceHighestStreak,
+            highestStreak: retryReferenceHighestStreak,
+          }
+        : await this.expStreakService.getSessionStreak(
+            moduleUnitId,
+            studentId,
+            roomContext.session.id,
+          );
 
     return this.practiceRoomMapper.buildResponse({
       sessionId: roomContext.session.id,
-      sessionType: normalizeSessionType(roomContext.session.sessionType),
+      sessionType,
       moduleUnitId: roomContext.moduleUnit.id,
       moduleUnitTitle: roomContext.moduleUnit.title,
       isReadOnly: roomContext.isReadOnly,
@@ -116,6 +134,7 @@ export class PracticeRoomService {
     await this.practiceRoomReadService.assertModuleUnitAllowsSubmissions(
       moduleUnitId,
       studentId,
+      session.sessionType,
     );
 
     const isCorrect =
@@ -126,6 +145,9 @@ export class PracticeRoomService {
         payload.studentAnswer,
       );
     const attemptedAt = new Date();
+
+    const isRetrySession =
+      session.sessionType === PracticeSessionTypeValues.retry;
 
     const {
       alreadyHasCorrectAttempt,
@@ -157,56 +179,79 @@ export class PracticeRoomService {
         attemptedAt,
         tx,
       );
-      const syncedProgress =
-        await this.studentModuleUnitProgressService.syncFromAttempts(
-          {
-            moduleUnitId,
-            studentId,
-            attemptedAt,
-          },
-          tx,
-        );
-      await this.practiceRoomSessionService.closeSessionOnCompletionIfNeeded(
-        payload.sessionId,
-        attemptedAt,
-        syncedProgress.isCompleted,
-        tx,
-      );
-      const rewardPersistence =
-        await this.expAwardingService.awardAttemptModuleExp(
-          {
-            studentId,
-            moduleId,
-            moduleUnitId,
-            sessionId: payload.sessionId,
-            questionUnitId: payload.questionUnitId,
-            isCorrect,
-            hadCorrectAttemptBeforeSubmit,
-            hadAnyAttemptBeforeSubmit,
-            // Hint usage is policy input for first-try bonus eligibility.
-            hintUnlockedOnSubmit: payload.hintUnlocked,
-          },
-          tx,
-        );
-
+      let updatedMembership: AttemptModuleExpRewardResult['updatedMembership'] =
+        null;
+      let moduleAwards: AttemptModuleExpRewardResult['moduleAwards'] = {
+        baseQuestionExp: 0,
+        firstAttemptBonus: 0,
+        streakBonus: 0,
+      };
       let awardedAccountExp = 0;
-      if (syncedProgress.isCompleted) {
-        // Completion account XP is policy-owned by the reward service to keep the facade orchestration-only.
-        awardedAccountExp = await this.expAwardingService.awardCompletionExp(
-          {
-            studentId,
-            moduleId,
-            moduleUnitId,
-            sessionId: payload.sessionId,
-            completedAt: attemptedAt,
-          },
+
+      if (!isRetrySession) {
+        const syncedProgress =
+          await this.studentModuleUnitProgressService.syncFromAttempts(
+            {
+              moduleUnitId,
+              studentId,
+              attemptedAt,
+            },
+            tx,
+          );
+        await this.practiceRoomSessionService.closeSessionOnCompletionIfNeeded(
+          payload.sessionId,
+          attemptedAt,
+          syncedProgress.isCompleted,
           tx,
         );
-        await this.questProgressService.recordModuleUnitCompletion(
+        const rewardPersistence =
+          await this.expAwardingService.awardAttemptModuleExp(
+            {
+              studentId,
+              moduleId,
+              moduleUnitId,
+              sessionId: payload.sessionId,
+              questionUnitId: payload.questionUnitId,
+              isCorrect,
+              hadCorrectAttemptBeforeSubmit,
+              hadAnyAttemptBeforeSubmit,
+              // Hint usage is policy input for first-try bonus eligibility.
+              hintUnlockedOnSubmit: payload.hintUnlocked,
+            },
+            tx,
+          );
+        updatedMembership = rewardPersistence.updatedMembership;
+        moduleAwards = rewardPersistence.moduleAwards;
+
+        if (syncedProgress.isCompleted) {
+          // Completion account XP is policy-owned by the reward service to keep the facade orchestration-only.
+          awardedAccountExp = await this.expAwardingService.awardCompletionExp(
+            {
+              studentId,
+              moduleId,
+              moduleUnitId,
+              sessionId: payload.sessionId,
+              completedAt: attemptedAt,
+            },
+            tx,
+          );
+          await this.questProgressService.recordModuleUnitCompletion(
+            {
+              userId: studentId,
+              moduleId,
+              completedAt: attemptedAt,
+            },
+            tx,
+          );
+        }
+      } else {
+        await this.questProgressService.recordRetrySessionProgress(
           {
             userId: studentId,
             moduleId,
-            completedAt: attemptedAt,
+            moduleUnitId,
+            sessionId: payload.sessionId,
+            attemptedAt,
           },
           tx,
         );
@@ -215,18 +260,29 @@ export class PracticeRoomService {
       return {
         alreadyHasCorrectAttempt: hadCorrectAttemptBeforeSubmit,
         hadAnyAttemptBeforeSubmit,
-        updatedMembership: rewardPersistence.updatedMembership,
-        moduleAwards: rewardPersistence.moduleAwards,
+        updatedMembership,
+        moduleAwards,
         awardedAccountExp,
       };
     });
 
+    const retryReferenceHighestStreak = isRetrySession
+      ? await this.expStreakService.getHistoricalHighestPracticeStreak(
+          moduleUnitId,
+          studentId,
+        )
+      : null;
     const { currentStreak, highestStreak } =
-      await this.expStreakService.getSessionStreak(
-        moduleUnitId,
-        studentId,
-        payload.sessionId,
-      );
+      retryReferenceHighestStreak !== null
+        ? {
+            currentStreak: retryReferenceHighestStreak,
+            highestStreak: retryReferenceHighestStreak,
+          }
+        : await this.expStreakService.getSessionStreak(
+            moduleUnitId,
+            studentId,
+            payload.sessionId,
+          );
 
     return {
       awards: {

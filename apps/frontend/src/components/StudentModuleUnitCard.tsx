@@ -16,11 +16,13 @@ import type { ModuleUnit } from './ModuleUnitCard';
 type StudentModuleUnitCardProps = {
   unit: ModuleUnit;
   onOpenPracticeRoom?: (unitId: string, questionId?: string) => Promise<void> | void;
+  onRetryPracticeRoom?: (unitId: string) => Promise<void> | void;
 };
 
 export default function StudentModuleUnitCard({
   unit,
   onOpenPracticeRoom,
+  onRetryPracticeRoom,
 }: StudentModuleUnitCardProps) {
   // Practice-room reward design currently has three streak thresholds; keep this explicit constant-driven total in one place.
   const maximumStreakBonusExp = STREAK_BONUS_EXP_PER_DELTA * 3;
@@ -122,18 +124,34 @@ export default function StudentModuleUnitCard({
                 )}
             </div>
             <div className={styles.actions}>
-              <button 
-                type="button" 
-                className={styles.practiceButton} 
-                aria-label={practiceButtonLabel}
-                disabled={isLocked}
-                onClick={() => {
-                  // Navigation and quest-trigger orchestration live above the card so this component stays render-focused.
-                  void onOpenPracticeRoom?.(unit.id);
-                }}
-              >
-                {practiceButtonLabel}
-              </button>
+              <div className={styles.actionStack}>
+                <button 
+                  type="button" 
+                  className={styles.practiceButton} 
+                  aria-label={practiceButtonLabel}
+                  disabled={isLocked}
+                  onClick={() => {
+                    // Navigation and quest-trigger orchestration live above the card so this component stays render-focused.
+                    void onOpenPracticeRoom?.(unit.id);
+                  }}
+                >
+                  {practiceButtonLabel}
+                </button>
+                {initialIsCompleted && (
+                  <button
+                    type="button"
+                    className={styles.retryButton}
+                    aria-label="Retry"
+                    disabled={isLocked}
+                    onClick={() => {
+                      // Retry entry is lesson-level only so per-question buttons can stay mapped to review mode.
+                      void onRetryPracticeRoom?.(unit.id);
+                    }}
+                  >
+                    Retry
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

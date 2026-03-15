@@ -63,7 +63,7 @@ describe('DailyLessonXpTrackChip', () => {
     );
     const tooltip = screen.getByRole('tooltip', { hidden: true });
     expect(tooltip).toHaveTextContent(
-      'Your first completed lesson today grants +100 account XP.',
+      'Your first newly completed lesson today grants +100 account XP.',
     );
     expect(tooltip).toHaveTextContent('The track resets at midnight UTC.');
   });

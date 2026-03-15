@@ -41,7 +41,8 @@ describe('QuestGenerationStartupService', () => {
   });
 
   it('generates today quest data once on module init', async () => {
-    await service.onModuleInit();
+    service.onModuleInit();
+    await jest.runAllTimersAsync();
 
     expect(
       questGenerationBatchService.generateQuestDayForAllStudents,
@@ -57,7 +58,8 @@ describe('QuestGenerationStartupService', () => {
       new Error('database timeout'),
     );
 
-    await expect(service.onModuleInit()).resolves.toBeUndefined();
+    expect(() => service.onModuleInit()).not.toThrow();
+    await jest.runAllTimersAsync();
 
     expect(errorSpy).toHaveBeenCalledWith(
       'Failed to generate startup daily quests.',

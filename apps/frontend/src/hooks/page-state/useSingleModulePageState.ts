@@ -1,7 +1,12 @@
 // Encapsulates SingleModulePage orchestration so the route component can stay mostly presentational.
 import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import type { AuthUser, ModuleUnitStatus } from '@scholarxp/api-contracts';
+import {
+  PracticeSessionTypeValues,
+  type AuthUser,
+  type ModuleUnitStatus,
+  type PracticeSessionType,
+} from '@scholarxp/api-contracts';
 import type { ModuleSummary } from '../../types/module';
 import { MODULE_UNIT_BASELINE_EXP } from '@scholarxp/constants';
 import { features } from '@scholarxp/permissions';
@@ -13,7 +18,6 @@ import {
 import { logError } from '../../utils/logger';
 import { canUserAccess } from '../../permissions/permission';
 import {
-  useRecordCompletedUnitReviewQuestProgressMutation,
   useRecordDailyRevisionQuestProgressMutation,
 } from '../queries/useQuestsQueries';
 import {
@@ -51,6 +55,7 @@ type UseSingleModulePageStateResult = {
   isCreatingUnit: boolean;
   handleDailyRevisionClick: () => Promise<void>;
   handleOpenStudentPracticeRoom: (unitId: string, questionId?: string) => Promise<void>;
+  handleRetryStudentPracticeRoom: (unitId: string) => Promise<void>;
   handleCreateUnit: (title: string) => Promise<void>;
   handleChangeUnitStatus: (unitId: string, status: ModuleUnitStatus) => Promise<void>;
   handleUpdateUnitTitle: (unitId: string, title: string) => Promise<void>;
@@ -83,8 +88,6 @@ export function useSingleModulePageState({
   const updateModuleUnitStatusMutation = useUpdateModuleUnitStatusMutation(parsedId);
   const recordDailyRevisionQuestProgressMutation =
     useRecordDailyRevisionQuestProgressMutation(parsedId);
-  const recordCompletedUnitReviewQuestProgressMutation =
-    useRecordCompletedUnitReviewQuestProgressMutation(parsedId);
 
   // permission checks are memoized to avoid re-evaluating the
   // shared matrix on every render. user object is primary dependency.
@@ -231,42 +234,43 @@ export function useSingleModulePageState({
     }
   };
 
-  const handleOpenStudentPracticeRoom = async (
+  const openStudentPracticeRoom = async (input: {
     unitId: string,
     questionId?: string,
-  ) => {
+    sessionType?: PracticeSessionType,
+  }) => {
     if (parsedId === null) {
       return;
     }
 
-    const selectedUnit = moduleUnits.find((unit) => unit.id === unitId);
     const searchParams = new URLSearchParams();
-    if (questionId) {
-      searchParams.set('questionId', questionId);
+    if (input.questionId) {
+      searchParams.set('questionId', input.questionId);
     }
-    const practiceRoomPath = `/main/modules/${parsedId}/${unitId}/practice-room${
+    if (input.sessionType) {
+      // Entry-mode query is only needed when opening a fresh session; once the room loads,
+      // the server-issued sessionId becomes the canonical resume handle.
+      searchParams.set('sessionType', input.sessionType);
+    }
+    const practiceRoomPath = `/main/modules/${parsedId}/${input.unitId}/practice-room${
       searchParams.size > 0 ? `?${searchParams.toString()}` : ''
     }`;
 
-    if (selectedUnit?.isCompleted) {
-      try {
-        // Reviewing completed content should not be blocked by quest-side failures, so this stays a best-effort pre-navigation trigger.
-        await recordCompletedUnitReviewQuestProgressMutation.mutateAsync(
-          Number(unitId),
-        );
-      } catch (error) {
-        if (shouldLogApiError(error)) {
-          logError(error, {
-            feature: 'quests',
-            action: 'completed-unit-review',
-            moduleId: parsedId,
-            moduleUnitId: unitId,
-          });
-        }
-      }
-    }
-
     window.location.assign(practiceRoomPath);
+  };
+
+  const handleOpenStudentPracticeRoom = async (
+    unitId: string,
+    questionId?: string,
+  ) => {
+    await openStudentPracticeRoom({ unitId, questionId });
+  };
+
+  const handleRetryStudentPracticeRoom = async (unitId: string) => {
+    await openStudentPracticeRoom({
+      unitId,
+      sessionType: PracticeSessionTypeValues.retry,
+    });
   };
 
   // toggling a unit's status is a common teacher interaction, so we
@@ -341,6 +345,7 @@ export function useSingleModulePageState({
     isCreatingUnit: createModuleUnitMutation.isPending,
     handleDailyRevisionClick,
     handleOpenStudentPracticeRoom,
+    handleRetryStudentPracticeRoom,
     handleCreateUnit,
     handleChangeUnitStatus,
     handleUpdateUnitTitle,

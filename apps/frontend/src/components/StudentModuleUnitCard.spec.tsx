@@ -133,6 +133,7 @@ describe('StudentModuleUnitCard', () => {
 
     expect(screen.getByAltText('Completion medal awarded')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'View answers' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
   });
 
   it('delegates the primary button to the parent handler', () => {
@@ -147,5 +148,22 @@ describe('StudentModuleUnitCard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'View answers' }));
 
     expect(onOpenPracticeRoom).toHaveBeenCalledWith('11');
+  });
+
+  it('delegates retry through the lesson-level retry handler only', () => {
+    const onOpenPracticeRoom = vi.fn();
+    const onRetryPracticeRoom = vi.fn();
+    render(
+      <StudentModuleUnitCard
+        unit={{ ...baseUnit, isCompleted: true }}
+        onOpenPracticeRoom={onOpenPracticeRoom}
+        onRetryPracticeRoom={onRetryPracticeRoom}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+
+    expect(onRetryPracticeRoom).toHaveBeenCalledWith('11');
+    expect(onOpenPracticeRoom).not.toHaveBeenCalled();
   });
 });

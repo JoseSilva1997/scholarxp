@@ -13,7 +13,16 @@ export const queryKeys = {
       moduleId: number,
       unitId: number,
       sessionId?: string,
-    ) => ['modules', 'practice-room', moduleId, unitId, sessionId ?? 'new'] as const,
+      sessionType?: string,
+    ) =>
+      [
+        'modules',
+        'practice-room',
+        moduleId,
+        unitId,
+        sessionId ?? 'new',
+        sessionType ?? 'default',
+      ] as const,
     moduleUnitPracticeRoomBase: (moduleId: number, unitId: number) =>
       ['modules', 'practice-room', moduleId, unitId] as const,
   },
