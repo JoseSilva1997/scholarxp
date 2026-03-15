@@ -48,7 +48,18 @@ describe('QuestProgressService', () => {
         awardedExp: 250,
       }),
     };
-    prisma.dailyQuest.updateMany.mockResolvedValue({ count: 1 } as never);
+    prisma.dailyQuest.update.mockResolvedValue({
+      id: 1,
+      userId: 42,
+      moduleId: 1,
+      moduleUnitId: null,
+      type: QuestTypeValues.completeDailyPractice,
+      expGranted: 50,
+      isCompleted: true,
+      questDateUtc: new Date('2026-03-13T00:00:00.000Z'),
+      generatedAt: new Date('2026-03-13T00:00:00.000Z'),
+      completedAt: new Date('2026-03-13T09:10:00.000Z'),
+    } as never);
 
     const moduleRef: TestingModule = await Test.createTestingModule({
       providers: [
@@ -269,7 +280,7 @@ describe('QuestProgressService', () => {
       prisma,
     );
 
-    expect(prisma.dailyQuest.updateMany).toHaveBeenCalledTimes(3);
+    expect(prisma.dailyQuest.update).toHaveBeenCalledTimes(3);
     expect(expLedgerService.recordEvent).toHaveBeenCalledTimes(3);
     expect(avatarService.addStudentExp).toHaveBeenCalledTimes(3);
     expect(avatarService.addStudentExp).toHaveBeenNthCalledWith(
@@ -352,7 +363,7 @@ describe('QuestProgressService', () => {
       prisma,
     );
 
-    expect(prisma.dailyQuest.updateMany).toHaveBeenCalledTimes(1);
+    expect(prisma.dailyQuest.update).toHaveBeenCalledTimes(1);
     expect(expLedgerService.recordEvent).toHaveBeenCalledTimes(1);
     expect(avatarService.addStudentExp).toHaveBeenCalledWith(42, 50, prisma);
   });
@@ -376,7 +387,7 @@ describe('QuestProgressService', () => {
       questGenerationService.ensureQuestDayGeneratedForUser,
     ).not.toHaveBeenCalled();
     expect(prisma.dailyQuest.findMany).not.toHaveBeenCalled();
-    expect(prisma.dailyQuest.updateMany).not.toHaveBeenCalled();
+    expect(prisma.dailyQuest.update).not.toHaveBeenCalled();
     expect(expLedgerService.recordEvent).not.toHaveBeenCalled();
     expect(avatarService.addStudentExp).not.toHaveBeenCalled();
   });
@@ -456,7 +467,7 @@ describe('QuestProgressService', () => {
       },
       distinct: ['questionId'],
     });
-    expect(prisma.dailyQuest.updateMany).toHaveBeenCalledTimes(1);
+    expect(prisma.dailyQuest.update).toHaveBeenCalledTimes(1);
     expect(expLedgerService.recordEvent).toHaveBeenCalledTimes(1);
     expect(avatarService.addStudentExp).toHaveBeenCalledWith(42, 50, prisma);
   });
@@ -498,7 +509,7 @@ describe('QuestProgressService', () => {
       prisma,
     );
 
-    expect(prisma.dailyQuest.updateMany).not.toHaveBeenCalled();
+    expect(prisma.dailyQuest.update).not.toHaveBeenCalled();
     expect(expLedgerService.recordEvent).not.toHaveBeenCalled();
     expect(avatarService.addStudentExp).not.toHaveBeenCalled();
   });

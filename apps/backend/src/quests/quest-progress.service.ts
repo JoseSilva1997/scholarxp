@@ -380,10 +380,14 @@ export class QuestProgressService {
     awardedExpOverride?: number,
   ): Promise<boolean> {
     const awardedExp = awardedExpOverride ?? quest.expGranted;
-    const updateResult = await prismaClient.dailyQuest.updateMany({
+    if (quest.isCompleted) {
+      return false;
+    }
+
+    // Completion always targets one known quest row
+    await prismaClient.dailyQuest.update({
       where: {
         id: quest.id,
-        isCompleted: false,
       },
       data: {
         // Persist the final reward amount on the quest row so history reads match the ledger-backed award.
@@ -392,9 +396,6 @@ export class QuestProgressService {
         completedAt,
       },
     });
-    if (updateResult.count === 0) {
-      return false;
-    }
 
     const rewardEvent = await this.expLedgerService.recordEvent(
       {
