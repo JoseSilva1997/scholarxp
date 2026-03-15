@@ -179,6 +179,31 @@ describe('useModuleInvitesQueries mutations', () => {
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.modules.detail(15) });
   });
 
+  it('does not block redeem completion on slow invalidations', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    vi.spyOn(queryClient, 'invalidateQueries').mockImplementation(
+      () => new Promise(() => {}),
+    );
+
+    apiMocks.redeemInvite.mockResolvedValue({
+      moduleId: 15,
+      inviteId: 20,
+      enrollmentId: 30,
+    });
+
+    const { result } = renderHook(() => useRedeemInviteMutation(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await expect(
+      act(async () => {
+        await result.current.mutateAsync('invite-token');
+      }),
+    ).resolves.toBeUndefined();
+  });
+
   it('throws a clear error when creating an invite without module id', async () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false }, mutations: { retry: false } },

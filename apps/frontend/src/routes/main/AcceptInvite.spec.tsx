@@ -51,7 +51,7 @@ describe('AcceptInvite route', () => {
 
     render(<AcceptInvite />);
 
-    expect(screen.getByText('Success! Redirecting you to the module.')).toBeInTheDocument();
+    expect(screen.getByText('Success! Redirecting you to your modules.')).toBeInTheDocument();
   });
 
   it('shows error and triggers goToModules action from CTA', () => {

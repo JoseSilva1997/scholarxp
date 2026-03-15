@@ -5,7 +5,6 @@ import { useAcceptInvitePageState } from './useAcceptInvitePageState';
 
 const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
-  redeemMutate: vi.fn(),
   getDisplayErrorMessage: vi.fn(),
   shouldLogApiError: vi.fn(),
   logError: vi.fn(),
@@ -30,8 +29,7 @@ vi.mock('react-router-dom', async () => {
 });
 
 vi.mock('../queries/useModuleInvitesQueries', () => ({
-  useRedeemInviteMutation: () => ({
-    mutate: mocks.redeemMutate,
+  useRedeemInviteQuery: () => ({
     ...mutationState,
   }),
 }));
@@ -58,7 +56,6 @@ describe('useAcceptInvitePageState', () => {
     };
 
     mocks.navigate.mockReset();
-    mocks.redeemMutate.mockReset();
     mocks.getDisplayErrorMessage.mockReset();
     mocks.shouldLogApiError.mockReset();
     mocks.logError.mockReset();
@@ -74,19 +71,22 @@ describe('useAcceptInvitePageState', () => {
 
     expect(result.current.hasToken).toBe(false);
     expect(result.current.errorMessage).toBe('This invite link is missing a token.');
-    expect(mocks.redeemMutate).not.toHaveBeenCalled();
   });
 
-  it('redeems invite once when token exists', () => {
+  it('exposes pending state when a token-backed redeem request is active', () => {
     tokenValue = 'invite-abc';
+    mutationState = {
+      isPending: true,
+      isSuccess: false,
+      isError: false,
+      error: null,
+      data: undefined,
+    };
 
-    const { rerender } = renderHook(() => useAcceptInvitePageState());
+    const { result } = renderHook(() => useAcceptInvitePageState());
 
-    expect(mocks.redeemMutate).toHaveBeenCalledTimes(1);
-    expect(mocks.redeemMutate).toHaveBeenCalledWith('invite-abc');
-
-    rerender();
-    expect(mocks.redeemMutate).toHaveBeenCalledTimes(1);
+    expect(result.current.hasToken).toBe(true);
+    expect(result.current.isPending).toBe(true);
   });
 
   it('logs unexpected redeem errors when logging policy allows it', () => {
@@ -130,7 +130,7 @@ describe('useAcceptInvitePageState', () => {
     expect(result.current.errorMessage).toBe('Cannot redeem invite.');
   });
 
-  it('navigates to module page after successful redemption delay', () => {
+  it('navigates to modules page after successful redemption delay', () => {
     tokenValue = 'invite-abc';
     mutationState = {
       isPending: false,
@@ -148,7 +148,7 @@ describe('useAcceptInvitePageState', () => {
       vi.advanceTimersByTime(900);
     });
 
-    expect(mocks.navigate).toHaveBeenCalledWith('/main/modules/42', { replace: true });
+    expect(mocks.navigate).toHaveBeenCalledWith('/main/modules', { replace: true });
   });
 
   it('exposes goToModules shortcut action', () => {

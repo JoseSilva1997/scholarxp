@@ -3,6 +3,9 @@ export const queryKeys = {
   auth: {
     me: ['auth', 'me'] as const,
   },
+  invites: {
+    redeem: (token: string) => ['invites', 'redeem', token] as const,
+  },
   modules: {
     all: ['modules'] as const,
     detail: (moduleId: number) => ['modules', 'detail', moduleId] as const,

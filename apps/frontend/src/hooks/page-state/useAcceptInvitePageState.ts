@@ -1,12 +1,12 @@
 // Encapsulates AcceptInvite route orchestration so the page only renders status and actions.
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   getDisplayErrorMessage,
   shouldLogApiError,
 } from '../../api/get-display-error';
 import { logError } from '../../utils/logger';
-import { useRedeemInviteMutation } from '../queries/useModuleInvitesQueries';
+import { useRedeemInviteQuery } from '../queries/useModuleInvitesQueries';
 
 // Main hook for AcceptInvite page state
 // Handles all logic for redeeming an invite link, error handling, and redirecting after success.
@@ -18,30 +18,17 @@ export function useAcceptInvitePageState() {
   const token = searchParams.get('token') ?? '';
   const hasToken = useMemo(() => token.trim().length > 0, [token]);
 
-  // --- Invite redemption mutation ---
-  // Prepares the mutation hook for redeeming the invite using the token.
-  const redeemInviteMutation = useRedeemInviteMutation();
+  // --- Invite redemption request ---
+  // Keep redemption query-backed so StrictMode remounts share one in-flight request instead of
+  // issuing duplicate POSTs for the same token.
+  const redeemInviteQuery = useRedeemInviteQuery(token, hasToken);
   const {
-    mutate: redeemInvite,
     isPending,
     isSuccess,
     isError,
     error,
     data,
-  } = redeemInviteMutation;
-
-  // --- Redemption guard ---
-  // Uses a ref to ensure the invite is only redeemed once, even if React renders twice (e.g. StrictMode).
-  const redemptionAttempted = useRef(false);
-
-  useEffect(() => {
-    // Attempt to redeem the invite as soon as a valid token is present.
-    // Prevents duplicate submissions by checking the ref.
-    if (!hasToken) return;
-    if (redemptionAttempted.current) return;
-    redemptionAttempted.current = true;
-    redeemInvite(token);
-  }, [hasToken, redeemInvite, token]);
+  } = redeemInviteQuery;
 
   useEffect(() => {
     // Log API errors that should be tracked for debugging or monitoring.
@@ -50,11 +37,11 @@ export function useAcceptInvitePageState() {
   }, [error, isError]);
 
   useEffect(() => {
-    // After a successful invite redemption, redirect the user to the module page after a short delay.
-    // This gives time for a success message or animation if needed.
+    // After a successful invite redemption, send the student to the modules list so the refreshed
+    // enrollment is visible inside the normal shell entry point instead of keeping them on the invite screen.
     if (!isSuccess || !data) return;
     const redirectTimer = setTimeout(() => {
-      navigate(`/main/modules/${data.moduleId}`, { replace: true });
+      navigate('/main/modules', { replace: true });
     }, 900);
     return () => clearTimeout(redirectTimer);
   }, [data, isSuccess, navigate]);
@@ -80,4 +67,3 @@ export function useAcceptInvitePageState() {
     goToModules: () => navigate('/main/modules'),
   };
 }
-
