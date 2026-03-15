@@ -3,7 +3,10 @@ import { AuthModule } from '../auth/auth.module';
 import { ExpEngineModule } from '../exp-engine/exp-engine.module';
 import { QuestsModule } from '../quests/quests.module';
 import { PracticeRoomController } from './practice-room.controller';
+import { PracticeRoomAttemptService } from './practice-room-attempt.service';
 import { PracticeRoomMapper } from './practice-room.mapper';
+import { PracticeRoomReadService } from './practice-room-read.service';
+import { PracticeRoomSessionService } from './practice-room-session.service';
 import { PracticeRoomSessionSweepService } from './practice-room-session-sweep.service';
 import { PracticeRoomService } from './practice-room.service';
 import { StudentModuleUnitProgressService } from './student-module-unit-progress.service';
@@ -14,8 +17,11 @@ import { StudentModuleUnitProgressService } from './student-module-unit-progress
   controllers: [PracticeRoomController],
   providers: [
     PracticeRoomService,
+    PracticeRoomAttemptService,
     PracticeRoomSessionSweepService,
     PracticeRoomMapper,
+    PracticeRoomReadService,
+    PracticeRoomSessionService,
     StudentModuleUnitProgressService,
   ],
   exports: [PracticeRoomService],
