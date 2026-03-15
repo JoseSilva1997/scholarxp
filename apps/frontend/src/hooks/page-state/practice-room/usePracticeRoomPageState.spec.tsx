@@ -152,6 +152,7 @@ describe('usePracticeRoomPageState (composition)', () => {
   const useCloseModuleUnitPracticeSessionMutationMock =
     useCloseModuleUnitPracticeSessionMutation as unknown as Mock;
   const closeSessionMutateMock = vi.fn();
+  const syncAttemptSuccessEffectsMock = vi.fn().mockResolvedValue(undefined);
 
   beforeEach(() => {
     vi.resetAllMocks();
@@ -169,8 +170,10 @@ describe('usePracticeRoomPageState (composition)', () => {
     useSubmitModuleUnitPracticeAttemptMutationMock.mockReturnValue({
       isPending: false,
       mutateAsync: vi.fn().mockResolvedValue(buildSubmitResponse()),
+      syncAttemptSuccessEffects: syncAttemptSuccessEffectsMock,
     });
     closeSessionMutateMock.mockReset();
+    syncAttemptSuccessEffectsMock.mockReset();
     useCloseModuleUnitPracticeSessionMutationMock.mockReturnValue({
       mutate: closeSessionMutateMock,
     });
@@ -331,12 +334,16 @@ describe('usePracticeRoomPageState (composition)', () => {
     useSubmitModuleUnitPracticeAttemptMutationMock.mockReturnValue({
       isPending: false,
       mutateAsync,
+      syncAttemptSuccessEffects: syncAttemptSuccessEffectsMock,
     });
     useModuleUnitPracticeRoomQueryMock.mockReturnValue({
       isPending: false,
       error: null,
       data: buildPracticeRoomResponse({
-        questions: [buildQuestionUnit({ questionUnitId: 22, contentId: 200 })],
+        questions: [
+          buildQuestionUnit({ questionUnitId: 22, contentId: 200 }),
+          buildQuestionUnit({ questionUnitId: 23, contentId: 201 }),
+        ],
       }),
     });
 
@@ -363,6 +370,7 @@ describe('usePracticeRoomPageState (composition)', () => {
     useSubmitModuleUnitPracticeAttemptMutationMock.mockReturnValue({
       isPending: false,
       mutateAsync,
+      syncAttemptSuccessEffects: syncAttemptSuccessEffectsMock,
     });
     useModuleUnitPracticeRoomQueryMock.mockReturnValue({
       isPending: false,
@@ -410,6 +418,7 @@ describe('usePracticeRoomPageState (composition)', () => {
     useSubmitModuleUnitPracticeAttemptMutationMock.mockReturnValue({
       isPending: false,
       mutateAsync,
+      syncAttemptSuccessEffects: syncAttemptSuccessEffectsMock,
     });
     useModuleDetailQueryMock.mockReturnValue({
       isPending: false,
@@ -426,7 +435,10 @@ describe('usePracticeRoomPageState (composition)', () => {
       error: null,
       data: buildPracticeRoomResponse({
         sessionId: '11111111-1111-4111-8111-111111111010',
-        questions: [buildQuestionUnit({ questionUnitId: 22, contentId: 200 })],
+        questions: [
+          buildQuestionUnit({ questionUnitId: 22, contentId: 200 }),
+          buildQuestionUnit({ questionUnitId: 23, contentId: 201 }),
+        ],
       }),
     });
 

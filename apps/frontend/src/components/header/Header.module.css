@@ -13,7 +13,6 @@
   position: relative;
   border-bottom: 1px solid var(--color-overlay-light-border);
   gap: clamp(6px, 2vw, 12px);
-  overflow: hidden;
 }
 
 .brandWrapper {
@@ -29,7 +28,6 @@
   gap: clamp(6px, 1.5vw, 12px);
   min-width: 0;
   flex-shrink: 1;
-  overflow: hidden;
 }
 
 .brand {

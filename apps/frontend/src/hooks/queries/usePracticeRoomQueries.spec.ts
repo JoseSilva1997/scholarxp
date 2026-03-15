@@ -5,8 +5,10 @@ import { queryKeys } from '../query-keys';
 const useQueryMock = vi.fn();
 const useMutationMock = vi.fn();
 const invalidateQueriesMock = vi.fn();
+const setQueryDataMock = vi.fn();
 const useQueryClientMock = vi.fn(() => ({
   invalidateQueries: invalidateQueriesMock,
+  setQueryData: setQueryDataMock,
 }));
 vi.mock('@tanstack/react-query', () => ({
   useQuery: (opts: unknown) => useQueryMock(opts),
@@ -48,6 +50,7 @@ describe('useModuleUnitPracticeRoomQuery', () => {
       closedAt: '2026-02-26T12:00:00.000Z',
     });
     invalidateQueriesMock.mockResolvedValue(undefined);
+    setQueryDataMock.mockReset();
   });
 
   it('uses numeric ids when both module and unit provided', () => {
@@ -142,6 +145,7 @@ describe('useSubmitModuleUnitPracticeAttemptMutation', () => {
       closedAt: '2026-02-26T12:00:00.000Z',
     });
     invalidateQueriesMock.mockResolvedValue(undefined);
+    setQueryDataMock.mockReset();
   });
 
   it('wires mutationFn to submitPracticeRoomAttempt when ids are valid', async () => {
@@ -180,15 +184,13 @@ describe('useSubmitModuleUnitPracticeAttemptMutation', () => {
     ).toThrow('Cannot submit a practice-room attempt');
   });
 
-  it('invalidates the active practice room query on success', async () => {
-    useSubmitModuleUnitPracticeAttemptMutation(5, 2);
-
-    const opts = useMutationMock.mock.calls[0][0];
+  it('syncs practice room and reward caches when the caller flushes success effects', async () => {
+    const result = useSubmitModuleUnitPracticeAttemptMutation(5, 2);
     const mockResponse = {
       awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: true,
     };
-    await opts.onSuccess(mockResponse);
+    await result.syncAttemptSuccessEffects(mockResponse);
 
     expect(invalidateQueriesMock).toHaveBeenCalledWith({
       queryKey: queryKeys.modules.moduleUnitPracticeRoomBase(5, 2),
@@ -202,6 +204,29 @@ describe('useSubmitModuleUnitPracticeAttemptMutation', () => {
     expect(invalidateQueriesMock).toHaveBeenCalledWith({
       queryKey: queryKeys.auth.me,
     });
+  });
+
+  it('updates module detail cache directly when the submit response includes refreshed progress', async () => {
+    const result = useSubmitModuleUnitPracticeAttemptMutation(5, 2);
+    const updatedModuleProgress = {
+      id: 5,
+      title: 'Algebra',
+      description: 'Module',
+      userModuleLevel: 2,
+      currentExp: 45,
+      expMax: 100,
+    };
+
+    await result.syncAttemptSuccessEffects({
+      awards: { baseQuestionExp: 10, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
+      hasCorrectAttempt: true,
+      updatedModuleProgress,
+    });
+
+    expect(setQueryDataMock).toHaveBeenCalledWith(
+      queryKeys.modules.detail(5),
+      updatedModuleProgress,
+    );
   });
 });
 

@@ -49,6 +49,7 @@ const mocks = vi.hoisted(() => ({
   goToPreviousQuestionUnit: vi.fn(),
   goToNextQuestionUnit: vi.fn(),
   submitActiveQuestionAttempt: vi.fn(),
+  dismissLessonCompleteModal: vi.fn(),
 }));
 
 type MockPageState = {
@@ -58,6 +59,7 @@ type MockPageState = {
   moduleProgress: { level: number; currentExp: number; expPercent: number } | null;
   moduleExpGainIndicator: { base: number; firstAttemptBonus: number; streakBonus: number; total: number; awardId?: number } | null;
   showLevelUp: boolean;
+  isLessonCompleteModalOpen: boolean;
   isLoading: boolean;
   pageError: string | null;
   submitErrorMessage: string | null;
@@ -97,6 +99,7 @@ let pageState: MockPageState = {
   moduleProgress: null,
   moduleExpGainIndicator: null,
   showLevelUp: false,
+  isLessonCompleteModalOpen: false,
   isLoading: true,
   pageError: null,
   submitErrorMessage: null,
@@ -140,6 +143,7 @@ vi.mock('../../hooks/page-state/practice-room/usePracticeRoomPageState', () => (
     goToPreviousQuestionUnit: mocks.goToPreviousQuestionUnit,
     goToNextQuestionUnit: mocks.goToNextQuestionUnit,
     submitActiveQuestionAttempt: mocks.submitActiveQuestionAttempt,
+    dismissLessonCompleteModal: mocks.dismissLessonCompleteModal,
   }),
 }));
 
@@ -159,6 +163,7 @@ describe('PracticeRoomPage route (core-only)', () => {
       moduleProgress: null,
       moduleExpGainIndicator: null,
       showLevelUp: false,
+      isLessonCompleteModalOpen: false,
       isLoading: true,
       pageError: null,
       submitErrorMessage: null,
@@ -397,6 +402,23 @@ describe('PracticeRoomPage route (core-only)', () => {
     );
 
     expect(screen.getByText('Practice room not found.')).toBeInTheDocument();
+  });
+
+  it('renders the lesson-complete modal when completion is pending', () => {
+    pageState.isLoading = false;
+    pageState.isLessonCompleteModalOpen = true;
+    pageState.room = { moduleUnitTitle: 'Unit 1', questions: [] };
+
+    render(
+      <MemoryRouter>
+        <PracticeRoomPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('dialog')).toHaveTextContent('Badge locked in');
+    expect(
+      screen.getByText('"Unit 1" is complete. Continue to reveal your XP gain.'),
+    ).toBeInTheDocument();
   });
 });
 

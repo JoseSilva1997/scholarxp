@@ -19,6 +19,7 @@ import {
 } from '../../queries/usePracticeRoomQueries';
 import { useModuleDetailQuery } from '../../queries/useModulesQueries';
 import { useModuleProgressAnimation } from './useModuleProgressAnimation';
+import { usePracticeRoomCompletionFlow } from './usePracticeRoomCompletionFlow';
 import { useSessionLifecycle } from './useSessionLifecycle';
 import { usePracticeRoomPersistence } from './usePracticeRoomPersistence';
 import { useSubmitAttempt } from './useSubmitAttempt';
@@ -108,6 +109,15 @@ export function usePracticeRoomPageState({
     isProgressInitialized,
     applyExpAward,
   } = useModuleProgressAnimation({ moduleDetail, moduleId: parsedModuleId });
+  const {
+    isLessonCompleteModalOpen,
+    deferLessonCompleteRewards,
+    dismissLessonCompleteModal,
+  } = usePracticeRoomCompletionFlow({
+    applyExpAward,
+    moduleDetail,
+    syncAttemptSuccessEffects: submitAttemptMutation.syncAttemptSuccessEffects,
+  });
 
   // Persistence is wired before state so lazy initialisers can seed from
   // localStorage on the very first render.
@@ -316,12 +326,16 @@ export function usePracticeRoomPageState({
     isPending: submitAttemptMutation.isPending,
     applyExpAward,
     moduleDetail,
+    syncAttemptSuccessEffects: submitAttemptMutation.syncAttemptSuccessEffects,
     updateCurrentStreak,
     updateLastAttemptResult,
     activeFirstTryBonusStatus,
     clearSelectedOptionOverride,
     markQuestionSubmitted,
     recordSubmittedAttempt,
+    onModuleUnitCompleted: deferLessonCompleteRewards,
+    shouldCelebrateModuleUnitCompletion:
+      sessionType === PracticeSessionTypeValues.practiceRoom && !isRoomReadOnly,
     parsedModuleId,
     parsedUnitId,
   });
@@ -366,6 +380,7 @@ export function usePracticeRoomPageState({
     moduleProgress,
     moduleExpGainIndicator,
     showLevelUp,
+    isLessonCompleteModalOpen,
     isLoading:
       practiceRoomQuery.isPending ||
       (moduleDetailQuery.isPending && !isProgressInitialized),
@@ -406,6 +421,7 @@ export function usePracticeRoomPageState({
     isActiveHintUnlocked,
     unlockHintForContent,
     submitActiveQuestionAttempt,
+    dismissLessonCompleteModal,
     goToPreviousQuestionUnit,
     goToNextQuestionUnit,
   };
