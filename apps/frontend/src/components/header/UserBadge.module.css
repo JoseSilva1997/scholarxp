@@ -1,14 +1,15 @@
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: 16px;
+  gap: clamp(6px, 2vw, 16px);
   border-radius: var(--radius-full);
-  padding: 8px 6px 8px 28px;
+  padding: clamp(4px, 1.5vw, 8px) clamp(4px, 1vw, 6px) clamp(4px, 1.5vw, 8px) clamp(12px, 3vw, 28px);
   background: var(--color-glass-bg); /* Glassy background for dark header context */
   backdrop-filter: blur(12px);
   border: 1px solid var(--color-glass-border); /* Subtle glass border */
   transition: all var(--transition-base);
   position: relative;
+  max-width: clamp(50px, 90vw, 100%);
 }
 
 /* Shimmer layer moved to a separate pseudo-element that doesn't conflict with layout */
@@ -58,8 +59,8 @@
 }
 
 .avatar {
-  width: 40px;
-  height: 40px;
+  width: clamp(32px, 8vw, 40px);
+  height: clamp(32px, 8vw, 40px);
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid var(--color-primary);
@@ -94,7 +95,7 @@
 
 .name {
   font-weight: 700;
-  font-size: 0.9375rem;
+  font-size: clamp(0.75rem, 2vw, 0.9375rem);
   color: var(--color-text-on-dark);
   white-space: nowrap;
   overflow: hidden;
@@ -138,7 +139,7 @@
 }
 
 .level {
-  font-size: 0.75rem;
+  font-size: clamp(0.6rem, 1.5vw, 0.75rem);
   color: var(--color-accent-light);
   font-weight: 800;
   display: flex;
@@ -170,7 +171,7 @@
   position: relative;
   height: 10px;
   width: 100%;
-  min-width: 80px;
+  min-width: clamp(50px, 15vw, 80px);
   margin-left: 4px;
   background: var(--color-glass-bg-deep); /* Dark background for track elements */
   border-radius: var(--radius-full);
@@ -438,8 +439,8 @@
 
 @media (max-width: 720px) {
   .badge {
-    padding: 6px 6px 6px 12px;
-    gap: 10px;
+    padding: clamp(3px, 1.2vw, 6px) clamp(3px, 0.8vw, 6px) clamp(3px, 1.2vw, 6px) clamp(8px, 2.5vw, 12px);
+    gap: clamp(6px, 1.5vw, 10px);
   }
 
   .meta {
@@ -447,15 +448,59 @@
   }
 
   .name {
-    font-size: 0.8rem;
+    font-size: clamp(0.7rem, 1.5vw, 0.8rem);
+  }
+}
+
+/* Intermediate breakpoint for smoother scaling */
+@media (max-width: 600px) {
+  .badge {
+    padding: clamp(3px, 1vw, 5px) clamp(2px, 0.7vw, 4px) clamp(3px, 1vw, 5px) clamp(6px, 2vw, 10px);
+    gap: clamp(5px, 1.2vw, 8px);
+  }
+
+  .barTrack {
+    min-width: clamp(40px, 12vw, 60px);
+  }
+
+  .name {
+    font-size: clamp(0.65rem, 1.2vw, 0.75rem);
+  }
+
+  .level {
+    font-size: clamp(0.55rem, 1.2vw, 0.65rem);
+  }
+}
+
+/* More aggressive scaling for smaller tablets */
+@media (max-width: 540px) {
+  .badge {
+    padding: clamp(2px, 0.8vw, 4px) clamp(2px, 0.5vw, 3px) clamp(2px, 0.8vw, 4px) clamp(4px, 1.5vw, 8px);
+    gap: clamp(4px, 1vw, 6px);
+  }
+
+  .avatar {
+    width: clamp(28px, 6.5vw, 32px);
+    height: clamp(28px, 6.5vw, 32px);
+  }
+
+  .barTrack {
+    min-width: clamp(35px, 10vw, 50px);
+    height: 8px;
+  }
+
+  .name {
+    font-size: clamp(0.6rem, 1vw, 0.7rem);
   }
 }
 
 @media (max-width: 480px) {
   .badge {
-    padding: 4px 4px 4px 8px;
-    gap: 8px;
-    max-width: 40vw; /* Tighter on very small screens */
+    padding: clamp(2px, 0.6vw, 4px) clamp(2px, 0.4vw, 2px) clamp(2px, 0.6vw, 4px) clamp(3px, 1vw, 6px);
+    gap: clamp(3px, 0.8vw, 4px);
+    min-width: 0;
+    /* Ensure badge doesn't exceed viewport on very small devices */
+    max-width: calc(100vw - 24px);
   }
 
   .avatar {
@@ -487,6 +532,7 @@
     grid-area: bar;
     width: 100%;
     height: 4px;
+    min-width: unset;
   }
 
   .expLabel {

@@ -4,7 +4,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px 0px 16px;
+  padding: 0 clamp(12px, 2vw, 24px) 0px clamp(8px, 2vw, 16px);
   background-color: var(--color-brand-surface-dark);
   color: var(--color-surface);
   min-height: var(--header-height);
@@ -12,18 +12,24 @@
   z-index: 50;
   position: relative;
   border-bottom: 1px solid var(--color-overlay-light-border);
+  gap: clamp(6px, 2vw, 12px);
+  overflow: hidden;
 }
 
 .brandWrapper {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: clamp(8px, 2vw, 16px);
+  flex-shrink: 0;
 }
 
 .headerRight {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: clamp(6px, 1.5vw, 12px);
+  min-width: 0;
+  flex-shrink: 1;
+  overflow: hidden;
 }
 
 .brand {
@@ -39,15 +45,15 @@
 }
 
 .logo {
-  width: 40px;
-  height: 40px;
+  width: clamp(32px, 8vw, 40px);
+  height: clamp(32px, 8vw, 40px);
   flex-shrink: 0;
   filter: drop-shadow(0 0 8px var(--color-secondary-glow));
 }
 
 .wordmark {
   font-family: var(--font-display);
-  font-size: 1.25rem;
+  font-size: clamp(1rem, 2.5vw, 1.25rem);
   font-weight: 700;
   letter-spacing: -0.01em;
   background: linear-gradient(135deg, var(--color-accent-light) 0%, var(--color-secondary) 100%);
@@ -138,8 +144,8 @@
 
 @media (max-width: 768px) {
   .header {
-    padding: 0 16px;
-    gap: 4px;
+    padding: 0 clamp(8px, 1.5vw, 16px);
+    gap: clamp(4px, 1.5vw, 8px);
   }
 
   .wordmark {
@@ -147,15 +153,53 @@
   }
 
   .brandWrapper {
-    gap: 12px;
+    gap: clamp(8px, 1.5vw, 12px);
   }
 
   .actions {
-    gap: 6px;
+    gap: clamp(4px, 1vw, 6px);
   }
 
   .btn {
-    padding: 8px 14px;
-    font-size: 0.85rem;
+    padding: clamp(6px, 1.5vw, 8px) clamp(10px, 2vw, 14px);
+    font-size: clamp(0.75rem, 1.2vw, 0.85rem);
+  }
+}
+
+/* Additional responsive breakpoint for tablets */
+@media (max-width: 600px) {
+  .header {
+    padding: 0 clamp(6px, 1.2vw, 12px);
+  }
+
+  .btn {
+    padding: clamp(5px, 1.2vw, 7px) clamp(8px, 1.5vw, 12px);
+    font-size: clamp(0.7rem, 1vw, 0.8rem);
+  }
+}
+
+/* Small mobile phones */
+@media (max-width: 480px) {
+  .header {
+    padding: 0 clamp(4px, 1vw, 8px);
+    gap: clamp(2px, 1vw, 4px);
+  }
+
+  .brandWrapper {
+    gap: clamp(4px, 1vw, 8px);
+  }
+
+  .logo {
+    width: clamp(28px, 6vw, 32px);
+    height: clamp(28px, 6vw, 32px);
+  }
+
+  .actions {
+    gap: clamp(2px, 0.8vw, 4px);
+  }
+
+  .btn {
+    padding: clamp(4px, 1vw, 6px) clamp(6px, 1.2vw, 10px);
+    font-size: clamp(0.65rem, 0.9vw, 0.75rem);
   }
 }

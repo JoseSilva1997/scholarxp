@@ -3,8 +3,8 @@
   position: relative;
   display: inline-flex;
   align-items: center;
-  border-left: 1px solid var(--color-glass-border-strong);
-  padding-left: 8px;
+  border-left: clamp(0px, 100%, 1px) solid var(--color-glass-border-strong);
+  padding-left: clamp(0px, 100%, 8px);
 }
 
 .chip {
@@ -29,7 +29,7 @@
 }
 
 .flame {
-  font-size: 0.9rem;
+  font-size: clamp(0.75rem, 2vw, 0.9rem);
   color: var(--color-primary-light);
   filter: drop-shadow(0 0 8px var(--color-primary-shadow-hover));
   transition: transform var(--transition-fast);
@@ -38,7 +38,7 @@
 .count {
   min-width: 0.8rem;
   font-family: var(--font-display);
-  font-size: 0.75rem;
+  font-size: clamp(0.65rem, 1.5vw, 0.75rem);
   font-weight: 700;
   text-align: center;
   color: var(--color-text-on-dark);
@@ -204,33 +204,64 @@
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 600px) {
   .chipGroup {
-    gap: 4px;
+    gap: clamp(3px, 1vw, 6px);
   }
 
   .chip {
-    padding: 5px 8px;
-    gap: 8px;
+    gap: clamp(6px, 1.5vw, 10px);
+  }
+
+  .flame {
+    font-size: clamp(0.8rem, 1.8vw, 1rem);
+  }
+
+  .count {
+    font-size: clamp(0.75rem, 1.5vw, 0.875rem);
+  }
+
+  /* Hide beads and info on tablets and below */
+  .beadsContainer {
+    display: none;
+  }
+
+  .infoWrapper {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .chipGroup {
+    gap: clamp(2px, 0.8vw, 4px);
+  }
+
+  .chip {
+    padding: clamp(4px, 1vw, 5px) clamp(6px, 1.5vw, 8px);
+    gap: clamp(4px, 1.2vw, 8px);
   }
 
   .chipCollapsed {
     gap: 0;
-    padding: 5px 8px;
+    padding: clamp(4px, 1vw, 5px) clamp(6px, 1.5vw, 8px);
   }
 
   .flame {
-    font-size: 0.95rem;
+    font-size: clamp(0.85rem, 1.5vw, 0.95rem);
   }
 
   .count {
-    min-width: 1.1rem;
-    font-size: 0.8rem;
+    min-width: 0.9rem;
+    font-size: clamp(0.65rem, 1.3vw, 0.8rem);
+  }
+
+  /* Keep only flame and count visible */
+  .beadsContainer {
+    display: none;
   }
 
   .infoWrapper {
-    width: 1.35rem;
-    height: 1.35rem;
+    display: none;
   }
 
   .infoBubble {

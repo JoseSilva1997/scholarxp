@@ -263,8 +263,8 @@
   }
 }
 
-/* Collapse into a popover */
-@media (max-width: 640px) {
+/* Collapse into a popover earlier to prevent overflow */
+@media (max-width: 800px) {
   .mobileTrigger {
     display: flex;
   }
