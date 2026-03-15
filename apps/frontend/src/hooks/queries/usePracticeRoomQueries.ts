@@ -87,6 +87,9 @@ export function useSubmitModuleUnitPracticeAttemptMutation(
           queryKey: queryKeys.quests.masterStreakAll,
         }),
         queryClient.invalidateQueries({
+          queryKey: queryKeys.rewards.dailyLessonXpTrackAll,
+        }),
+        queryClient.invalidateQueries({
           queryKey: queryKeys.auth.me,
         }),
       ];

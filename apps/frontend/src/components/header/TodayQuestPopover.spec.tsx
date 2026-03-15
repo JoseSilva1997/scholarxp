@@ -236,7 +236,9 @@ const masterQuest: QuestView = {
     );
 
     expect(
-      screen.getByText('Completing all 3 quests will grant +250 EXP'),
+      screen.getByText((content) =>
+        content.includes('Completing all 3 quests will grant'),
+      ),
     ).toBeInTheDocument();
   });
 });

@@ -6,10 +6,12 @@ import TodayQuestChip from './TodayQuestChip';
 
 const queryMocks = vi.hoisted(() => ({
   useTodayQuestListQuery: vi.fn(),
+  useMasterQuestStreakQuery: vi.fn(),
 }));
 
 vi.mock('@/hooks/queries/useQuestsQueries', () => ({
   useTodayQuestListQuery: queryMocks.useTodayQuestListQuery,
+  useMasterQuestStreakQuery: queryMocks.useMasterQuestStreakQuery,
 }));
 
 describe('TodayQuestChip', () => {
@@ -18,6 +20,15 @@ describe('TodayQuestChip', () => {
     queryMocks.useTodayQuestListQuery.mockReturnValue({
       data: { quests: [], masterQuest: null, completed: 0, max: 3 },
       isPending: false,
+    });
+    queryMocks.useMasterQuestStreakQuery.mockReturnValue({
+      data: {
+        currentStreak: 0,
+        maxStreak: 5,
+        bonusPercent: 0,
+        bonusPercentPerStep: 10,
+        lastCompletedQuestDateUtc: null,
+      },
     });
   });
 

@@ -1,13 +1,13 @@
-/* Student quest header status layout keeps the quest chip and streak chip aligned as one header cluster. */
+/* Student quest header status layout keeps the standalone reward track and quest widgets aligned as one student-only header cluster. */
 .statusGroup {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
 }
 
 @media (max-width: 768px) {
   .statusGroup {
-    gap: 8px;
+    gap: 6px;
   }
 }

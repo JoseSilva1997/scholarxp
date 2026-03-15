@@ -26,4 +26,10 @@ export const queryKeys = {
     masterStreak: (userId: number | null) =>
       ['quests', 'master-streak', userId] as const,
   },
+  rewards: {
+    all: ['rewards'] as const,
+    dailyLessonXpTrackAll: ['rewards', 'daily-lesson-xp-track'] as const,
+    dailyLessonXpTrack: (userId: number | null) =>
+      ['rewards', 'daily-lesson-xp-track', userId] as const,
+  },
 };

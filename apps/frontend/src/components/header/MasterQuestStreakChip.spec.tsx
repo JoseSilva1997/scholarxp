@@ -1,5 +1,5 @@
-// MasterQuestStreakChip tests cover streak rendering and collapse behavior independently from the surrounding header shell.
-import { fireEvent, screen } from '@testing-library/react';
+// MasterQuestStreakChip tests cover streak rendering and tooltip copy independently from the surrounding header shell.
+import { screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '@/test/utils';
 import MasterQuestStreakChip from './MasterQuestStreakChip';
@@ -14,7 +14,6 @@ vi.mock('@/hooks/queries/useQuestsQueries', () => ({
 
 describe('MasterQuestStreakChip', () => {
   beforeEach(() => {
-    localStorage.clear();
     queryMocks.useMasterQuestStreakQuery.mockReturnValue({
       data: {
         currentStreak: 3,
@@ -24,27 +23,14 @@ describe('MasterQuestStreakChip', () => {
         lastCompletedQuestDateUtc: '2026-03-14',
       },
     });
-    vi.stubGlobal(
-      'matchMedia',
-      vi.fn().mockImplementation((query: string) => ({
-        matches: false,
-        media: query,
-        onchange: null,
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        dispatchEvent: vi.fn(),
-      })),
-    );
   });
 
-  it('renders five bead slots and lights beads up to the current streak when expanded', () => {
+  it('renders five bead slots and lights beads up to the current streak', () => {
     renderWithProviders(<MasterQuestStreakChip userId={7} />);
 
     expect(screen.getByTestId('master-quest-streak-chip')).toHaveAttribute(
-      'aria-expanded',
-      'true',
+      'aria-label',
+      'Master quest streak 3 out of 5.',
     );
     expect(screen.getByText('3')).toBeInTheDocument();
     expect(screen.getByTestId('master-streak-bead-1').className).toContain(
@@ -58,47 +44,15 @@ describe('MasterQuestStreakChip', () => {
     );
   });
 
-  it('collapses into a compact chip and persists the preference', () => {
-    renderWithProviders(<MasterQuestStreakChip userId={7} />);
-
-    fireEvent.click(screen.getByTestId('master-quest-streak-chip'));
-
-    expect(screen.getByTestId('master-quest-streak-chip')).toHaveAttribute(
-      'aria-expanded',
-      'false',
-    );
-    expect(screen.getByTestId('master-quest-streak-chip').className).toContain(
-      'chipCollapsed',
-    );
-    expect(localStorage.getItem('master-quest-streak-chip-collapsed:7')).toBe(
-      'true',
-    );
-  });
-
-  it('defaults to collapsed on mobile-sized viewports when no preference is stored', () => {
-    vi.stubGlobal(
-      'matchMedia',
-      vi.fn().mockImplementation((query: string) => ({
-        matches: query === '(max-width: 768px)',
-        media: query,
-        onchange: null,
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        dispatchEvent: vi.fn(),
-      })),
-    );
-
+  it('uses the fallback zeroed track when the query has not loaded yet', () => {
+    queryMocks.useMasterQuestStreakQuery.mockReturnValue({ data: undefined });
     renderWithProviders(<MasterQuestStreakChip userId={7} />);
 
     expect(screen.getByTestId('master-quest-streak-chip')).toHaveAttribute(
-      'aria-expanded',
-      'false',
+      'aria-label',
+      'Master quest streak 0 out of 5.',
     );
-    expect(screen.getByTestId('master-quest-streak-chip').className).toContain(
-      'chipCollapsed',
-    );
+    expect(screen.getByText('0')).toBeInTheDocument();
   });
 
   it('renders help copy for the streak tooltip trigger', () => {
@@ -110,10 +64,10 @@ describe('MasterQuestStreakChip', () => {
     );
     const tooltip = screen.getByRole('tooltip', { hidden: true });
     expect(tooltip).toHaveTextContent(
-      'Complete the master quest on consecutive UTC days to build your streak.',
+      'Complete the master quest on consecutive days to build your streak.',
     );
     expect(tooltip).toHaveTextContent(
-      "Today's reward uses your current streak, then today's completion adds one bead for tomorrow.",
+      'Each increment adds 10% to the next master quest reward, up to 50%.',
     );
   });
 });

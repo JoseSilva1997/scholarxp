@@ -187,6 +187,9 @@ describe('useSubmitModuleUnitPracticeAttemptMutation', () => {
       queryKey: queryKeys.quests.masterStreakAll,
     });
     expect(invalidateQueriesMock).toHaveBeenCalledWith({
+      queryKey: queryKeys.rewards.dailyLessonXpTrackAll,
+    });
+    expect(invalidateQueriesMock).toHaveBeenCalledWith({
       queryKey: queryKeys.auth.me,
     });
   });

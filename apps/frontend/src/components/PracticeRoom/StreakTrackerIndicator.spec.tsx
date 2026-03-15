@@ -30,11 +30,11 @@ describe('StreakIndicator', () => {
   });
 
   describe('tier 0 — eligible unit but streak not yet reached threshold', () => {
-    it('shows dormant label WITH badge even when below tier-1 threshold', () => {
+    it('shows the building label with badge even when below the first bonus threshold', () => {
       // 10-question unit: tier-1 threshold = 3. Streak of 2 is below it,
       // but badge still renders so students can see progress building toward the bonus.
       render(<StreakIndicator currentStreak={2} highestStreak={0} totalQuestions={10} isStreakInitialized={true} />);
-      expect(screen.getByLabelText('No streak yet — 2 in a row')).toBeInTheDocument();
+      expect(screen.getByLabelText('Streak: building — 2 in a row')).toBeInTheDocument();
       expect(screen.getByText('2')).toBeInTheDocument();
     });
 

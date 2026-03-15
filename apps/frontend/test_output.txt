@@ -1,0 +1,10 @@
+
+ RUN  v3.2.4 /home/shade/scholar_xp/apps/frontend
+
+ ✓ src/components/header/DailyLessonXpTrackChip.spec.tsx (4 tests) 66ms
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  13:25:20
+   Duration  1.43s (transform 138ms, setup 273ms, collect 183ms, tests 66ms, environment 520ms, prepare 91ms)
+

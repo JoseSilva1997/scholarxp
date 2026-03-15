@@ -1,16 +1,21 @@
 import { Module } from '@nestjs/common';
+import { AuthModule } from '../auth/auth.module';
 import { AvatarModule } from '../db-entities/avatar/avatar.module';
 import { ExpLedgerService } from '../db-entities/exp-ledger/exp-ledger.service';
 import { UserModuleModule } from '../db-entities/user-module/user-module.module';
+import { DailyLessonXpTrackService } from './daily-lesson-xp-track.service';
 import { ExpAwardingService } from './exp-awarding.service';
 import { ExpCalculationService } from './exp-calculation.service';
 import { ExpQuestionContextService } from './exp-question-context.service';
 import { ExpStreakService } from './exp-streak.service';
+import { RewardsController } from './rewards.controller';
 
 @Module({
-  imports: [AvatarModule, UserModuleModule],
+  imports: [AuthModule, AvatarModule, UserModuleModule],
+  controllers: [RewardsController],
   providers: [
     ExpLedgerService,
+    DailyLessonXpTrackService,
     ExpAwardingService,
     ExpCalculationService,
     ExpQuestionContextService,
@@ -18,6 +23,7 @@ import { ExpStreakService } from './exp-streak.service';
   ],
   exports: [
     ExpLedgerService,
+    DailyLessonXpTrackService,
     ExpAwardingService,
     ExpCalculationService,
     ExpQuestionContextService,

@@ -1,0 +1,326 @@
+/* DailyLessonXpTrackChip styles keep the anti-grind reward track readable in the header without borrowing quest-specific visuals. */
+.chipGroup {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Mobile trigger is hidden by default on larger screens */
+.mobileTrigger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--color-glass-border);
+  border-radius: var(--radius-full);
+  background:
+    linear-gradient(135deg, var(--color-glass-bg), var(--color-primary-soft)),
+    var(--color-overlay-light-hover);
+  color: var(--color-text-on-dark);
+  box-shadow:
+    var(--shadow-sm),
+    inset 0 1px 1px var(--color-overlay-light-border);
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.mobileTrigger:hover,
+.mobileTrigger:focus-visible {
+  border-color: var(--color-accent-light);
+}
+
+.mobileTriggerActive {
+  border-color: var(--color-accent-light);
+  box-shadow: 0 0 8px var(--color-accent-shadow);
+}
+
+.iconTrigger {
+  width: 0.95rem;
+  height: 0.95rem;
+  color: var(--color-accent-light);
+  filter: drop-shadow(0 0 6px var(--color-accent-shadow-hover));
+}
+
+/* The content is rendered inline without chip styling on larger screens */
+.chipContent {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--color-text-on-dark);
+  margin-left: 8px;;
+}
+
+.identity {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.icon {
+  display: none; /* hidden on non-mobile screens */
+  width: 0.95rem;
+  height: 0.95rem;
+  color: var(--color-accent-light);
+  filter: drop-shadow(0 0 6px var(--color-accent-shadow-hover));
+}
+
+.eyebrow {
+  /* Increased slightly since nextReward is removed */
+  font-size: 0.75rem; 
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-on-dark-subtle);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.track {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.step {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast),
+    box-shadow var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.stepIcon {
+  width: 10px;
+  height: 10px;
+  opacity: 0.85;
+}
+
+
+.stepLabel {
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.stepEarned {
+  color: var(--color-success);
+  background: var(--color-success-light);
+  border-color: var(--color-success-border);
+}
+
+.stepActive {
+  color: var(--color-accent-light);
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent-light);
+  box-shadow: 0 0 12px var(--color-accent-shadow);
+}
+
+.stepUpcoming {
+  color: var(--color-text-on-dark-subtle);
+  background: var(--color-glass-bg-subtle);
+  border-color: var(--color-glass-border-subtle);
+}
+
+.stepPractice.stepActive {
+  color: var(--color-text-on-dark-vibrant);
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary-light);
+  box-shadow: 0 0 12px var(--color-primary-shadow);
+}
+
+.screenReaderLabel {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.infoWrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+  color: var(--color-text-on-dark-muted);
+  cursor: help;
+  outline: none;
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.infoWrapper:hover,
+.infoWrapper:focus-within {
+  color: var(--color-accent-light);
+  background: var(--color-overlay-light-hover);
+}
+
+.infoWrapper:focus-visible {
+  outline: 2px solid var(--color-accent-light);
+  outline-offset: 2px;
+}
+
+.infoIcon {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.infoBubble {
+  display: none;
+  position: absolute;
+  top: calc(100% + 10px);
+  right: -4px;
+  width: 270px;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--color-glass-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-glass-bg-deep-solid);
+  box-shadow: var(--shadow-floating-dark);
+  z-index: 220;
+  pointer-events: none;
+}
+
+.infoWrapper:hover .infoBubble,
+.infoWrapper:focus-within .infoBubble {
+  display: block;
+}
+
+.infoBubble::before {
+  content: '';
+  position: absolute;
+  top: -7px;
+  right: 10px;
+  width: 12px;
+  height: 12px;
+  background: var(--color-glass-bg-deep-solid);
+  border-left: 1px solid var(--color-glass-border-strong);
+  border-top: 1px solid var(--color-glass-border-strong);
+  transform: rotate(45deg);
+}
+
+.infoHeading {
+  margin: 0 0 0.55rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-on-dark-subtle);
+}
+
+.infoText {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--color-text-on-dark-vibrant);
+}
+
+.infoText + .infoText {
+  margin-top: 0.5rem;
+}
+
+/* Responsive threshold - make it smaller */
+@media (max-width: 900px) {
+  .chipContent {
+    gap: 8px;
+  }
+  .track {
+    gap: 4px;
+  }
+  .step {
+    padding: 4px 6px;
+    gap: 4px;
+  }
+  .stepLabel {
+    font-size: 0.62rem;
+  }
+}
+
+/* Collapse into a popover */
+@media (max-width: 640px) {
+  .mobileTrigger {
+    display: flex;
+  }
+
+  .chipContent {
+    display: none; /* hidden when it's just the trigger */
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    flex-direction: column;
+    align-items: flex-end; /* aligning track steps nicely */
+    gap: 12px;
+    padding: 16px;
+    background: var(--color-glass-bg-deep-solid);
+    border: 1px solid var(--color-glass-border-strong);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-floating-dark);
+    z-index: 220;
+    /* Optional backdrop filter */
+    backdrop-filter: blur(12px);
+  }
+
+  /* Popover pointer arrow */
+  .chipContent::before {
+    content: '';
+    position: absolute;
+    top: -7px;
+    right: 12px;
+    width: 12px;
+    height: 12px;
+    background: var(--color-glass-bg-deep-solid);
+    border-left: 1px solid var(--color-glass-border-strong);
+    border-top: 1px solid var(--color-glass-border-strong);
+    transform: rotate(45deg);
+  }
+
+  /* Active popover class */
+  .chipContent.popoverOpen {
+    display: flex;
+    animation: fadeIn var(--transition-fast) ease-out;
+  }
+
+  .identity {
+    width: 100%;
+    justify-content: flex-start;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--color-glass-border-subtle);
+  }
+
+  .track {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .infoWrapper {
+    align-self: center;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
