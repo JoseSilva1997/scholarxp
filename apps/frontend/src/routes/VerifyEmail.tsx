@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { AuthVisual } from '../components/AuthVisual';
 import { useVerifyEmailPageState } from '../hooks/page-state/useVerifyEmailPageState';
 import styles from './Login.module.css';
 
@@ -21,7 +22,7 @@ export default function VerifyEmail() {
   return (
     <div className={styles.authShell}>
       <div className={styles.authLayout}>
-        <section className={styles.visual} aria-hidden="true" />
+        <AuthVisual />
 
         <div className={styles.cardColumn}>
           <section className={styles.card}>

@@ -31,7 +31,7 @@
   width: 100%;
   max-width: 360px;
   margin-bottom: 32px;
-  transform: translateY(-10%); /* Shift slightly up from center */
+  transform: translateY(-5%); /* Shift slightly up from center for better vertical balance */
 }
 
 .title {
@@ -153,6 +153,51 @@
 
 .socialWrapper {
   margin-top: 32px;
+}
+
+/* Secondary button for actions like "Resend code" */
+.secondaryBtn {
+  width: 100%;
+  padding: 11px 16px;
+  background: transparent;
+  color: var(--color-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.secondaryBtn:hover:not(:disabled) {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary-dark);
+}
+
+.secondaryBtn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.secondaryBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Helper card for info/success messages */
+.helperCard {
+  padding: 12px 16px;
+  background: var(--color-success-soft);
+  border: 1px solid var(--color-success-border);
+  border-radius: var(--radius-md);
+  color: var(--color-success);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* Wrapper for helper text/links below the form */
+.helper {
+  margin-top: 20px;
+  text-align: center;
 }
 
 @media (max-width: 1024px) {
