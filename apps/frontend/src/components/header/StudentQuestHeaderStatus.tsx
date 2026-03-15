@@ -1,5 +1,4 @@
 // StudentQuestHeaderStatus groups student-only header progress widgets so Header can stay a layout shell.
-import MasterQuestStreakChip from './MasterQuestStreakChip';
 import TodayQuestChip from './TodayQuestChip';
 import styles from './StudentQuestHeaderStatus.module.css';
 
@@ -13,7 +12,6 @@ export default function StudentQuestHeaderStatus({
   return (
     <div className={styles.statusGroup}>
       <TodayQuestChip userId={userId} />
-      <MasterQuestStreakChip userId={userId} />
     </div>
   );
 }

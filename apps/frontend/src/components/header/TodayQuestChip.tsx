@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { BsTrophyFill } from 'react-icons/bs';
 import { useTodayQuestListQuery } from '@/hooks/queries/useQuestsQueries';
 import TodayQuestPopover from './TodayQuestPopover';
+import MasterQuestStreakChip from './MasterQuestStreakChip';
 import styles from './TodayQuestChip.module.css';
 
 type TodayChipAcknowledgement = {
@@ -146,6 +147,7 @@ export default function TodayQuestChip({ userId }: TodayQuestChipProps) {
           <span className={styles.todayChipLabel}>Quests</span>
           <span className={styles.todayChipValue}>{todayQuestLabel}</span>
         </div>
+        <MasterQuestStreakChip userId={userId} />
       </button>
       {isTodayPopoverOpen ? (
         <TodayQuestPopover

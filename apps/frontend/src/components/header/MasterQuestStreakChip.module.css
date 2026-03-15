@@ -3,60 +3,23 @@
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  border-left: 1px solid var(--color-glass-border-strong);
+  padding-left: 8px;
 }
 
 .chip {
-  display: inline-flex;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
-  border: 1px solid var(--color-primary-glass-border);
-  border-radius: var(--radius-full);
-  background:
-    linear-gradient(135deg, var(--color-primary-glass-bg), var(--color-primary-soft)),
-    var(--color-overlay-light-hover);
+  gap: 4px;
   color: var(--color-text-on-dark);
-  box-shadow:
-    var(--shadow-sm),
-    0 0 18px var(--color-primary-shadow),
-    inset 0 1px 1px var(--color-overlay-light-border);
-  backdrop-filter: blur(12px);
-  cursor: pointer;
   font: inherit;
-  transition:
-    transform var(--transition-fast),
-    border-color var(--transition-fast),
-    box-shadow var(--transition-fast),
-    background var(--transition-fast),
-    gap var(--transition-fast),
-    padding var(--transition-fast);
 }
 
-.chip:hover {
-  transform: translateY(-2px);
-  border-color: var(--color-primary-light);
-  box-shadow:
-    var(--shadow-md),
-    0 0 22px var(--color-primary-shadow-hover),
-    inset 0 1px 1px var(--color-overlay-light-border);
-}
-
-.chip:hover .flame {
-  transform: scale(1.1);
-}
-
-.chip:active {
-  transform: translateY(0);
-  box-shadow:
-    var(--shadow-sm),
-    0 0 18px var(--color-primary-shadow),
-    inset 0 1px 1px var(--color-overlay-light-border);
-}
-
-.chipCollapsed {
-  gap: 0;
-  padding: 8px 8px 8px 10px;
+.topRow {
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
 
 .flameContainer {
@@ -72,46 +35,37 @@
   transition: transform var(--transition-fast);
 }
 
+.count {
+  min-width: 1rem;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--color-text-on-dark);
+}
+
 .beadsContainer {
   display: flex;
   align-items: center;
-  gap: 12px;
-  min-width: 0;
-  overflow: hidden;
-  transition: max-width var(--transition-fast), gap var(--transition-fast), margin var(--transition-fast);
-}
-
-.chipCollapsed .beadsContainer {
-  /* Collapse the beads container completely when chip is collapsed */
-  max-width: 0;
-  gap: 0;
-  margin: 0;
+  width: 100%;
 }
 
 .beadRow {
   display: flex;
   align-items: center;
-  gap: 6px;
-  /* Ensures smooth collapse/expand animation with height transition */
-  max-height: 24px;
-  opacity: 1;
-  transition:
-    max-height var(--transition-fast),
-    opacity var(--transition-fast),
-    margin var(--transition-fast);
+  justify-content: flex-start;
+  gap: 3px;
+  width: 100%;
 }
 
 .bead {
   width: 8px;
-  height: 8px;
-  border-radius: 50%;
+  height: 4px;
+  border-radius: var(--radius-sm);
   background: var(--color-overlay-light-hover);
   border: 1px solid var(--color-primary-glass-border);
   box-shadow: inset 0 1px 1px var(--color-overlay-light-border);
-  transition:
-    background var(--transition-fast),
-    transform var(--transition-fast),
-    box-shadow var(--transition-fast);
+  transition: background var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .beadActive {
@@ -120,21 +74,6 @@
   box-shadow:
     0 0 10px var(--color-primary-shadow-hover),
     0 0 18px var(--color-primary-shadow);
-  transform: scale(1.08);
-}
-
-.count {
-  min-width: 1.5rem;
-  font-family: var(--font-display);
-  font-size: 0.95rem;
-  font-weight: 700;
-  text-align: center;
-  color: var(--color-text-on-dark);
-  transition: transform var(--transition-fast), font-size var(--transition-fast);
-}
-
-.chip:hover .count {
-  transform: scale(1.05);
 }
 
 .screenReaderLabel {
@@ -152,10 +91,10 @@
 .infoWrapper {
   position: relative;
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 1rem;
+  height: 1rem;
   flex-shrink: 0;
   border-radius: 50%;
   color: var(--color-text-on-dark-muted);
@@ -169,7 +108,6 @@
 .infoWrapper:hover,
 .infoWrapper:focus-within {
   color: var(--color-primary-light);
-  background: var(--color-overlay-light-hover);
 }
 
 .infoWrapper:focus-visible {
@@ -178,8 +116,8 @@
 }
 
 .infoIcon {
-  width: 0.9rem;
-  height: 0.9rem;
+  width: 0.6rem;
+  height: 0.6rem;
 }
 
 .infoBubble {
@@ -189,6 +127,7 @@
   right: -4px;
   width: 270px;
   padding: 0.85rem 1rem;
+  text-align: left;
   border: 1px solid var(--color-glass-border-strong);
   border-radius: var(--radius-md);
   background: var(--color-glass-bg-deep-solid);
@@ -250,20 +189,6 @@
     padding: 6px 8px;
   }
 
-  .beadsContainer {
-    gap: 10px;
-  }
-
-  .beadRow {
-    gap: 5px;
-    max-height: 22px;
-  }
-
-  .bead {
-    width: 7px;
-    height: 7px;
-  }
-
   .flame {
     font-size: 1rem;
   }
@@ -292,20 +217,6 @@
   .chipCollapsed {
     gap: 0;
     padding: 5px 8px;
-  }
-
-  .beadsContainer {
-    gap: 8px;
-  }
-
-  .beadRow {
-    gap: 4px;
-    max-height: 20px;
-  }
-
-  .bead {
-    width: 6px;
-    height: 6px;
   }
 
   .flame {
