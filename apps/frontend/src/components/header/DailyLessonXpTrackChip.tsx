@@ -80,10 +80,39 @@ export default function DailyLessonXpTrackChip({
       <span className={styles.screenReaderLabel}>
         {buildAccessibleSummary(track)}
       </span>
-      <div className={styles.identity}>
-        <BsLightningChargeFill className={styles.icon} aria-hidden="true" />
-        <span className={styles.eyebrow}>Lesson XP</span>
+      {/* Header row: eyebrow label on left, info icon on right above the track */}
+      <div className={styles.headerRow}>
+        <div className={styles.identity}>
+          <BsLightningChargeFill className={styles.icon} aria-hidden="true" />
+          <span className={styles.eyebrow}>Lesson XP</span>
+        </div>
+        <div
+          className={styles.infoWrapper}
+          tabIndex={0}
+          role="note"
+          aria-label="Daily lesson XP help"
+          data-testid="daily-lesson-xp-help"
+        >
+          <BsInfoCircle className={styles.infoIcon} aria-hidden="true" />
+          <div className={styles.infoBubble} role="tooltip">
+            <p className={styles.infoHeading}>How lesson XP works</p>
+            <p className={styles.infoText}>
+              Your first newly completed lesson today grants +100 account XP.
+            </p>
+            <p className={styles.infoText}>
+              Your second grants +25, then the track shifts to practice-only.
+            </p>
+            <p className={styles.infoText}>
+              Spacing out lessons gives you more time to reflect and absorb, 
+              and helps you build a sustainable habit.
+            </p>
+            <p className={styles.infoText}>
+              The track resets at midnight UTC.
+            </p>
+          </div>
+        </div>
       </div>
+      {/* Track below the header row */}
       <div className={styles.track} aria-hidden="true">
         {track.steps.map((step) => (
           <span
@@ -103,31 +132,6 @@ export default function DailyLessonXpTrackChip({
             <span className={styles.stepLabel}>{resolveStepLabel(step)}</span>
           </span>
         ))}
-      </div>
-      <div
-        className={styles.infoWrapper}
-        tabIndex={0}
-        role="note"
-        aria-label="Daily lesson XP help"
-        data-testid="daily-lesson-xp-help"
-      >
-        <BsInfoCircle className={styles.infoIcon} aria-hidden="true" />
-        <div className={styles.infoBubble} role="tooltip">
-          <p className={styles.infoHeading}>How lesson XP works</p>
-          <p className={styles.infoText}>
-            Your first newly completed lesson today grants +100 account XP.
-          </p>
-          <p className={styles.infoText}>
-            Your second grants +25, then the track shifts to practice-only.
-          </p>
-          <p className={styles.infoText}>
-            Spacing out lessons gives you more time to reflect and absorb, 
-            and helps you build a sustainable habit.
-          </p>
-          <p className={styles.infoText}>
-            The track resets at midnight UTC.
-          </p>
-        </div>
       </div>
     </>
   );

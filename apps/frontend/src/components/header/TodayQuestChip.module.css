@@ -23,7 +23,7 @@
   backdrop-filter: blur(12px);
   border: 1px solid var(--color-glass-border);
   color: var(--color-accent-light);
-  padding: 10px 12px;
+  padding: 10px 15px 12px;
   border-radius: var(--radius-full);
   font-weight: 700;
   cursor: pointer;
@@ -36,7 +36,6 @@
 .todayChip:hover {
   background: var(--color-glass-bg-hover);
   border-color: var(--color-accent-light);
-  transform: translateY(-2px);
   box-shadow:
     var(--shadow-md),
     inset 0 1px 1px var(--color-glass-border);
@@ -65,7 +64,7 @@
 }
 
 .todayChipLabel {
-  font-size: 0.55rem;
+  font-size: 0.6rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--color-text-on-dark-soft);
@@ -73,7 +72,7 @@
 }
 
 .todayChipValue {
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   color: var(--color-text-on-dark-vibrant);
   font-weight: 600;
 }
