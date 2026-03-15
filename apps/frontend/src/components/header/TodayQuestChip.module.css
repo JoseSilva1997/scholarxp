@@ -6,44 +6,40 @@
 .todayChipWrapperGlow .todayChip {
   box-shadow:
     var(--shadow-md),
-    0 0 18px var(--color-secondary-shadow),
-    0 0 36px var(--color-secondary-glow),
-    inset 0 1px 1px var(--color-overlay-light-border);
-  border-color: var(--color-secondary-light);
+    inset 0 1px 1px var(--color-glass-border);
+  border-color: var(--color-accent-light);
 }
 
 .todayChipWrapperGlow .todayChipIcon {
-  color: var(--color-secondary-light);
-  filter: drop-shadow(0 0 8px var(--color-secondary-glow));
+  color: var(--color-accent-light);
+  filter: drop-shadow(0 0 4px var(--color-accent-soft));
 }
 
 .todayChip {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
-  background: var(--color-overlay-light-hover);
+  gap: 8px;
+  background: var(--color-glass-bg);
   backdrop-filter: blur(12px);
-  border: 1px solid var(--color-accent-soft);
+  border: 1px solid var(--color-glass-border);
   color: var(--color-accent-light);
-  padding: 12px 14px 8px 12px;
+  padding: 10px 12px;
   border-radius: var(--radius-full);
   font-weight: 700;
   cursor: pointer;
   font: inherit;
   line-height: 1;
   transition: all var(--transition-base);
-  box-shadow:
-    var(--shadow-sm),
-    inset 0 1px 1px var(--color-overlay-light-border);
+  box-shadow: var(--shadow-sm);
 }
 
 .todayChip:hover {
-  background: var(--color-overlay-light-active);
-  border-color: var(--color-accent);
+  background: var(--color-glass-bg-hover);
+  border-color: var(--color-accent-light);
   transform: translateY(-2px);
   box-shadow:
     var(--shadow-md),
-    0 0 15px var(--color-accent-soft);
+    inset 0 1px 1px var(--color-glass-border);
 }
 
 .todayChipActive {
@@ -55,36 +51,36 @@
 }
 
 .todayChipIcon {
-  font-size: 1rem;
+  font-size: 0.95rem;
   color: var(--color-accent-light);
-  filter: drop-shadow(0 0 4px var(--color-accent-soft));
+  filter: drop-shadow(0 0 2px var(--color-accent-soft));
 }
 
 .todayChipContent {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 4px;
 }
 
 .todayChipLabel {
-  font-size: 0.65rem;
+  font-size: 0.55rem;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--color-text-on-dark-vibrant);
-  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--color-text-on-dark-soft);
+  font-weight: 700;
 }
 
 .todayChipValue {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   color: var(--color-text-on-dark-vibrant);
   font-weight: 600;
 }
 
 @media (max-width: 768px) {
   .todayChip {
-    padding: 4px 8px;
+    padding: 4px 10px;
   }
 
   .todayChipLabel {
