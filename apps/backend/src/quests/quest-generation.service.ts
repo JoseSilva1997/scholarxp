@@ -52,15 +52,35 @@ export class QuestGenerationService {
       existingTypes.has(QuestTypeValues.completeNewUnit) ||
       existingTypes.has(QuestTypeValues.moduleUnitRetry);
 
-    const lessonQuestTarget = hasLessonQuest
-      ? null
-      : await this.selectLessonQuestTarget(userId, prismaClient);
-    const targetModule =
-      lessonQuestTarget ??
-      (await this.selectTargetModule(userId, prismaClient));
-    if (!targetModule) {
+    const enrolledModuleIds = await this.listEnrolledModuleIds(
+      userId,
+      prismaClient,
+    );
+    if (enrolledModuleIds.length === 0) {
       return;
     }
+
+    const completedUnitTarget = await this.selectCompletedUnitTarget(
+      userId,
+      enrolledModuleIds,
+      dayStartUtc,
+      prismaClient,
+    );
+    // Product rule: quests unlock only after the student has both joined a module and
+    // completed at least one lesson on a previous UTC day, so same-day completions never
+    // retroactively create quests before the next rollover.
+    if (!completedUnitTarget) {
+      return;
+    }
+
+    const lessonQuestTarget = hasLessonQuest
+      ? null
+      : await this.selectLessonQuestTarget(
+          userId,
+          enrolledModuleIds,
+          prismaClient,
+        );
+    const targetModule = lessonQuestTarget ?? completedUnitTarget;
 
     const drafts: GeneratedQuestDraft[] = [];
     if (!existingTypes.has(QuestTypeValues.completeDailyPractice)) {
@@ -151,11 +171,11 @@ export class QuestGenerationService {
     };
   }
 
-  private async selectTargetModule(
+  private async listEnrolledModuleIds(
     userId: number,
     prismaClient: PrismaClientLike,
-  ): Promise<ModuleQuestTarget | null> {
-    const membership = await prismaClient.userModule.findFirst({
+  ): Promise<number[]> {
+    const memberships = await prismaClient.userModule.findMany({
       where: {
         userId,
         roleInModule: 'student',
@@ -168,39 +188,52 @@ export class QuestGenerationService {
       },
     });
 
-    if (!membership) {
+    return memberships.map((membership) => membership.moduleId);
+  }
+
+  private async selectCompletedUnitTarget(
+    userId: number,
+    moduleIds: number[],
+    questDayStartUtc: Date,
+    prismaClient: PrismaClientLike,
+  ): Promise<ModuleQuestTarget | null> {
+    const completedUnit = await prismaClient.moduleUnitUserProgress.findFirst({
+      where: {
+        studentId: userId,
+        isCompleted: true,
+        completedAt: {
+          lt: questDayStartUtc,
+        },
+        moduleUnit: {
+          moduleId: {
+            in: moduleIds,
+          },
+        },
+      },
+      orderBy: [{ completedAt: 'asc' }, { moduleUnitId: 'asc' }],
+      select: {
+        moduleUnit: {
+          select: {
+            moduleId: true,
+          },
+        },
+      },
+    });
+
+    if (!completedUnit?.moduleUnit?.moduleId) {
       return null;
     }
 
     return {
-      moduleId: membership.moduleId,
+      moduleId: completedUnit.moduleUnit.moduleId,
     };
   }
 
   private async selectLessonQuestTarget(
     userId: number,
+    moduleIds: number[],
     prismaClient: PrismaClientLike,
   ): Promise<(ModuleQuestTarget & { type: QuestType }) | null> {
-    const enrolledModuleIds = await prismaClient.userModule.findMany({
-      where: {
-        userId,
-        roleInModule: 'student',
-      },
-      orderBy: {
-        moduleId: 'asc',
-      },
-      select: {
-        moduleId: true,
-      },
-    });
-
-    if (enrolledModuleIds.length === 0) {
-      return null;
-    }
-
-    const moduleIds = enrolledModuleIds.map(
-      (membership) => membership.moduleId,
-    );
     const newUnitTarget = await prismaClient.moduleUnit.findFirst({
       where: {
         moduleId: {

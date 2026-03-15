@@ -146,6 +146,11 @@
 
 .placeholder {
   color: var(--color-text-on-dark-muted);
+  font-size: 0.9rem;
+}
+
+.emptyIcon {
+  margin-right: 10px;
 }
 
 .slotRow {

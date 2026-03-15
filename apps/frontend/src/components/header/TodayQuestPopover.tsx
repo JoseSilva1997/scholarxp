@@ -122,8 +122,11 @@ export default function TodayQuestPopover({
 
         {!isLoading && !hasDailyQuests ? (
           <div className={styles.placeholder}>
-            <BsBoxSeam className={styles.emptyIcon} />
-            <p>You don&apos;t have any daily quests yet.</p>
+            <p><BsBoxSeam className={styles.emptyIcon} />
+              You don&apos;t have any daily quests yet.
+              </p>
+              <br />
+            <p>Quests will unlock the day after you join a module and complete your first lesson.</p>
           </div>
         ) : null}
 

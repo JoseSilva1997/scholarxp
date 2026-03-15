@@ -29,10 +29,12 @@ describe('QuestGenerationService', () => {
 
   it('creates three daily quests and the master quest when a new lesson is available', async () => {
     prisma.dailyQuest.findMany.mockResolvedValue([]);
-    prisma.userModule.findFirst.mockResolvedValue({
-      moduleId: 1,
-    } as never);
     prisma.userModule.findMany.mockResolvedValue([{ moduleId: 1 }] as never);
+    prisma.moduleUnitUserProgress.findFirst.mockResolvedValue({
+      moduleUnit: {
+        moduleId: 1,
+      },
+    } as never);
     prisma.moduleUnit.findFirst.mockResolvedValue({
       moduleId: 1,
     } as never);
@@ -102,20 +104,45 @@ describe('QuestGenerationService', () => {
         moduleId: true,
       },
     });
+    expect(prisma.moduleUnitUserProgress.findFirst).toHaveBeenCalledWith({
+      where: {
+        studentId: 42,
+        isCompleted: true,
+        completedAt: {
+          lt: new Date('2026-03-13T00:00:00.000Z'),
+        },
+        moduleUnit: {
+          moduleId: {
+            in: [1],
+          },
+        },
+      },
+      orderBy: [{ completedAt: 'asc' }, { moduleUnitId: 'asc' }],
+      select: {
+        moduleUnit: {
+          select: {
+            moduleId: true,
+          },
+        },
+      },
+    });
   });
 
   it('falls back to a retry lesson quest when no new lesson remains', async () => {
     prisma.dailyQuest.findMany.mockResolvedValue([]);
-    prisma.userModule.findFirst.mockResolvedValue({
-      moduleId: 2,
-    } as never);
     prisma.userModule.findMany.mockResolvedValue([{ moduleId: 2 }] as never);
     prisma.moduleUnit.findFirst.mockResolvedValue(null);
-    prisma.moduleUnitUserProgress.findFirst.mockResolvedValue({
-      moduleUnit: {
-        moduleId: 2,
-      },
-    } as never);
+    prisma.moduleUnitUserProgress.findFirst
+      .mockResolvedValueOnce({
+        moduleUnit: {
+          moduleId: 2,
+        },
+      } as never)
+      .mockResolvedValueOnce({
+        moduleUnit: {
+          moduleId: 2,
+        },
+      } as never);
 
     await service.ensureQuestDayGeneratedForUser(
       42,
@@ -133,7 +160,7 @@ describe('QuestGenerationService', () => {
       ]),
       skipDuplicates: true,
     });
-    expect(prisma.moduleUnitUserProgress.findFirst).toHaveBeenCalledWith({
+    expect(prisma.moduleUnitUserProgress.findFirst).toHaveBeenNthCalledWith(2, {
       where: {
         studentId: 42,
         isCompleted: true,
@@ -162,13 +189,15 @@ describe('QuestGenerationService', () => {
 
   it('anchors all generated daily quests to the eligible lesson module when the first enrolled module has no units', async () => {
     prisma.dailyQuest.findMany.mockResolvedValue([]);
-    prisma.userModule.findFirst.mockResolvedValue({
-      moduleId: 1,
-    } as never);
     prisma.userModule.findMany.mockResolvedValue([
       { moduleId: 1 },
       { moduleId: 2 },
     ] as never);
+    prisma.moduleUnitUserProgress.findFirst.mockResolvedValue({
+      moduleUnit: {
+        moduleId: 2,
+      },
+    } as never);
     prisma.moduleUnit.findFirst.mockResolvedValue({
       moduleId: 2,
     } as never);
@@ -199,5 +228,96 @@ describe('QuestGenerationService', () => {
       ]),
       skipDuplicates: true,
     });
+  });
+
+  it('does not generate quests until the student has completed their first module unit', async () => {
+    prisma.dailyQuest.findMany.mockResolvedValue([]);
+    prisma.userModule.findMany.mockResolvedValue([{ moduleId: 7 }] as never);
+    prisma.moduleUnitUserProgress.findFirst.mockResolvedValue(null);
+
+    await service.ensureQuestDayGeneratedForUser(
+      42,
+      new Date('2026-03-13T12:30:00.000Z'),
+    );
+
+    expect(prisma.moduleUnit.findFirst).not.toHaveBeenCalled();
+    expect(prisma.dailyQuest.createMany).not.toHaveBeenCalled();
+  });
+
+  it('does not generate quests on the same UTC day as the first completed module unit', async () => {
+    prisma.dailyQuest.findMany.mockResolvedValue([]);
+    prisma.userModule.findMany.mockResolvedValue([{ moduleId: 7 }] as never);
+    prisma.moduleUnitUserProgress.findFirst.mockResolvedValue(null);
+
+    await service.ensureQuestDayGeneratedForUser(
+      42,
+      new Date('2026-03-13T12:30:00.000Z'),
+    );
+
+    expect(prisma.moduleUnitUserProgress.findFirst).toHaveBeenCalledWith({
+      where: {
+        studentId: 42,
+        isCompleted: true,
+        completedAt: {
+          lt: new Date('2026-03-13T00:00:00.000Z'),
+        },
+        moduleUnit: {
+          moduleId: {
+            in: [7],
+          },
+        },
+      },
+      orderBy: [{ completedAt: 'asc' }, { moduleUnitId: 'asc' }],
+      select: {
+        moduleUnit: {
+          select: {
+            moduleId: true,
+          },
+        },
+      },
+    });
+    expect(prisma.dailyQuest.createMany).not.toHaveBeenCalled();
+  });
+
+  it('starts generating quests from the next UTC day after the first completed module unit', async () => {
+    prisma.dailyQuest.findMany.mockResolvedValue([]);
+    prisma.userModule.findMany.mockResolvedValue([{ moduleId: 7 }] as never);
+    prisma.moduleUnitUserProgress.findFirst.mockResolvedValue({
+      moduleUnit: {
+        moduleId: 7,
+      },
+    } as never);
+    prisma.moduleUnit.findFirst.mockResolvedValue({
+      moduleId: 7,
+    } as never);
+
+    await service.ensureQuestDayGeneratedForUser(
+      42,
+      new Date('2026-03-14T12:30:00.000Z'),
+    );
+
+    expect(prisma.moduleUnitUserProgress.findFirst).toHaveBeenCalledWith({
+      where: {
+        studentId: 42,
+        isCompleted: true,
+        completedAt: {
+          lt: new Date('2026-03-14T00:00:00.000Z'),
+        },
+        moduleUnit: {
+          moduleId: {
+            in: [7],
+          },
+        },
+      },
+      orderBy: [{ completedAt: 'asc' }, { moduleUnitId: 'asc' }],
+      select: {
+        moduleUnit: {
+          select: {
+            moduleId: true,
+          },
+        },
+      },
+    });
+    expect(prisma.dailyQuest.createMany).toHaveBeenCalled();
   });
 });
