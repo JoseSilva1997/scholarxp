@@ -117,11 +117,21 @@
   box-shadow: 0 0 10px var(--color-glass-accent-medium);
 }
 
+.masterQuestInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .rewardHint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin: 0;
   font-size: 0.72rem;
   line-height: 1.35;
   color: var(--color-text-on-dark-subtle);
+  flex-wrap: wrap;
 }
 
 .content {

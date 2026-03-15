@@ -117,10 +117,9 @@ export default function MasterQuestStreakChip({
           </p>
           <p className={styles.infoText}>
             Each increment adds 10% to the next master quest reward, up to 50%.
-            Missing a day resets the streak.
           </p>
           <p className={styles.infoText}>
-            Today&apos;s reward uses your current streak.
+            Missing a day resets the streak.
           </p>
         </div>
       </div>

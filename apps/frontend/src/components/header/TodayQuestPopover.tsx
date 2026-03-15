@@ -14,6 +14,7 @@ import {
 import { GiLockedChest, GiOpenTreasureChest } from 'react-icons/gi';
 import { getQuestBadge } from '@/constants/quest-constants';
 import styles from './TodayQuestPopover.module.css';
+import { MASTER_QUEST_COMPLETION_REWARD } from '@scholarxp/constants';
 
 type TodayQuestPopoverProps = {
   id: string;
@@ -92,9 +93,14 @@ export default function TodayQuestPopover({
                 transition={{ duration: 0.5, delay: 0.1 }}
               />
             </div>
-            <p className={styles.rewardHint}>
-              Completing all 3 quests will grant +250 EXP
-            </p>
+            <div className={styles.masterQuestInfo}>
+              <span className={styles.rewardHint}>
+                Completing all 3 quests will grant
+                <span className={styles.expBadge}>
+                  <BsLightningChargeFill /> +{MASTER_QUEST_COMPLETION_REWARD}
+                </span>
+              </span>
+            </div>
           </div>
         </div>
       </header>
