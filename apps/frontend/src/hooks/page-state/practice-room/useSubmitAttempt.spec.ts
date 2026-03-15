@@ -85,8 +85,8 @@ function buildParams(overrides: Partial<BaseParams> = {}): BaseParams {
     applyExpAward: vi.fn(),
     moduleDetail: null,
     activeFirstTryBonusStatus: 'available',
-    setSubmittedAttemptByContentId: vi.fn(),
-    setSubmittedByContentIdBySessionId: vi.fn(),
+    markQuestionSubmitted: vi.fn(),
+    recordSubmittedAttempt: vi.fn(),
     parsedModuleId: 1,
     parsedUnitId: 2,
     ...overrides,
@@ -272,8 +272,8 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
     expect(applyExpAward).not.toHaveBeenCalled();
   });
 
-  it('stores latest-attempt correctness from awardReasons in submittedAttemptByContentId', async () => {
-    const setSubmittedAttemptByContentId = vi.fn();
+  it('stores latest-attempt correctness from awardReasons in the optimistic attempt callback', async () => {
+    const recordSubmittedAttempt = vi.fn();
     const mutateAsync = vi.fn().mockResolvedValue({
       awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       // `hasCorrectAttempt` stays true once a question has ever been solved;
@@ -285,37 +285,26 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
       },
     } satisfies SubmitAttemptResponse);
     const { result } = renderHook(() =>
-      useSubmitAttempt(buildParams({ mutateAsync, setSubmittedAttemptByContentId })),
+      useSubmitAttempt(buildParams({ mutateAsync, recordSubmittedAttempt })),
     );
     await act(() => result.current.submitActiveQuestionAttempt());
-
-    // The setter receives an updater function; invoke it to inspect the result.
-    const updater = setSubmittedAttemptByContentId.mock.calls[0][0] as (
-      prev: Record<number, unknown>,
-    ) => Record<number, unknown>;
-    const next = updater({});
-    expect(next[QUESTION_ID]).toEqual({
+    expect(recordSubmittedAttempt).toHaveBeenCalledWith(QUESTION_ID, {
       studentAnswer: { selectedOptionIndex: 0 },
       isCorrect: false,
     });
   });
 
   it('falls back to hasCorrectAttempt when awardReasons is missing', async () => {
-    const setSubmittedAttemptByContentId = vi.fn();
+    const recordSubmittedAttempt = vi.fn();
     const mutateAsync = vi.fn().mockResolvedValue({
       awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: true,
     } satisfies SubmitAttemptResponse);
     const { result } = renderHook(() =>
-      useSubmitAttempt(buildParams({ mutateAsync, setSubmittedAttemptByContentId })),
+      useSubmitAttempt(buildParams({ mutateAsync, recordSubmittedAttempt })),
     );
     await act(() => result.current.submitActiveQuestionAttempt());
-
-    const updater = setSubmittedAttemptByContentId.mock.calls[0][0] as (
-      prev: Record<number, unknown>,
-    ) => Record<number, unknown>;
-    const next = updater({});
-    expect(next[QUESTION_ID]).toEqual({
+    expect(recordSubmittedAttempt).toHaveBeenCalledWith(QUESTION_ID, {
       studentAnswer: { selectedOptionIndex: 0 },
       isCorrect: true,
     });
@@ -393,22 +382,17 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
     );
   });
 
-  it('marks the active question as submitted in setSubmittedByContentIdBySessionId', async () => {
-    const setSubmittedByContentIdBySessionId = vi.fn();
+  it('marks the active question as submitted in the session-state callback', async () => {
+    const markQuestionSubmitted = vi.fn();
     const mutateAsync = vi.fn().mockResolvedValue({
       awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: true,
     } satisfies SubmitAttemptResponse);
     const { result } = renderHook(() =>
-      useSubmitAttempt(buildParams({ mutateAsync, setSubmittedByContentIdBySessionId })),
+      useSubmitAttempt(buildParams({ mutateAsync, markQuestionSubmitted })),
     );
     await act(() => result.current.submitActiveQuestionAttempt());
-
-    const updater = setSubmittedByContentIdBySessionId.mock.calls[0][0] as (
-      prev: Record<string, Record<number, boolean>>,
-    ) => Record<string, Record<number, boolean>>;
-    const next = updater({});
-    expect(next[SESSION_ID][QUESTION_ID]).toBe(true);
+    expect(markQuestionSubmitted).toHaveBeenCalledWith(SESSION_ID, QUESTION_ID);
   });
 
   it('clears the active-question draft selection after a successful submission', async () => {

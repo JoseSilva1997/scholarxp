@@ -1,9 +1,15 @@
+// Verifies only the composition-level practice-room page-state behavior so
+// detailed state logic can stay covered in the smaller dedicated hook specs.
 import React from 'react';
 import { act, render, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Mock } from 'vitest';
 import { MemoryRouter, useLocation } from 'react-router-dom';
-
+import type {
+  ModuleUnitPracticeRoomResponse,
+  PracticeQuestionUnit,
+  SubmitAttemptResponse,
+} from '@scholarxp/api-contracts';
 import { logError } from '../../../utils/logger';
 
 vi.mock('../../queries/usePracticeRoomQueries', () => ({
@@ -30,6 +36,82 @@ import { useModuleDetailQuery } from '../../queries/useModulesQueries';
 
 type PracticeRoomPageState = ReturnType<typeof usePracticeRoomPageState>;
 
+const DEFAULT_SESSION_ID = '11111111-1111-4111-8111-111111111007';
+
+function buildQuestionUnit(input: {
+  questionUnitId: number;
+  contentId: number;
+  stem?: string;
+  correctOptionIndex?: number;
+  hint?: string | null;
+  hasCorrectAttempt?: boolean | null;
+  lastAttempt?: PracticeQuestionUnit['coreQuestion']['lastAttempt'];
+}): PracticeQuestionUnit {
+  return {
+    questionUnitId: input.questionUnitId,
+    position: input.questionUnitId,
+    hasCorrectAttempt: input.hasCorrectAttempt ?? null,
+    coreQuestion: {
+      questionId: input.questionUnitId,
+      questionContent: {
+        id: input.contentId,
+        type: 'mcq',
+        questionStem: input.stem ?? `Question ${input.contentId}`,
+        questionData: {
+          // Match the shared MCQ contract exactly so TypeScript validates these
+          // fixtures the same way production payloads are validated.
+          options: [
+            { optionText: 'A', explanation: undefined },
+            { optionText: 'B', explanation: undefined },
+            { optionText: 'C', explanation: undefined },
+            { optionText: 'D', explanation: undefined },
+          ],
+          correctOptionIndex: input.correctOptionIndex ?? 0,
+        },
+        hint: input.hint ?? null,
+        difficultyScore: 1,
+      },
+      lastAttempt: input.lastAttempt ?? null,
+    },
+  };
+}
+
+function buildPracticeRoomResponse(input?: {
+  sessionId?: string;
+  questions?: PracticeQuestionUnit[];
+  isReadOnly?: boolean;
+  currentStreak?: number;
+  highestStreak?: number;
+}): ModuleUnitPracticeRoomResponse {
+  return {
+    practiceRoom: {
+      sessionId: input?.sessionId ?? DEFAULT_SESSION_ID,
+      moduleUnitId: 3,
+      moduleUnitTitle: 'Unit',
+      isReadOnly: input?.isReadOnly,
+      questions:
+        input?.questions ?? [buildQuestionUnit({ questionUnitId: 11, contentId: 100 })],
+    },
+    currentStreak: input?.currentStreak,
+    highestStreak: input?.highestStreak,
+  };
+}
+
+function buildSubmitResponse(
+  overrides: Partial<SubmitAttemptResponse> = {},
+): SubmitAttemptResponse {
+  return {
+    awards: {
+      baseQuestionExp: 0,
+      firstAttemptBonus: 0,
+      streakBonus: 0,
+      accountExp: 0,
+    },
+    hasCorrectAttempt: false,
+    ...overrides,
+  };
+}
+
 function renderHookWithParams(
   moduleIdParam?: string,
   unitIdParam?: string,
@@ -53,6 +135,7 @@ function renderHookWithParams(
       <TestWrapper />
     </MemoryRouter>,
   );
+
   return {
     ...utils,
     getState: () => latest as PracticeRoomPageState,
@@ -60,7 +143,7 @@ function renderHookWithParams(
   };
 }
 
-describe('usePracticeRoomPageState (core-only)', () => {
+describe('usePracticeRoomPageState (composition)', () => {
   const useModuleUnitPracticeRoomQueryMock =
     useModuleUnitPracticeRoomQuery as unknown as Mock;
   const useModuleDetailQueryMock = useModuleDetailQuery as unknown as Mock;
@@ -85,10 +168,7 @@ describe('usePracticeRoomPageState (core-only)', () => {
     });
     useSubmitModuleUnitPracticeAttemptMutationMock.mockReturnValue({
       isPending: false,
-      mutateAsync: vi.fn().mockResolvedValue({
-        awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
-        hasCorrectAttempt: false,
-      }),
+      mutateAsync: vi.fn().mockResolvedValue(buildSubmitResponse()),
     });
     closeSessionMutateMock.mockReset();
     useCloseModuleUnitPracticeSessionMutationMock.mockReturnValue({
@@ -96,7 +176,7 @@ describe('usePracticeRoomPageState (core-only)', () => {
     });
   });
 
-  it('parses module/unit ids and exposes not-found error for invalid ids', () => {
+  it('parses module and unit ids and exposes a not-found page error for invalid params', () => {
     const valid = renderHookWithParams('5', '2').getState();
     expect(valid.parsedModuleId).toBe(5);
     expect(valid.parsedUnitId).toBe(2);
@@ -105,7 +185,7 @@ describe('usePracticeRoomPageState (core-only)', () => {
     expect(invalid.pageError).toContain('Practice room not found');
   });
 
-  it('passes sessionId query param into the practice-room query hook', () => {
+  it('passes the sessionId query param into the practice-room query hook', () => {
     renderHookWithParams(
       '1',
       '1',
@@ -123,14 +203,10 @@ describe('usePracticeRoomPageState (core-only)', () => {
     useModuleUnitPracticeRoomQueryMock.mockReturnValue({
       isPending: false,
       error: null,
-      data: {
-        practiceRoom: {
-          sessionId: '11111111-1111-4111-8111-111111111077',
-          moduleUnitId: 3,
-          moduleUnitTitle: 'Unit',
-          questions: [],
-        },
-      },
+      data: buildPracticeRoomResponse({
+        sessionId: '11111111-1111-4111-8111-111111111077',
+        questions: [],
+      }),
     });
 
     const rendered = renderHookWithParams('1', '1');
@@ -146,59 +222,16 @@ describe('usePracticeRoomPageState (core-only)', () => {
     });
   });
 
-  it('selects the targeted question when questionId query param is present', async () => {
+  it('applies a question deep-link and consumes the questionId search param', async () => {
     useModuleUnitPracticeRoomQueryMock.mockReturnValue({
       isPending: false,
       error: null,
-      data: {
-        practiceRoom: {
-          sessionId: '11111111-1111-4111-8111-111111111007',
-          moduleUnitId: 3,
-          moduleUnitTitle: 'Unit',
-          questions: [
-            {
-              questionUnitId: 11,
-              position: 1,
-              hasCorrectAttempt: null,
-              coreQuestion: {
-                questionId: 11,
-                questionContent: {
-                  id: 100,
-                  type: 'mcq',
-                  questionStem: 'Core stem',
-                  questionData: {
-                    options: [{ optionText: 'A' }, { optionText: 'B' }],
-                    correctOptionIndex: 1,
-                  },
-                  hint: null,
-                  difficultyScore: 1,
-                },
-                lastAttempt: null,
-              },
-            },
-            {
-              questionUnitId: 12,
-              position: 2,
-              hasCorrectAttempt: null,
-              coreQuestion: {
-                questionId: 12,
-                questionContent: {
-                  id: 101,
-                  type: 'mcq',
-                  questionStem: 'Second core stem',
-                  questionData: {
-                    options: [{ optionText: 'C' }, { optionText: 'D' }],
-                    correctOptionIndex: 0,
-                  },
-                  hint: null,
-                  difficultyScore: 1,
-                },
-                lastAttempt: null,
-              },
-            },
-          ],
-        },
-      },
+      data: buildPracticeRoomResponse({
+        questions: [
+          buildQuestionUnit({ questionUnitId: 11, contentId: 100 }),
+          buildQuestionUnit({ questionUnitId: 12, contentId: 101 }),
+        ],
+      }),
     });
 
     const rendered = renderHookWithParams(
@@ -210,172 +243,20 @@ describe('usePracticeRoomPageState (core-only)', () => {
     await waitFor(() => {
       expect(rendered.getState().selectedQuestionUnitIndex).toBe(1);
       expect(rendered.getState().activeQuestion?.question.id).toBe(101);
-    });
-  });
-
-  it('consumes questionId deep-links after first use so later refetches do not re-force navigation', async () => {
-    useModuleUnitPracticeRoomQueryMock.mockReturnValue({
-      isPending: false,
-      error: null,
-      data: {
-        practiceRoom: {
-          sessionId: '11111111-1111-4111-8111-111111111107',
-          moduleUnitId: 3,
-          moduleUnitTitle: 'Unit',
-          questions: [
-            {
-              questionUnitId: 11,
-              position: 1,
-              hasCorrectAttempt: null,
-              coreQuestion: {
-                questionId: 11,
-                questionContent: {
-                  id: 100,
-                  type: 'mcq',
-                  questionStem: 'Core stem',
-                  questionData: {
-                    options: [{ optionText: 'A' }, { optionText: 'B' }],
-                    correctOptionIndex: 1,
-                  },
-                  hint: null,
-                  difficultyScore: 1,
-                },
-                lastAttempt: null,
-              },
-            },
-            {
-              questionUnitId: 12,
-              position: 2,
-              hasCorrectAttempt: null,
-              coreQuestion: {
-                questionId: 12,
-                questionContent: {
-                  id: 101,
-                  type: 'mcq',
-                  questionStem: 'Second core stem',
-                  questionData: {
-                    options: [{ optionText: 'C' }, { optionText: 'D' }],
-                    correctOptionIndex: 0,
-                  },
-                  hint: null,
-                  difficultyScore: 1,
-                },
-                lastAttempt: null,
-              },
-            },
-          ],
-        },
-      },
-    });
-
-    const rendered = renderHookWithParams(
-      '1',
-      '1',
-      '/main/modules/1/1/practice-room?questionId=12',
-    );
-
-    await waitFor(() => {
-      expect(rendered.getState().selectedQuestionUnitIndex).toBe(1);
-    });
-    await waitFor(() => {
       expect(rendered.getSearch()).not.toContain('questionId=');
     });
   });
 
-  it('uses core question as active question and seeds selected option from core last attempt', () => {
+  it('restores persisted question position while clearing unsubmitted draft selections after reload', () => {
     useModuleUnitPracticeRoomQueryMock.mockReturnValue({
       isPending: false,
       error: null,
-      data: {
-        practiceRoom: {
-          sessionId: '11111111-1111-4111-8111-111111111007',
-          moduleUnitId: 3,
-          moduleUnitTitle: 'Unit',
-          questions: [
-            {
-              questionUnitId: 11,
-              position: 1,
-              hasCorrectAttempt: null,
-              coreQuestion: {
-                questionId: 11,
-                questionContent: {
-                  id: 100,
-                  type: 'mcq',
-                  questionStem: 'Core stem',
-                  questionData: {
-                    options: [{ optionText: 'A' }, { optionText: 'B' }],
-                    correctOptionIndex: 1,
-                  },
-                  hint: null,
-                  difficultyScore: 1,
-                },
-                lastAttempt: { studentAnswer: { selectedOptionIndex: 1 }, isCorrect: false },
-              },
-            },
-          ],
-        },
-      },
-    });
-
-    const state = renderHookWithParams('1', '1').getState();
-    expect(state.activeQuestion?.question.id).toBe(100);
-    expect(state.selectedOptionIndex).toBe(1);
-    expect(state.activeQuestionOptions).toHaveLength(2);
-  });
-
-  it('restores selected question after reload while clearing unsubmitted option selection', () => {
-    useModuleUnitPracticeRoomQueryMock.mockReturnValue({
-      isPending: false,
-      error: null,
-      data: {
-        practiceRoom: {
-          sessionId: '11111111-1111-4111-8111-111111111007',
-          moduleUnitId: 3,
-          moduleUnitTitle: 'Unit',
-          questions: [
-            {
-              questionUnitId: 11,
-              position: 1,
-              hasCorrectAttempt: null,
-              coreQuestion: {
-                questionId: 11,
-                questionContent: {
-                  id: 100,
-                  type: 'mcq',
-                  questionStem: 'Core stem',
-                  questionData: {
-                    options: [{ optionText: 'A' }, { optionText: 'B' }],
-                    correctOptionIndex: 1,
-                  },
-                  hint: null,
-                  difficultyScore: 1,
-                },
-                lastAttempt: null,
-              },
-            },
-            {
-              questionUnitId: 12,
-              position: 2,
-              hasCorrectAttempt: null,
-              coreQuestion: {
-                questionId: 12,
-                questionContent: {
-                  id: 101,
-                  type: 'mcq',
-                  questionStem: 'Second core stem',
-                  questionData: {
-                    options: [{ optionText: 'C' }, { optionText: 'D' }],
-                    correctOptionIndex: 0,
-                  },
-                  hint: null,
-                  difficultyScore: 1,
-                },
-                lastAttempt: null,
-              },
-            },
-          ],
-        },
-      },
+      data: buildPracticeRoomResponse({
+        questions: [
+          buildQuestionUnit({ questionUnitId: 11, contentId: 100 }),
+          buildQuestionUnit({ questionUnitId: 12, contentId: 101 }),
+        ],
+      }),
     });
 
     const initialRender = renderHookWithParams('1', '1');
@@ -383,6 +264,7 @@ describe('usePracticeRoomPageState (core-only)', () => {
       initialRender.getState().selectQuestionUnit(1);
       initialRender.getState().selectOption(101, 1);
     });
+
     expect(initialRender.getState().selectedQuestionUnitIndex).toBe(1);
     expect(initialRender.getState().selectedOptionIndex).toBe(1);
     initialRender.unmount();
@@ -393,330 +275,21 @@ describe('usePracticeRoomPageState (core-only)', () => {
     expect(reloadedRender.getState().selectedOptionIndex).toBeNull();
   });
 
-  it('persists unlocked hint state on reload for the same session', () => {
+  it('locks interaction when the backend marks the room as read-only', () => {
     useModuleUnitPracticeRoomQueryMock.mockReturnValue({
       isPending: false,
       error: null,
-      data: {
-        practiceRoom: {
-          sessionId: '11111111-1111-4111-8111-111111111007',
-          moduleUnitId: 3,
-          moduleUnitTitle: 'Unit',
-          questions: [
-            {
-              questionUnitId: 11,
-              position: 1,
-              hasCorrectAttempt: null,
-              coreQuestion: {
-                questionId: 11,
-                questionContent: {
-                  id: 100,
-                  type: 'mcq',
-                  questionStem: 'Core stem',
-                  questionData: {
-                    options: [{ optionText: 'A' }, { optionText: 'B' }],
-                    correctOptionIndex: 1,
-                  },
-                  hint: 'Helpful hint',
-                  difficultyScore: 1,
-                },
-                lastAttempt: null,
-              },
-            },
-          ],
-        },
-      },
-    });
-
-    const initialRender = renderHookWithParams('1', '1');
-    expect(initialRender.getState().firstTryBonusStatus).toBe('available');
-    act(() => {
-      initialRender.getState().unlockHintForContent(100);
-    });
-    expect(initialRender.getState().isActiveHintUnlocked).toBe(true);
-    expect(initialRender.getState().firstTryBonusStatus).toBe('lost');
-    initialRender.unmount();
-
-    const reloadedRender = renderHookWithParams('1', '1');
-    expect(reloadedRender.getState().isActiveHintUnlocked).toBe(true);
-    expect(reloadedRender.getState().firstTryBonusStatus).toBe('lost');
-  });
-
-  it('persists submitted status on reload for the same session', async () => {
-    const mutateAsync = vi.fn().mockResolvedValue({
-      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
-      hasCorrectAttempt: false,
-    });
-    useSubmitModuleUnitPracticeAttemptMutationMock.mockReturnValue({
-      isPending: false,
-      mutateAsync,
-    });
-    useModuleUnitPracticeRoomQueryMock.mockReturnValue({
-      isPending: false,
-      error: null,
-      data: {
-        practiceRoom: {
-          sessionId: '11111111-1111-4111-8111-111111111007',
-          moduleUnitId: 3,
-          moduleUnitTitle: 'Unit',
-          questions: [
-            {
-              questionUnitId: 11,
-              position: 1,
-              hasCorrectAttempt: null,
-              coreQuestion: {
-                questionId: 11,
-                questionContent: {
-                  id: 100,
-                  type: 'mcq',
-                  questionStem: 'Core stem',
-                  questionData: {
-                    options: [{ optionText: 'A' }, { optionText: 'B' }],
-                    correctOptionIndex: 1,
-                  },
-                  hint: null,
-                  difficultyScore: 1,
-                },
-                lastAttempt: null,
-              },
-            },
-          ],
-        },
-      },
-    });
-
-    const initialRender = renderHookWithParams('1', '1');
-    act(() => {
-      initialRender.getState().selectOption(100, 0);
-    });
-    await act(async () => {
-      await initialRender.getState().submitActiveQuestionAttempt();
-    });
-    expect(initialRender.getState().hasSubmittedActiveQuestion).toBe(true);
-    initialRender.unmount();
-
-    const reloadedRender = renderHookWithParams('1', '1');
-    expect(reloadedRender.getState().hasSubmittedActiveQuestion).toBe(true);
-  });
-
-  it('resets selected question to the beginning when a new practice session starts', () => {
-    let currentSessionId = '11111111-1111-4111-8111-111111111007';
-    useModuleUnitPracticeRoomQueryMock.mockImplementation(() => ({
-      isPending: false,
-      error: null,
-      data: {
-        practiceRoom: {
-          sessionId: currentSessionId,
-          moduleUnitId: 3,
-          moduleUnitTitle: 'Unit',
-          questions: [
-            {
-              questionUnitId: 11,
-              position: 1,
-              hasCorrectAttempt: null,
-              coreQuestion: {
-                questionId: 11,
-                questionContent: {
-                  id: 100,
-                  type: 'mcq',
-                  questionStem: 'Core stem',
-                  questionData: {
-                    options: [{ optionText: 'A' }, { optionText: 'B' }],
-                    correctOptionIndex: 1,
-                  },
-                  hint: null,
-                  difficultyScore: 1,
-                },
-                lastAttempt: null,
-              },
-            },
-            {
-              questionUnitId: 12,
-              position: 2,
-              hasCorrectAttempt: null,
-              coreQuestion: {
-                questionId: 12,
-                questionContent: {
-                  id: 101,
-                  type: 'mcq',
-                  questionStem: 'Second stem',
-                  questionData: {
-                    options: [{ optionText: 'C' }, { optionText: 'D' }],
-                    correctOptionIndex: 0,
-                  },
-                  hint: null,
-                  difficultyScore: 1,
-                },
-                lastAttempt: null,
-              },
-            },
-          ],
-        },
-      },
-    }));
-
-    const initialRender = renderHookWithParams('1', '1');
-    act(() => {
-      initialRender.getState().selectQuestionUnit(1);
-    });
-    expect(initialRender.getState().selectedQuestionUnitIndex).toBe(1);
-    initialRender.unmount();
-
-    currentSessionId = '11111111-1111-4111-8111-111111111008';
-    const nextSessionRender = renderHookWithParams('1', '1');
-    expect(nextSessionRender.getState().selectedQuestionUnitIndex).toBe(0);
-    expect(nextSessionRender.getState().activeQuestion?.question.id).toBe(100);
-  });
-
-  it('clears transient option overrides when backend switches to a new session', async () => {
-    let currentSessionId = '11111111-1111-4111-8111-111111111021';
-    useModuleUnitPracticeRoomQueryMock.mockImplementation(() => ({
-      isPending: false,
-      error: null,
-      data: {
-        practiceRoom: {
-          sessionId: currentSessionId,
-          moduleUnitId: 3,
-          moduleUnitTitle: 'Unit',
-          questions: [
-            {
-              questionUnitId: 11,
-              position: 1,
-              hasCorrectAttempt: null,
-              coreQuestion: {
-                questionId: 11,
-                questionContent: {
-                  id: 100,
-                  type: 'mcq',
-                  questionStem: 'Core stem',
-                  questionData: {
-                    options: [{ optionText: 'A' }, { optionText: 'B' }],
-                    correctOptionIndex: 1,
-                  },
-                  hint: null,
-                  difficultyScore: 1,
-                },
-                lastAttempt: null,
-              },
-            },
-          ],
-        },
-      },
-    }));
-
-    const rendered = renderHookWithParams('1', '1');
-    act(() => {
-      rendered.getState().selectOption(100, 1);
-    });
-    expect(rendered.getState().selectedOptionIndex).toBe(1);
-
-    currentSessionId = '11111111-1111-4111-8111-111111111022';
-    act(() => {
-      // Trigger a rerender so the hook observes the new backend session id.
-      rendered.getState().selectQuestionUnit(0);
-    });
-
-    await waitFor(() => {
-      expect(rendered.getState().selectedOptionIndex).toBeNull();
-    });
-  });
-
-  it('submits core attempt payload and records submit errors with logger', async () => {
-    const mutateAsync = vi.fn().mockRejectedValue(new Error('submit-fail'));
-    useSubmitModuleUnitPracticeAttemptMutationMock.mockReturnValue({
-      isPending: false,
-      mutateAsync,
-    });
-    useModuleUnitPracticeRoomQueryMock.mockReturnValue({
-      isPending: false,
-      error: null,
-      data: {
-        practiceRoom: {
-          sessionId: '11111111-1111-4111-8111-111111111009',
-          moduleUnitId: 3,
-          moduleUnitTitle: 'Unit',
-          questions: [
-            {
-              questionUnitId: 22,
-              position: 1,
-              hasCorrectAttempt: null,
-              coreQuestion: {
-                questionId: 22,
-                questionContent: {
-                  id: 200,
-                  type: 'mcq',
-                  questionStem: 'Q',
-                  questionData: {
-                    options: [{ optionText: 'A' }, { optionText: 'B' }],
-                    correctOptionIndex: 0,
-                  },
-                  hint: null,
-                  difficultyScore: 1,
-                },
-                lastAttempt: null,
-              },
-            },
-          ],
-        },
-      },
-    });
-
-    const rendered = renderHookWithParams('1', '1');
-    let state = rendered.getState();
-
-    act(() => {
-      state.selectOption(200, 0);
-    });
-
-    state = rendered.getState();
-    await act(async () => {
-      await state.submitActiveQuestionAttempt();
-    });
-
-    expect(mutateAsync).toHaveBeenCalledWith(
-      expect.objectContaining({
-        questionUnitId: 22,
-        questionContentId: 200,
+      data: buildPracticeRoomResponse({
+        isReadOnly: true,
+        questions: [
+          buildQuestionUnit({
+            questionUnitId: 22,
+            contentId: 200,
+            correctOptionIndex: 1,
+            hint: 'Read-only hint',
+          }),
+        ],
       }),
-    );
-    expect(rendered.getState().submitErrorMessage).toBe('display:Error: submit-fail');
-    expect(logError).toHaveBeenCalled();
-  });
-
-  it('keeps selection and submit locked when backend marks room as read-only', () => {
-    useModuleUnitPracticeRoomQueryMock.mockReturnValue({
-      isPending: false,
-      error: null,
-      data: {
-        practiceRoom: {
-          sessionId: '11111111-1111-4111-8111-111111111011',
-          moduleUnitId: 3,
-          moduleUnitTitle: 'Unit',
-          isReadOnly: true,
-          questions: [
-            {
-              questionUnitId: 22,
-              position: 1,
-              hasCorrectAttempt: null,
-              coreQuestion: {
-                questionId: 22,
-                questionContent: {
-                  id: 200,
-                  type: 'mcq',
-                  questionStem: 'Q',
-                  questionData: {
-                    options: [{ optionText: 'A' }, { optionText: 'B' }],
-                    correctOptionIndex: 1,
-                  },
-                  hint: 'Read-only hint',
-                  difficultyScore: 1,
-                },
-                lastAttempt: null,
-              },
-            },
-          ],
-        },
-      },
     });
 
     const rendered = renderHookWithParams('1', '1');
@@ -735,98 +308,10 @@ describe('usePracticeRoomPageState (core-only)', () => {
     expect(state.canSubmitAttempt).toBe(false);
   });
 
-  it('seeds prior attempt selections and allows changing answers in active practice sessions', () => {
-    useModuleUnitPracticeRoomQueryMock.mockReturnValue({
-      isPending: false,
-      error: null,
-      data: {
-        practiceRoom: {
-          sessionId: '11111111-1111-4111-8111-111111111012',
-          moduleUnitId: 3,
-          moduleUnitTitle: 'Unit',
-          questions: [
-            {
-              questionUnitId: 31,
-              position: 1,
-              hasCorrectAttempt: true,
-              coreQuestion: {
-                questionId: 31,
-                questionContent: {
-                  id: 301,
-                  type: 'mcq',
-                  questionStem: 'Already correct',
-                  questionData: {
-                    options: [{ optionText: 'A' }, { optionText: 'B' }],
-                    correctOptionIndex: 0,
-                  },
-                  hint: null,
-                  difficultyScore: 1,
-                },
-                lastAttempt: { studentAnswer: { selectedOptionIndex: 0 }, isCorrect: true },
-              },
-            },
-            {
-              questionUnitId: 32,
-              position: 2,
-              hasCorrectAttempt: false,
-              coreQuestion: {
-                questionId: 32,
-                questionContent: {
-                  id: 302,
-                  type: 'mcq',
-                  questionStem: 'Previously incorrect',
-                  questionData: {
-                    options: [{ optionText: 'C' }, { optionText: 'D' }],
-                    correctOptionIndex: 1,
-                  },
-                  hint: null,
-                  difficultyScore: 1,
-                },
-                lastAttempt: { studentAnswer: { selectedOptionIndex: 0 }, isCorrect: false },
-              },
-            },
-          ],
-        },
-      },
-    });
-
-    const rendered = renderHookWithParams('1', '1');
-    let state = rendered.getState();
-
-    // Practice rooms now expose a retry flow instead of a lock flag, so the
-    // assertion targets the current public API behavior.
-    expect(state.canSubmitAttempt).toBe(true);
-    expect(state.selectedOptionIndex).toBe(0);
-
-    act(() => {
-      state.selectOption(301, 1);
-    });
-
-    state = rendered.getState();
-    expect(state.selectedOptionIndex).toBe(1);
-
-    act(() => {
-      state.selectQuestionUnit(1);
-    });
-
-    state = rendered.getState();
-    expect(state.canSubmitAttempt).toBe(true);
-
-    act(() => {
-      state.selectOption(302, 1);
-    });
-
-    state = rendered.getState();
-    expect(state.selectedOptionIndex).toBe(1);
-    expect(state.canSubmitAttempt).toBe(true);
-  });
-
-  it('allows re-submitting the same question after a short cooldown', async () => {
-    vi.useFakeTimers();
-    const mutateAsync = vi.fn().mockResolvedValue({
-      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
-      hasCorrectAttempt: false,
-    });
+  it('submits the active question successfully through the composed page-state API', async () => {
+    const mutateAsync = vi.fn().mockResolvedValue(
+      buildSubmitResponse({ hasCorrectAttempt: true }),
+    );
     useSubmitModuleUnitPracticeAttemptMutationMock.mockReturnValue({
       isPending: false,
       mutateAsync,
@@ -834,64 +319,54 @@ describe('usePracticeRoomPageState (core-only)', () => {
     useModuleUnitPracticeRoomQueryMock.mockReturnValue({
       isPending: false,
       error: null,
-      data: {
-        practiceRoom: {
-          sessionId: '11111111-1111-4111-8111-111111111010',
-          moduleUnitId: 3,
-          moduleUnitTitle: 'Unit',
-          questions: [
-            {
-              questionUnitId: 22,
-              position: 1,
-              hasCorrectAttempt: null,
-              coreQuestion: {
-                questionId: 22,
-                questionContent: {
-                  id: 200,
-                  type: 'mcq',
-                  questionStem: 'Q',
-                  questionData: {
-                    options: [{ optionText: 'A' }, { optionText: 'B' }],
-                    correctOptionIndex: 1,
-                  },
-                  hint: null,
-                  difficultyScore: 1,
-                },
-                lastAttempt: null,
-              },
-            },
-          ],
-        },
-      },
+      data: buildPracticeRoomResponse({
+        questions: [buildQuestionUnit({ questionUnitId: 22, contentId: 200 })],
+      }),
     });
 
     const rendered = renderHookWithParams('1', '1');
-    let state = rendered.getState();
-
     act(() => {
-      state.selectOption(200, 0);
+      rendered.getState().selectOption(200, 0);
     });
-
-    state = rendered.getState();
-    await act(async () => {
-      await state.submitActiveQuestionAttempt();
-    });
-
-    state = rendered.getState();
-    expect(state.hasSubmittedActiveQuestion).toBe(true);
-    expect(state.canSubmitAttempt).toBe(false);
 
     await act(async () => {
-      vi.advanceTimersByTime(1_500);
+      await rendered.getState().submitActiveQuestionAttempt();
     });
-    state = rendered.getState();
-    expect(state.canSubmitAttempt).toBe(true);
+
+    expect(mutateAsync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        questionUnitId: 22,
+        questionContentId: 200,
+      }),
+    );
+    expect(rendered.getState().hasSubmittedActiveQuestion).toBe(true);
+  });
+
+  it('surfaces submit errors through page state and logs them', async () => {
+    const mutateAsync = vi.fn().mockRejectedValue(new Error('submit-fail'));
+    useSubmitModuleUnitPracticeAttemptMutationMock.mockReturnValue({
+      isPending: false,
+      mutateAsync,
+    });
+    useModuleUnitPracticeRoomQueryMock.mockReturnValue({
+      isPending: false,
+      error: null,
+      data: buildPracticeRoomResponse({
+        questions: [buildQuestionUnit({ questionUnitId: 22, contentId: 200 })],
+      }),
+    });
+
+    const rendered = renderHookWithParams('1', '1');
+    act(() => {
+      rendered.getState().selectOption(200, 0);
+    });
 
     await act(async () => {
-      await state.submitActiveQuestionAttempt();
+      await rendered.getState().submitActiveQuestionAttempt();
     });
-    expect(mutateAsync).toHaveBeenCalledTimes(2);
-    vi.useRealTimers();
+
+    expect(rendered.getState().submitErrorMessage).toBe('display:Error: submit-fail');
+    expect(logError).toHaveBeenCalled();
   });
 
   it('animates module progress and levels up when awarded exp crosses the threshold', async () => {
@@ -905,10 +380,17 @@ describe('usePracticeRoomPageState (core-only)', () => {
       .spyOn(globalThis, 'cancelAnimationFrame')
       .mockImplementation(() => undefined);
 
-    const mutateAsync = vi.fn().mockResolvedValue({
-      awards: { baseQuestionExp: 50, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
-      hasCorrectAttempt: true,
-    });
+    const mutateAsync = vi.fn().mockResolvedValue(
+      buildSubmitResponse({
+        awards: {
+          baseQuestionExp: 50,
+          firstAttemptBonus: 0,
+          streakBonus: 0,
+          accountExp: 0,
+        },
+        hasCorrectAttempt: true,
+      }),
+    );
     useSubmitModuleUnitPracticeAttemptMutationMock.mockReturnValue({
       isPending: false,
       mutateAsync,
@@ -926,55 +408,27 @@ describe('usePracticeRoomPageState (core-only)', () => {
     useModuleUnitPracticeRoomQueryMock.mockReturnValue({
       isPending: false,
       error: null,
-      data: {
-        practiceRoom: {
-          sessionId: '11111111-1111-4111-8111-111111111010',
-          moduleUnitId: 3,
-          moduleUnitTitle: 'Unit',
-          questions: [
-            {
-              questionUnitId: 22,
-              position: 1,
-              hasCorrectAttempt: null,
-              coreQuestion: {
-                questionId: 22,
-                questionContent: {
-                  id: 200,
-                  type: 'mcq',
-                  questionStem: 'Q',
-                  questionData: {
-                    options: [{ optionText: 'A' }, { optionText: 'B' }],
-                    correctOptionIndex: 1,
-                  },
-                  hint: null,
-                  difficultyScore: 1,
-                },
-                lastAttempt: null,
-              },
-            },
-          ],
-        },
-      },
+      data: buildPracticeRoomResponse({
+        sessionId: '11111111-1111-4111-8111-111111111010',
+        questions: [buildQuestionUnit({ questionUnitId: 22, contentId: 200 })],
+      }),
     });
 
     const rendered = renderHookWithParams('1', '1');
-    let state = rendered.getState();
-    expect(state.moduleProgress).toEqual({
+    expect(rendered.getState().moduleProgress).toEqual({
       level: 1,
       currentExp: 980,
       expPercent: 98,
     });
 
     act(() => {
-      state.selectOption(200, 1);
+      rendered.getState().selectOption(200, 1);
     });
-    state = rendered.getState();
     await act(async () => {
-      await state.submitActiveQuestionAttempt();
+      await rendered.getState().submitActiveQuestionAttempt();
     });
 
-    state = rendered.getState();
-    expect(state.moduleProgress).toEqual({
+    expect(rendered.getState().moduleProgress).toEqual({
       level: 2,
       currentExp: 30,
       expPercent: 3,
