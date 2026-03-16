@@ -126,6 +126,42 @@ export default function Register() {
                 </div>
               </div>
 
+              {showMeter ? (
+                // Keep strength guidance inline with the password fields so the
+                // user sees it before the submit action and can adjust in place.
+                <section className={styles.meterPanel} aria-live="polite">
+                  <div className={styles.meterPanelHeader}>
+                    <span>Password strength</span>
+                    <strong>{strengthLabel}</strong>
+                  </div>
+                  <div
+                    className={styles.meter}
+                    role="progressbar"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={Math.round(strengthPercent)}
+                  >
+                    <div
+                      className={`${styles.meterFill} ${
+                        passedCount >= 4
+                          ? styles.meterStrong
+                          : passedCount >= 3
+                            ? styles.meterOkay
+                            : styles.meterWeak
+                      }`}
+                      style={{ width: `${strengthPercent}%` }}
+                    />
+                  </div>
+                  <ul className={styles.requirements}>
+                    {passwordChecks.map((item) => (
+                      <li key={item.label} className={item.pass ? styles.reqPass : styles.reqFail}>
+                        {item.label}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ) : null}
+
               {errors.length > 0 ? (
                 <div className={styles.error} role="alert">
                   <p className={styles.errorTitle}>Please fix the following:</p>
@@ -159,40 +195,6 @@ export default function Register() {
               <SocialAuthButtons context="register" />
             </div>
           </section>
-
-          {showMeter ? (
-            <section className={styles.meterPanel} aria-live="polite">
-              <div className={styles.meterPanelHeader}>
-                <span>Password strength</span>
-                <strong>{strengthLabel}</strong>
-              </div>
-              <div
-                className={styles.meter}
-                role="progressbar"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={Math.round(strengthPercent)}
-              >
-                <div
-                  className={`${styles.meterFill} ${
-                    passedCount >= 4
-                      ? styles.meterStrong
-                      : passedCount >= 3
-                        ? styles.meterOkay
-                        : styles.meterWeak
-                  }`}
-                  style={{ width: `${strengthPercent}%` }}
-                />
-              </div>
-              <ul className={styles.requirements}>
-                {passwordChecks.map((item) => (
-                  <li key={item.label} className={item.pass ? styles.reqPass : styles.reqFail}>
-                    {item.label}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
 
           <aside className={styles.helper}>
           </aside>

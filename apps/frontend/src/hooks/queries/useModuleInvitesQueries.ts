@@ -1,4 +1,5 @@
 // Shared module-invite query and mutation hooks to keep settings-panel invite state cache-driven.
+import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   CreateInvitePayload,
@@ -121,10 +122,47 @@ export function useRedeemInviteMutation() {
 
   return useMutation({
     mutationFn: (token: string) => redeemInvite(token),
-    onSuccess: async (result: RedeemInviteResponse) => {
-      // Joining a module can change the "my modules" list, so refresh that cache after redemption.
-      await queryClient.invalidateQueries({ queryKey: queryKeys.modules.all });
-      await queryClient.invalidateQueries({ queryKey: queryKeys.modules.detail(result.moduleId) });
+    onSuccess: (result: RedeemInviteResponse) => {
+      // Fire cache refreshes in the background so the accept-invite screen can leave its pending
+      // state immediately even if one of the invalidated queries is slow to settle.
+      void queryClient.invalidateQueries({ queryKey: queryKeys.modules.all });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.modules.detail(result.moduleId),
+      });
     },
   });
+}
+
+export function useRedeemInviteQuery(token: string, enabled: boolean) {
+  const queryClient = useQueryClient();
+
+  const redeemInviteQuery = useQuery({
+    queryKey: queryKeys.invites.redeem(token),
+    // The accept-invite route is a one-shot flow, so the redeem request is keyed by token and shared
+    // across remounts to avoid duplicate POSTs during StrictMode development renders.
+    queryFn: () => redeemInvite(token),
+    enabled: enabled && token.trim().length > 0,
+    retry: false,
+    staleTime: Number.POSITIVE_INFINITY,
+    gcTime: 5 * 60_000,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    refetchOnWindowFocus: false,
+  });
+
+  useEffect(() => {
+    if (!redeemInviteQuery.data) {
+      return;
+    }
+
+    // React Query v5 no longer accepts lifecycle callbacks on this useQuery path,
+    // so cache refreshes are coordinated from the settled query result instead.
+    const result: RedeemInviteResponse = redeemInviteQuery.data;
+    void queryClient.invalidateQueries({ queryKey: queryKeys.modules.all });
+    void queryClient.invalidateQueries({
+      queryKey: queryKeys.modules.detail(result.moduleId),
+    });
+  }, [queryClient, redeemInviteQuery.data]);
+
+  return redeemInviteQuery;
 }

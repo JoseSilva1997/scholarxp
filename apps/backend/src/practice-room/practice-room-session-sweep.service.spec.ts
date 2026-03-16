@@ -1,12 +1,12 @@
 // Spec role: verifies the practice-room stale-session sweep interval schedules closures and handles failures safely.
 import { Logger } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { PracticeRoomService } from './practice-room.service';
+import { PracticeRoomSessionService } from './practice-room-session.service';
 import { PracticeRoomSessionSweepService } from './practice-room-session-sweep.service';
 
 describe('PracticeRoomSessionSweepService', () => {
   let service: PracticeRoomSessionSweepService;
-  const practiceRoomService = {
+  const practiceRoomSessionService = {
     closeStaleSessions: jest.fn(),
   };
 
@@ -14,15 +14,18 @@ describe('PracticeRoomSessionSweepService', () => {
     jest.useFakeTimers();
     jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
     jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
-    practiceRoomService.closeStaleSessions.mockReset();
-    practiceRoomService.closeStaleSessions.mockResolvedValue({
+    practiceRoomSessionService.closeStaleSessions.mockReset();
+    practiceRoomSessionService.closeStaleSessions.mockResolvedValue({
       closedCount: 0,
     });
 
     const moduleRef = await Test.createTestingModule({
       providers: [
         PracticeRoomSessionSweepService,
-        { provide: PracticeRoomService, useValue: practiceRoomService },
+        {
+          provide: PracticeRoomSessionService,
+          useValue: practiceRoomSessionService,
+        },
       ],
     }).compile();
 
@@ -40,14 +43,14 @@ describe('PracticeRoomSessionSweepService', () => {
 
     await jest.advanceTimersByTimeAsync(5 * 60 * 1000);
 
-    expect(practiceRoomService.closeStaleSessions).toHaveBeenCalledWith({
+    expect(practiceRoomSessionService.closeStaleSessions).toHaveBeenCalledWith({
       inactivityMinutes: 60,
     });
   });
 
   it('logs closed session count when stale sessions are closed', async () => {
     const logSpy = jest.spyOn(Logger.prototype, 'log');
-    practiceRoomService.closeStaleSessions.mockResolvedValueOnce({
+    practiceRoomSessionService.closeStaleSessions.mockResolvedValueOnce({
       closedCount: 3,
     });
     service.onModuleInit();
@@ -59,7 +62,7 @@ describe('PracticeRoomSessionSweepService', () => {
 
   it('logs errors and continues when sweep fails', async () => {
     const errorSpy = jest.spyOn(Logger.prototype, 'error');
-    practiceRoomService.closeStaleSessions.mockRejectedValueOnce(
+    practiceRoomSessionService.closeStaleSessions.mockRejectedValueOnce(
       new Error('db timeout'),
     );
     service.onModuleInit();

@@ -1,4 +1,4 @@
-// Invite acceptance screen: redeems an invite token and routes the student into the module.
+// Invite acceptance screen: redeems an invite token and routes the student back into the modules shell.
 import MainSection from '../../components/MainSection';
 import { useAcceptInvitePageState } from '../../hooks/page-state/useAcceptInvitePageState';
 import styles from './AcceptInvite.module.css';
@@ -15,7 +15,7 @@ export default function AcceptInvite() {
         {hasToken && isPending ? (
           <p className={styles.copy}>Redeeming your invite…</p>
         ) : isSuccess ? (
-          <p className={styles.copy}>Success! Redirecting you to the module.</p>
+          <p className={styles.copy}>Success! Redirecting you to your modules.</p>
         ) : errorMessage ? (
           <>
             <p className={styles.copy} role="alert">

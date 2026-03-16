@@ -1,7 +1,12 @@
 // Encapsulates SingleModulePage orchestration so the route component can stay mostly presentational.
 import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import type { AuthUser, ModuleUnitStatus } from '@scholarxp/api-contracts';
+import {
+  PracticeSessionTypeValues,
+  type AuthUser,
+  type ModuleUnitStatus,
+  type PracticeSessionType,
+} from '@scholarxp/api-contracts';
 import type { ModuleSummary } from '../../types/module';
 import { MODULE_UNIT_BASELINE_EXP } from '@scholarxp/constants';
 import { features } from '@scholarxp/permissions';
@@ -12,6 +17,9 @@ import {
 } from '../../api/get-display-error';
 import { logError } from '../../utils/logger';
 import { canUserAccess } from '../../permissions/permission';
+import {
+  useRecordDailyRevisionQuestProgressMutation,
+} from '../queries/useQuestsQueries';
 import {
   useCreateModuleUnitMutation,
   useModuleDetailQuery,
@@ -45,6 +53,9 @@ type UseSingleModulePageStateResult = {
   expPercent: number;
   expMax: number;
   isCreatingUnit: boolean;
+  handleDailyRevisionClick: () => Promise<void>;
+  handleOpenStudentPracticeRoom: (unitId: string, questionId?: string) => Promise<void>;
+  handleRetryStudentPracticeRoom: (unitId: string) => Promise<void>;
   handleCreateUnit: (title: string) => Promise<void>;
   handleChangeUnitStatus: (unitId: string, status: ModuleUnitStatus) => Promise<void>;
   handleUpdateUnitTitle: (unitId: string, title: string) => Promise<void>;
@@ -75,6 +86,8 @@ export function useSingleModulePageState({
   const createModuleUnitMutation = useCreateModuleUnitMutation(parsedId);
   const updateModuleUnitMutation = useUpdateModuleUnitMutation(parsedId);
   const updateModuleUnitStatusMutation = useUpdateModuleUnitStatusMutation(parsedId);
+  const recordDailyRevisionQuestProgressMutation =
+    useRecordDailyRevisionQuestProgressMutation(parsedId);
 
   // permission checks are memoized to avoid re-evaluating the
   // shared matrix on every render. user object is primary dependency.
@@ -194,6 +207,72 @@ export function useSingleModulePageState({
     }
   };
 
+  const handleDailyRevisionClick = async () => {
+    if (parsedId === null) {
+      return;
+    }
+
+    setActionError(null);
+    try {
+      await recordDailyRevisionQuestProgressMutation.mutateAsync();
+      // Product has not shipped the actual room entry yet, so keep the current placeholder after recording quest progress.
+      window.alert('Daily revision coming soon! 🎯');
+    } catch (error) {
+      setActionError(
+        getDisplayErrorMessage(error, {
+          fallbackMessage:
+            'Could not record your daily revision quest progress. Please try again.',
+        }),
+      );
+      if (shouldLogApiError(error)) {
+        logError(error, {
+          feature: 'quests',
+          action: 'daily-revision-click',
+          moduleId: parsedId,
+        });
+      }
+    }
+  };
+
+  const openStudentPracticeRoom = async (input: {
+    unitId: string,
+    questionId?: string,
+    sessionType?: PracticeSessionType,
+  }) => {
+    if (parsedId === null) {
+      return;
+    }
+
+    const searchParams = new URLSearchParams();
+    if (input.questionId) {
+      searchParams.set('questionId', input.questionId);
+    }
+    if (input.sessionType) {
+      // Entry-mode query is only needed when opening a fresh session; once the room loads,
+      // the server-issued sessionId becomes the canonical resume handle.
+      searchParams.set('sessionType', input.sessionType);
+    }
+    const practiceRoomPath = `/main/modules/${parsedId}/${input.unitId}/practice-room${
+      searchParams.size > 0 ? `?${searchParams.toString()}` : ''
+    }`;
+
+    window.location.assign(practiceRoomPath);
+  };
+
+  const handleOpenStudentPracticeRoom = async (
+    unitId: string,
+    questionId?: string,
+  ) => {
+    await openStudentPracticeRoom({ unitId, questionId });
+  };
+
+  const handleRetryStudentPracticeRoom = async (unitId: string) => {
+    await openStudentPracticeRoom({
+      unitId,
+      sessionType: PracticeSessionTypeValues.retry,
+    });
+  };
+
   // toggling a unit's status is a common teacher interaction, so we
   // give it a dedicated handler that logs failures for monitoring.
   const handleChangeUnitStatus = async (unitId: string, status: ModuleUnitStatus) => {
@@ -264,6 +343,9 @@ export function useSingleModulePageState({
     expPercent,
     expMax,
     isCreatingUnit: createModuleUnitMutation.isPending,
+    handleDailyRevisionClick,
+    handleOpenStudentPracticeRoom,
+    handleRetryStudentPracticeRoom,
     handleCreateUnit,
     handleChangeUnitStatus,
     handleUpdateUnitTitle,

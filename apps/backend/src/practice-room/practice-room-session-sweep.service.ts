@@ -7,7 +7,7 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
-import { PracticeRoomService } from './practice-room.service';
+import { PracticeRoomSessionService } from './practice-room-session.service';
 
 const SESSION_SWEEP_INTERVAL_MS = 5 * 60 * 1000;
 const STALE_SESSION_MINUTES = 60;
@@ -19,7 +19,9 @@ export class PracticeRoomSessionSweepService
   private readonly logger = new Logger(PracticeRoomSessionSweepService.name);
   private sweepTimer: NodeJS.Timeout | null = null;
 
-  constructor(private readonly practiceRoomService: PracticeRoomService) {}
+  constructor(
+    private readonly practiceRoomSessionService: PracticeRoomSessionService,
+  ) {}
 
   onModuleInit() {
     // A fixed interval keeps stale-session cleanup predictable without requiring external scheduler infrastructure.
@@ -39,7 +41,8 @@ export class PracticeRoomSessionSweepService
 
   private async runSweep() {
     try {
-      const result = await this.practiceRoomService.closeStaleSessions({
+      // Depend on the lifecycle service directly so the sweep does not route through facade orchestration.
+      const result = await this.practiceRoomSessionService.closeStaleSessions({
         inactivityMinutes: STALE_SESSION_MINUTES,
       });
       if (result.closedCount > 0) {

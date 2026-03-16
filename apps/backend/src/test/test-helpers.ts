@@ -16,6 +16,7 @@ interface CrudServiceTestConfig<TCreate, TUpdate> {
   entityLabel: string;
   createDto: TCreate;
   updateDto: TUpdate;
+  existingRecord?: any;
   formatCreateData?: (dto: TCreate) => any;
   formatUpdateData?: (dto: TUpdate) => any;
 }
@@ -34,7 +35,12 @@ export function runCrudServiceTests<TCreate, TUpdate>(
       config.formatUpdateData ? config.formatUpdateData(dto) : dto;
 
     const id = 42;
-    const existing = { id, name: `${config.entityLabel}-${id}` };
+    // Allow feature services to provide a realistic persisted record when update logic
+    // depends on domain-specific fields instead of a generic `{ id, name }` shape.
+    const existing = config.existingRecord ?? {
+      id,
+      name: `${config.entityLabel}-${id}`,
+    };
 
     beforeEach(async () => {
       prisma = createPrismaMock(config.modelName);

@@ -158,7 +158,13 @@ describe('ExpAwardingService', () => {
     });
 
     expect(awarded).toBe(0);
-    expect(expLedgerService.recordEvent).not.toHaveBeenCalled();
+    expect(expLedgerService.recordEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: ExpLedgerEventTypes.COMPLETE_MODULE_UNIT,
+        awardedExp: 0,
+      }),
+      prisma,
+    );
     expect(avatarService.addStudentExp).not.toHaveBeenCalled();
     expect(expLedgerService.acquireDailyCompletionLock).toHaveBeenCalled();
   });
@@ -271,10 +277,12 @@ describe('ExpAwardingService', () => {
       prisma,
     );
 
-    const firstAttemptEventCalls = expLedgerService.recordEvent.mock.calls.filter(
-      ([params]) =>
-        params.eventType === ExpLedgerEventTypes.PRACTICE_ROOM_CORRECT_AT_FIRST_ATTEMPT,
-    );
+    const firstAttemptEventCalls =
+      expLedgerService.recordEvent.mock.calls.filter(
+        ([params]) =>
+          params.eventType ===
+          ExpLedgerEventTypes.PRACTICE_ROOM_CORRECT_AT_FIRST_ATTEMPT,
+      );
     expect(firstAttemptEventCalls).toHaveLength(0);
     expect(userModuleService.addStudentModuleExp).toHaveBeenCalledTimes(1);
     expect(userModuleService.addStudentModuleExp).toHaveBeenCalledWith(

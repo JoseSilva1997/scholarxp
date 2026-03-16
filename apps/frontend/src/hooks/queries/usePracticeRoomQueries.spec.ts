@@ -5,8 +5,10 @@ import { queryKeys } from '../query-keys';
 const useQueryMock = vi.fn();
 const useMutationMock = vi.fn();
 const invalidateQueriesMock = vi.fn();
+const setQueryDataMock = vi.fn();
 const useQueryClientMock = vi.fn(() => ({
   invalidateQueries: invalidateQueriesMock,
+  setQueryData: setQueryDataMock,
 }));
 vi.mock('@tanstack/react-query', () => ({
   useQuery: (opts: unknown) => useQueryMock(opts),
@@ -48,6 +50,7 @@ describe('useModuleUnitPracticeRoomQuery', () => {
       closedAt: '2026-02-26T12:00:00.000Z',
     });
     invalidateQueriesMock.mockResolvedValue(undefined);
+    setQueryDataMock.mockReset();
   });
 
   it('uses numeric ids when both module and unit provided', () => {
@@ -55,6 +58,7 @@ describe('useModuleUnitPracticeRoomQuery', () => {
       5,
       2,
       '11111111-1111-4111-8111-111111111009',
+      null,
     );
     expect(useQueryMock).toHaveBeenCalled();
     const opts = useQueryMock.mock.calls[0][0];
@@ -63,6 +67,7 @@ describe('useModuleUnitPracticeRoomQuery', () => {
         5,
         2,
         '11111111-1111-4111-8111-111111111009',
+        undefined,
       ),
     );
     expect(opts.enabled).toBe(true);
@@ -72,6 +77,7 @@ describe('useModuleUnitPracticeRoomQuery', () => {
     void opts.queryFn();
     expect(getPracticeRoomMock).toHaveBeenCalledWith(5, 2, {
       sessionId: '11111111-1111-4111-8111-111111111009',
+      sessionType: undefined,
     });
     expect(res).toEqual({ data: 'ok' });
   });
@@ -81,6 +87,7 @@ describe('useModuleUnitPracticeRoomQuery', () => {
       null,
       2,
       '11111111-1111-4111-8111-111111111009',
+      null,
     );
     const opts = useQueryMock.mock.calls[0][0];
     expect(opts.queryKey).toEqual(queryKeys.modules.moduleUnitPracticeRoom(0, 0));
@@ -89,6 +96,7 @@ describe('useModuleUnitPracticeRoomQuery', () => {
     void opts.queryFn();
     expect(getPracticeRoomMock).toHaveBeenCalledWith(null, 2, {
       sessionId: '11111111-1111-4111-8111-111111111009',
+      sessionType: undefined,
     });
   });
 
@@ -97,6 +105,7 @@ describe('useModuleUnitPracticeRoomQuery', () => {
       3,
       null,
       '11111111-1111-4111-8111-111111111009',
+      null,
     );
     const opts = useQueryMock.mock.calls[0][0];
     expect(opts.queryKey).toEqual(queryKeys.modules.moduleUnitPracticeRoom(0, 0));
@@ -104,16 +113,20 @@ describe('useModuleUnitPracticeRoomQuery', () => {
     void opts.queryFn();
     expect(getPracticeRoomMock).toHaveBeenCalledWith(3, null, {
       sessionId: '11111111-1111-4111-8111-111111111009',
+      sessionType: undefined,
     });
   });
 
   it('disables query when both ids are null', () => {
-    useModuleUnitPracticeRoomQuery(null, null, null);
+    useModuleUnitPracticeRoomQuery(null, null, null, null);
     const opts = useQueryMock.mock.calls[0][0];
     expect(opts.queryKey).toEqual(queryKeys.modules.moduleUnitPracticeRoom(0, 0));
     expect(opts.enabled).toBe(false);
     void opts.queryFn();
-    expect(getPracticeRoomMock).toHaveBeenCalledWith(null, null, { sessionId: undefined });
+    expect(getPracticeRoomMock).toHaveBeenCalledWith(null, null, {
+      sessionId: undefined,
+      sessionType: undefined,
+    });
   });
 });
 
@@ -132,6 +145,7 @@ describe('useSubmitModuleUnitPracticeAttemptMutation', () => {
       closedAt: '2026-02-26T12:00:00.000Z',
     });
     invalidateQueriesMock.mockResolvedValue(undefined);
+    setQueryDataMock.mockReset();
   });
 
   it('wires mutationFn to submitPracticeRoomAttempt when ids are valid', async () => {
@@ -170,19 +184,49 @@ describe('useSubmitModuleUnitPracticeAttemptMutation', () => {
     ).toThrow('Cannot submit a practice-room attempt');
   });
 
-  it('invalidates the active practice room query on success', async () => {
-    useSubmitModuleUnitPracticeAttemptMutation(5, 2);
-
-    const opts = useMutationMock.mock.calls[0][0];
+  it('syncs practice room and reward caches when the caller flushes success effects', async () => {
+    const result = useSubmitModuleUnitPracticeAttemptMutation(5, 2);
     const mockResponse = {
       awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: true,
     };
-    await opts.onSuccess(mockResponse);
+    await result.syncAttemptSuccessEffects(mockResponse);
 
     expect(invalidateQueriesMock).toHaveBeenCalledWith({
       queryKey: queryKeys.modules.moduleUnitPracticeRoomBase(5, 2),
     });
+    expect(invalidateQueriesMock).toHaveBeenCalledWith({
+      queryKey: queryKeys.quests.masterStreakAll,
+    });
+    expect(invalidateQueriesMock).toHaveBeenCalledWith({
+      queryKey: queryKeys.rewards.dailyLessonXpTrackAll,
+    });
+    expect(invalidateQueriesMock).toHaveBeenCalledWith({
+      queryKey: queryKeys.auth.me,
+    });
+  });
+
+  it('updates module detail cache directly when the submit response includes refreshed progress', async () => {
+    const result = useSubmitModuleUnitPracticeAttemptMutation(5, 2);
+    const updatedModuleProgress = {
+      id: 5,
+      title: 'Algebra',
+      description: 'Module',
+      userModuleLevel: 2,
+      currentExp: 45,
+      expMax: 100,
+    };
+
+    await result.syncAttemptSuccessEffects({
+      awards: { baseQuestionExp: 10, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
+      hasCorrectAttempt: true,
+      updatedModuleProgress,
+    });
+
+    expect(setQueryDataMock).toHaveBeenCalledWith(
+      queryKeys.modules.detail(5),
+      updatedModuleProgress,
+    );
   });
 });
 

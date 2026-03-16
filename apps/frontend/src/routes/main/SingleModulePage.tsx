@@ -41,8 +41,13 @@ export default function SingleModulePage() {
     expPercent,
     expMax,
     isCreatingUnit,
+    handleDailyRevisionClick,
+    handleOpenStudentPracticeRoom,
+    handleRetryStudentPracticeRoom,
     handleCreateUnit,
-    handleChangeUnitStatus,    handleUpdateUnitTitle,    handleModuleSaved,
+    handleChangeUnitStatus,
+    handleUpdateUnitTitle,
+    handleModuleSaved,
   } = useSingleModulePageState({ moduleIdParam: moduleId, user });
 
   return (
@@ -158,7 +163,9 @@ export default function SingleModulePage() {
                     <button
                       type="button"
                       className={styles.dailyRevisionButton}
-                      onClick={() => alert('Daily revision coming soon! 🎯')}
+                      onClick={() => {
+                        void handleDailyRevisionClick();
+                      }}
                     >
                       <span className={styles.dailyRevisionIcon}>⚡</span>
                       <span>Daily Revision</span>
@@ -189,7 +196,14 @@ export default function SingleModulePage() {
               {user?.globalRole === 'student' &&
                 moduleUnits.map((unit) => {
                   const canStudentSee = unit.status === 'live' || unit.status === 'locked';
-                  return canStudentSee ? <StudentModuleUnitCard key={unit.id} unit={unit} /> : null;
+                  return canStudentSee ? (
+                    <StudentModuleUnitCard
+                      key={unit.id}
+                      unit={unit}
+                      onOpenPracticeRoom={handleOpenStudentPracticeRoom}
+                      onRetryPracticeRoom={handleRetryStudentPracticeRoom}
+                    />
+                  ) : null;
                 })}
             </div>
           </>

@@ -13,6 +13,7 @@ import MainSection from '../../components/MainSection';
 import StreakIndicator from '../../components/PracticeRoom/StreakTrackerIndicator';
 import FirstTryAccuracyIndicator from '../../components/PracticeRoom/FirstTryAccuracyIndicator';
 import BaseXpIndicator from '../../components/PracticeRoom/BaseXpIndicator';
+import LessonCompleteModal from '../../components/PracticeRoom/LessonCompleteModal';
 import RewardsGuideTooltip from '../../components/PracticeRoom/RewardsGuideTooltip';
 import { usePracticeRoomPageState } from '../../hooks/page-state/practice-room/usePracticeRoomPageState';
 import styles from './PracticeRoomPage.module.css';
@@ -29,6 +30,7 @@ export default function PracticeRoomPage() {
     moduleProgress,
     moduleExpGainIndicator,
     showLevelUp,
+    isLessonCompleteModalOpen,
     isLoading,
     pageError,
     submitErrorMessage,
@@ -48,6 +50,7 @@ export default function PracticeRoomPage() {
     isActiveHintUnlocked,
     unlockHintForContent,
     submitActiveQuestionAttempt,
+    dismissLessonCompleteModal,
     goToPreviousQuestionUnit,
     goToNextQuestionUnit,
     currentStreak,
@@ -85,172 +88,182 @@ export default function PracticeRoomPage() {
 
   if (!parsedModuleId || !parsedUnitId) {
     return (
-      <MainSection className={styles.page}>
-        <div className={styles.topBar}>
-          <Link className={styles.backLink} to={`/main/modules/${moduleId}`}>
-            ← Back to module
-          </Link>
-        </div>
-        <div className={styles.statusCard} role="alert">
-          Practice room not found.
-        </div>
-      </MainSection>
+      <>
+        <MainSection className={styles.page}>
+          <div className={styles.topBar}>
+            <Link className={styles.backLink} to={`/main/modules/${moduleId}`}>
+              ← Back to module
+            </Link>
+          </div>
+          <div className={styles.statusCard} role="alert">
+            Practice room not found.
+          </div>
+        </MainSection>
+        {isLessonCompleteModalOpen ? (
+          <LessonCompleteModal
+            isOpen
+            unitTitle={room?.moduleUnitTitle}
+            onDismiss={dismissLessonCompleteModal}
+          />
+        ) : null}
+      </>
     );
   }
 
   return (
-    <MainSection className={styles.page}>
-      <header className={styles.header}>
-        <div className={styles.headerTop}>
-          <div className={styles.titleSection}>
-            <Link className={styles.backLink} to={`/main/modules/${moduleId}`}>
-              ← Back to module
-            </Link>
-            <h1 className={styles.title}>{room?.moduleUnitTitle ?? 'Loading…'}</h1>
-          </div>
+    <>
+      <MainSection className={styles.page}>
+        <header className={styles.header}>
+          <div className={styles.headerTop}>
+            <div className={styles.titleSection}>
+              <Link className={styles.backLink} to={`/main/modules/${moduleId}`}>
+                ← Back to module
+              </Link>
+              <h1 className={styles.title}>{room?.moduleUnitTitle ?? 'Loading…'}</h1>
+            </div>
 
-          {moduleProgress && (
-            <div className={styles.headerProgress}>
-              {/* Info icon: hover reveals a speech-bubble explaining all reward indicators */}
-                <RewardsGuideTooltip />
-              {/* XP indicator: amber when base XP is still earnable, dimmed once claimed. */}
-              <BaseXpIndicator status={baseXpStatus} />
-              {/* Accuracy indicator (bullseye) sits to the left of the streak
-                  indicator so all per-question reward pills are grouped together. */}
-              <FirstTryAccuracyIndicator status={firstTryBonusStatus} />
-              {/* Streak indicator sits left of the XP bar so progress metrics are grouped */}
-              <StreakIndicator
-                currentStreak={currentStreak}
-                highestStreak={highestStreak}
-                totalQuestions={room?.questions.length ?? 0}
-                isStreakInitialized={isStreakInitialized}
-                claimedTiers={rewardIndicators.streak.claimedTiers}
-              />
-              <div className={styles.levelIndicatorMini}>
-                <img src={expIcon} alt="" aria-hidden="true" className={styles.miniLevelIcon} />
-                <div className={styles.levelTextWrapper}>
-                  <span className={styles.levelText}>Lvl {moduleProgress.level}</span>
-                  <AnimatePresence>
-                    {showLevelUp && (
-                      <motion.span
-                        key="level-up-badge"
-                        initial={{ opacity: 0, scale: 0.5, y: 10 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.5, y: -10 }}
-                        transition={{ duration: 0.5, type: 'spring', bounce: 0.4 }}
-                        className={styles.levelUpBadge}
-                      >
-                        LEVEL UP!
-                      </motion.span>
+            {moduleProgress && (
+              <div className={styles.headerProgress}>
+                {/* Info icon: hover reveals a speech-bubble explaining all reward indicators */}
+                  <RewardsGuideTooltip />
+                {/* XP indicator: amber when base XP is still earnable, dimmed once claimed. */}
+                <BaseXpIndicator status={baseXpStatus} />
+                {/* Accuracy indicator (bullseye) sits to the left of the streak
+                    indicator so all per-question reward pills are grouped together. */}
+                <FirstTryAccuracyIndicator status={firstTryBonusStatus} />
+                {/* Streak indicator sits left of the XP bar so progress metrics are grouped */}
+                <StreakIndicator
+                  currentStreak={currentStreak}
+                  highestStreak={highestStreak}
+                  totalQuestions={room?.questions.length ?? 0}
+                  isStreakInitialized={isStreakInitialized}
+                  claimedTiers={rewardIndicators.streak.claimedTiers}
+                />
+                <div className={styles.levelIndicatorMini}>
+                  <img src={expIcon} alt="" aria-hidden="true" className={styles.miniLevelIcon} />
+                  <div className={styles.levelTextWrapper}>
+                    <span className={styles.levelText}>Lvl {moduleProgress.level}</span>
+                    <AnimatePresence>
+                      {showLevelUp && (
+                        <motion.span
+                          key="level-up-badge"
+                          initial={{ opacity: 0, scale: 0.5, y: 10 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.5, y: -10 }}
+                          transition={{ duration: 0.5, type: 'spring', bounce: 0.4 }}
+                          className={styles.levelUpBadge}
+                        >
+                          LEVEL UP!
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                  <div className={styles.miniBarTrack}>
+                    <div
+                      className={`${styles.miniBarFill} ${showLevelUp ? styles.miniBarFillLevelUp : ''}`}
+                      style={{ width: `${moduleProgress.expPercent}%` }}
+                    />
+                  </div>
+                  <div className={styles.xpValueContainer}>
+                    <span className={styles.miniExpLabel}>{moduleProgress.currentExp} xp</span>
+                    {/* Escalator animation: all chips share the same spawn point and move upward
+                        at constant speed, staggered so they space out naturally on the track.
+                        Opacity holds while readable then fades as chips approach the top.
+                        awardId keys ensure chips remount on every new award. */}
+                    {moduleExpGainIndicator && (
+                      <>
+                        {moduleExpGainIndicator.base > 0 && (
+                          <motion.span
+                            key={`${moduleExpGainIndicator.awardId}-base`}
+                            initial={{ y: 0, opacity: 0 }}
+                            animate={{ y: -40, opacity: [0, 1, 1, 0] }}
+                            transition={{
+                              // y starts 0.2s before opacity so the chip is already
+                              // moving when it fades in — no visible pause at spawn.
+                              y: { ease: 'linear', duration: 2.5, delay: 0 },
+                              opacity: { duration: 2.5, times: [0, 0.04, 0.6, 1], delay: 0.2 },
+                            }}
+                            className={styles.xpFloatChip}
+                          >
+                            +{moduleExpGainIndicator.base} xp
+                          </motion.span>
+                        )}
+                        {moduleExpGainIndicator.firstAttemptBonus > 0 && (
+                          <motion.span
+                            key={`${moduleExpGainIndicator.awardId}-1st`}
+                            initial={{ y: 0, opacity: 0 }}
+                            animate={{ y: -40, opacity: [0, 1, 1, 0] }}
+                            transition={{
+                              y: { ease: 'linear', duration: 2.5, delay: 0.8 },
+                              opacity: { duration: 2.5, times: [0, 0.04, 0.6, 1], delay: 1.0 },
+                            }}
+                            className={`${styles.xpFloatChip} ${styles.xpFloatChipFirstAttempt}`}
+                          >
+                            +{moduleExpGainIndicator.firstAttemptBonus} 🎯
+                          </motion.span>
+                        )}
+                        {moduleExpGainIndicator.streakBonus > 0 && (
+                          <motion.span
+                            key={`${moduleExpGainIndicator.awardId}-streak`}
+                            initial={{ y: 0, opacity: 0 }}
+                            animate={{ y: -40, opacity: [0, 1, 1, 0] }}
+                            transition={{
+                              y: { ease: 'linear', duration: 2.5, delay: 1.6 },
+                              opacity: { duration: 2.5, times: [0, 0.04, 0.6, 1], delay: 1.8 },
+                            }}
+                            className={`${styles.xpFloatChip} ${styles.xpFloatChipStreak}`}
+                          >
+                            +{moduleExpGainIndicator.streakBonus} 🔥
+                          </motion.span>
+                        )}
+                      </>
                     )}
-                  </AnimatePresence>
-                </div>
-                <div className={styles.miniBarTrack}>
-                  <div
-                    className={`${styles.miniBarFill} ${showLevelUp ? styles.miniBarFillLevelUp : ''}`}
-                    style={{ width: `${moduleProgress.expPercent}%` }}
-                  />
-                </div>
-                <div className={styles.xpValueContainer}>
-                  <span className={styles.miniExpLabel}>{moduleProgress.currentExp} xp</span>
-                  {/* Escalator animation: all chips share the same spawn point and move upward
-                      at constant speed, staggered so they space out naturally on the track.
-                      Opacity holds while readable then fades as chips approach the top.
-                      awardId keys ensure chips remount on every new award. */}
-                  {moduleExpGainIndicator && (
-                    <>
-                      {moduleExpGainIndicator.base > 0 && (
-                        <motion.span
-                          key={`${moduleExpGainIndicator.awardId}-base`}
-                          initial={{ y: 0, opacity: 0 }}
-                          animate={{ y: -40, opacity: [0, 1, 1, 0] }}
-                          transition={{
-                            // y starts 0.2s before opacity so the chip is already
-                            // moving when it fades in — no visible pause at spawn.
-                            y: { ease: 'linear', duration: 2.5, delay: 0 },
-                            opacity: { duration: 2.5, times: [0, 0.04, 0.6, 1], delay: 0.2 },
-                          }}
-                          className={styles.xpFloatChip}
-                        >
-                          +{moduleExpGainIndicator.base} xp
-                        </motion.span>
-                      )}
-                      {moduleExpGainIndicator.firstAttemptBonus > 0 && (
-                        <motion.span
-                          key={`${moduleExpGainIndicator.awardId}-1st`}
-                          initial={{ y: 0, opacity: 0 }}
-                          animate={{ y: -40, opacity: [0, 1, 1, 0] }}
-                          transition={{
-                            y: { ease: 'linear', duration: 2.5, delay: 0.8 },
-                            opacity: { duration: 2.5, times: [0, 0.04, 0.6, 1], delay: 1.0 },
-                          }}
-                          className={`${styles.xpFloatChip} ${styles.xpFloatChipFirstAttempt}`}
-                        >
-                          +{moduleExpGainIndicator.firstAttemptBonus} 🎯
-                        </motion.span>
-                      )}
-                      {moduleExpGainIndicator.streakBonus > 0 && (
-                        <motion.span
-                          key={`${moduleExpGainIndicator.awardId}-streak`}
-                          initial={{ y: 0, opacity: 0 }}
-                          animate={{ y: -40, opacity: [0, 1, 1, 0] }}
-                          transition={{
-                            y: { ease: 'linear', duration: 2.5, delay: 1.6 },
-                            opacity: { duration: 2.5, times: [0, 0.04, 0.6, 1], delay: 1.8 },
-                          }}
-                          className={`${styles.xpFloatChip} ${styles.xpFloatChipStreak}`}
-                        >
-                          +{moduleExpGainIndicator.streakBonus} 🔥
-                        </motion.span>
-                      )}
-                    </>
-                  )}
+                  </div>
                 </div>
               </div>
+            )}
+          </div>
+
+          {room && (
+            <div className={styles.headerBottom}>
+              <div className={styles.progressCounter}>
+                Question {Math.min(selectedQuestionUnitIndex + 1, room.questions.length)} of{' '}
+                {room.questions.length}
+              </div>
+              <nav className={styles.beadRow} aria-label="Question navigation">
+                {room.questions.map((questionUnit, index) => (
+                  <button
+                    key={questionUnit.questionUnitId}
+                    type="button"
+                    className={`${styles.navBar} ${getQuestionUnitStatusClass(
+                      {
+                        questionUnit,
+                        isCurrent: index === selectedQuestionUnitIndex,
+                      },
+                      styles,
+                    )}`}
+                    onClick={() => selectQuestionUnit(index)}
+                    aria-label={`Question ${index + 1}`}
+                    aria-current={index === selectedQuestionUnitIndex ? 'true' : undefined}
+                  >
+                    <span className={styles.navBarInner} aria-hidden="true" />
+                  </button>
+                ))}
+              </nav>
             </div>
           )}
-        </div>
+        </header>
 
-        {room && (
-          <div className={styles.headerBottom}>
-            <div className={styles.progressCounter}>
-              Question {Math.min(selectedQuestionUnitIndex + 1, room.questions.length)} of{' '}
-              {room.questions.length}
-            </div>
-            <nav className={styles.beadRow} aria-label="Question navigation">
-              {room.questions.map((questionUnit, index) => (
-                <button
-                  key={questionUnit.questionUnitId}
-                  type="button"
-                  className={`${styles.navBar} ${getQuestionUnitStatusClass(
-                    {
-                      questionUnit,
-                      isCurrent: index === selectedQuestionUnitIndex,
-                    },
-                    styles,
-                  )}`}
-                  onClick={() => selectQuestionUnit(index)}
-                  aria-label={`Question ${index + 1}`}
-                  aria-current={index === selectedQuestionUnitIndex ? 'true' : undefined}
-                >
-                  <span className={styles.navBarInner} aria-hidden="true" />
-                </button>
-              ))}
-            </nav>
+        {isLoading ? (
+          <div className={styles.statusCard}>Loading practice room…</div>
+        ) : pageError ? (
+          <div className={styles.statusCard} role="alert">
+            {pageError}
           </div>
-        )}
-      </header>
-
-      {isLoading ? (
-        <div className={styles.statusCard}>Loading practice room…</div>
-      ) : pageError ? (
-        <div className={styles.statusCard} role="alert">
-          {pageError}
-        </div>
-      ) : room ? (
-        <>
-          {activeQuestionUnit && activeQuestion ? (
-            <section className={styles.questionPanel}>
+        ) : room ? (
+          <>
+            {activeQuestionUnit && activeQuestion ? (
+              <section className={styles.questionPanel}>
               <div className={styles.stemHeader}>
                 <h2 className={styles.questionStem}>{activeQuestion.question.questionStem}</h2>
               </div>
@@ -402,14 +415,22 @@ export default function PracticeRoomPage() {
                 </div>
               </div>
             </div>
-            </section>
-          ) : (
-            <div className={styles.statusCard}>
-              No practice questions are available for this unit yet.
-            </div>
-          )}
-        </>
+              </section>
+            ) : (
+              <div className={styles.statusCard}>
+                No practice questions are available for this unit yet.
+              </div>
+            )}
+          </>
+        ) : null}
+      </MainSection>
+      {isLessonCompleteModalOpen ? (
+        <LessonCompleteModal
+          isOpen
+          unitTitle={room?.moduleUnitTitle}
+          onDismiss={dismissLessonCompleteModal}
+        />
       ) : null}
-    </MainSection>
+    </>
   );
 }

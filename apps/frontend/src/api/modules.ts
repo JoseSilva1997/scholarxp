@@ -98,6 +98,10 @@ export async function getPracticeRoom(
     // Session id in query lets reloads resume the same backend session instead of creating a new one.
     searchParams.set('sessionId', String(query.sessionId));
   }
+  if (query.sessionType !== undefined) {
+    // Session type is only used for fresh entry flows such as retry; resumed rooms use the persisted session id.
+    searchParams.set('sessionType', query.sessionType);
+  }
   const queryString = searchParams.toString();
   return apiFetch<ModuleUnitPracticeRoomResponse>(
     `/module/${moduleId}/unit/${moduleUnitId}/practice-room${

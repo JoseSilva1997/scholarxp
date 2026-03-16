@@ -7,12 +7,14 @@ import { motion, AnimatePresence } from 'motion/react';
 import { FaFire } from 'react-icons/fa6';
 import styles from './StreakTrackerIndicator.module.css';
 
-// Streak tier mirrors the backend ExpCalculationService.resolveReachedStreakTier thresholds.
-// 0 = dormant (< 3 correct or no valid streak yet)
-// 1 = warm  (≥ 30 % of total questions answered correctly in a row) → first XP bonus tier
-// 2 = hot   (≥ 50 % of total questions)                             → second XP bonus tier
-// 3 = blaze (≥ 100 % of total questions — full clean run)
-type StreakTier = 0 | 1 | 2 | 3;
+// Streak tier mirrors the backend ExpCalculationService.resolveReachedStreakTier thresholds,
+// with an additional tier0 tier 1 for subtle blue before the first XP bonus tier kicks in.
+// 0 = disabled  (streak = 0; no valid streak yet)
+// 1 = subtle    (1 ≤ streak < 30 % of total questions)
+// 2 = warm      (≥ 30 % of total questions answered correctly) → first XP bonus tier
+// 3 = hot       (≥ 50 % of total questions)                     → second XP bonus tier
+// 4 = blaze     (≥ 100 % of total questions — full clean run)
+type StreakTier = 0 | 1 | 2 | 3 | 4;
 
 // A pip maps to one XP bonus tier and shows whether the student is about to earn
 // the bonus for the first time (active) or has already claimed it (claimed).
@@ -40,14 +42,14 @@ type StreakIndicatorProps = {
 };
 
 // Determines which visual tier to render based on the same percentage thresholds
-// the backend uses for awarding streak XP bonuses.
+// the backend uses for awarding streak XP bonuses. Returns tier 1 (subtle blue)
+// for streaks between 1 and the first bonus tier.
 function resolveStreakTier(
   currentStreak: number,
   totalQuestions: number,
 ): StreakTier {
-  // Mirrors backend ExpCalculationService: units with fewer than 4 questions
-  // don't participate in the streak mechanic so the icon stays dormant.
-  if (totalQuestions < 4) {
+  // Streak disabled if no valid streak yet or insufficient questions
+  if (currentStreak === 0 || totalQuestions < 4) {
     return 0;
   }
   // Thresholds are intentionally identical to backend's ExpCalculationService.
@@ -55,10 +57,11 @@ function resolveStreakTier(
   const tierTwo = Math.max(3, Math.ceil(totalQuestions * 0.5));
   const tierThree = Math.max(3, totalQuestions);
 
-  if (currentStreak >= tierThree) return 3;
-  if (currentStreak >= tierTwo) return 2;
-  if (currentStreak >= tierOne) return 1;
-  return 0;
+  if (currentStreak >= tierThree) return 4;
+  if (currentStreak >= tierTwo) return 3;
+  if (currentStreak >= tierOne) return 2;
+  // currentStreak is between 1 and tierOne threshold
+  return 1;
 }
 
 // Returns the pip state for a single bonus tier threshold.
@@ -81,21 +84,22 @@ function resolvePipState(
   return 'inactive';
 }
 
-// CSS module class names per tier; dormant coloring uses `tier0` to indicate
-// the fire hasn't been "lit" yet.
+// CSS module class names per tier.
 const TIER_CLASS: Record<StreakTier, string> = {
   0: styles.tier0,
   1: styles.tier1,
   2: styles.tier2,
   3: styles.tier3,
+  4: styles.tier4,
 };
 
 // Accessible label for screen readers that describes the current streak intensity.
 const TIER_LABEL: Record<StreakTier, string> = {
   0: 'No streak yet',
-  1: 'Streak: warm',
-  2: 'Streak: hot',
-  3: 'Streak: blazing',
+  1: 'Streak: building',
+  2: 'Streak: warm',
+  3: 'Streak: hot',
+  4: 'Streak: blazing',
 };
 
 // Pip tier index → CSS class for the tier-specific color.
@@ -223,10 +227,11 @@ export default function StreakIndicator({
 
       {/* Group flame and pips vertically; badge stays to the right */}
       <span className={styles.iconPipGroup}>
-        {/* Scale the icon upward as tier grows to give a "growing flame" feel */}
+        {/* Scale the icon upward as tier grows to give a "growing flame" feel,
+            but keep growth subtle (5% per tier) so it doesn't overflow the container */}
         <motion.span
           className={styles.iconWrapper}
-          animate={{ scale: 1 + tier * 0.1 }}
+          animate={{ scale: 1 + tier * 0.05 }}
           transition={{ type: 'spring', stiffness: 300, damping: 20 }}
           aria-hidden="true"
         >

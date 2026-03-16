@@ -300,6 +300,14 @@
   box-shadow: var(--shadow-sm);
 }
 
+@media (max-width: 640px) {
+  .daySection {
+    padding: 16px;
+    gap: 16px;
+    border-radius: 20px;
+  }
+}
+
 @media (min-width: 1024px) {
   .daySection {
     flex-direction: row;
@@ -310,6 +318,12 @@
   }
 }
 
+@media (max-width: 1023px) {
+  .dayQuestRow {
+    justify-content: space-between;
+  }
+}
+
 .dayWrapper:hover .daySection {
   transform: translateX(12px);
   box-shadow: var(--shadow-xl);
@@ -317,14 +331,116 @@
 }
 
 .daySection.completed {
-  border: 1px solid var(--color-secondary-soft);
-  background: linear-gradient(270deg, var(--color-surface) 0%, var(--color-secondary-soft) 100%);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.dayQuestRow {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  /* Ensure the row shrinks to fit container and allows quest cards to respond */
+  flex: 1;
+  min-width: 0;
+  /* Prevent overflow of quest badges at smaller breakpoints */
+  overflow: visible;
+}
+
+@media (max-width: 640px) {
+  .dayQuestRow {
+    gap: 12px;
+  }
+}
+
+.masterQuestSeparator {
+  width: 1px;
+  align-self: stretch;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    var(--color-border-hover) 20%,
+    var(--color-border-hover) 80%,
+    transparent 100%
+  );
+  opacity: 0.9;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .masterQuestSeparator {
+    opacity: 0.5;
+  }
+}
+
+.masterQuestIndicator {
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform var(--transition-base), box-shadow var(--transition-base),
+    border-color var(--transition-base), background var(--transition-base);
+}
+
+@media (max-width: 640px) {
+  .masterQuestIndicator {
+    width: 52px;
+    height: 52px;
+  }
+}
+
+.masterQuestIndicatorIcon {
+  width: 1.9rem;
+  height: 1.9rem;
+}
+
+@media (max-width: 640px) {
+  .masterQuestIndicatorIcon {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+}
+
+.masterQuestIndicatorIncomplete {
+  border: 1px solid var(--color-quest-wood);
+  background: transparent;
+}
+
+.masterQuestIndicatorIncomplete .masterQuestIndicatorIcon {
+  color: var(--color-quest-wood);
+  filter: drop-shadow(0 0 8px var(--color-quest-wood-glow));
+}
+
+.masterQuestIndicatorComplete {
+  border: 1px solid var(--color-quest-gold);
+  background: radial-gradient(
+    circle,
+    var(--color-quest-gold-surface) 0%,
+    var(--color-surface) 100%
+  );
+  box-shadow:
+    0 0 24px var(--color-quest-gold-soft),
+    0 12px 28px var(--color-shadow-base);
+}
+
+.masterQuestIndicatorComplete .masterQuestIndicatorIcon {
+  color: var(--color-quest-gold);
+  filter: drop-shadow(0 0 10px var(--color-quest-gold-glow));
+}
+
+.dayWrapper:hover .masterQuestIndicator {
+  transform: translateY(-2px);
 }
 
 .dayInfo {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  /* Allow dayInfo to shrink if needed on medium screens */
+  min-width: 0;
+  flex-shrink: 0;
 }
 
 .dayLabel {
@@ -339,6 +455,13 @@
   letter-spacing: -0.02em;
 }
 
+@media (max-width: 640px) {
+  .dayLabel {
+    font-size: 1.2rem;
+    gap: 10px;
+  }
+}
+
 .dayProgress {
   margin: 0;
   font-size: 0.95rem;
@@ -347,6 +470,15 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  /* Prevent overlap with quest history card on large screens */
+  position: relative;
+  z-index: 2;
+}
+
+@media (max-width: 640px) {
+  .dayProgress {
+    font-size: 0.85rem;
+  }
 }
 
 .daySection.completed .dayProgress {
@@ -361,6 +493,8 @@
   background: var(--color-bg);
   border-radius: 100px;
   letter-spacing: 0.05em;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .daySection.completed .dayProgress::after {
@@ -490,4 +624,3 @@
   margin: 40px auto;
   text-align: center;
 }
-

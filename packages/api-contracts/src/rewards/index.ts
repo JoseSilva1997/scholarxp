@@ -11,3 +11,5 @@ export interface Awards {
   streakBonus: number;
   accountExp: number;
 }
+
+export * from './daily-lesson-xp-track';

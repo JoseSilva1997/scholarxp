@@ -46,3 +46,16 @@ export type LoadedModuleUnit = {
     }[];
   }[];
 };
+
+export type OwnedPracticeSession = {
+  id: string;
+  sessionType: string;
+  endTime: Date | null;
+};
+
+export type RoomContext = {
+  moduleUnit: LoadedModuleUnit;
+  isReadOnly: boolean;
+  session: OwnedPracticeSession;
+  questionUnitDrafts: RoomQuestionUnitDraft[];
+};

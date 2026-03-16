@@ -29,14 +29,20 @@
 
 /* ── Tier styling ──────────────────────────────────────────────────────────── */
 
-/* Tier 0: dormant — muted icon, no glow, no pulse */
+/* Tier 0: disabled — muted grey, no glow, no pulse */
 .tier0 {
+  --streak-color: var(--color-text-muted);
+  --streak-glow: transparent;
+}
+
+/* Tier 1: subtle — muted blue, no glow, no pulse; corresponds to 1 ≤ streak < 30 % threshold */
+.tier1 {
   --streak-color: var(--color-primary-subtle);
   --streak-glow: transparent;
 }
 
-/* Tier 1: warm — accent amber, subtle pulse; corresponds to ≥ 30 % threshold */
-.tier1 {
+/* Tier 2: warm — accent amber, subtle pulse; corresponds to ≥ 30 % threshold */
+.tier2 {
   --streak-color: var(--color-flame-tier1);
   --streak-glow: var(--color-flame-tier1-glow);
   border-color: var(--color-flame-tier1-border);
@@ -44,8 +50,8 @@
   animation: streakPulse 2.4s ease-in-out infinite;
 }
 
-/* Tier 2: hot — deeper orange/red, stronger glow + faster pulse; ≥ 50 % */
-.tier2 {
+/* Tier 3: hot — deeper orange/red, stronger glow + faster pulse; ≥ 50 % */
+.tier3 {
   --streak-color: var(--color-flame-tier2);
   --streak-glow: var(--color-flame-tier2-glow);
   border-color: var(--color-flame-tier2-border);
@@ -53,8 +59,8 @@
   animation: streakPulse 1.8s ease-in-out infinite;
 }
 
-/* Tier 3: blaze — full red, brightest glow + fast pulse; 100 % clean run */
-.tier3 {
+/* Tier 4: blaze — full red, brightest glow + fast pulse; 100 % clean run */
+.tier4 {
   --streak-color: var(--color-flame-tier3);
   --streak-glow: var(--color-flame-tier3-glow);
   border-color: var(--color-flame-tier3-border);

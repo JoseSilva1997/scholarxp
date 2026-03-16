@@ -3,6 +3,9 @@ export const queryKeys = {
   auth: {
     me: ['auth', 'me'] as const,
   },
+  invites: {
+    redeem: (token: string) => ['invites', 'redeem', token] as const,
+  },
   modules: {
     all: ['modules'] as const,
     detail: (moduleId: number) => ['modules', 'detail', moduleId] as const,
@@ -13,13 +16,32 @@ export const queryKeys = {
       moduleId: number,
       unitId: number,
       sessionId?: string,
-    ) => ['modules', 'practice-room', moduleId, unitId, sessionId ?? 'new'] as const,
+      sessionType?: string,
+    ) =>
+      [
+        'modules',
+        'practice-room',
+        moduleId,
+        unitId,
+        sessionId ?? 'new',
+        sessionType ?? 'default',
+      ] as const,
     moduleUnitPracticeRoomBase: (moduleId: number, unitId: number) =>
       ['modules', 'practice-room', moduleId, unitId] as const,
   },
   quests: {
+    all: ['quests'] as const,
     history: (dayLimit: number) => ['quests', 'history', dayLimit] as const,
     todaySummary: (userId: number | null) => ['quests', 'today-summary', userId] as const,
     todayList: (userId: number | null) => ['quests', 'today-list', userId] as const,
+    masterStreakAll: ['quests', 'master-streak'] as const,
+    masterStreak: (userId: number | null) =>
+      ['quests', 'master-streak', userId] as const,
+  },
+  rewards: {
+    all: ['rewards'] as const,
+    dailyLessonXpTrackAll: ['rewards', 'daily-lesson-xp-track'] as const,
+    dailyLessonXpTrack: (userId: number | null) =>
+      ['rewards', 'daily-lesson-xp-track', userId] as const,
   },
 };

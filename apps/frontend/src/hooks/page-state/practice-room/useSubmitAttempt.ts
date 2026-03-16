@@ -7,7 +7,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type {
   PracticeAttemptSnapshot,
-  PracticeQuestion,
   PracticeQuestionUnit,
   StudentAnswer,
   SubmitAttemptPayload,
@@ -19,12 +18,7 @@ import {
 } from '../../../api/get-display-error';
 import { logError } from '../../../utils/logger';
 import type { ProgressModuleDetail, ExpBreakdown } from './useModuleProgressAnimation';
-
-// lightweight wrapper so callers only need to provide the question
-// itself (not the entire unit).
-type ActiveQuestion = {
-  question: PracticeQuestion;
-};
+import type { ActivePracticeQuestion } from './usePracticeRoomInteractionState';
 
 type FirstTryBonusStatus = 'available' | 'earned' | 'lost';
 
@@ -35,9 +29,13 @@ type FirstTryBonusStatus = 'available' | 'earned' | 'lost';
 
 type UseSubmitAttemptParams = {
   // Active room/question context — all read-only inputs from the parent.
-  room: { sessionId: string; moduleUnitId: number } | null;
+  room: {
+    sessionId: string;
+    moduleUnitId: number;
+    questions: PracticeQuestionUnit[];
+  } | null;
   activeQuestionUnit: PracticeQuestionUnit | null;
-  activeQuestion: ActiveQuestion | null;
+  activeQuestion: ActivePracticeQuestion | null;
   isRoomReadOnly: boolean;
   selectedOptionIndex: number | null;
   isActiveHintUnlocked: boolean;
@@ -50,6 +48,9 @@ type UseSubmitAttemptParams = {
   // XP callbacks supplied by parent hooks.
   applyExpAward: (breakdown: ExpBreakdown, detail: ProgressModuleDetail | null) => void;
   moduleDetail: ProgressModuleDetail | null;
+  // Query/cache synchronization is injected so callers can defer global UI updates
+  // during the unit-completion celebration without changing mutation ownership.
+  syncAttemptSuccessEffects: (response: SubmitAttemptResponse) => Promise<void>;
   // Streak callback: called after every successful submission with both the live streak
   // and the all-time session high. Optional so callers that don't display streak can omit it.
   updateCurrentStreak?: (currentStreak: number, highestStreak: number) => void;
@@ -68,13 +69,23 @@ type UseSubmitAttemptParams = {
   // Clears the transient local draft selection after a successful submission so
   // UI feedback switches back to the just-submitted attempt snapshot.
   clearSelectedOptionOverride?: (contentId: number) => void;
-  // State setters for attempt tracking after successful submissions.
-  setSubmittedAttemptByContentId: React.Dispatch<
-    React.SetStateAction<Record<number, PracticeAttemptSnapshot | null>>
-  >;
-  setSubmittedByContentIdBySessionId: React.Dispatch<
-    React.SetStateAction<Record<string, Record<number, boolean>>>
-  >;
+  // Records that a question has now been submitted for this specific session so
+  // reload-resume behavior and button locking stay aligned with backend progress.
+  markQuestionSubmitted: (sessionId: string, contentId: number) => void;
+  // Records the latest attempt snapshot for a question so optimistic UI can
+  // update immediately without exposing state-shape details to this hook.
+  recordSubmittedAttempt: (
+    contentId: number,
+    attempt: PracticeAttemptSnapshot | null,
+  ) => void;
+  // Completion celebration is page-level UI, so this hook only reports the event
+  // and leaves modal timing/dismissal policy to the parent page-state hook.
+  onModuleUnitCompleted?: (input: {
+    moduleExpBreakdown: ExpBreakdown;
+    submitResponse: SubmitAttemptResponse;
+  }) => void;
+  // Retry/view-answer rooms should never replay the first-time completion celebration.
+  shouldCelebrateModuleUnitCompletion?: boolean;
   // For error logging context only.
   parsedModuleId: number | null;
   parsedUnitId: number | null;
@@ -103,6 +114,30 @@ function resolveLatestAttemptCorrectness(response: SubmitAttemptResponse): boole
   }
   // Backward-compatible fallback for payloads that do not include award reasons.
   return response.hasCorrectAttempt;
+}
+
+// Completion should trigger only when this submission leaves no unsolved questions.
+// rewardState stays authoritative for "already solved before a later retry" cases.
+function didModuleUnitCompleteOnSubmit(input: {
+  questions: PracticeQuestionUnit[];
+  activeQuestionUnitId: number;
+  latestAttemptIsCorrect: boolean;
+}): boolean {
+  if (!input.latestAttemptIsCorrect) {
+    return false;
+  }
+
+  return input.questions.every((questionUnit) => {
+    if (questionUnit.questionUnitId === input.activeQuestionUnitId) {
+      return true;
+    }
+
+    return (
+      questionUnit.rewardState?.baseQuestionExpStatus === 'already_earned' ||
+      questionUnit.hasCorrectAttempt === true ||
+      questionUnit.coreQuestion.lastAttempt?.isCorrect === true
+    );
+  });
 }
 
 // Converts a stable first-try status into the local override representation.
@@ -163,12 +198,15 @@ export function useSubmitAttempt({
   isPending,
   applyExpAward,
   moduleDetail,
+  syncAttemptSuccessEffects,
   updateCurrentStreak,
   updateLastAttemptResult,
   activeFirstTryBonusStatus,
   clearSelectedOptionOverride,
-  setSubmittedAttemptByContentId,
-  setSubmittedByContentIdBySessionId,
+  markQuestionSubmitted,
+  recordSubmittedAttempt,
+  onModuleUnitCompleted,
+  shouldCelebrateModuleUnitCompletion = false,
   parsedModuleId,
   parsedUnitId,
 }: UseSubmitAttemptParams): UseSubmitAttemptResult {
@@ -262,12 +300,13 @@ export function useSubmitAttempt({
       const latestAttemptIsCorrect =
         resolveLatestAttemptCorrectness(submitResponse);
       const breakdown = buildExpBreakdown(submitResponse);
-      if (breakdown.total > 0) {
-        // Delegate the animation target update, double-count guard, and level-up
-        // celebration to the progress hook so this handler stays focused on
-        // attempt business logic.
-        applyExpAward(breakdown, moduleDetail);
-      }
+      const hasCompletedModuleUnit =
+        shouldCelebrateModuleUnitCompletion &&
+        didModuleUnitCompleteOnSubmit({
+          questions: room.questions,
+          activeQuestionUnitId: activeQuestionUnit.questionUnitId,
+          latestAttemptIsCorrect,
+        });
       // Relay both streak values to the parent so StreakIndicator can show
       // pip state without a separate server call. Both values must be present;
       // if either is absent (e.g. older API version) the callback is skipped.
@@ -289,23 +328,28 @@ export function useSubmitAttempt({
         });
         updateLastAttemptResult(activeQuestion.question.id, nextFirstTryResult);
       }
-      setSubmittedAttemptByContentId((previous) => ({
-        ...previous,
-        [activeQuestion.question.id]: {
-          studentAnswer,
-          // Track latest-attempt correctness so nav/status UI reflects this submit.
-          isCorrect: latestAttemptIsCorrect,
-        },
-      }));
-      setSubmittedByContentIdBySessionId((previous) => ({
-        ...previous,
-        [room.sessionId]: {
-          ...(previous[room.sessionId] ?? {}),
-          [activeQuestion.question.id]: true,
-        },
-      }));
+      recordSubmittedAttempt(activeQuestion.question.id, {
+        studentAnswer,
+        // Track latest-attempt correctness so nav/status UI reflects this submit.
+        isCorrect: latestAttemptIsCorrect,
+      });
+      markQuestionSubmitted(room.sessionId, activeQuestion.question.id);
       clearSelectedOptionOverride?.(activeQuestion.question.id);
       startSubmitCooldown();
+      if (hasCompletedModuleUnit && onModuleUnitCompleted) {
+        onModuleUnitCompleted({
+          moduleExpBreakdown: breakdown,
+          submitResponse,
+        });
+        return;
+      }
+      if (breakdown.total > 0) {
+        // Delegate the animation target update, double-count guard, and level-up
+        // celebration to the progress hook so this handler stays focused on
+        // attempt business logic.
+        applyExpAward(breakdown, moduleDetail);
+      }
+      void syncAttemptSuccessEffects(submitResponse);
     } catch (error) {
       const message = getDisplayErrorMessage(error, {
         fallbackMessage:

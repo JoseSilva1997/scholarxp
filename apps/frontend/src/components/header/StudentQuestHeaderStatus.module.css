@@ -1,0 +1,21 @@
+/* Student quest header status layout keeps the standalone reward track and quest widgets aligned as one student-only header cluster. */
+.statusGroup {
+  display: flex;
+  align-items: center;
+  /* Use clamp for responsive gap that scales smoothly */
+  gap: clamp(4px, 1.5vw, 10px);
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+@media (max-width: 768px) {
+  .statusGroup {
+    gap: clamp(3px, 1vw, 6px);
+  }
+}
+
+@media (max-width: 540px) {
+  .statusGroup {
+    gap: clamp(2px, 0.8vw, 4px);
+  }
+}

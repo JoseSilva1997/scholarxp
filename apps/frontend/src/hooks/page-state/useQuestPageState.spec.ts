@@ -15,7 +15,15 @@ import { logError } from '../../utils/logger';
 
 // Mock dependencies
 vi.mock('../../context/AuthContext');
-vi.mock('../queries/useQuestsQueries');
+vi.mock('../queries/useQuestsQueries', async () => {
+  const actual = await vi.importActual<typeof import('../queries/useQuestsQueries')>(
+    '../queries/useQuestsQueries',
+  );
+  return {
+    ...actual,
+    useQuestHistoryInfiniteQuery: vi.fn(),
+  };
+});
 vi.mock('../../api/get-display-error');
 vi.mock('../../utils/logger');
 
@@ -58,8 +66,11 @@ describe('useQuestPageState', () => {
       moduleTitle: 'Algebra',
       moduleUnitTitle: 'Linear Equations',
       type: 'complete_daily_practice',
+      tier: 'daily',
       expGranted: 10,
       isCompleted: false,
+      progressCurrent: 0,
+      progressTarget: 1,
       questDateUtc: mockToday,
       generatedAt: '2024-03-20T00:00:00.000Z',
       completedAt: null,
@@ -154,6 +165,7 @@ describe('useQuestPageState', () => {
       questDayUtc: '2024-03-20',
       dayLabel: 'Today',
       isToday: true,
+      masterQuest: null,
     });
     expect(result.current.daySections[0].quests).toHaveLength(2);
 
@@ -162,8 +174,51 @@ describe('useQuestPageState', () => {
       questDayUtc: '2024-03-19',
       dayLabel: 'Mar 19, 2024',
       isToday: false,
+      masterQuest: null,
     });
     expect(result.current.daySections[1].quests).toHaveLength(1);
+  });
+
+  it('separates the master quest from the three visible daily quests', () => {
+    vi.mocked(useAuth).mockReturnValue(
+      createAuthHookState({ user: mockUser, isLoading: false }),
+    );
+
+    const masterQuest = createQuestView({
+      id: 4,
+      type: 'master_daily_quests',
+      tier: 'master',
+      moduleId: null,
+      moduleUnitId: null,
+      moduleTitle: 'Master quest',
+      moduleUnitTitle: null,
+      progressCurrent: 2,
+      progressTarget: 3,
+      description: 'Complete all 3 daily quests to unlock the master quest reward.',
+    });
+
+    vi.mocked(useQuestHistoryInfiniteQuery).mockReturnValue(
+      createQuestHistoryHookState({
+        isPending: false,
+        data: createInfiniteQuestData([
+          {
+            quests: [
+              createQuestView({ id: 1 }),
+              createQuestView({ id: 2, type: 'complete_new_unit' }),
+              createQuestView({ id: 3, type: 'module_unit_retry' }),
+              masterQuest,
+            ],
+            hasMore: false,
+            nextDayOffset: null,
+          },
+        ]),
+      }),
+    );
+
+    const { result } = renderHook(() => useQuestPageState());
+
+    expect(result.current.daySections[0].quests).toHaveLength(3);
+    expect(result.current.daySections[0].masterQuest).toEqual(masterQuest);
   });
 
   it('should sort day sections in descending order', () => {

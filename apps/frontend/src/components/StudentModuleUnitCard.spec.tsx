@@ -1,6 +1,6 @@
 // Verifies student lesson card behavior for lock state and collapsible detail display.
 import { fireEvent, render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import StudentModuleUnitCard from './StudentModuleUnitCard';
 import {
   MAXIMUM_FIRST_ATTEMPT_BONUS_EXP,
@@ -29,10 +29,6 @@ describe('StudentModuleUnitCard', () => {
   const baseOnlyExp = MODULE_UNIT_BASELINE_EXP + MAXIMUM_FIRST_ATTEMPT_BONUS_EXP;
   // Full XP including streak — used when the unit has >= 4 questions.
   const fullExp = baseOnlyExp + maximumStreakBonusExp;
-
-  beforeEach(() => {
-    window.history.pushState({}, '', '/main/modules/9');
-  });
 
   it('shows question count for live lessons and toggles detail panel', () => {
     // baseUnit has questionCount: 2 (< 4) so streak bonus must not appear.
@@ -73,19 +69,19 @@ describe('StudentModuleUnitCard', () => {
     expect(screen.getByRole('button', { name: 'Start Practice' })).toBeDisabled();
   });
 
-  it('navigates to a specific practice-room question when question is clicked', () => {
-    const assign = vi.fn();
-    Object.defineProperty(window, 'location', {
-      configurable: true,
-      value: { ...window.location, assign },
-    });
-
-    render(<StudentModuleUnitCard unit={baseUnit} />);
+  it('delegates to the parent when a specific practice-room question is clicked', () => {
+    const onOpenPracticeRoom = vi.fn();
+    render(
+      <StudentModuleUnitCard
+        unit={baseUnit}
+        onOpenPracticeRoom={onOpenPracticeRoom}
+      />,
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Expand lesson details' }));
     fireEvent.click(screen.getByRole('button', { name: 'Practice Q1' }));
 
-    expect(assign).toHaveBeenCalledWith('/main/modules/9/11/practice-room?questionId=101');
+    expect(onOpenPracticeRoom).toHaveBeenCalledWith('11', '101');
   });
 
   it('renders status symbols for correct and incorrect attempts', () => {
@@ -137,5 +133,37 @@ describe('StudentModuleUnitCard', () => {
 
     expect(screen.getByAltText('Completion medal awarded')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'View answers' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+  });
+
+  it('delegates the primary button to the parent handler', () => {
+    const onOpenPracticeRoom = vi.fn();
+    render(
+      <StudentModuleUnitCard
+        unit={{ ...baseUnit, isCompleted: true }}
+        onOpenPracticeRoom={onOpenPracticeRoom}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'View answers' }));
+
+    expect(onOpenPracticeRoom).toHaveBeenCalledWith('11');
+  });
+
+  it('delegates retry through the lesson-level retry handler only', () => {
+    const onOpenPracticeRoom = vi.fn();
+    const onRetryPracticeRoom = vi.fn();
+    render(
+      <StudentModuleUnitCard
+        unit={{ ...baseUnit, isCompleted: true }}
+        onOpenPracticeRoom={onOpenPracticeRoom}
+        onRetryPracticeRoom={onRetryPracticeRoom}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+
+    expect(onRetryPracticeRoom).toHaveBeenCalledWith('11');
+    expect(onOpenPracticeRoom).not.toHaveBeenCalled();
   });
 });

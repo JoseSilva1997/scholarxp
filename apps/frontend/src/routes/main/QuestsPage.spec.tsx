@@ -18,7 +18,12 @@ describe('QuestsPage route', () => {
     const loadMore = vi.fn();
     mocks.useQuestPageState.mockReturnValue({
       daySections: [
-        { questDayUtc: '2026-02-17', dayLabel: 'Today', quests: [null, null, null] },
+        {
+          questDayUtc: '2026-02-17',
+          dayLabel: 'Today',
+          quests: [],
+          masterQuest: null,
+        },
       ],
       isLoading: false,
       isLoadingMore: false,
@@ -36,6 +41,51 @@ describe('QuestsPage route', () => {
     expect(loadMore).toHaveBeenCalledTimes(1);
   });
 
+  it('renders the master quest indicator at the end of the day section', () => {
+    const completedQuest = {
+      id: 1,
+      moduleId: 10,
+      moduleUnitId: null,
+      moduleTitle: 'Biology 101',
+      moduleUnitTitle: null,
+      type: QuestTypeValues.completeDailyPractice,
+      tier: 'daily',
+      expGranted: 25,
+      isCompleted: true,
+      progressCurrent: 1,
+      progressTarget: 1,
+      description: 'Quest description',
+      questDateUtc: '2026-02-17',
+      generatedAt: '2026-02-17T00:00:00.000Z',
+      completedAt: '2026-02-17T00:05:00.000Z',
+    } as QuestView;
+
+    mocks.useQuestPageState.mockReturnValue({
+      daySections: [
+        {
+          questDayUtc: '2026-02-17',
+          dayLabel: 'Today',
+          quests: [completedQuest],
+          masterQuest: {
+            ...completedQuest,
+            id: 99,
+            type: QuestTypeValues.masterDailyQuests,
+            tier: 'master',
+          },
+        },
+      ],
+      isLoading: false,
+      isLoadingMore: false,
+      pageError: null,
+      canLoadMore: false,
+      loadMore: vi.fn(),
+    });
+
+    render(<QuestsPage />);
+
+    expect(screen.getByLabelText('Master quest completed')).toBeInTheDocument();
+  });
+
   it('keeps only one tooltip open across different quest history cards', async () => {
     const user = userEvent.setup();
     const firstQuest: QuestView = {
@@ -45,8 +95,11 @@ describe('QuestsPage route', () => {
       moduleTitle: 'Biology 101',
       moduleUnitTitle: null,
       type: QuestTypeValues.completeDailyPractice,
+      tier: 'daily',
       expGranted: 25,
       isCompleted: false,
+      progressCurrent: 0,
+      progressTarget: 1,
       description: 'First quest description',
       questDateUtc: '2026-02-17',
       generatedAt: '2026-02-17T00:00:00.000Z',
@@ -59,8 +112,11 @@ describe('QuestsPage route', () => {
       moduleTitle: 'Chemistry 101',
       moduleUnitTitle: null,
       type: QuestTypeValues.completeDailyPractice,
+      tier: 'daily',
       expGranted: 30,
       isCompleted: false,
+      progressCurrent: 0,
+      progressTarget: 1,
       description: 'Second quest description',
       questDateUtc: '2026-02-16',
       generatedAt: '2026-02-16T00:00:00.000Z',
@@ -69,8 +125,18 @@ describe('QuestsPage route', () => {
 
     mocks.useQuestPageState.mockReturnValue({
       daySections: [
-        { questDayUtc: '2026-02-17', dayLabel: 'Today', quests: [firstQuest, null, null] },
-        { questDayUtc: '2026-02-16', dayLabel: 'Feb 16, 2026', quests: [secondQuest, null, null] },
+        {
+          questDayUtc: '2026-02-17',
+          dayLabel: 'Today',
+          quests: [firstQuest],
+          masterQuest: null,
+        },
+        {
+          questDayUtc: '2026-02-16',
+          dayLabel: 'Feb 16, 2026',
+          quests: [secondQuest],
+          masterQuest: null,
+        },
       ],
       isLoading: false,
       isLoadingMore: false,
@@ -142,7 +208,10 @@ describe('QuestsPage route', () => {
       moduleId: 1, 
       moduleTitle: 'M1', 
       type: QuestTypeValues.completeDailyPractice, 
+      tier: 'daily',
       expGranted: 10,
+      progressCurrent: 1,
+      progressTarget: 1,
       description: 'D1',
       questDateUtc: '2026-02-17',
       generatedAt: '2026-02-17T00:00:00.000Z',
@@ -157,7 +226,10 @@ describe('QuestsPage route', () => {
       moduleId: 2, 
       moduleTitle: 'M2', 
       type: QuestTypeValues.completeDailyPractice, 
+      tier: 'daily',
       expGranted: 10,
+      progressCurrent: 0,
+      progressTarget: 1,
       description: 'D2',
       questDateUtc: '2026-02-16',
       generatedAt: '2026-02-16T00:00:00.000Z',
@@ -171,17 +243,20 @@ describe('QuestsPage route', () => {
         { 
           questDayUtc: '2026-02-17', 
           dayLabel: 'Perfect Day', 
-          quests: [completedQuest, completedQuest] 
+          quests: [completedQuest, completedQuest],
+          masterQuest: { ...completedQuest, id: 99, type: QuestTypeValues.masterDailyQuests, tier: 'master' },
         },
         { 
           questDayUtc: '2026-02-16', 
           dayLabel: 'Partial Day', 
-          quests: [completedQuest, incompleteQuest, null]  // null quest
+          quests: [completedQuest, incompleteQuest],
+          masterQuest: null,
         },
         {
           questDayUtc: '2026-02-15',
           dayLabel: 'Empty Day',
-          quests: []
+          quests: [],
+          masterQuest: null,
         }
       ],
       isLoading: false,
@@ -198,8 +273,8 @@ describe('QuestsPage route', () => {
     expect(screen.getAllByText('Quests Done')).toHaveLength(1);
     
     // Perfect days: 
-    // Day 1: 2/2 -> Perfect
-    // Day 2: 1/3 (one complete, one incomplete, one null) -> Not Perfect
+    // Day 1: master quest complete -> Perfect
+    // Day 2: master quest missing -> Not Perfect
     // Day 3: 0/0 -> Not Perfect (length > 0 check)
     expect(screen.getByText('1')).toBeInTheDocument();
     expect(screen.getAllByText('Perfect Days')).toHaveLength(1);
@@ -212,7 +287,10 @@ describe('QuestsPage route', () => {
         moduleId: 1, 
         moduleTitle: 'M1', 
         type: QuestTypeValues.completeDailyPractice, 
+        tier: 'daily',
         expGranted: 10,
+        progressCurrent: 1,
+        progressTarget: 1,
         description: 'D1',
         questDateUtc: '2026-02-17',
         generatedAt: '2026-02-17T00:00:00.000Z',
@@ -227,7 +305,10 @@ describe('QuestsPage route', () => {
         moduleId: 2, 
         moduleTitle: 'M2', 
         type: QuestTypeValues.completeDailyPractice, 
+        tier: 'daily',
         expGranted: 10,
+        progressCurrent: 0,
+        progressTarget: 1,
         description: 'D2',
         questDateUtc: '2026-02-16',
         generatedAt: '2026-02-16T00:00:00.000Z',
@@ -242,19 +323,22 @@ describe('QuestsPage route', () => {
           questDayUtc: '2026-02-18', 
           dayLabel: 'Today (Incomplete)', 
           isToday: true,
-          quests: [incompleteQuest] 
+          quests: [incompleteQuest],
+          masterQuest: null,
         },
         { 
           questDayUtc: '2026-02-17', 
           dayLabel: 'Past (Incomplete)', 
           isToday: false,
-          quests: [incompleteQuest] 
+          quests: [incompleteQuest],
+          masterQuest: null,
         },
         { 
           questDayUtc: '2026-02-16', 
           dayLabel: 'Past (Complete)', 
           isToday: false,
-          quests: [completedQuest]
+          quests: [completedQuest],
+          masterQuest: { ...completedQuest, id: 120, type: QuestTypeValues.masterDailyQuests, tier: 'master' },
         },
       ],
       isLoading: false,
@@ -280,7 +364,7 @@ describe('QuestsPage route', () => {
   it('displays loading more state', () => {
     mocks.useQuestPageState.mockReturnValue({
       daySections: [
-        { questDayUtc: '2026-02-17', dayLabel: 'Today', quests: [null] },
+        { questDayUtc: '2026-02-17', dayLabel: 'Today', quests: [], masterQuest: null },
       ],
       isLoading: false,
       isLoadingMore: true,

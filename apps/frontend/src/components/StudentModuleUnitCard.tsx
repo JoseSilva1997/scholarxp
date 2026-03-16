@@ -15,9 +15,15 @@ import type { ModuleUnit } from './ModuleUnitCard';
 
 type StudentModuleUnitCardProps = {
   unit: ModuleUnit;
+  onOpenPracticeRoom?: (unitId: string, questionId?: string) => Promise<void> | void;
+  onRetryPracticeRoom?: (unitId: string) => Promise<void> | void;
 };
 
-export default function StudentModuleUnitCard({ unit }: StudentModuleUnitCardProps) {
+export default function StudentModuleUnitCard({
+  unit,
+  onOpenPracticeRoom,
+  onRetryPracticeRoom,
+}: StudentModuleUnitCardProps) {
   // Practice-room reward design currently has three streak thresholds; keep this explicit constant-driven total in one place.
   const maximumStreakBonusExp = STREAK_BONUS_EXP_PER_DELTA * 3;
   // Units with fewer than 4 questions don't qualify for streak bonuses (mirrors backend policy).
@@ -30,8 +36,6 @@ export default function StudentModuleUnitCard({ unit }: StudentModuleUnitCardPro
   // Use the memoized initial state rather than the potentially stale prop to determine button label.
   const practiceButtonLabel = initialIsCompleted ? 'View answers' : 'Start Practice';
   const [isOpen, setIsOpen] = useState(false);
-  const moduleId = window.location.pathname.split('/')[3];
-  const basePracticeRoomPath = `/main/modules/${moduleId}/${unit.id}/practice-room`;
 
   // Count successfully completed questions across all groups
   const completedQuestionsCount = unit.questionGroups.reduce((count, group) => {
@@ -120,18 +124,34 @@ export default function StudentModuleUnitCard({ unit }: StudentModuleUnitCardPro
                 )}
             </div>
             <div className={styles.actions}>
-              <button 
-                type="button" 
-                className={styles.practiceButton} 
-                aria-label={practiceButtonLabel}
-                disabled={isLocked}
-                onClick={() => {
-                  // Full-path assignment keeps this card router-agnostic for tests while still opening the practice room.
-                  window.location.assign(basePracticeRoomPath);
-                }}
-              >
-                {practiceButtonLabel}
-              </button>
+              <div className={styles.actionStack}>
+                <button 
+                  type="button" 
+                  className={styles.practiceButton} 
+                  aria-label={practiceButtonLabel}
+                  disabled={isLocked}
+                  onClick={() => {
+                    // Navigation and quest-trigger orchestration live above the card so this component stays render-focused.
+                    void onOpenPracticeRoom?.(unit.id);
+                  }}
+                >
+                  {practiceButtonLabel}
+                </button>
+                {initialIsCompleted && (
+                  <button
+                    type="button"
+                    className={styles.retryButton}
+                    aria-label="Retry"
+                    disabled={isLocked}
+                    onClick={() => {
+                      // Retry entry is lesson-level only so per-question buttons can stay mapped to review mode.
+                      void onRetryPracticeRoom?.(unit.id);
+                    }}
+                  >
+                    Retry
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -170,10 +190,8 @@ export default function StudentModuleUnitCard({ unit }: StudentModuleUnitCardPro
                         disabled={isLocked}
                         aria-label={`Practice ${question.title}`}
                         onClick={() => {
-                          // Deep-link to a question unit so students can resume from the entry they selected in the card.
-                          window.location.assign(
-                            `${basePracticeRoomPath}?questionId=${encodeURIComponent(question.id)}`,
-                          );
+                          // Detail buttons delegate routing so the page-state hook can keep practice-room entry behavior centralized.
+                          void onOpenPracticeRoom?.(unit.id, question.id);
                         }}
                       >
                         <span className={styles.questionTitle}>{question.title}</span>

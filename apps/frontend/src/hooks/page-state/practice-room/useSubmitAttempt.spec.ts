@@ -68,9 +68,21 @@ function buildRef<T>(value: T): React.RefObject<T> {
 type BaseParams = Parameters<typeof useSubmitAttempt>[0];
 
 function buildParams(overrides: Partial<BaseParams> = {}): BaseParams {
+  const hasActiveQuestionUnitOverride = Object.prototype.hasOwnProperty.call(
+    overrides,
+    'activeQuestionUnit',
+  );
+  const activeQuestionUnit = hasActiveQuestionUnitOverride
+    ? (overrides.activeQuestionUnit ?? null)
+    : buildMockQuestionUnit();
+
   return {
-    room: { sessionId: SESSION_ID, moduleUnitId: MODULE_UNIT_ID },
-    activeQuestionUnit: buildMockQuestionUnit(),
+    room: {
+      sessionId: SESSION_ID,
+      moduleUnitId: MODULE_UNIT_ID,
+      questions: activeQuestionUnit ? [activeQuestionUnit] : [],
+    },
+    activeQuestionUnit,
     activeQuestion: { question: buildMockQuestion() },
     isRoomReadOnly: false,
     selectedOptionIndex: 0,
@@ -84,9 +96,10 @@ function buildParams(overrides: Partial<BaseParams> = {}): BaseParams {
     isPending: false,
     applyExpAward: vi.fn(),
     moduleDetail: null,
+    syncAttemptSuccessEffects: vi.fn().mockResolvedValue(undefined),
     activeFirstTryBonusStatus: 'available',
-    setSubmittedAttemptByContentId: vi.fn(),
-    setSubmittedByContentIdBySessionId: vi.fn(),
+    markQuestionSubmitted: vi.fn(),
+    recordSubmittedAttempt: vi.fn(),
     parsedModuleId: 1,
     parsedUnitId: 2,
     ...overrides,
@@ -242,6 +255,29 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — payload', () => {
 // ─── submitActiveQuestionAttempt — success callbacks ─────────────────────────
 
 describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
+  it('syncs caches immediately after a normal successful submit', async () => {
+    const syncAttemptSuccessEffects = vi.fn().mockResolvedValue(undefined);
+    const submitResponse = {
+      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
+      hasCorrectAttempt: false,
+      awardReasons: {
+        baseQuestionExp: 'incorrect',
+        firstAttemptBonus: 'incorrect',
+      },
+    } satisfies SubmitAttemptResponse;
+    const { result } = renderHook(() =>
+      useSubmitAttempt(
+        buildParams({
+          syncAttemptSuccessEffects,
+          mutateAsync: vi.fn().mockResolvedValue(submitResponse),
+        }),
+      ),
+    );
+
+    await act(() => result.current.submitActiveQuestionAttempt());
+    expect(syncAttemptSuccessEffects).toHaveBeenCalledWith(submitResponse);
+  });
+
   it('calls applyExpAward when awarded module XP is greater than 0', async () => {
     const applyExpAward = vi.fn();
     const moduleDetail = { userModuleLevel: 1, currentExp: 50, expMax: 100 };
@@ -272,8 +308,115 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
     expect(applyExpAward).not.toHaveBeenCalled();
   });
 
-  it('stores latest-attempt correctness from awardReasons in submittedAttemptByContentId', async () => {
-    const setSubmittedAttemptByContentId = vi.fn();
+  it('defers xp and cache sync when the final unsolved question completes the unit', async () => {
+    const applyExpAward = vi.fn();
+    const syncAttemptSuccessEffects = vi.fn().mockResolvedValue(undefined);
+    const onModuleUnitCompleted = vi.fn();
+    const solvedQuestion: PracticeQuestionUnit = {
+      ...buildMockQuestionUnit(),
+      questionUnitId: 9,
+      rewardState: {
+        baseQuestionExpStatus: 'already_earned',
+        firstAttemptBonusStatus: 'already_earned',
+      },
+      coreQuestion: {
+        ...buildMockQuestionUnit().coreQuestion,
+        questionContent: {
+          ...buildMockQuestion(),
+          id: 99,
+        },
+      },
+    };
+    const submitResponse = {
+      awards: { baseQuestionExp: 10, firstAttemptBonus: 5, streakBonus: 0, accountExp: 25 },
+      hasCorrectAttempt: true,
+      awardReasons: {
+        baseQuestionExp: 'awarded',
+        firstAttemptBonus: 'awarded',
+      },
+    } satisfies SubmitAttemptResponse;
+    const { result } = renderHook(() =>
+      useSubmitAttempt(
+        buildParams({
+          applyExpAward,
+          syncAttemptSuccessEffects,
+          onModuleUnitCompleted,
+          shouldCelebrateModuleUnitCompletion: true,
+          room: {
+            sessionId: SESSION_ID,
+            moduleUnitId: MODULE_UNIT_ID,
+            questions: [buildMockQuestionUnit(), solvedQuestion],
+          },
+          mutateAsync: vi.fn().mockResolvedValue(submitResponse),
+        }),
+      ),
+    );
+
+    await act(() => result.current.submitActiveQuestionAttempt());
+
+    expect(onModuleUnitCompleted).toHaveBeenCalledWith({
+      moduleExpBreakdown: {
+        base: 10,
+        firstAttemptBonus: 5,
+        streakBonus: 0,
+        total: 15,
+      },
+      submitResponse,
+    });
+    expect(applyExpAward).not.toHaveBeenCalled();
+    expect(syncAttemptSuccessEffects).not.toHaveBeenCalled();
+  });
+
+  it('does not trigger the lesson-complete modal when completion celebrations are disabled', async () => {
+    const onModuleUnitCompleted = vi.fn();
+    const syncAttemptSuccessEffects = vi.fn().mockResolvedValue(undefined);
+    const submitResponse = {
+      awards: { baseQuestionExp: 10, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
+      hasCorrectAttempt: true,
+      awardReasons: {
+        baseQuestionExp: 'awarded',
+        firstAttemptBonus: 'not_first_try',
+      },
+    } satisfies SubmitAttemptResponse;
+    const solvedQuestion: PracticeQuestionUnit = {
+      ...buildMockQuestionUnit(),
+      questionUnitId: 9,
+      rewardState: {
+        baseQuestionExpStatus: 'already_earned',
+        firstAttemptBonusStatus: 'already_earned',
+      },
+      coreQuestion: {
+        ...buildMockQuestionUnit().coreQuestion,
+        questionContent: {
+          ...buildMockQuestion(),
+          id: 99,
+        },
+      },
+    };
+    const { result } = renderHook(() =>
+      useSubmitAttempt(
+        buildParams({
+          onModuleUnitCompleted,
+          syncAttemptSuccessEffects,
+          shouldCelebrateModuleUnitCompletion: false,
+          room: {
+            sessionId: SESSION_ID,
+            moduleUnitId: MODULE_UNIT_ID,
+            questions: [buildMockQuestionUnit(), solvedQuestion],
+          },
+          mutateAsync: vi.fn().mockResolvedValue(submitResponse),
+        }),
+      ),
+    );
+
+    await act(() => result.current.submitActiveQuestionAttempt());
+
+    expect(onModuleUnitCompleted).not.toHaveBeenCalled();
+    expect(syncAttemptSuccessEffects).toHaveBeenCalledWith(submitResponse);
+  });
+
+  it('stores latest-attempt correctness from awardReasons in the optimistic attempt callback', async () => {
+    const recordSubmittedAttempt = vi.fn();
     const mutateAsync = vi.fn().mockResolvedValue({
       awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       // `hasCorrectAttempt` stays true once a question has ever been solved;
@@ -285,37 +428,26 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
       },
     } satisfies SubmitAttemptResponse);
     const { result } = renderHook(() =>
-      useSubmitAttempt(buildParams({ mutateAsync, setSubmittedAttemptByContentId })),
+      useSubmitAttempt(buildParams({ mutateAsync, recordSubmittedAttempt })),
     );
     await act(() => result.current.submitActiveQuestionAttempt());
-
-    // The setter receives an updater function; invoke it to inspect the result.
-    const updater = setSubmittedAttemptByContentId.mock.calls[0][0] as (
-      prev: Record<number, unknown>,
-    ) => Record<number, unknown>;
-    const next = updater({});
-    expect(next[QUESTION_ID]).toEqual({
+    expect(recordSubmittedAttempt).toHaveBeenCalledWith(QUESTION_ID, {
       studentAnswer: { selectedOptionIndex: 0 },
       isCorrect: false,
     });
   });
 
   it('falls back to hasCorrectAttempt when awardReasons is missing', async () => {
-    const setSubmittedAttemptByContentId = vi.fn();
+    const recordSubmittedAttempt = vi.fn();
     const mutateAsync = vi.fn().mockResolvedValue({
       awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: true,
     } satisfies SubmitAttemptResponse);
     const { result } = renderHook(() =>
-      useSubmitAttempt(buildParams({ mutateAsync, setSubmittedAttemptByContentId })),
+      useSubmitAttempt(buildParams({ mutateAsync, recordSubmittedAttempt })),
     );
     await act(() => result.current.submitActiveQuestionAttempt());
-
-    const updater = setSubmittedAttemptByContentId.mock.calls[0][0] as (
-      prev: Record<number, unknown>,
-    ) => Record<number, unknown>;
-    const next = updater({});
-    expect(next[QUESTION_ID]).toEqual({
+    expect(recordSubmittedAttempt).toHaveBeenCalledWith(QUESTION_ID, {
       studentAnswer: { selectedOptionIndex: 0 },
       isCorrect: true,
     });
@@ -393,22 +525,17 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
     );
   });
 
-  it('marks the active question as submitted in setSubmittedByContentIdBySessionId', async () => {
-    const setSubmittedByContentIdBySessionId = vi.fn();
+  it('marks the active question as submitted in the session-state callback', async () => {
+    const markQuestionSubmitted = vi.fn();
     const mutateAsync = vi.fn().mockResolvedValue({
       awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: true,
     } satisfies SubmitAttemptResponse);
     const { result } = renderHook(() =>
-      useSubmitAttempt(buildParams({ mutateAsync, setSubmittedByContentIdBySessionId })),
+      useSubmitAttempt(buildParams({ mutateAsync, markQuestionSubmitted })),
     );
     await act(() => result.current.submitActiveQuestionAttempt());
-
-    const updater = setSubmittedByContentIdBySessionId.mock.calls[0][0] as (
-      prev: Record<string, Record<number, boolean>>,
-    ) => Record<string, Record<number, boolean>>;
-    const next = updater({});
-    expect(next[SESSION_ID][QUESTION_ID]).toBe(true);
+    expect(markQuestionSubmitted).toHaveBeenCalledWith(SESSION_ID, QUESTION_ID);
   });
 
   it('clears the active-question draft selection after a successful submission', async () => {

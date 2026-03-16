@@ -60,7 +60,24 @@ describe('ExpLedgerService', () => {
     expect(result).toEqual({ created: false, awardedExp: 0 });
   });
 
-  it('rejects non-positive awarded xp', async () => {
+  it('allows zero-exp completion events', async () => {
+    prisma.expLedger.createMany.mockResolvedValue({ count: 1 });
+
+    const result = await service.recordEvent({
+      userId: 7,
+      moduleId: null,
+      moduleUnitId: null,
+      sessionId: null,
+      questId: null,
+      eventType: ExpLedgerEventTypes.COMPLETE_MODULE_UNIT,
+      awardedExp: 0,
+      idempotencyKey: 'completion:0xp',
+    });
+
+    expect(result).toEqual({ created: true, awardedExp: 0 });
+  });
+
+  it('rejects negative awarded xp', async () => {
     await expect(
       service.recordEvent({
         userId: 7,
@@ -69,7 +86,7 @@ describe('ExpLedgerService', () => {
         sessionId: null,
         questId: null,
         eventType: ExpLedgerEventTypes.COMPLETE_QUEST,
-        awardedExp: 0,
+        awardedExp: -1,
         idempotencyKey: 'dq:1',
       }),
     ).rejects.toThrow(BadRequestException);

@@ -1,6 +1,10 @@
 // Query hook for loading practice-room data while keeping route components free of fetch orchestration.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { SubmitAttemptPayload, SubmitAttemptResponse } from '@scholarxp/api-contracts';
+import type {
+  PracticeSessionType,
+  SubmitAttemptPayload,
+  SubmitAttemptResponse,
+} from '@scholarxp/api-contracts';
 import {
   closePracticeRoomSession,
   getPracticeRoom,
@@ -12,6 +16,7 @@ export function useModuleUnitPracticeRoomQuery(
   moduleId: number | null,
   moduleUnitId: number | null,
   sessionId: string | null,
+  sessionType: PracticeSessionType | null,
 ) {
   const queryClient = useQueryClient();
 
@@ -22,11 +27,13 @@ export function useModuleUnitPracticeRoomQuery(
             moduleId,
             moduleUnitId,
             sessionId ?? undefined,
+            sessionType ?? undefined,
           )
         : queryKeys.modules.moduleUnitPracticeRoom(0, 0),
     queryFn: async () => {
       const response = await getPracticeRoom(moduleId!, moduleUnitId!, {
         sessionId: sessionId ?? undefined,
+        sessionType: sessionType ?? undefined,
       });
 
       // Synchronize the module detail cache with the progress returned in the room response.
@@ -51,8 +58,61 @@ export function useSubmitModuleUnitPracticeAttemptMutation(
   moduleUnitId: number | null,
 ) {
   const queryClient = useQueryClient();
+  const syncAttemptSuccessEffects = async (data: SubmitAttemptResponse) => {
+    if (moduleId === null || moduleUnitId === null || !data) {
+      return;
+    }
 
-  return useMutation({
+    // If the server returned updated progress, we update the cache directly to avoid a redundant GET.
+    if (data.updatedModuleProgress) {
+      queryClient.setQueryData(
+        queryKeys.modules.detail(moduleId),
+        data.updatedModuleProgress,
+      );
+    }
+
+    // Practice-room completion can defer this sync until a local celebration modal is dismissed.
+    const invalidations: Promise<void>[] = [
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.modules.moduleUnitPracticeRoomBase(moduleId, moduleUnitId),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.quests.all,
+      }),
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.quests.masterStreakAll,
+      }),
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.rewards.dailyLessonXpTrackAll,
+      }),
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.auth.me,
+      }),
+    ];
+
+    if (!data.updatedModuleProgress) {
+      invalidations.push(
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.modules.detail(moduleId),
+        }),
+      );
+    }
+
+    await Promise.all(invalidations);
+
+    // Mark the list and other units as stale so they update if the user navigates back,
+    // but do not trigger actual background requests while the user is still in the room.
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.modules.units(moduleId),
+      refetchType: 'none',
+    });
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.modules.all,
+      refetchType: 'none',
+    });
+  };
+
+  const mutation = useMutation({
     mutationFn: (payload: SubmitAttemptPayload) => {
       if (moduleId === null || moduleUnitId === null) {
         throw new Error(
@@ -61,61 +121,12 @@ export function useSubmitModuleUnitPracticeAttemptMutation(
       }
       return submitPracticeRoomAttempt(moduleId, moduleUnitId, payload);
     },
-    onSuccess: async (data: SubmitAttemptResponse) => {
-      if (moduleId === null || moduleUnitId === null || !data) {
-        return;
-      }
-
-      // If the server returned updated progress, we update the cache directly to avoid a redundant GET.
-      if (data.updatedModuleProgress) {
-        queryClient.setQueryData(
-          queryKeys.modules.detail(moduleId),
-          data.updatedModuleProgress,
-        );
-      }
-
-      // Refetch room data and quests so the UI reflects newly stored attempts and quest progress immediately.
-      // We skip an immediate refetch of the module detail if we already updated it from the response.
-      const invalidations: Promise<void>[] = [
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.modules.moduleUnitPracticeRoomBase(moduleId, moduleUnitId),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ['quests'],
-        }),
-      ];
-
-      // Completion rewards change account/avatar XP, so refresh auth snapshot when account XP was granted.
-      if (data.awards.accountExp > 0) {
-        invalidations.push(
-          queryClient.invalidateQueries({
-            queryKey: queryKeys.auth.me,
-          }),
-        );
-      }
-
-      if (!data.updatedModuleProgress) {
-        invalidations.push(
-          queryClient.invalidateQueries({
-            queryKey: queryKeys.modules.detail(moduleId),
-          }),
-        );
-      }
-
-      await Promise.all(invalidations);
-
-      // Mark the list and other units as stale so they update if the user navigates back,
-      // but do not trigger actual background requests while the user is still in the room.
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.modules.units(moduleId),
-        refetchType: 'none',
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.modules.all,
-        refetchType: 'none',
-      });
-    },
   });
+
+  return {
+    ...mutation,
+    syncAttemptSuccessEffects,
+  };
 }
 
 export function useCloseModuleUnitPracticeSessionMutation(

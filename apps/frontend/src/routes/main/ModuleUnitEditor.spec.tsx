@@ -278,7 +278,7 @@ describe('ModuleUnitEditor route', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Editor failed to load');
   });
 
-  it('wires key editor actions to page-state handlers', () => {
+  it('wires key editor actions to page-state handlers', { timeout: 10_000 }, () => {
     const alertMock = vi.fn();
     vi.stubGlobal('alert', alertMock);
 

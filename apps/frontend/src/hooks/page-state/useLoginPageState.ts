@@ -93,9 +93,10 @@ export function useLoginPageState() {
         message.toLowerCase().includes('verify') ||
         message.toLowerCase().includes('not verified');
       if (wantsVerify) {
+        // Redirect to verify page without the error message—this is the normal flow, not an error.
         navigate('/verify-email', {
           replace: false,
-          state: { email: normalizedEmail, message },
+          state: { email: normalizedEmail },
         });
       }
     }
