@@ -207,7 +207,6 @@ describe('useLoginPageState', () => {
       replace: false,
       state: {
         email: 'verifyme@school.edu',
-        message: 'Account not verified. Please verify your email.',
       },
     });
   });

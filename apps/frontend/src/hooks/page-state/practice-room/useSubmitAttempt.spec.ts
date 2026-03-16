@@ -312,7 +312,8 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
     const applyExpAward = vi.fn();
     const syncAttemptSuccessEffects = vi.fn().mockResolvedValue(undefined);
     const onModuleUnitCompleted = vi.fn();
-    const solvedQuestion = buildMockQuestionUnit({
+    const solvedQuestion: PracticeQuestionUnit = {
+      ...buildMockQuestionUnit(),
       questionUnitId: 9,
       rewardState: {
         baseQuestionExpStatus: 'already_earned',
@@ -325,7 +326,7 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
           id: 99,
         },
       },
-    });
+    };
     const submitResponse = {
       awards: { baseQuestionExp: 10, firstAttemptBonus: 5, streakBonus: 0, accountExp: 25 },
       hasCorrectAttempt: true,
@@ -377,7 +378,8 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
         firstAttemptBonus: 'not_first_try',
       },
     } satisfies SubmitAttemptResponse;
-    const solvedQuestion = buildMockQuestionUnit({
+    const solvedQuestion: PracticeQuestionUnit = {
+      ...buildMockQuestionUnit(),
       questionUnitId: 9,
       rewardState: {
         baseQuestionExpStatus: 'already_earned',
@@ -390,7 +392,7 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
           id: 99,
         },
       },
-    });
+    };
     const { result } = renderHook(() =>
       useSubmitAttempt(
         buildParams({

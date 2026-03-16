@@ -415,10 +415,8 @@ describe('PracticeRoomPage route (core-only)', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('dialog')).toHaveTextContent('Badge locked in');
-    expect(
-      screen.getByText('"Unit 1" is complete. Continue to reveal your XP gain.'),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toHaveTextContent('Unit 1 lesson complete!');
+    expect(screen.getByText('Lesson complete')).toBeInTheDocument();
   });
 });
 

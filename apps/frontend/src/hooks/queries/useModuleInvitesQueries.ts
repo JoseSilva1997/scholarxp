@@ -1,4 +1,5 @@
 // Shared module-invite query and mutation hooks to keep settings-panel invite state cache-driven.
+import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   CreateInvitePayload,
@@ -135,7 +136,7 @@ export function useRedeemInviteMutation() {
 export function useRedeemInviteQuery(token: string, enabled: boolean) {
   const queryClient = useQueryClient();
 
-  return useQuery({
+  const redeemInviteQuery = useQuery({
     queryKey: queryKeys.invites.redeem(token),
     // The accept-invite route is a one-shot flow, so the redeem request is keyed by token and shared
     // across remounts to avoid duplicate POSTs during StrictMode development renders.
@@ -147,11 +148,21 @@ export function useRedeemInviteQuery(token: string, enabled: boolean) {
     refetchOnMount: false,
     refetchOnReconnect: false,
     refetchOnWindowFocus: false,
-    onSuccess: (result: RedeemInviteResponse) => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.modules.all });
-      void queryClient.invalidateQueries({
-        queryKey: queryKeys.modules.detail(result.moduleId),
-      });
-    },
   });
+
+  useEffect(() => {
+    if (!redeemInviteQuery.data) {
+      return;
+    }
+
+    // React Query v5 no longer accepts lifecycle callbacks on this useQuery path,
+    // so cache refreshes are coordinated from the settled query result instead.
+    const result: RedeemInviteResponse = redeemInviteQuery.data;
+    void queryClient.invalidateQueries({ queryKey: queryKeys.modules.all });
+    void queryClient.invalidateQueries({
+      queryKey: queryKeys.modules.detail(result.moduleId),
+    });
+  }, [queryClient, redeemInviteQuery.data]);
+
+  return redeemInviteQuery;
 }
