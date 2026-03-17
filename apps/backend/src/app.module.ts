@@ -17,6 +17,7 @@ import { QuestionUnitModule } from './db-entities/questions/question-unit/questi
 import { QuestionContentModule } from './db-entities/questions/question-content/question-content.module';
 import { QuestionVariantModule } from './db-entities/questions/question-variant/question-variant.module';
 import { QuestionAttemptModule } from './db-entities/question-attempt/question-attempt.module';
+import { DailyPracticeModule } from './daily-practice/daily-practice.module';
 import { AuthModule } from './auth/auth.module';
 import { EmailVerificationTokenModule } from './db-entities/email-verification-token/email-verification-token.module';
 import { MailerModule } from './mailer/mailer.module';
@@ -54,6 +55,7 @@ const appControllers =
     QuestionContentModule,
     QuestionVariantModule,
     QuestionAttemptModule,
+    DailyPracticeModule,
     AuthModule,
     EmailVerificationTokenModule,
     MailerModule,
