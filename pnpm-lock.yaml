@@ -103,6 +103,9 @@ importers:
       swagger-ui-express:
         specifier: ^5.0.1
         version: 5.0.1(express@5.2.1)
+      ts-fsrs:
+        specifier: ^5.2.3
+        version: 5.2.3
     devDependencies:
       '@eslint/eslintrc':
         specifier: ^3.3.3
@@ -4542,6 +4545,10 @@ packages:
     peerDependenciesMeta:
       typescript:
         optional: true
+
+  ts-fsrs@5.2.3:
+    resolution: {integrity: sha512-R3IjceC9WfnvUin6Nx+DwqEzh3Qil6Gg2yEHqvocUcC7Nbi+xDrFg/1fKaYBT0tJedDnDAguXMSX0hijhi859w==}
+    engines: {node: '>=18.0.0'}
 
   ts-interface-checker@0.1.13:
     resolution: {integrity: sha512-Y/arvbn+rrz3JCKl9C4kVNfTfSm2/mEp5FSz5EsZSANGPSlQrpRI5M4PKF+mJnE52jOO90PnPSc3Ur3bTQw0gA==}
@@ -9469,6 +9476,8 @@ snapshots:
   ts-essentials@10.1.1(typescript@5.9.3):
     optionalDependencies:
       typescript: 5.9.3
+
+  ts-fsrs@5.2.3: {}
 
   ts-interface-checker@0.1.13: {}
 

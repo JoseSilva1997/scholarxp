@@ -54,7 +54,8 @@
     "pg": "^8.18.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
-    "swagger-ui-express": "^5.0.1"
+    "swagger-ui-express": "^5.0.1",
+    "ts-fsrs": "^5.2.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.3",
