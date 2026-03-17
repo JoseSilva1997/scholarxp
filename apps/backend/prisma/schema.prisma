@@ -53,6 +53,10 @@ model User {
   avatars                 Avatar[]
   dailyQuests             DailyQuest[]
   ltiIdentities           LtiIdentity[]
+  // One daily-practice set per module/day is generated for each learner and linked here for reads and cleanup.
+  dailyPracticeSets       DailyPracticeSet[]
+  // Adaptive state is tracked per learner per question so selection can read from persisted memory state.
+  studentQuestionStates   StudentQuestionState[]
   userProgress            ModuleUnitUserProgress[]
   practiceSessions        PracticeSession[]
   questionAttempts        QuestionAttempt[]
@@ -63,35 +67,39 @@ model User {
 }
 
 model Avatar {
-  id         Int      @id @default(autoincrement())
-  userId     Int      @map("user_id")
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
   // Canonical lifetime account XP used for non-linear level-curve calculations.
-  totalExp   Int      @default(0) @map("total_exp")
-  createdAt  DateTime @default(now()) @map("created_at")
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalExp  Int      @default(0) @map("total_exp")
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId])
   @@map("avatars")
 }
 
 model Module {
-  id               Int               @id @default(autoincrement())
-  institutionId    Int?              @map("institution_id")
-  ltiContextId     String?           @map("lti_context_id")
-  resourceLinkId   String?           @map("resource_link_id")
-  variantContext   String?           @map("variant_context")
-  title            String
-  description      String?
-  createdByUserId  Int?              @map("created_by_user_id")
-  createdAt        DateTime          @default(now()) @map("created_at")
-  institution      Institution?      @relation(fields: [institutionId], references: [id], onDelete: SetNull)
-  createdBy        User?             @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
-  dailyQuests      DailyQuest[]
-  invites          ModuleInvite[]
-  moduleUnits      ModuleUnit[]
-  practiceSessions PracticeSession[]
-  userModules      UserModule[]
-  expLedgerEntries ExpLedger[]
+  id                    Int                    @id @default(autoincrement())
+  institutionId         Int?                   @map("institution_id")
+  ltiContextId          String?                @map("lti_context_id")
+  resourceLinkId        String?                @map("resource_link_id")
+  variantContext        String?                @map("variant_context")
+  title                 String
+  description           String?
+  createdByUserId       Int?                   @map("created_by_user_id")
+  createdAt             DateTime               @default(now()) @map("created_at")
+  institution           Institution?           @relation(fields: [institutionId], references: [id], onDelete: SetNull)
+  createdBy             User?                  @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+  // Module-scoped daily-practice sets stay tied to the module because daily practice is never global.
+  dailyPracticeSets     DailyPracticeSet[]
+  dailyQuests           DailyQuest[]
+  invites               ModuleInvite[]
+  moduleUnits           ModuleUnit[]
+  practiceSessions      PracticeSession[]
+  // Question state stores denormalized module ownership to keep module-scoped candidate queries efficient.
+  studentQuestionStates StudentQuestionState[]
+  userModules           UserModule[]
+  expLedgerEntries      ExpLedger[]
 
   @@unique([institutionId, ltiContextId])
   @@unique([institutionId, resourceLinkId])
@@ -182,21 +190,25 @@ model PracticeSession {
 }
 
 model ModuleUnit {
-  id               Int                       @id @default(autoincrement())
-  moduleId         Int?                      @map("module_id")
-  variantContext   String                    @map("variant_context")
-  title            String
-  questionCount    Int                       @map("question_count")
-  status           ModuleUnitStatus          @default(draft)
-  sortOrder        Int                       @map("sort_order")
-  createdAt        DateTime                  @default(now()) @map("created_at")
-  module           Module?                   @relation(fields: [moduleId], references: [id], onDelete: SetNull)
-  questionGroups   ModuleUnitQuestionGroup[]
-  userProgress     ModuleUnitUserProgress[]
-  questionAttempts QuestionAttempt[]
-  questionUnits    QuestionUnit[]
-  dailyQuests      DailyQuest[]
-  expLedgerEntries ExpLedger[]
+  id                    Int                       @id @default(autoincrement())
+  moduleId              Int?                      @map("module_id")
+  variantContext        String                    @map("variant_context")
+  title                 String
+  questionCount         Int                       @map("question_count")
+  status                ModuleUnitStatus          @default(draft)
+  sortOrder             Int                       @map("sort_order")
+  createdAt             DateTime                  @default(now()) @map("created_at")
+  module                Module?                   @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+  // Persisted daily-practice items keep their lesson linkage so interleaving can avoid same-lesson adjacency.
+  dailyPracticeSetItems DailyPracticeSetItem[]
+  questionGroups        ModuleUnitQuestionGroup[]
+  // Per-question adaptive state keeps unit linkage denormalized for fast selector bucket queries.
+  studentQuestionStates StudentQuestionState[]
+  userProgress          ModuleUnitUserProgress[]
+  questionAttempts      QuestionAttempt[]
+  questionUnits         QuestionUnit[]
+  dailyQuests           DailyQuest[]
+  expLedgerEntries      ExpLedger[]
 
   // Supports composite FK from daily quests so module-unit targets cannot cross modules.
   @@unique([id, moduleId])
@@ -236,21 +248,103 @@ model ModuleUnitUserProgress {
 }
 
 model QuestionUnit {
-  id              Int                      @id @default(autoincrement())
-  moduleUnitId    Int?                     @map("module_unit_id")
-  questionGroupId Int?                     @map("question_group_id")
-  title           String
+  id                    Int                      @id @default(autoincrement())
+  moduleUnitId          Int?                     @map("module_unit_id")
+  questionGroupId       Int?                     @map("question_group_id")
+  title                 String
   // Question archive flag allows post-live removals from future sets while preserving historical attempts.
-  isArchived      Boolean                  @default(false) @map("is_archived")
-  createdAt       DateTime                 @default(now()) @map("created_at")
-  updatedAt       DateTime                 @updatedAt @map("updated_at")
-  moduleUnit      ModuleUnit?              @relation(fields: [moduleUnitId], references: [id], onDelete: Cascade)
-  questionGroup   ModuleUnitQuestionGroup? @relation(fields: [questionGroupId], references: [id], onDelete: SetNull)
-  attempts        QuestionAttempt[]
-  contents        QuestionContent[]
-  variants        QuestionVariant[]
+  isArchived            Boolean                  @default(false) @map("is_archived")
+  createdAt             DateTime                 @default(now()) @map("created_at")
+  updatedAt             DateTime                 @updatedAt @map("updated_at")
+  moduleUnit            ModuleUnit?              @relation(fields: [moduleUnitId], references: [id], onDelete: Cascade)
+  questionGroup         ModuleUnitQuestionGroup? @relation(fields: [questionGroupId], references: [id], onDelete: SetNull)
+  attempts              QuestionAttempt[]
+  contents              QuestionContent[]
+  // Daily-practice set membership is stored at question-unit granularity because selection happens per question.
+  dailyPracticeSetItems DailyPracticeSetItem[]
+  // Learner review state is also question-scoped because FSRS schedules one item at a time.
+  studentQuestionStates StudentQuestionState[]
+  variants              QuestionVariant[]
 
   @@map("question_unit")
+}
+
+model StudentQuestionState {
+  id                 String       @id @default(uuid()) @db.Uuid
+  userId             Int          @map("user_id")
+  moduleId           Int          @map("module_id")
+  moduleUnitId       Int          @map("module_unit_id")
+  questionUnitId     Int          @map("question_unit_id")
+  // Store card state as a string so FSRS scheduling semantics can evolve without enum migrations.
+  fsrsState          String       @map("fsrs_state")
+  fsrsDifficulty     Float        @map("fsrs_difficulty")
+  fsrsStability      Float        @map("fsrs_stability")
+  fsrsDueAt          DateTime     @map("fsrs_due_at")
+  fsrsLastReviewedAt DateTime?    @map("fsrs_last_reviewed_at")
+  reviewCount        Int          @default(0) @map("review_count")
+  lapseCount         Int          @default(0) @map("lapse_count")
+  // Nullable because unseen questions do not have a grade until their first review encounter resolves.
+  lastGrade          String?      @map("last_grade")
+  lastSeenAt         DateTime?    @map("last_seen_at")
+  lastCorrectAt      DateTime?    @map("last_correct_at")
+  recentAvgTimeMs    Int?         @map("recent_avg_time_ms")
+  firstSeenAt        DateTime?    @map("first_seen_at")
+  algorithmVersion   String       @default("fsrs_v1") @map("algorithm_version")
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  module             Module       @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  moduleUnit         ModuleUnit   @relation(fields: [moduleUnitId], references: [id], onDelete: Cascade)
+  questionUnit       QuestionUnit @relation(fields: [questionUnitId], references: [id], onDelete: Cascade)
+
+  // One adaptive state row per learner/question keeps FSRS updates deterministic.
+  @@unique([userId, questionUnitId], map: "student_question_state_user_id_question_unit_id_key")
+  // Selector queries need fast access to due questions within a module for one learner.
+  @@index([userId, moduleId, fsrsDueAt, questionUnitId], map: "student_question_state_due_lookup_idx")
+  // Interleaving and fallback quotas often need lesson-scoped reads inside the same module.
+  @@index([userId, moduleId, moduleUnitId], map: "student_question_state_module_unit_lookup_idx")
+  @@map("student_question_state")
+}
+
+model DailyPracticeSet {
+  id               String                 @id @default(uuid()) @db.Uuid
+  userId           Int                    @map("user_id")
+  moduleId         Int                    @map("module_id")
+  // UTC calendar day anchor keeps one stable set per learner per module per day.
+  practiceDateUtc  DateTime               @map("practice_date_utc") @db.Date
+  generatedAt      DateTime               @default(now()) @map("generated_at")
+  completedAt      DateTime?              @map("completed_at")
+  // Keep the algorithm version with the snapshot so future tuning does not make old sets ambiguous.
+  algorithmVersion String                 @default("fsrs_v1") @map("algorithm_version")
+  user             User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  module           Module                 @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  items            DailyPracticeSetItem[]
+
+  // One stable snapshot per learner/module/day avoids reshuffling the set across refreshes.
+  @@unique([userId, moduleId, practiceDateUtc], map: "daily_practice_set_user_module_day_key")
+  // Supports "today" lookup and recent-history pagination without scanning old rows.
+  @@index([userId, moduleId, practiceDateUtc(sort: Desc)], map: "daily_practice_set_user_module_day_idx")
+  @@map("daily_practice_sets")
+}
+
+model DailyPracticeSetItem {
+  id                 String           @id @default(uuid()) @db.Uuid
+  dailyPracticeSetId String           @map("daily_practice_set_id") @db.Uuid
+  questionUnitId     Int              @map("question_unit_id")
+  moduleUnitId       Int              @map("module_unit_id")
+  position           Int
+  // Reason stays string-backed so selector heuristics can become more specific without schema churn.
+  selectionReason    String           @map("selection_reason")
+  selectionScore     Float            @map("selection_score")
+  sourceBucket       String           @map("source_bucket")
+  dailyPracticeSet   DailyPracticeSet @relation(fields: [dailyPracticeSetId], references: [id], onDelete: Cascade)
+  questionUnit       QuestionUnit     @relation(fields: [questionUnitId], references: [id], onDelete: Cascade)
+  moduleUnit         ModuleUnit       @relation(fields: [moduleUnitId], references: [id], onDelete: Cascade)
+
+  // Keep one row per question in a set so submit flow and progress counts remain unambiguous.
+  @@unique([dailyPracticeSetId, questionUnitId], map: "daily_practice_set_item_question_key")
+  // Position is persisted so refreshes preserve deterministic interleaving order.
+  @@unique([dailyPracticeSetId, position], map: "daily_practice_set_item_position_key")
+  @@index([moduleUnitId, sourceBucket], map: "daily_practice_set_item_bucket_lookup_idx")
+  @@map("daily_practice_set_items")
 }
 
 model QuestionContent {
