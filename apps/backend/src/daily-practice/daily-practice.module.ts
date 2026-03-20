@@ -2,6 +2,7 @@
 import { Module } from '@nestjs/common';
 import { DailyPracticeCandidateReadService } from './daily-practice-candidate-read.service';
 import { DailyPracticeFsrsGradeService } from './daily-practice-fsrs-grade.service';
+import { DailyPracticeInterleavingService } from './daily-practice-interleaving.service';
 import { DailyPracticeFsrsStateService } from './daily-practice-fsrs-state.service';
 import { DailyPracticeQuestionStateReadService } from './daily-practice-question-state-read.service';
 import { DailyPracticeSetSelectorService } from './daily-practice-set-selector.service';
@@ -11,6 +12,7 @@ import { DailyPracticeSetReadService } from './daily-practice-set-read.service';
   providers: [
     DailyPracticeCandidateReadService,
     DailyPracticeFsrsGradeService,
+    DailyPracticeInterleavingService,
     DailyPracticeFsrsStateService,
     DailyPracticeQuestionStateReadService,
     DailyPracticeSetSelectorService,
@@ -19,6 +21,7 @@ import { DailyPracticeSetReadService } from './daily-practice-set-read.service';
   exports: [
     DailyPracticeCandidateReadService,
     DailyPracticeFsrsGradeService,
+    DailyPracticeInterleavingService,
     DailyPracticeFsrsStateService,
     DailyPracticeQuestionStateReadService,
     DailyPracticeSetSelectorService,

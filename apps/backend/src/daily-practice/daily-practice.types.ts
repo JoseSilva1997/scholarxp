@@ -83,3 +83,9 @@ export type DailyPracticeSelectionResult = {
   plan: DailyPracticeSelectionPlan;
   selectedQuestions: SelectedDailyPracticeQuestionRecord[];
 };
+
+// Ordered records add a persisted-ready position so the interleaver can hand the next step a stable sequence.
+export type OrderedDailyPracticeQuestionRecord =
+  SelectedDailyPracticeQuestionRecord & {
+    position: number;
+  };
