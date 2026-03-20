@@ -5,25 +5,25 @@ import { PracticeRoomModule } from '../practice-room/practice-room.module';
 import { QuestsModule } from '../quests/quests.module';
 import { DailyPracticeCandidateReadService } from './daily-practice-candidate-read.service';
 import { DailyPracticeController } from './daily-practice.controller';
-import { DailyPracticeFsrsGradeService } from './daily-practice-fsrs-grade.service';
 import { DailyPracticeInterleavingService } from './daily-practice-interleaving.service';
 import { DailyPracticeMapper } from './daily-practice.mapper';
-import { DailyPracticeFsrsStateService } from './daily-practice-fsrs-state.service';
-import { DailyPracticeQuestionStateReadService } from './daily-practice-question-state-read.service';
+import { DailyPracticeReviewStateModule } from './daily-practice-review-state.module';
 import { DailyPracticeService } from './daily-practice.service';
 import { DailyPracticeSetSelectorService } from './daily-practice-set-selector.service';
 import { DailyPracticeSetReadService } from './daily-practice-set-read.service';
 
 @Module({
-  imports: [AuthModule, PracticeRoomModule, QuestsModule],
+  imports: [
+    AuthModule,
+    PracticeRoomModule,
+    QuestsModule,
+    DailyPracticeReviewStateModule,
+  ],
   controllers: [DailyPracticeController],
   providers: [
     DailyPracticeCandidateReadService,
     DailyPracticeMapper,
-    DailyPracticeFsrsGradeService,
     DailyPracticeInterleavingService,
-    DailyPracticeFsrsStateService,
-    DailyPracticeQuestionStateReadService,
     DailyPracticeService,
     DailyPracticeSetSelectorService,
     DailyPracticeSetReadService,
@@ -31,10 +31,7 @@ import { DailyPracticeSetReadService } from './daily-practice-set-read.service';
   exports: [
     DailyPracticeCandidateReadService,
     DailyPracticeMapper,
-    DailyPracticeFsrsGradeService,
     DailyPracticeInterleavingService,
-    DailyPracticeFsrsStateService,
-    DailyPracticeQuestionStateReadService,
     DailyPracticeService,
     DailyPracticeSetSelectorService,
     DailyPracticeSetReadService,

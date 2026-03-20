@@ -3,6 +3,7 @@
  */
 import { Test, TestingModule } from '@nestjs/testing';
 import { MODULE_UNIT_BASELINE_EXP } from '@scholarxp/constants';
+import { DailyPracticeFsrsStateService } from '../daily-practice/daily-practice-fsrs-state.service';
 import { PracticeRoomService } from './practice-room.service';
 import { PracticeRoomAttemptService } from './practice-room-attempt.service';
 import { PracticeRoomMapper } from './practice-room.mapper';
@@ -48,6 +49,7 @@ describe('PracticeRoomService', () => {
     validateModuleUnitPayload: jest.Mock;
     computeIsCorrectForPayload: jest.Mock;
     hasAnyAttempt: jest.Mock;
+    hasAnySessionAttempt: jest.Mock;
     hasAnyCorrectAttempt: jest.Mock;
     createAttemptRecord: jest.Mock;
     resolveSubmitAwardReasons: jest.Mock;
@@ -69,6 +71,9 @@ describe('PracticeRoomService', () => {
   let questProgressService: {
     recordModuleUnitCompletion: jest.Mock;
     recordRetrySessionProgress: jest.Mock;
+  };
+  let dailyPracticeFsrsStateService: {
+    applyEncounter: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -98,6 +103,7 @@ describe('PracticeRoomService', () => {
       validateModuleUnitPayload: jest.fn(),
       computeIsCorrectForPayload: jest.fn(),
       hasAnyAttempt: jest.fn(),
+      hasAnySessionAttempt: jest.fn(),
       hasAnyCorrectAttempt: jest.fn(),
       createAttemptRecord: jest.fn(),
       resolveSubmitAwardReasons: jest.fn(),
@@ -120,6 +126,9 @@ describe('PracticeRoomService', () => {
       recordModuleUnitCompletion: jest.fn(),
       recordRetrySessionProgress: jest.fn(),
     };
+    dailyPracticeFsrsStateService = {
+      applyEncounter: jest.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -141,6 +150,10 @@ describe('PracticeRoomService', () => {
         { provide: ExpAwardingService, useValue: expAwardingService },
         { provide: ExpStreakService, useValue: expStreakService },
         { provide: QuestProgressService, useValue: questProgressService },
+        {
+          provide: DailyPracticeFsrsStateService,
+          useValue: dailyPracticeFsrsStateService,
+        },
         { provide: PrismaService, useValue: prisma },
       ],
     }).compile();
@@ -225,6 +238,7 @@ describe('PracticeRoomService', () => {
         true,
       );
       practiceRoomAttemptService.hasAnyAttempt.mockResolvedValue(false);
+      practiceRoomAttemptService.hasAnySessionAttempt.mockResolvedValue(false);
       practiceRoomAttemptService.hasAnyCorrectAttempt.mockResolvedValue(false);
       studentModuleUnitProgressService.syncFromAttempts.mockResolvedValue({
         isCompleted: true,
@@ -285,6 +299,19 @@ describe('PracticeRoomService', () => {
         expect.any(Date),
         prisma,
       );
+      expect(dailyPracticeFsrsStateService.applyEncounter).toHaveBeenCalledWith(
+        {
+          userId: TEST_STUDENT_ID,
+          moduleId: TEST_MODULE_ID,
+          moduleUnitId: TEST_MODULE_UNIT_ID,
+          questionUnitId: payload.questionUnitId,
+          reviewedAt: expect.any(Date),
+          firstAttemptCorrect: true,
+          hintUnlocked: false,
+          timeTakenMs: payload.timeTakenMs,
+        },
+        prisma,
+      );
       expect(
         practiceRoomSessionService.closeSessionOnCompletionIfNeeded,
       ).toHaveBeenCalledWith(TEST_SESSION_ID, expect.any(Date), true, prisma);
@@ -330,6 +357,7 @@ describe('PracticeRoomService', () => {
         false,
       );
       practiceRoomAttemptService.hasAnyAttempt.mockResolvedValue(true);
+      practiceRoomAttemptService.hasAnySessionAttempt.mockResolvedValue(false);
       practiceRoomAttemptService.hasAnyCorrectAttempt.mockResolvedValue(true);
       studentModuleUnitProgressService.syncFromAttempts.mockResolvedValue({
         isCompleted: false,
@@ -358,6 +386,19 @@ describe('PracticeRoomService', () => {
         payload,
       );
 
+      expect(dailyPracticeFsrsStateService.applyEncounter).toHaveBeenCalledWith(
+        {
+          userId: TEST_STUDENT_ID,
+          moduleId: TEST_MODULE_ID,
+          moduleUnitId: TEST_MODULE_UNIT_ID,
+          questionUnitId: payload.questionUnitId,
+          reviewedAt: expect.any(Date),
+          firstAttemptCorrect: false,
+          hintUnlocked: true,
+          timeTakenMs: payload.timeTakenMs,
+        },
+        prisma,
+      );
       expect(expAwardingService.awardCompletionExp).not.toHaveBeenCalled();
       expect(
         questProgressService.recordModuleUnitCompletion,
@@ -375,6 +416,7 @@ describe('PracticeRoomService', () => {
         true,
       );
       practiceRoomAttemptService.hasAnyAttempt.mockResolvedValue(true);
+      practiceRoomAttemptService.hasAnySessionAttempt.mockResolvedValue(false);
       practiceRoomAttemptService.hasAnyCorrectAttempt.mockResolvedValue(true);
       practiceRoomAttemptService.resolveSubmitAwardReasons.mockReturnValue({
         baseQuestionExp: 'already_earned',
@@ -395,6 +437,19 @@ describe('PracticeRoomService', () => {
       expect(
         studentModuleUnitProgressService.syncFromAttempts,
       ).not.toHaveBeenCalled();
+      expect(dailyPracticeFsrsStateService.applyEncounter).toHaveBeenCalledWith(
+        {
+          userId: TEST_STUDENT_ID,
+          moduleId: TEST_MODULE_ID,
+          moduleUnitId: TEST_MODULE_UNIT_ID,
+          questionUnitId: payload.questionUnitId,
+          reviewedAt: expect.any(Date),
+          firstAttemptCorrect: true,
+          hintUnlocked: false,
+          timeTakenMs: payload.timeTakenMs,
+        },
+        prisma,
+      );
       expect(
         practiceRoomSessionService.closeSessionOnCompletionIfNeeded,
       ).not.toHaveBeenCalled();
@@ -435,6 +490,50 @@ describe('PracticeRoomService', () => {
         currentStreak: 5,
         highestStreak: 5,
       });
+    });
+
+    it('does not reapply adaptive review state after the first question attempt in the same session', async () => {
+      const payload = buildSubmitAttemptPayload();
+
+      practiceRoomSessionService.getOwnedPracticeSessionOrThrow.mockResolvedValue(
+        buildOwnedPracticeSession(),
+      );
+      practiceRoomAttemptService.computeIsCorrectForPayload.mockResolvedValue(
+        true,
+      );
+      practiceRoomAttemptService.hasAnyAttempt.mockResolvedValue(true);
+      practiceRoomAttemptService.hasAnySessionAttempt.mockResolvedValue(true);
+      practiceRoomAttemptService.hasAnyCorrectAttempt.mockResolvedValue(true);
+      studentModuleUnitProgressService.syncFromAttempts.mockResolvedValue({
+        isCompleted: false,
+      });
+      expAwardingService.awardAttemptModuleExp.mockResolvedValue({
+        updatedMembership: undefined,
+        moduleAwards: {
+          baseQuestionExp: 0,
+          firstAttemptBonus: 0,
+          streakBonus: 0,
+        },
+      });
+      practiceRoomAttemptService.resolveSubmitAwardReasons.mockReturnValue({
+        baseQuestionExp: 'already_earned',
+        firstAttemptBonus: 'not_first_try',
+      });
+      expStreakService.getSessionStreak.mockResolvedValue({
+        currentStreak: 1,
+        highestStreak: 2,
+      });
+
+      await service.submitAttempt(
+        TEST_MODULE_ID,
+        TEST_MODULE_UNIT_ID,
+        TEST_STUDENT_ID,
+        payload,
+      );
+
+      expect(
+        dailyPracticeFsrsStateService.applyEncounter,
+      ).not.toHaveBeenCalled();
     });
   });
 

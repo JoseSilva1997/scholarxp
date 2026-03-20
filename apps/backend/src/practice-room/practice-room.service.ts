@@ -7,6 +7,7 @@ import {
   type PracticeSessionType,
 } from '@scholarxp/api-contracts';
 import { MODULE_UNIT_BASELINE_EXP } from '@scholarxp/constants';
+import { DailyPracticeFsrsStateService } from '../daily-practice/daily-practice-fsrs-state.service';
 import { ExpAwardingService } from '../exp-engine/exp-awarding.service';
 import { ExpStreakService } from '../exp-engine/exp-streak.service';
 import type { AttemptModuleExpRewardResult } from '../exp-engine/exp-engine.types';
@@ -32,6 +33,7 @@ export class PracticeRoomService {
     private readonly expAwardingService: ExpAwardingService,
     private readonly expStreakService: ExpStreakService,
     private readonly questProgressService: QuestProgressService,
+    private readonly dailyPracticeFsrsStateService: DailyPracticeFsrsStateService,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -163,6 +165,14 @@ export class PracticeRoomService {
           payload.questionUnitId,
           tx,
         );
+      const hadAnySessionAttemptBeforeSubmit =
+        await this.practiceRoomAttemptService.hasAnySessionAttempt(
+          moduleUnitId,
+          studentId,
+          payload.questionUnitId,
+          payload.sessionId,
+          tx,
+        );
       const hadCorrectAttemptBeforeSubmit =
         await this.practiceRoomAttemptService.hasAnyCorrectAttempt(
           moduleUnitId,
@@ -179,6 +189,22 @@ export class PracticeRoomService {
         attemptedAt,
         tx,
       );
+      if (!hadAnySessionAttemptBeforeSubmit) {
+        // The first attempt within a lesson or retry session acts as the normalized encounter that seeds adaptive review state.
+        await this.dailyPracticeFsrsStateService.applyEncounter(
+          {
+            userId: studentId,
+            moduleId,
+            moduleUnitId,
+            questionUnitId: payload.questionUnitId,
+            reviewedAt: attemptedAt,
+            firstAttemptCorrect: isCorrect,
+            hintUnlocked: payload.hintUnlocked,
+            timeTakenMs: payload.timeTakenMs,
+          },
+          tx,
+        );
+      }
       let updatedMembership: AttemptModuleExpRewardResult['updatedMembership'] =
         null;
       let moduleAwards: AttemptModuleExpRewardResult['moduleAwards'] = {

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
+import { DailyPracticeReviewStateModule } from '../daily-practice/daily-practice-review-state.module';
 import { ExpEngineModule } from '../exp-engine/exp-engine.module';
 import { QuestsModule } from '../quests/quests.module';
 import { PracticeRoomController } from './practice-room.controller';
@@ -13,7 +14,12 @@ import { StudentModuleUnitProgressService } from './student-module-unit-progress
 
 // This module isolates practice-room read orchestration and keeps route wiring explicit in one place.
 @Module({
-  imports: [AuthModule, ExpEngineModule, QuestsModule],
+  imports: [
+    AuthModule,
+    ExpEngineModule,
+    QuestsModule,
+    DailyPracticeReviewStateModule,
+  ],
   controllers: [PracticeRoomController],
   providers: [
     PracticeRoomService,
