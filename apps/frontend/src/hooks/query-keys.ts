@@ -28,6 +28,11 @@ export const queryKeys = {
       ] as const,
     moduleUnitPracticeRoomBase: (moduleId: number, unitId: number) =>
       ['modules', 'practice-room', moduleId, unitId] as const,
+    // Session id is part of the key so resumed daily-practice sessions can refetch the right room envelope.
+    dailyPractice: (moduleId: number, sessionId?: string) =>
+      ['modules', 'daily-practice', moduleId, sessionId ?? 'new'] as const,
+    dailyPracticeBase: (moduleId: number) =>
+      ['modules', 'daily-practice', moduleId] as const,
   },
   quests: {
     all: ['quests'] as const,
