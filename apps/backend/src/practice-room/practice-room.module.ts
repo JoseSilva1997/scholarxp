@@ -6,7 +6,7 @@ import { PracticeRoomController } from './practice-room.controller';
 import { PracticeRoomAttemptService } from './practice-room-attempt.service';
 import { PracticeRoomMapper } from './practice-room.mapper';
 import { PracticeRoomReadService } from './practice-room-read.service';
-import { PracticeRoomSessionService } from './practice-room-session.service';
+import { PracticeRoomSessionService } from './practice-session.service';
 import { PracticeRoomSessionSweepService } from './practice-room-session-sweep.service';
 import { PracticeRoomService } from './practice-room.service';
 import { StudentModuleUnitProgressService } from './student-module-unit-progress.service';
@@ -24,6 +24,11 @@ import { StudentModuleUnitProgressService } from './student-module-unit-progress
     PracticeRoomSessionService,
     StudentModuleUnitProgressService,
   ],
-  exports: [PracticeRoomService],
+  exports: [
+    PracticeRoomService,
+    PracticeRoomAttemptService,
+    PracticeRoomMapper,
+    PracticeRoomSessionService,
+  ],
 })
 export class PracticeRoomModule {}

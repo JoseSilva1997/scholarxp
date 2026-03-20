@@ -7,7 +7,7 @@ import { PracticeRoomService } from './practice-room.service';
 import { PracticeRoomAttemptService } from './practice-room-attempt.service';
 import { PracticeRoomMapper } from './practice-room.mapper';
 import { PracticeRoomReadService } from './practice-room-read.service';
-import { PracticeRoomSessionService } from './practice-room-session.service';
+import { PracticeRoomSessionService } from './practice-session.service';
 import {
   buildLoadedModuleUnit,
   buildOwnedPracticeSession,

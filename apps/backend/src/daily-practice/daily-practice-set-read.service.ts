@@ -89,4 +89,44 @@ export class DailyPracticeSetReadService {
       },
     });
   }
+
+  // Submit flows need an ownership-safe set lookup by id so route params and payload ids cannot cross modules or users.
+  findOwnedSetById(
+    setId: string,
+    userId: number,
+    moduleId: number,
+    tx?: PrismaClientLike,
+  ): Promise<PersistedDailyPracticeSetRecord | null> {
+    const prismaClient = tx ?? this.prisma;
+
+    return prismaClient.dailyPracticeSet.findFirst({
+      where: {
+        id: setId,
+        userId,
+        moduleId,
+      },
+      select: {
+        id: true,
+        userId: true,
+        moduleId: true,
+        practiceDateUtc: true,
+        generatedAt: true,
+        completedAt: true,
+        algorithmVersion: true,
+        items: {
+          orderBy: [{ position: 'asc' }, { questionUnitId: 'asc' }],
+          select: {
+            id: true,
+            dailyPracticeSetId: true,
+            questionUnitId: true,
+            moduleUnitId: true,
+            position: true,
+            selectionReason: true,
+            selectionScore: true,
+            sourceBucket: true,
+          },
+        },
+      },
+    });
+  }
 }

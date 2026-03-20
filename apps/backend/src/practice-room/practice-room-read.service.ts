@@ -17,7 +17,7 @@ import {
 } from '@scholarxp/constants';
 import { PrismaService } from '../prisma/prisma.service';
 import { PracticeRoomMapper } from './practice-room.mapper';
-import { PracticeRoomSessionService } from './practice-room-session.service';
+import { PracticeRoomSessionService } from './practice-session.service';
 import type {
   LatestAttemptSnapshot,
   LoadedModuleUnit,

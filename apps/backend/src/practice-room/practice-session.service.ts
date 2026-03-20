@@ -38,6 +38,35 @@ export class PracticeRoomSessionService {
     return this.createPracticeSession(moduleId, studentId, sessionType);
   }
 
+  // Flows like daily practice want to reuse an open session of the same type before creating a fresh one.
+  async resolveOwnedSessionByType(
+    moduleId: number,
+    studentId: number,
+    sessionType: PracticeSessionType,
+    existingSessionId?: string,
+  ): Promise<OwnedPracticeSession> {
+    if (existingSessionId) {
+      const session = await this.getOwnedPracticeSessionOrThrow(
+        moduleId,
+        studentId,
+        existingSessionId,
+      );
+      this.assertSessionMatchesType(session.sessionType, sessionType);
+      return session;
+    }
+
+    const openSession = await this.findOwnedOpenPracticeSessionByType(
+      moduleId,
+      studentId,
+      sessionType,
+    );
+
+    return (
+      openSession ??
+      this.createPracticeSession(moduleId, studentId, sessionType)
+    );
+  }
+
   // Creating sessions in one place ensures every room flow gets the same persisted shape and defaults.
   createPracticeSession(
     moduleId: number,
@@ -52,6 +81,24 @@ export class PracticeRoomSessionService {
         // Starting a fresh session on room load gives the client a stable id before the first attempt.
         startTime: new Date(),
       },
+      select: { id: true, sessionType: true, endTime: true },
+    });
+  }
+
+  // Reusing still-open sessions keeps module-scoped flows stable across refreshes without requiring the client to persist every session id.
+  findOwnedOpenPracticeSessionByType(
+    moduleId: number,
+    studentId: number,
+    sessionType: PracticeSessionType,
+  ): Promise<OwnedPracticeSession | null> {
+    return this.prisma.practiceSession.findFirst({
+      where: {
+        moduleId,
+        userId: studentId,
+        sessionType,
+        endTime: null,
+      },
+      orderBy: [{ startTime: 'desc' }, { id: 'desc' }],
       select: { id: true, sessionType: true, endTime: true },
     });
   }
@@ -85,6 +132,20 @@ export class PracticeRoomSessionService {
         'This session is read-only. Start a practice session to submit answers.',
       );
     }
+  }
+
+  // Session-type checks keep flows from accidentally reusing a session created for a different product surface.
+  assertSessionMatchesType(
+    actualSessionType: string,
+    expectedSessionType: PracticeSessionType,
+  ) {
+    if (actualSessionType === expectedSessionType) {
+      return;
+    }
+
+    throw new ForbiddenException(
+      'This session does not belong to the requested practice flow.',
+    );
   }
 
   // Idempotent close lets unload/navigation hooks call this safely without race-sensitive retries.

@@ -7,6 +7,7 @@ export const PracticeSessionTypeValues = {
   practiceRoom: 'practice_room',
   viewAnswers: 'view_answers',
   retry: 'retry',
+  dailyPractice: 'daily_practice',
 } as const;
 
 // String union keeps compatibility with string-backed DB storage while preserving typed usage in app code.

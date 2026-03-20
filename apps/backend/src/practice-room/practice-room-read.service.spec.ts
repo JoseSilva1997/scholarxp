@@ -7,7 +7,7 @@ import { PracticeSessionTypeValues } from '@scholarxp/api-contracts';
 import { MODULE_UNIT_BASELINE_EXP } from '@scholarxp/constants';
 import { PracticeRoomMapper } from './practice-room.mapper';
 import { PracticeRoomReadService } from './practice-room-read.service';
-import { PracticeRoomSessionService } from './practice-room-session.service';
+import { PracticeRoomSessionService } from './practice-session.service';
 import {
   buildLoadedModuleUnit,
   buildOwnedPracticeSession,

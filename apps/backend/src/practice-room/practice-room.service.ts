@@ -18,7 +18,7 @@ import { SubmitAttemptResponseDto } from './dto/submit-attempt-response.dto';
 import { PracticeRoomAttemptService } from './practice-room-attempt.service';
 import { PracticeRoomMapper } from './practice-room.mapper';
 import { PracticeRoomReadService } from './practice-room-read.service';
-import { PracticeRoomSessionService } from './practice-room-session.service';
+import { PracticeRoomSessionService } from './practice-session.service';
 import { StudentModuleUnitProgressService } from './student-module-unit-progress.service';
 
 @Injectable()

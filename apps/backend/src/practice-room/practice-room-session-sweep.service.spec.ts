@@ -1,7 +1,7 @@
 // Spec role: verifies the practice-room stale-session sweep interval schedules closures and handles failures safely.
 import { Logger } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { PracticeRoomSessionService } from './practice-room-session.service';
+import { PracticeRoomSessionService } from './practice-session.service';
 import { PracticeRoomSessionSweepService } from './practice-room-session-sweep.service';
 
 describe('PracticeRoomSessionSweepService', () => {
