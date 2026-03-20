@@ -241,6 +241,22 @@ describe('useDailyPracticePageState', () => {
     });
   });
 
+  it('does not close the session when local question selection causes a rerender', async () => {
+    useTodayDailyPracticeQueryMock.mockReturnValue({
+      isPending: false,
+      error: null,
+      data: buildDailyPracticeResponse(),
+    });
+
+    const rendered = renderHookWithParams('7');
+
+    act(() => {
+      rendered.getState().selectQuestion(1);
+    });
+
+    expect(closeSessionMutateMock).not.toHaveBeenCalled();
+  });
+
   it('submits the active daily-practice question and applies a local optimistic progress update', async () => {
     useTodayDailyPracticeQueryMock.mockReturnValue({
       isPending: false,

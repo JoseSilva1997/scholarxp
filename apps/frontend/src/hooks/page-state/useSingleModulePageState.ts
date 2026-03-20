@@ -18,15 +18,13 @@ import {
 import { logError } from '../../utils/logger';
 import { canUserAccess } from '../../permissions/permission';
 import {
-  useRecordDailyRevisionQuestProgressMutation,
-} from '../queries/useQuestsQueries';
-import {
   useCreateModuleUnitMutation,
   useModuleDetailQuery,
   useModuleUnitsQuery,
   useUpdateModuleUnitMutation,
   useUpdateModuleUnitStatusMutation,
 } from '../queries/useModulesQueries';
+import { useTodayDailyPracticeQuery } from '../queries/useDailyPracticeQueries';
 import { queryKeys } from '../query-keys';
 
 type UseSingleModulePageStateParams = {
@@ -53,7 +51,9 @@ type UseSingleModulePageStateResult = {
   expPercent: number;
   expMax: number;
   isCreatingUnit: boolean;
-  handleDailyRevisionClick: () => Promise<void>;
+  dailyPracticeButtonLabel: string;
+  dailyPracticeStatusText: string | null;
+  handleDailyPracticeClick: () => Promise<void>;
   handleOpenStudentPracticeRoom: (unitId: string, questionId?: string) => Promise<void>;
   handleRetryStudentPracticeRoom: (unitId: string) => Promise<void>;
   handleCreateUnit: (title: string) => Promise<void>;
@@ -86,8 +86,10 @@ export function useSingleModulePageState({
   const createModuleUnitMutation = useCreateModuleUnitMutation(parsedId);
   const updateModuleUnitMutation = useUpdateModuleUnitMutation(parsedId);
   const updateModuleUnitStatusMutation = useUpdateModuleUnitStatusMutation(parsedId);
-  const recordDailyRevisionQuestProgressMutation =
-    useRecordDailyRevisionQuestProgressMutation(parsedId);
+  const todayDailyPracticeQuery = useTodayDailyPracticeQuery(
+    parsedId,
+    null,
+  );
 
   // permission checks are memoized to avoid re-evaluating the
   // shared matrix on every render. user object is primary dependency.
@@ -117,6 +119,18 @@ export function useSingleModulePageState({
       logError(moduleUnitsQuery.error, { feature: 'module-unit', action: 'list', moduleId: parsedId });
     }
   }, [moduleUnitsQuery.error, parsedId]);
+
+  // Daily-practice summary errors should not block the page; they only affect CTA copy and are logged for monitoring.
+  useEffect(() => {
+    if (!todayDailyPracticeQuery.error) return;
+    if (shouldLogApiError(todayDailyPracticeQuery.error)) {
+      logError(todayDailyPracticeQuery.error, {
+        feature: 'daily-practice',
+        action: 'module-summary',
+        moduleId: parsedId,
+      });
+    }
+  }, [parsedId, todayDailyPracticeQuery.error]);
 
   const module = moduleQuery.data ?? null;
 
@@ -207,31 +221,59 @@ export function useSingleModulePageState({
     }
   };
 
-  const handleDailyRevisionClick = async () => {
+  const dailyPracticeEntry = useMemo(() => {
+    const progress = todayDailyPracticeQuery.data?.progress ?? null;
+
+    if (todayDailyPracticeQuery.isPending) {
+      return {
+        buttonLabel: 'Daily Practice',
+        statusText: 'Preparing today’s set…',
+      };
+    }
+
+    if (!progress) {
+      return {
+        buttonLabel: 'Daily Practice',
+        statusText: 'Open today’s adaptive set',
+      };
+    }
+
+    if (progress.completedAt) {
+      return {
+        buttonLabel: 'Review Daily Practice',
+        statusText: 'Completed today',
+      };
+    }
+
+    if (progress.answeredQuestions > 0) {
+      return {
+        buttonLabel: 'Resume Daily Practice',
+        statusText: `${progress.answeredQuestions}/${progress.totalQuestions} answered`,
+      };
+    }
+
+    return {
+      buttonLabel: 'Start Daily Practice',
+      statusText: `${progress.totalQuestions} questions ready`,
+    };
+  }, [todayDailyPracticeQuery.data?.progress, todayDailyPracticeQuery.isPending]);
+
+  const handleDailyPracticeClick = async () => {
     if (parsedId === null) {
       return;
     }
 
-    setActionError(null);
-    try {
-      await recordDailyRevisionQuestProgressMutation.mutateAsync();
-      // Product has not shipped the actual room entry yet, so keep the current placeholder after recording quest progress.
-      window.alert('Daily revision coming soon! 🎯');
-    } catch (error) {
-      setActionError(
-        getDisplayErrorMessage(error, {
-          fallbackMessage:
-            'Could not record your daily revision quest progress. Please try again.',
-        }),
-      );
-      if (shouldLogApiError(error)) {
-        logError(error, {
-          feature: 'quests',
-          action: 'daily-revision-click',
-          moduleId: parsedId,
-        });
-      }
+    const searchParams = new URLSearchParams();
+    const sessionId = todayDailyPracticeQuery.data?.sessionId;
+    if (sessionId) {
+      // Reusing the session id keeps refresh and explicit resume aligned with the backend-owned session lifecycle.
+      searchParams.set('sessionId', sessionId);
     }
+    const dailyPracticePath = `/main/modules/${parsedId}/daily-practice${
+      searchParams.size > 0 ? `?${searchParams.toString()}` : ''
+    }`;
+
+    window.location.assign(dailyPracticePath);
   };
 
   const openStudentPracticeRoom = async (input: {
@@ -343,7 +385,9 @@ export function useSingleModulePageState({
     expPercent,
     expMax,
     isCreatingUnit: createModuleUnitMutation.isPending,
-    handleDailyRevisionClick,
+    dailyPracticeButtonLabel: dailyPracticeEntry.buttonLabel,
+    dailyPracticeStatusText: dailyPracticeEntry.statusText,
+    handleDailyPracticeClick,
     handleOpenStudentPracticeRoom,
     handleRetryStudentPracticeRoom,
     handleCreateUnit,

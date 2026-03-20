@@ -124,6 +124,10 @@ export function useDailyPracticePageState({
   const room = dailyPracticeQuery.data ?? null;
   const activeContentIdRef = useRef<number | null>(null);
   const activeContentViewStartMsRef = useRef<number | null>(null);
+  const latestSessionIdRef = useRef<string | null>(room?.sessionId ?? null);
+  const latestModuleIdRef = useRef<number | null>(parsedModuleId);
+  const closeSessionRef = useRef(closeSessionMutation.mutate);
+  const closedSessionIdsRef = useRef<Set<string>>(new Set());
   const activeSetId = room?.setId ?? null;
   const firstUnansweredQuestionIndex = useMemo(() => {
     if (!room || room.questions.length === 0) {
@@ -170,6 +174,19 @@ export function useDailyPracticePageState({
     }
   }, [dailyPracticeQuery.error, parsedModuleId]);
 
+  useEffect(() => {
+    latestSessionIdRef.current = room?.sessionId ?? null;
+  }, [room?.sessionId]);
+
+  useEffect(() => {
+    latestModuleIdRef.current = parsedModuleId;
+  }, [parsedModuleId]);
+
+  useEffect(() => {
+    // Keep the latest mutation callback reachable from teardown handlers without re-registering the effect on every render.
+    closeSessionRef.current = closeSessionMutation.mutate;
+  }, [closeSessionMutation.mutate]);
+
   // The server-issued session id is the canonical resume handle, so keep the URL in sync for reload-safe resumes.
   useEffect(() => {
     if (!room) {
@@ -185,19 +202,25 @@ export function useDailyPracticePageState({
 
   // Close the active session when the page unmounts or the browser hides the page; the backend close is idempotent.
   useEffect(() => {
-    const sessionId = room?.sessionId ?? null;
-    if (!sessionId || parsedModuleId === null) {
-      return;
-    }
-
     const closeSession = () => {
-      closeSessionMutation.mutate(sessionId, {
+      const sessionId = latestSessionIdRef.current;
+      const moduleId = latestModuleIdRef.current;
+      if (!sessionId || moduleId === null) {
+        return;
+      }
+      if (closedSessionIdsRef.current.has(sessionId)) {
+        return;
+      }
+      closedSessionIdsRef.current.add(sessionId);
+
+      closeSessionRef.current(sessionId, {
         onError: (error) => {
+          closedSessionIdsRef.current.delete(sessionId);
           if (shouldLogApiError(error)) {
             logError(error, {
               feature: 'daily-practice',
               action: 'close-session',
-              moduleId: parsedModuleId,
+              moduleId,
             });
           }
         },
@@ -213,7 +236,7 @@ export function useDailyPracticePageState({
       window.removeEventListener('pagehide', handlePageHide);
       closeSession();
     };
-  }, [closeSessionMutation, parsedModuleId, room?.sessionId]);
+  }, []);
 
   const roomWithLocalAttempts = useMemo<DailyPracticeTodayResponse | null>(() => {
     if (!room) {

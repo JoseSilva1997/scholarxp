@@ -41,7 +41,9 @@ export default function SingleModulePage() {
     expPercent,
     expMax,
     isCreatingUnit,
-    handleDailyRevisionClick,
+    dailyPracticeButtonLabel,
+    dailyPracticeStatusText,
+    handleDailyPracticeClick,
     handleOpenStudentPracticeRoom,
     handleRetryStudentPracticeRoom,
     handleCreateUnit,
@@ -164,12 +166,15 @@ export default function SingleModulePage() {
                       type="button"
                       className={styles.dailyRevisionButton}
                       onClick={() => {
-                        void handleDailyRevisionClick();
+                        void handleDailyPracticeClick();
                       }}
                     >
                       <span className={styles.dailyRevisionIcon}>⚡</span>
-                      <span>Daily Revision</span>
+                      <span>{dailyPracticeButtonLabel}</span>
                     </button>
+                    {dailyPracticeStatusText ? (
+                      <p className={styles.dailyPracticeStatus}>{dailyPracticeStatusText}</p>
+                    ) : null}
                   </div>
                 </div>
               ) : null}

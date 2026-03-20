@@ -25,6 +25,7 @@ const mocks = vi.hoisted(() => ({
   setIsStudentViewEnabled: vi.fn(),
   setShowCreateUnit: vi.fn(),
   setIsSettingsOpen: vi.fn(),
+  handleDailyPracticeClick: vi.fn(),
   handleRetryStudentPracticeRoom: vi.fn(),
   handleCreateUnit: vi.fn(),
   handleChangeUnitStatus: vi.fn(),
@@ -47,6 +48,8 @@ let pageState: {
   isSettingsOpen: boolean;
   expPercent: number;
   isCreatingUnit: boolean;
+  dailyPracticeButtonLabel: string;
+  dailyPracticeStatusText: string | null;
 } = {
   module: { id: 10, title: 'Biology', userModuleLevel: 3, currentExp: 120 },
   moduleUnits: [
@@ -64,6 +67,8 @@ let pageState: {
   isSettingsOpen: false,
   expPercent: 40,
   isCreatingUnit: false,
+  dailyPracticeButtonLabel: 'Start Daily Practice',
+  dailyPracticeStatusText: '7 questions ready',
 };
 
 vi.mock('react-router-dom', async () => {
@@ -84,6 +89,7 @@ vi.mock('../../hooks/page-state/useSingleModulePageState', () => ({
     setIsStudentViewEnabled: mocks.setIsStudentViewEnabled,
     setShowCreateUnit: mocks.setShowCreateUnit,
     setIsSettingsOpen: mocks.setIsSettingsOpen,
+    handleDailyPracticeClick: mocks.handleDailyPracticeClick,
     handleRetryStudentPracticeRoom: mocks.handleRetryStudentPracticeRoom,
     handleCreateUnit: mocks.handleCreateUnit,
     handleChangeUnitStatus: mocks.handleChangeUnitStatus,
@@ -150,11 +156,14 @@ describe('SingleModulePage route', () => {
       isSettingsOpen: false,
       expPercent: 12,
       isCreatingUnit: false,
+      dailyPracticeButtonLabel: 'Start Daily Practice',
+      dailyPracticeStatusText: '7 questions ready',
     };
 
     mocks.setIsStudentViewEnabled.mockReset();
     mocks.setShowCreateUnit.mockReset();
     mocks.setIsSettingsOpen.mockReset();
+    mocks.handleDailyPracticeClick.mockReset();
     mocks.handleRetryStudentPracticeRoom.mockReset();
     mocks.handleCreateUnit.mockReset();
     mocks.handleChangeUnitStatus.mockReset();
@@ -210,6 +219,24 @@ describe('SingleModulePage route', () => {
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '12');
     expect(screen.getByText('student-unit-1')).toBeInTheDocument();
     expect(screen.queryByText('student-unit-2')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Start Daily Practice/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('7 questions ready')).toBeInTheDocument();
+  });
+
+  it('delegates the daily-practice CTA to page-state', () => {
+    authState = { user: { globalRole: 'student' } };
+    pageState.canManageModuleContent = false;
+
+    renderWithProviders(
+  <SingleModulePage />,
+);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /Start Daily Practice/i }),
+    );
+    expect(mocks.handleDailyPracticeClick).toHaveBeenCalledTimes(1);
   });
 
   it('hides toggle-student-view and settings buttons when user is null', () => {

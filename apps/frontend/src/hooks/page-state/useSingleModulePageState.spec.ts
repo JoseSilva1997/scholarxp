@@ -17,10 +17,9 @@ const mocks = vi.hoisted(() => ({
   createMutateAsync: vi.fn(),
   updateMutateAsync: vi.fn(),
   updateStatusMutateAsync: vi.fn(),
-  recordDailyRevisionMutateAsync: vi.fn(),
   setQueryData: vi.fn(),
   assign: vi.fn(),
-  alert: vi.fn(),
+  useTodayDailyPracticeQuery: vi.fn(),
 }));
 
 let moduleQueryState: {
@@ -39,6 +38,16 @@ let moduleUnitsQueryState: {
   error: unknown;
 } = {
   data: [],
+  isPending: false,
+  error: null,
+};
+
+let todayDailyPracticeQueryState: {
+  data: unknown;
+  isPending: boolean;
+  error: unknown;
+} = {
+  data: null,
   isPending: false,
   error: null,
 };
@@ -102,16 +111,18 @@ vi.mock('../queries/useModulesQueries', () => ({
   }),
 }));
 
-vi.mock('../queries/useQuestsQueries', () => ({
-  useRecordDailyRevisionQuestProgressMutation: () => ({
-    mutateAsync: mocks.recordDailyRevisionMutateAsync,
-  }),
+vi.mock('../queries/useDailyPracticeQueries', () => ({
+  useTodayDailyPracticeQuery: (...args: unknown[]) => {
+    mocks.useTodayDailyPracticeQuery(...args);
+    return todayDailyPracticeQueryState;
+  },
 }));
 
 describe('useSingleModulePageState', () => {
   beforeEach(() => {
     moduleQueryState = { data: null, isPending: false, error: null };
     moduleUnitsQueryState = { data: [], isPending: false, error: null };
+    todayDailyPracticeQueryState = { data: null, isPending: false, error: null };
     permissionByKey = {
       [features.modules.settings]: true,
       [features.modules.toggleStudentView]: true,
@@ -127,10 +138,9 @@ describe('useSingleModulePageState', () => {
     mocks.createMutateAsync.mockReset();
     mocks.updateMutateAsync.mockReset();
     mocks.updateStatusMutateAsync.mockReset();
-    mocks.recordDailyRevisionMutateAsync.mockReset();
     mocks.setQueryData.mockReset();
     mocks.assign.mockReset();
-    mocks.alert.mockReset();
+    mocks.useTodayDailyPracticeQuery.mockReset();
 
     mocks.canUserAccess.mockImplementation((permission: string) => permissionByKey[permission]);
     mocks.shouldLogApiError.mockReturnValue(true);
@@ -140,7 +150,6 @@ describe('useSingleModulePageState', () => {
       configurable: true,
       value: { ...window.location, assign: mocks.assign },
     });
-    window.alert = mocks.alert;
   });
 
   it('returns not-found error when moduleId param is invalid', () => {
@@ -296,7 +305,7 @@ describe('useSingleModulePageState', () => {
     });
   });
 
-  it('records daily revision quest progress before showing the placeholder alert', async () => {
+  it('opens daily practice using the loaded session id when today set summary is available', async () => {
     moduleQueryState = {
       data: {
         id: 14,
@@ -305,18 +314,32 @@ describe('useSingleModulePageState', () => {
       isPending: false,
       error: null,
     };
-    mocks.recordDailyRevisionMutateAsync.mockResolvedValue({ recorded: true });
+    todayDailyPracticeQueryState = {
+      isPending: false,
+      error: null,
+      data: {
+        sessionId: '11111111-1111-4111-8111-111111111115',
+        progress: {
+          totalQuestions: 7,
+          answeredQuestions: 2,
+          completedAt: null,
+        },
+      },
+    };
 
     const { result } = renderHook(() =>
       useSingleModulePageState({ moduleIdParam: '14', user: mockUser }),
     );
 
     await act(async () => {
-      await result.current.handleDailyRevisionClick();
+      await result.current.handleDailyPracticeClick();
     });
 
-    expect(mocks.recordDailyRevisionMutateAsync).toHaveBeenCalledTimes(1);
-    expect(mocks.alert).toHaveBeenCalledWith('Daily revision coming soon! 🎯');
+    expect(mocks.assign).toHaveBeenCalledWith(
+      '/main/modules/14/daily-practice?sessionId=11111111-1111-4111-8111-111111111115',
+    );
+    expect(result.current.dailyPracticeButtonLabel).toBe('Resume Daily Practice');
+    expect(result.current.dailyPracticeStatusText).toBe('2/7 answered');
   });
 
   it('opens completed lessons in view-answer mode without recording retry quest progress', async () => {
