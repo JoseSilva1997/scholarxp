@@ -43,6 +43,7 @@ export default function SingleModulePage() {
     isCreatingUnit,
     dailyPracticeButtonLabel,
     dailyPracticeStatusText,
+    isDailyPracticeButtonDisabled,
     handleDailyPracticeClick,
     handleOpenStudentPracticeRoom,
     handleRetryStudentPracticeRoom,
@@ -165,6 +166,7 @@ export default function SingleModulePage() {
                     <button
                       type="button"
                       className={styles.dailyRevisionButton}
+                      disabled={isDailyPracticeButtonDisabled}
                       onClick={() => {
                         void handleDailyPracticeClick();
                       }}

@@ -5,6 +5,7 @@ import { PracticeRoomModule } from '../practice-room/practice-room.module';
 import { QuestsModule } from '../quests/quests.module';
 import { DailyPracticeCandidateReadService } from './daily-practice-candidate-read.service';
 import { DailyPracticeController } from './daily-practice.controller';
+import { DailyPracticeEligibilityService } from './daily-practice-eligibility.service';
 import { DailyPracticeInterleavingService } from './daily-practice-interleaving.service';
 import { DailyPracticeMapper } from './daily-practice.mapper';
 import { DailyPracticeReviewStateModule } from './daily-practice-review-state.module';
@@ -22,6 +23,7 @@ import { DailyPracticeSetReadService } from './daily-practice-set-read.service';
   controllers: [DailyPracticeController],
   providers: [
     DailyPracticeCandidateReadService,
+    DailyPracticeEligibilityService,
     DailyPracticeMapper,
     DailyPracticeInterleavingService,
     DailyPracticeService,
@@ -30,6 +32,7 @@ import { DailyPracticeSetReadService } from './daily-practice-set-read.service';
   ],
   exports: [
     DailyPracticeCandidateReadService,
+    DailyPracticeEligibilityService,
     DailyPracticeMapper,
     DailyPracticeInterleavingService,
     DailyPracticeService,

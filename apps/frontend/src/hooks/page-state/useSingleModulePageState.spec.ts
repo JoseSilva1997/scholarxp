@@ -5,6 +5,7 @@ import {
   PracticeSessionTypeValues,
   type AuthUser,
 } from '@scholarxp/api-contracts';
+import { ApiError } from '../../api/client';
 import { useSingleModulePageState } from './useSingleModulePageState';
 import { features } from '@scholarxp/permissions';
 
@@ -340,6 +341,46 @@ describe('useSingleModulePageState', () => {
     );
     expect(result.current.dailyPracticeButtonLabel).toBe('Resume Daily Practice');
     expect(result.current.dailyPracticeStatusText).toBe('2/7 answered');
+    expect(result.current.isDailyPracticeButtonDisabled).toBe(false);
+  });
+
+  it('keeps the daily-practice CTA locked when the backend reports the module is not eligible yet', async () => {
+    moduleQueryState = {
+      data: {
+        id: 14,
+        title: 'History',
+      },
+      isPending: false,
+      error: null,
+    };
+    todayDailyPracticeQueryState = {
+      isPending: false,
+      error: new ApiError({
+        message:
+          'Daily practice unlocks tomorrow after you complete your first lesson in this module.',
+        status: 403,
+        code: 'FORBIDDEN',
+        data: null,
+      }),
+      data: null,
+    };
+
+    const { result } = renderHook(() =>
+      useSingleModulePageState({ moduleIdParam: '14', user: mockUser }),
+    );
+
+    await act(async () => {
+      await result.current.handleDailyPracticeClick();
+    });
+
+    expect(result.current.dailyPracticeButtonLabel).toBe(
+      'Daily Practice Locked',
+    );
+    expect(result.current.dailyPracticeStatusText).toBe(
+      'Daily practice unlocks tomorrow after you complete your first lesson in this module.',
+    );
+    expect(result.current.isDailyPracticeButtonDisabled).toBe(true);
+    expect(mocks.assign).not.toHaveBeenCalled();
   });
 
   it('opens completed lessons in view-answer mode without recording retry quest progress', async () => {

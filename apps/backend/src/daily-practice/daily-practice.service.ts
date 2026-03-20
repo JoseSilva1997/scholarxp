@@ -13,6 +13,7 @@ import { PracticeRoomSessionService } from '../practice-room/practice-session.se
 import { QuestProgressService } from '../quests/quest-progress.service';
 import { DailyPracticeFsrsGradeService } from './daily-practice-fsrs-grade.service';
 import { DailyPracticeFsrsStateService } from './daily-practice-fsrs-state.service';
+import { DailyPracticeEligibilityService } from './daily-practice-eligibility.service';
 import { DailyPracticeInterleavingService } from './daily-practice-interleaving.service';
 import { DailyPracticeMapper } from './daily-practice.mapper';
 import { DailyPracticeSetReadService } from './daily-practice-set-read.service';
@@ -44,6 +45,7 @@ export class DailyPracticeService {
     private readonly dailyPracticeInterleavingService: DailyPracticeInterleavingService,
     private readonly dailyPracticeFsrsGradeService: DailyPracticeFsrsGradeService,
     private readonly dailyPracticeFsrsStateService: DailyPracticeFsrsStateService,
+    private readonly dailyPracticeEligibilityService: DailyPracticeEligibilityService,
     private readonly dailyPracticeMapper: DailyPracticeMapper,
     private readonly practiceRoomAttemptService: PracticeRoomAttemptService,
     private readonly practiceRoomSessionService: PracticeRoomSessionService,
@@ -57,6 +59,11 @@ export class DailyPracticeService {
     existingSessionId?: string,
   ) {
     const now = new Date();
+    await this.dailyPracticeEligibilityService.assertEligibleForToday(
+      moduleId,
+      studentId,
+      now,
+    );
     const dailyPracticeSet = await this.getOrCreateTodaySet(
       moduleId,
       studentId,

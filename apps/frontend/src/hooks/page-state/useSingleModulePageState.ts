@@ -15,6 +15,7 @@ import {
   getDisplayErrorMessage,
   shouldLogApiError,
 } from '../../api/get-display-error';
+import { ApiError } from '../../api/client';
 import { logError } from '../../utils/logger';
 import { canUserAccess } from '../../permissions/permission';
 import {
@@ -53,6 +54,7 @@ type UseSingleModulePageStateResult = {
   isCreatingUnit: boolean;
   dailyPracticeButtonLabel: string;
   dailyPracticeStatusText: string | null;
+  isDailyPracticeButtonDisabled: boolean;
   handleDailyPracticeClick: () => Promise<void>;
   handleOpenStudentPracticeRoom: (unitId: string, questionId?: string) => Promise<void>;
   handleRetryStudentPracticeRoom: (unitId: string) => Promise<void>;
@@ -223,11 +225,23 @@ export function useSingleModulePageState({
 
   const dailyPracticeEntry = useMemo(() => {
     const progress = todayDailyPracticeQuery.data?.progress ?? null;
+    const isLockedDailyPractice =
+      todayDailyPracticeQuery.error instanceof ApiError &&
+      todayDailyPracticeQuery.error.status === 403;
 
     if (todayDailyPracticeQuery.isPending) {
       return {
         buttonLabel: 'Daily Practice',
         statusText: 'Preparing today’s set…',
+        isDisabled: true,
+      };
+    }
+
+    if (isLockedDailyPractice) {
+      return {
+        buttonLabel: 'Daily Practice Locked',
+        statusText: todayDailyPracticeQuery.error.message,
+        isDisabled: true,
       };
     }
 
@@ -235,6 +249,7 @@ export function useSingleModulePageState({
       return {
         buttonLabel: 'Daily Practice',
         statusText: 'Open today’s adaptive set',
+        isDisabled: false,
       };
     }
 
@@ -242,6 +257,7 @@ export function useSingleModulePageState({
       return {
         buttonLabel: 'Review Daily Practice',
         statusText: 'Completed today',
+        isDisabled: false,
       };
     }
 
@@ -249,17 +265,26 @@ export function useSingleModulePageState({
       return {
         buttonLabel: 'Resume Daily Practice',
         statusText: `${progress.answeredQuestions}/${progress.totalQuestions} answered`,
+        isDisabled: false,
       };
     }
 
     return {
       buttonLabel: 'Start Daily Practice',
       statusText: `${progress.totalQuestions} questions ready`,
+      isDisabled: false,
     };
-  }, [todayDailyPracticeQuery.data?.progress, todayDailyPracticeQuery.isPending]);
+  }, [
+    todayDailyPracticeQuery.data?.progress,
+    todayDailyPracticeQuery.error,
+    todayDailyPracticeQuery.isPending,
+  ]);
 
   const handleDailyPracticeClick = async () => {
     if (parsedId === null) {
+      return;
+    }
+    if (dailyPracticeEntry.isDisabled) {
       return;
     }
 
@@ -387,6 +412,7 @@ export function useSingleModulePageState({
     isCreatingUnit: createModuleUnitMutation.isPending,
     dailyPracticeButtonLabel: dailyPracticeEntry.buttonLabel,
     dailyPracticeStatusText: dailyPracticeEntry.statusText,
+    isDailyPracticeButtonDisabled: dailyPracticeEntry.isDisabled,
     handleDailyPracticeClick,
     handleOpenStudentPracticeRoom,
     handleRetryStudentPracticeRoom,

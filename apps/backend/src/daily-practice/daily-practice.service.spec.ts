@@ -10,6 +10,7 @@ import { PracticeRoomAttemptService } from '../practice-room/practice-room-attem
 import { PracticeRoomSessionService } from '../practice-room/practice-session.service';
 import { QuestProgressService } from '../quests/quest-progress.service';
 import { createPrismaMock, type PrismaMock } from '../test/test-helpers';
+import { DailyPracticeEligibilityService } from './daily-practice-eligibility.service';
 import { DailyPracticeFsrsGradeService } from './daily-practice-fsrs-grade.service';
 import { DailyPracticeFsrsStateService } from './daily-practice-fsrs-state.service';
 import { DailyPracticeInterleavingService } from './daily-practice-interleaving.service';
@@ -41,6 +42,9 @@ describe('DailyPracticeService', () => {
   };
   let dailyPracticeFsrsStateService: {
     applyEncounter: jest.Mock;
+  };
+  let dailyPracticeEligibilityService: {
+    assertEligibleForToday: jest.Mock;
   };
   let dailyPracticeMapper: {
     buildTodayResponse: jest.Mock;
@@ -80,6 +84,9 @@ describe('DailyPracticeService', () => {
     };
     dailyPracticeFsrsStateService = {
       applyEncounter: jest.fn(),
+    };
+    dailyPracticeEligibilityService = {
+      assertEligibleForToday: jest.fn().mockResolvedValue(undefined),
     };
     dailyPracticeMapper = {
       buildTodayResponse: jest.fn(),
@@ -125,6 +132,10 @@ describe('DailyPracticeService', () => {
         {
           provide: DailyPracticeFsrsStateService,
           useValue: dailyPracticeFsrsStateService,
+        },
+        {
+          provide: DailyPracticeEligibilityService,
+          useValue: dailyPracticeEligibilityService,
         },
         { provide: DailyPracticeMapper, useValue: dailyPracticeMapper },
         {
@@ -202,6 +213,9 @@ describe('DailyPracticeService', () => {
     const result = await service.getTodayDailyPractice(7, 42);
 
     expect(
+      dailyPracticeEligibilityService.assertEligibleForToday,
+    ).toHaveBeenCalledWith(7, 42, expect.any(Date));
+    expect(
       dailyPracticeSetSelectorService.selectQuestions,
     ).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -235,6 +249,19 @@ describe('DailyPracticeService', () => {
       undefined,
     );
     expect(result).toBe(mappedResponse);
+  });
+
+  it('blocks today-set access until the module is eligible for daily practice', async () => {
+    dailyPracticeEligibilityService.assertEligibleForToday.mockRejectedValue(
+      new Error(
+        'Daily practice unlocks tomorrow after you complete your first lesson in this module.',
+      ),
+    );
+
+    await expect(service.getTodayDailyPractice(7, 42)).rejects.toThrow(
+      'Daily practice unlocks tomorrow after you complete your first lesson in this module.',
+    );
+    expect(dailyPracticeSetReadService.findSetForUtcDay).not.toHaveBeenCalled();
   });
 
   it('submits the first daily attempt, updates FSRS once, and syncs set progress', async () => {

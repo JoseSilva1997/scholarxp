@@ -50,6 +50,7 @@ let pageState: {
   isCreatingUnit: boolean;
   dailyPracticeButtonLabel: string;
   dailyPracticeStatusText: string | null;
+  isDailyPracticeButtonDisabled: boolean;
 } = {
   module: { id: 10, title: 'Biology', userModuleLevel: 3, currentExp: 120 },
   moduleUnits: [
@@ -69,6 +70,7 @@ let pageState: {
   isCreatingUnit: false,
   dailyPracticeButtonLabel: 'Start Daily Practice',
   dailyPracticeStatusText: '7 questions ready',
+  isDailyPracticeButtonDisabled: false,
 };
 
 vi.mock('react-router-dom', async () => {
@@ -158,6 +160,7 @@ describe('SingleModulePage route', () => {
       isCreatingUnit: false,
       dailyPracticeButtonLabel: 'Start Daily Practice',
       dailyPracticeStatusText: '7 questions ready',
+      isDailyPracticeButtonDisabled: false,
     };
 
     mocks.setIsStudentViewEnabled.mockReset();
@@ -237,6 +240,28 @@ describe('SingleModulePage route', () => {
       screen.getByRole('button', { name: /Start Daily Practice/i }),
     );
     expect(mocks.handleDailyPracticeClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables the daily-practice CTA when the module is not eligible yet', () => {
+    authState = { user: { globalRole: 'student' } };
+    pageState.canManageModuleContent = false;
+    pageState.dailyPracticeButtonLabel = 'Daily Practice Locked';
+    pageState.dailyPracticeStatusText =
+      'Daily practice unlocks tomorrow after you complete your first lesson in this module.';
+    pageState.isDailyPracticeButtonDisabled = true;
+
+    renderWithProviders(
+  <SingleModulePage />,
+);
+
+    expect(
+      screen.getByRole('button', { name: /Daily Practice Locked/i }),
+    ).toBeDisabled();
+    expect(
+      screen.getByText(
+        'Daily practice unlocks tomorrow after you complete your first lesson in this module.',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('hides toggle-student-view and settings buttons when user is null', () => {
