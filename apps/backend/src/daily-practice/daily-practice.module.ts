@@ -2,6 +2,7 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
 import { PracticeRoomModule } from '../practice-room/practice-room.module';
+import { QuestsModule } from '../quests/quests.module';
 import { DailyPracticeCandidateReadService } from './daily-practice-candidate-read.service';
 import { DailyPracticeController } from './daily-practice.controller';
 import { DailyPracticeFsrsGradeService } from './daily-practice-fsrs-grade.service';
@@ -14,7 +15,7 @@ import { DailyPracticeSetSelectorService } from './daily-practice-set-selector.s
 import { DailyPracticeSetReadService } from './daily-practice-set-read.service';
 
 @Module({
-  imports: [AuthModule, PracticeRoomModule],
+  imports: [AuthModule, PracticeRoomModule, QuestsModule],
   controllers: [DailyPracticeController],
   providers: [
     DailyPracticeCandidateReadService,

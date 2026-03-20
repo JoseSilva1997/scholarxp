@@ -1,7 +1,12 @@
 // Role: owns quest completion events so future UI triggers can stay thin and backend rules remain centralized.
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
-import { QuestTypeValues, type QuestType } from '@scholarxp/api-contracts';
+import {
+  QuestTypeValues,
+  PracticeSessionTypeValues,
+  getQuestDefinition,
+  type QuestType,
+} from '@scholarxp/api-contracts';
 import { ExpLedgerEventTypes } from '@scholarxp/constants';
 import { AvatarService } from '../db-entities/avatar/avatar.service';
 import { ExpLedgerService } from '../db-entities/exp-ledger/exp-ledger.service';
@@ -37,6 +42,12 @@ type RecordRetrySessionProgressParams = {
   moduleUnitId: number;
   sessionId: string;
   attemptedAt: Date;
+};
+
+type RecordDailyPracticeSetProgressParams = {
+  userId: number;
+  moduleId: number;
+  progressedAt: Date;
 };
 
 type PersistedQuest = {
@@ -310,6 +321,124 @@ export class QuestProgressService {
     }
   }
 
+  // Daily-practice quests are set-scoped, so progress is derived from today's persisted set and that set's first-attempt timeline.
+  async recordDailyPracticeSetProgress(
+    params: RecordDailyPracticeSetProgressParams,
+    tx?: PrismaClientLike,
+  ): Promise<void> {
+    const prismaClient = tx ?? this.prisma;
+    await this.questGenerationService.ensureQuestDayGeneratedForUser(
+      params.userId,
+      params.progressedAt,
+      prismaClient,
+    );
+
+    const todaysQuests = await this.loadTodaysQuests(
+      params.userId,
+      params.progressedAt,
+      prismaClient,
+    );
+    if (todaysQuests.length === 0) {
+      return;
+    }
+
+    const { dayStartUtc, nextDayStartUtc } = DateHelpers.getUtcDayBounds(
+      params.progressedAt,
+    );
+    const todaysSet = await prismaClient.dailyPracticeSet.findUnique({
+      where: {
+        userId_moduleId_practiceDateUtc: {
+          userId: params.userId,
+          moduleId: params.moduleId,
+          practiceDateUtc: dayStartUtc,
+        },
+      },
+      select: {
+        completedAt: true,
+        items: {
+          select: {
+            questionUnitId: true,
+          },
+        },
+      },
+    });
+    if (!todaysSet || todaysSet.items.length === 0) {
+      return;
+    }
+
+    let completedAnyQuest = false;
+
+    const completionQuest = todaysQuests.find(
+      (quest) =>
+        quest.type === QuestTypeValues.completeDailyPractice &&
+        quest.moduleId === params.moduleId &&
+        !quest.isCompleted,
+    );
+    if (completionQuest && todaysSet.completedAt) {
+      completedAnyQuest =
+        (await this.completeQuest(
+          completionQuest,
+          params.progressedAt,
+          prismaClient,
+        )) || completedAnyQuest;
+    }
+
+    const streakQuest = todaysQuests.find(
+      (quest) =>
+        quest.type === QuestTypeValues.dailyPracticeStreak &&
+        quest.moduleId === params.moduleId &&
+        !quest.isCompleted,
+    );
+    if (streakQuest) {
+      const firstAttempts = await prismaClient.questionAttempt.findMany({
+        where: {
+          studentId: params.userId,
+          questionId: {
+            in: todaysSet.items.map((item) => item.questionUnitId),
+          },
+          attemptedAt: {
+            gte: dayStartUtc,
+            lt: nextDayStartUtc,
+          },
+          session: {
+            moduleId: params.moduleId,
+            userId: params.userId,
+            sessionType: PracticeSessionTypeValues.dailyPractice,
+          },
+        },
+        orderBy: [{ attemptedAt: 'asc' }, { id: 'asc' }],
+        select: {
+          questionId: true,
+          isCorrect: true,
+          hintsUsed: true,
+        },
+      });
+
+      if (
+        this.hasReachedDailyPracticeStreak(
+          firstAttempts,
+          getQuestDefinition(QuestTypeValues.dailyPracticeStreak)
+            .defaultProgressTarget,
+        )
+      ) {
+        completedAnyQuest =
+          (await this.completeQuest(
+            streakQuest,
+            params.progressedAt,
+            prismaClient,
+          )) || completedAnyQuest;
+      }
+    }
+
+    if (completedAnyQuest) {
+      await this.completeMasterQuestIfEligible(
+        params.userId,
+        params.progressedAt,
+        prismaClient,
+      );
+    }
+  }
+
   private async loadTodaysQuests(
     userId: number,
     timestamp: Date,
@@ -419,5 +548,36 @@ export class QuestProgressService {
     }
 
     return true;
+  }
+
+  private hasReachedDailyPracticeStreak(
+    attempts: Array<{
+      questionId: number;
+      isCorrect: boolean;
+      hintsUsed: number;
+    }>,
+    targetStreak: number,
+  ): boolean {
+    const attemptedQuestionIds = new Set<number>();
+    let currentStreak = 0;
+
+    for (const attempt of attempts) {
+      if (attemptedQuestionIds.has(attempt.questionId)) {
+        continue;
+      }
+      attemptedQuestionIds.add(attempt.questionId);
+
+      if (attempt.isCorrect && attempt.hintsUsed === 0) {
+        currentStreak += 1;
+      } else {
+        currentStreak = 0;
+      }
+
+      if (currentStreak >= targetStreak) {
+        return true;
+      }
+    }
+
+    return false;
   }
 }

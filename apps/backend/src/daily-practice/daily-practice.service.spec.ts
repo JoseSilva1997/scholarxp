@@ -8,6 +8,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { PracticeRoomAttemptService } from '../practice-room/practice-room-attempt.service';
 import { PracticeRoomSessionService } from '../practice-room/practice-session.service';
+import { QuestProgressService } from '../quests/quest-progress.service';
 import { createPrismaMock, type PrismaMock } from '../test/test-helpers';
 import { DailyPracticeFsrsGradeService } from './daily-practice-fsrs-grade.service';
 import { DailyPracticeFsrsStateService } from './daily-practice-fsrs-state.service';
@@ -57,6 +58,9 @@ describe('DailyPracticeService', () => {
     assertSessionAllowsSubmissions: jest.Mock;
     closeOwnedSession: jest.Mock;
   };
+  let questProgressService: {
+    recordDailyPracticeSetProgress: jest.Mock;
+  };
 
   beforeEach(async () => {
     prisma = createPrismaMock();
@@ -93,6 +97,10 @@ describe('DailyPracticeService', () => {
       assertSessionAllowsSubmissions: jest.fn(),
       closeOwnedSession: jest.fn(),
     };
+    questProgressService = {
+      // Quest progress is mocked separately so this facade test can assert the bridge without re-testing quest rules.
+      recordDailyPracticeSetProgress: jest.fn().mockResolvedValue(undefined),
+    };
 
     const moduleRef: TestingModule = await Test.createTestingModule({
       providers: [
@@ -126,6 +134,10 @@ describe('DailyPracticeService', () => {
         {
           provide: PracticeRoomSessionService,
           useValue: practiceRoomSessionService,
+        },
+        {
+          provide: QuestProgressService,
+          useValue: questProgressService,
         },
       ],
     }).compile();
@@ -299,6 +311,16 @@ describe('DailyPracticeService', () => {
       where: { id: persistedSet.id },
       data: { completedAt: expect.any(Date) },
     });
+    expect(
+      questProgressService.recordDailyPracticeSetProgress,
+    ).toHaveBeenCalledWith(
+      {
+        userId: 42,
+        moduleId: 7,
+        progressedAt: expect.any(Date),
+      },
+      tx,
+    );
     expect(dailyPracticeMapper.buildSubmitResponse).toHaveBeenCalledWith(
       expect.objectContaining({
         hasCorrectAttempt: true,

@@ -10,6 +10,7 @@ import { DateHelpers } from '../helpers/helpers';
 import { PrismaService } from '../prisma/prisma.service';
 import { PracticeRoomAttemptService } from '../practice-room/practice-room-attempt.service';
 import { PracticeRoomSessionService } from '../practice-room/practice-session.service';
+import { QuestProgressService } from '../quests/quest-progress.service';
 import { DailyPracticeFsrsGradeService } from './daily-practice-fsrs-grade.service';
 import { DailyPracticeFsrsStateService } from './daily-practice-fsrs-state.service';
 import { DailyPracticeInterleavingService } from './daily-practice-interleaving.service';
@@ -46,6 +47,7 @@ export class DailyPracticeService {
     private readonly dailyPracticeMapper: DailyPracticeMapper,
     private readonly practiceRoomAttemptService: PracticeRoomAttemptService,
     private readonly practiceRoomSessionService: PracticeRoomSessionService,
+    private readonly questProgressService: QuestProgressService,
   ) {}
 
   // "Today" either loads the stable persisted snapshot or creates it once, then hydrates the set with the active daily-practice session.
@@ -215,11 +217,27 @@ export class DailyPracticeService {
         moduleId,
         attemptedAt,
         tx,
-      ).then((progressSnapshot) => ({
-        progressSnapshot,
-        hasCorrectAttempt:
-          Boolean(hadCorrectDailyAttemptBeforeSubmit) || isCorrect,
-      }));
+      )
+        .then((progressSnapshot) => ({
+          progressSnapshot,
+          hasCorrectAttempt:
+            Boolean(hadCorrectDailyAttemptBeforeSubmit) || isCorrect,
+        }))
+        .then(async ({ progressSnapshot, hasCorrectAttempt }) => {
+          await this.questProgressService.recordDailyPracticeSetProgress(
+            {
+              userId: studentId,
+              moduleId,
+              progressedAt: attemptedAt,
+            },
+            tx,
+          );
+
+          return {
+            progressSnapshot,
+            hasCorrectAttempt,
+          };
+        });
     });
 
     return this.dailyPracticeMapper.buildSubmitResponse({

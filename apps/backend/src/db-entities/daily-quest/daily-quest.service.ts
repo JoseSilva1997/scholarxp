@@ -270,7 +270,7 @@ function buildQuestDescription(type: QuestType, moduleTitle: string): string {
     return `Retry a completed lesson from the ${moduleTitle} module.`;
   }
   if (type === QuestTypeValues.dailyPracticeStreak) {
-    return `Reach a 30% streak in the ${moduleTitle} daily practice set.`;
+    return `Achieve a streak of 3 or more during the ${moduleTitle} daily practice set.`;
   }
   if (type === QuestTypeValues.masterDailyQuests) {
     return 'Complete all 3 daily quests to unlock the master quest reward.';
