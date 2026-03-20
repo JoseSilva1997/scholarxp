@@ -1,4 +1,5 @@
 // Role: shared internal types for the daily-practice domain so read services can stay focused on queries and return stable shapes.
+import type { DailyPracticeSelectionBucket } from '@scholarxp/api-contracts';
 import type { PrismaService } from '../prisma/prisma.service';
 import type { Prisma } from '@prisma/client';
 
@@ -59,4 +60,26 @@ export type PersistedDailyPracticeSetRecord = {
     selectionScore: number;
     sourceBucket: string;
   }>;
+};
+
+// Selector results stay backend-local so set assembly can evolve without prematurely freezing API response details.
+export type SelectedDailyPracticeQuestionRecord =
+  DailyPracticeCandidateQuestionRecord & {
+    sourceBucket: DailyPracticeSelectionBucket;
+    selectionScore: number;
+    selectionReason: string;
+    studentQuestionState: StudentQuestionStateRecord | null;
+  };
+
+// Keeping quotas explicit in the result makes selector behavior easy to assert in tests and easy to inspect while tuning.
+export type DailyPracticeSelectionPlan = {
+  targetQuestionCount: number;
+  dueReviewQuota: number;
+  newSequenceQuota: number;
+  reinforcementQuota: number;
+};
+
+export type DailyPracticeSelectionResult = {
+  plan: DailyPracticeSelectionPlan;
+  selectedQuestions: SelectedDailyPracticeQuestionRecord[];
 };
