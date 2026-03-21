@@ -216,6 +216,149 @@ describe('DailyPracticeSetSelectorService', () => {
     expect(result.selectedQuestions).toEqual([]);
   });
 
+  // --- Reinforcement bucket classification ---
+  // Each test below isolates one specific FSRS condition so a regression in the classifier
+  // is immediately pinpointed rather than hidden inside a larger integration scenario.
+
+  it('classifies a not-yet-due question as reinforcement when last grade was again', async () => {
+    // Q101/Q102: due-review supply. Q103: future due, 'again' grade → reinforcement.
+    // All three questions have state, so new-sequence count is zero.
+    // Total inventory (2 due + 1 reinforcement) satisfies the minimum floor of 3.
+    const now = new Date('2026-03-17T12:00:00.000Z');
+    candidateReadService.listModuleCandidateQuestions.mockResolvedValue([
+      buildCandidate(101, 1, 1),
+      buildCandidate(102, 1, 2),
+      buildCandidate(103, 1, 3),
+    ] satisfies DailyPracticeCandidateQuestionRecord[]);
+    moduleProgressReadService.listModuleUnitProgress.mockResolvedValue(
+      [] satisfies ModuleUnitProgressRecord[],
+    );
+    questionStateReadService.listStatesForModule.mockResolvedValue([
+      buildState(101, 1, { fsrsDueAt: new Date('2026-03-16T10:00:00.000Z') }),
+      buildState(102, 1, { fsrsDueAt: new Date('2026-03-16T11:00:00.000Z') }),
+      // 'again' grade + future due + recent lastSeenAt → reinforcement candidate.
+      buildState(103, 1, {
+        fsrsDueAt: new Date('2026-03-25T12:00:00.000Z'),
+        lastGrade: FsrsReviewGradeValues.again,
+        lastSeenAt: new Date('2026-03-16T12:00:00.000Z'),
+        lapseCount: 0,
+      }),
+    ] satisfies StudentQuestionStateRecord[]);
+
+    const result = await service.selectQuestions({ userId: 42, moduleId: 7, now });
+
+    const reinforcementSelections = result.selectedQuestions.filter(
+      (question) =>
+        question.sourceBucket === DailyPracticeSelectionBucketValues.reinforcement,
+    );
+    expect(reinforcementSelections).toHaveLength(1);
+    expect(reinforcementSelections[0].questionUnitId).toBe(103);
+  });
+
+  it('classifies a not-yet-due question as reinforcement when lapse count is positive regardless of grade', async () => {
+    // Q103: future due, 'good' grade, lapseCount=1 → reinforcement via the lapse-count branch.
+    // This verifies the third condition in isRecentStruggleCandidate is exercised independently.
+    const now = new Date('2026-03-17T12:00:00.000Z');
+    candidateReadService.listModuleCandidateQuestions.mockResolvedValue([
+      buildCandidate(101, 1, 1),
+      buildCandidate(102, 1, 2),
+      buildCandidate(103, 1, 3),
+    ] satisfies DailyPracticeCandidateQuestionRecord[]);
+    moduleProgressReadService.listModuleUnitProgress.mockResolvedValue(
+      [] satisfies ModuleUnitProgressRecord[],
+    );
+    questionStateReadService.listStatesForModule.mockResolvedValue([
+      buildState(101, 1, { fsrsDueAt: new Date('2026-03-16T10:00:00.000Z') }),
+      buildState(102, 1, { fsrsDueAt: new Date('2026-03-16T11:00:00.000Z') }),
+      // Good grade but lapse count of 1 → still a struggle candidate.
+      buildState(103, 1, { lapseCount: 1 }),
+    ] satisfies StudentQuestionStateRecord[]);
+
+    const result = await service.selectQuestions({ userId: 42, moduleId: 7, now });
+
+    const reinforcementSelections = result.selectedQuestions.filter(
+      (question) =>
+        question.sourceBucket === DailyPracticeSelectionBucketValues.reinforcement,
+    );
+    expect(reinforcementSelections).toHaveLength(1);
+    expect(reinforcementSelections[0].questionUnitId).toBe(103);
+  });
+
+  it('excludes a not-yet-due question from reinforcement when last grade was good and lapse count is zero', async () => {
+    // Q103: future due, 'good' grade, no lapses → not reinforcement, not due, contributes nothing.
+    // Q104: unseen → new_sequence (backfill slot), which raises totalEligible to 3.
+    // The reinforcement quota of 1 is filled by backfill (new_sequence), never by Q103.
+    const now = new Date('2026-03-17T12:00:00.000Z');
+    candidateReadService.listModuleCandidateQuestions.mockResolvedValue([
+      buildCandidate(101, 1, 1),
+      buildCandidate(102, 1, 2),
+      buildCandidate(103, 1, 3),
+      buildCandidate(104, 1, 4), // unseen: new-sequence candidate once lesson 1 is started
+    ] satisfies DailyPracticeCandidateQuestionRecord[]);
+    moduleProgressReadService.listModuleUnitProgress.mockResolvedValue(
+      [] satisfies ModuleUnitProgressRecord[],
+    );
+    questionStateReadService.listStatesForModule.mockResolvedValue([
+      buildState(101, 1, { fsrsDueAt: new Date('2026-03-16T10:00:00.000Z') }),
+      buildState(102, 1, { fsrsDueAt: new Date('2026-03-16T11:00:00.000Z') }),
+      // Good grade, no lapses, future due → falls into no bucket.
+      buildState(103, 1),
+      // Q104 has no state → new-sequence candidate.
+    ] satisfies StudentQuestionStateRecord[]);
+
+    const result = await service.selectQuestions({ userId: 42, moduleId: 7, now });
+
+    expect(
+      result.selectedQuestions.some(
+        (question) => question.questionUnitId === 103,
+      ),
+    ).toBe(false);
+    expect(
+      result.selectedQuestions.filter(
+        (question) =>
+          question.sourceBucket === DailyPracticeSelectionBucketValues.reinforcement,
+      ),
+    ).toHaveLength(0);
+  });
+
+  it('excludes a reinforcement candidate seen more than fourteen days ago', async () => {
+    // Q103: 'again' grade, future due, but lastSeenAt is 15 days before now → outside the
+    // recency window → not classified as reinforcement. Same inventory guard as the test above.
+    const now = new Date('2026-03-17T12:00:00.000Z');
+    candidateReadService.listModuleCandidateQuestions.mockResolvedValue([
+      buildCandidate(101, 1, 1),
+      buildCandidate(102, 1, 2),
+      buildCandidate(103, 1, 3),
+      buildCandidate(104, 1, 4),
+    ] satisfies DailyPracticeCandidateQuestionRecord[]);
+    moduleProgressReadService.listModuleUnitProgress.mockResolvedValue(
+      [] satisfies ModuleUnitProgressRecord[],
+    );
+    questionStateReadService.listStatesForModule.mockResolvedValue([
+      buildState(101, 1, { fsrsDueAt: new Date('2026-03-16T10:00:00.000Z') }),
+      buildState(102, 1, { fsrsDueAt: new Date('2026-03-16T11:00:00.000Z') }),
+      // 'again' grade but last seen 15 days ago — outside the 14-day struggle window.
+      buildState(103, 1, {
+        lastGrade: FsrsReviewGradeValues.again,
+        lastSeenAt: new Date('2026-03-02T12:00:00.000Z'),
+      }),
+    ] satisfies StudentQuestionStateRecord[]);
+
+    const result = await service.selectQuestions({ userId: 42, moduleId: 7, now });
+
+    expect(
+      result.selectedQuestions.some(
+        (question) => question.questionUnitId === 103,
+      ),
+    ).toBe(false);
+    expect(
+      result.selectedQuestions.filter(
+        (question) =>
+          question.sourceBucket === DailyPracticeSelectionBucketValues.reinforcement,
+      ),
+    ).toHaveLength(0);
+  });
+
   it('caps selections at two questions per lesson when alternatives exist', async () => {
     const now = new Date('2026-03-17T12:00:00.000Z');
     candidateReadService.listModuleCandidateQuestions.mockResolvedValue([
@@ -256,6 +399,66 @@ describe('DailyPracticeSetSelectorService', () => {
     expect(result.plan.targetQuestionCount).toBe(5);
     expect(lessonOneSelections).toHaveLength(2);
     expect(result.selectedQuestions).toHaveLength(5);
+  });
+});
+
+  // --- new_sequence ordering ---
+
+  it('draws new-sequence candidates exclusively from the earliest started lesson when multiple started lessons exist', async () => {
+    // Lesson 1 (completed): three due-review questions → dueReviewCount=3.
+    // Lesson 2 (sortOrder=2, started): one seen question + two unseen → new-sequence eligible.
+    // Lesson 3 (sortOrder=3, started): one seen question + two unseen → also started, but later.
+    // With targetQuestionCount=4, newSequenceQuota=1. The selector must pick from lesson 2 only,
+    // because it has the smaller sortOrder (= earlier lesson in the curriculum sequence).
+    const now = new Date('2026-03-17T12:00:00.000Z');
+    candidateReadService.listModuleCandidateQuestions.mockResolvedValue([
+      // Lesson 1 — completed, all questions have due-review state.
+      buildCandidate(101, 1, 1),
+      buildCandidate(102, 1, 2),
+      buildCandidate(103, 1, 3),
+      // Lesson 2 — started: Q201 is seen, Q202/Q203 are unseen.
+      buildCandidate(201, 2, 1),
+      buildCandidate(202, 2, 2),
+      buildCandidate(203, 2, 3),
+      // Lesson 3 — started: Q301 is seen, Q302/Q303 are unseen.
+      buildCandidate(301, 3, 1),
+      buildCandidate(302, 3, 2),
+      buildCandidate(303, 3, 3),
+    ] satisfies DailyPracticeCandidateQuestionRecord[]);
+    // Lesson 1 is marked completed so its unseen questions are excluded from new-sequence.
+    moduleProgressReadService.listModuleUnitProgress.mockResolvedValue([
+      { moduleUnitId: 1, isCompleted: true },
+    ] satisfies ModuleUnitProgressRecord[]);
+    questionStateReadService.listStatesForModule.mockResolvedValue([
+      // Lesson 1: all three questions are past-due.
+      buildState(101, 1, { fsrsDueAt: new Date('2026-03-14T12:00:00.000Z') }),
+      buildState(102, 1, { fsrsDueAt: new Date('2026-03-15T12:00:00.000Z') }),
+      buildState(103, 1, { fsrsDueAt: new Date('2026-03-16T12:00:00.000Z') }),
+      // Lesson 2: Q201 seen (good grade, future due) → marks lesson 2 as "started".
+      buildState(201, 2),
+      // Lesson 3: Q301 seen (good grade, future due) → marks lesson 3 as "started".
+      buildState(301, 3),
+      // Q202, Q203, Q302, Q303 have no state → unseen candidates.
+    ] satisfies StudentQuestionStateRecord[]);
+
+    // targetQuestionCount=4 forces newSequenceQuota=1 without needing 22+ review-eligible questions.
+    const result = await service.selectQuestions({
+      userId: 42,
+      moduleId: 7,
+      now,
+      targetQuestionCount: 4,
+    });
+
+    const newSequenceSelections = result.selectedQuestions.filter(
+      (question) =>
+        question.sourceBucket === DailyPracticeSelectionBucketValues.newSequence,
+    );
+    expect(newSequenceSelections).toHaveLength(1);
+    // Must be from lesson 2 (sortOrder=2), never from lesson 3 (sortOrder=3).
+    expect(newSequenceSelections[0].moduleUnitId).toBe(2);
+    expect(
+      result.selectedQuestions.some((question) => question.moduleUnitId === 3),
+    ).toBe(false);
   });
 });
 

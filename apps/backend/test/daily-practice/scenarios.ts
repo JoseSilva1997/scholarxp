@@ -318,6 +318,78 @@ export async function seedStudentMixedHistoryScenario(
   };
 }
 
+export async function seedStudentMaxPressureScenario(
+  prisma: PrismaLike,
+  base: SeededStudentModuleScenario,
+) {
+  // 21 due-review questions + 1 reinforcement candidate = 22 review-eligible total.
+  // Math.round(22 * 0.25) = Math.round(5.5) = 6 → hits MAX_DAILY_PRACTICE_QUESTION_COUNT.
+  // The sizing policy then produces quota: 4 due_review, 1 reinforcement, 1 new_sequence.
+  const heavyLesson = await seedLiveModuleUnitWithMcqQuestions(
+    prisma,
+    base.moduleId,
+    {
+      title: 'Heavy review lesson',
+      sortOrder: 1,
+      questionCount: 21,
+    },
+  );
+  const { dayStartUtc } = DateHelpers.getUtcDayBounds(new Date());
+  // Completed yesterday to satisfy the next-day unlock rule.
+  const completedAt = new Date(
+    dayStartUtc.getTime() - 24 * 60 * 60 * 1000 + 60 * 60 * 1000,
+  );
+
+  await seedCompletedLessonProgress(prisma, {
+    moduleUnitId: heavyLesson.moduleUnitId,
+    studentId: base.studentId,
+    completedAt,
+  });
+  await seedDueReviewStateForQuestions(prisma, {
+    studentId: base.studentId,
+    moduleId: base.moduleId,
+    moduleUnitId: heavyLesson.moduleUnitId,
+    questionIds: heavyLesson.questions.map((question) => question.questionUnitId),
+    dueAt: new Date(dayStartUtc.getTime() - 2 * 60 * 60 * 1000),
+    lastSeenAt: completedAt,
+  });
+
+  // progressLesson: one reinforcement candidate (Q0, seen with 'again' grade, future due)
+  // and three unseen questions (Q1–Q3) as new-sequence candidates.
+  const progressLesson = await seedLiveModuleUnitWithMcqQuestions(
+    prisma,
+    base.moduleId,
+    {
+      title: 'In-progress lesson',
+      sortOrder: 2,
+      questionCount: 4,
+    },
+  );
+
+  // 'again' grade + lapse means this question is a reinforcement candidate (not yet due).
+  await seedStudentQuestionState(prisma, {
+    studentId: base.studentId,
+    moduleId: base.moduleId,
+    moduleUnitId: progressLesson.moduleUnitId,
+    questionUnitId: progressLesson.questions[0].questionUnitId,
+    fsrsDueAt: new Date(dayStartUtc.getTime() + 48 * 60 * 60 * 1000),
+    lastSeenAt: new Date(dayStartUtc.getTime() - 24 * 60 * 60 * 1000),
+    lastGrade: 'again',
+    lapseCount: 1,
+    firstSeenAt: completedAt,
+    lastCorrectAt: null,
+    reviewCount: 2,
+  });
+  // Questions 1–3 are intentionally left without state → new-sequence candidates.
+
+  return {
+    ...base,
+    heavyLesson,
+    progressLesson,
+    completedAt,
+  };
+}
+
 export async function seedStudentStartedLessonFallbackScenario(
   prisma: PrismaLike,
   base: SeededStudentModuleScenario,

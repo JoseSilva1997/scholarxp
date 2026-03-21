@@ -19,6 +19,7 @@ import {
   seedCompletedLessonProgress,
   seedDueReviewStateForQuestions,
   seedLiveModuleUnitWithMcqQuestions,
+  seedStudentMixedHistoryScenario,
   seedStudentQuestionState,
   seedStudentStartedLessonFallbackScenario,
   seedStudentReviewReadyScenario,
@@ -130,6 +131,42 @@ describe('Daily practice selection rules (e2e)', () => {
           question.moduleUnitId !== scenario.untouchedLesson.moduleUnitId,
       ),
     ).toBe(true);
+  });
+
+  it('labels questions with the reinforcement bucket when they are not yet due but were recently struggled with', async () => {
+    // seedStudentMixedHistoryScenario produces:
+    //   - dueLesson: 4 due-review questions (all overdue)
+    //   - mixedLesson: 1 reinforcement candidate (hard grade, lapse, future due) + 2 unseen
+    // Review pressure = 4 due + 1 reinforcement = 5. Target size = 3 (floor).
+    // Quota at 3: 2 due_review, 1 reinforcement, 0 new_sequence.
+    const base = await seedStudentModuleScenario(prisma);
+    setAuthenticatedUserId(base.studentId);
+    const scenario = await seedStudentMixedHistoryScenario(prisma, base);
+
+    const body = await fetchTodayDailyPractice(app, base.moduleId);
+
+    expect(body.questions).toHaveLength(3);
+    expect(
+      body.questions.filter(
+        (question) =>
+          question.sourceBucket === DailyPracticeSelectionBucketValues.dueReview,
+      ),
+    ).toHaveLength(2);
+    const reinforcementQuestions = body.questions.filter(
+      (question) =>
+        question.sourceBucket === DailyPracticeSelectionBucketValues.reinforcement,
+    );
+    expect(reinforcementQuestions).toHaveLength(1);
+    // The reinforcement question must come from the mixed lesson, not the completed due lesson.
+    expect(reinforcementQuestions[0].moduleUnitId).toBe(
+      scenario.mixedLesson.moduleUnitId,
+    );
+    expect(
+      body.questions.filter(
+        (question) =>
+          question.sourceBucket === DailyPracticeSelectionBucketValues.newSequence,
+      ),
+    ).toHaveLength(0);
   });
 
   it('does not create a daily set when fewer than three eligible questions exist', async () => {
