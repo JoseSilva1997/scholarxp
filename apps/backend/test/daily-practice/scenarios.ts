@@ -317,3 +317,77 @@ export async function seedStudentMixedHistoryScenario(
     completedAt,
   };
 }
+
+export async function seedStudentStartedLessonFallbackScenario(
+  prisma: PrismaLike,
+  base: SeededStudentModuleScenario,
+) {
+  const completedLesson = await seedLiveModuleUnitWithMcqQuestions(
+    prisma,
+    base.moduleId,
+    {
+      title: 'Completed review lesson',
+      sortOrder: 1,
+      questionCount: 1,
+    },
+  );
+  const startedLesson = await seedLiveModuleUnitWithMcqQuestions(
+    prisma,
+    base.moduleId,
+    {
+      title: 'Started lesson',
+      sortOrder: 2,
+      questionCount: 3,
+    },
+  );
+  const untouchedLesson = await seedLiveModuleUnitWithMcqQuestions(
+    prisma,
+    base.moduleId,
+    {
+      title: 'Untouched lesson',
+      sortOrder: 3,
+      questionCount: 3,
+    },
+  );
+  const { dayStartUtc } = DateHelpers.getUtcDayBounds(new Date());
+  const completedAt = new Date(
+    dayStartUtc.getTime() - 24 * 60 * 60 * 1000 + 60 * 60 * 1000,
+  );
+
+  await seedCompletedLessonProgress(prisma, {
+    moduleUnitId: completedLesson.moduleUnitId,
+    studentId: base.studentId,
+    completedAt,
+  });
+  await seedDueReviewStateForQuestions(prisma, {
+    studentId: base.studentId,
+    moduleId: base.moduleId,
+    moduleUnitId: completedLesson.moduleUnitId,
+    questionIds: completedLesson.questions.map(
+      (question) => question.questionUnitId,
+    ),
+    dueAt: new Date(dayStartUtc.getTime() - 2 * 60 * 60 * 1000),
+    lastSeenAt: completedAt,
+  });
+  await seedStudentQuestionState(prisma, {
+    studentId: base.studentId,
+    moduleId: base.moduleId,
+    moduleUnitId: startedLesson.moduleUnitId,
+    questionUnitId: startedLesson.questions[0].questionUnitId,
+    fsrsDueAt: new Date(dayStartUtc.getTime() + 24 * 60 * 60 * 1000),
+    lastSeenAt: new Date(dayStartUtc.getTime() - 2 * 60 * 60 * 1000),
+    lastGrade: 'good',
+    lapseCount: 0,
+    firstSeenAt: completedAt,
+    lastCorrectAt: completedAt,
+    reviewCount: 1,
+  });
+
+  return {
+    ...base,
+    completedLesson,
+    startedLesson,
+    untouchedLesson,
+    completedAt,
+  };
+}

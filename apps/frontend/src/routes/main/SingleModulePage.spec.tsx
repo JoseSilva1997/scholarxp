@@ -69,7 +69,7 @@ let pageState: {
   expPercent: 40,
   isCreatingUnit: false,
   dailyPracticeButtonLabel: 'Start Daily Practice',
-  dailyPracticeStatusText: '7 questions ready',
+  dailyPracticeStatusText: '3 questions ready',
   isDailyPracticeButtonDisabled: false,
 };
 
@@ -159,7 +159,7 @@ describe('SingleModulePage route', () => {
       expPercent: 12,
       isCreatingUnit: false,
       dailyPracticeButtonLabel: 'Start Daily Practice',
-      dailyPracticeStatusText: '7 questions ready',
+      dailyPracticeStatusText: '3 questions ready',
       isDailyPracticeButtonDisabled: false,
     };
 
@@ -225,7 +225,7 @@ describe('SingleModulePage route', () => {
     expect(
       screen.getByRole('button', { name: /Start Daily Practice/i }),
     ).toBeInTheDocument();
-    expect(screen.getByText('7 questions ready')).toBeInTheDocument();
+    expect(screen.getByText('3 questions ready')).toBeInTheDocument();
   });
 
   it('delegates the daily-practice CTA to page-state', () => {

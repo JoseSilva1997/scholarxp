@@ -1,14 +1,16 @@
-// Role: verifies the daily-practice selector keeps module-scoped quotas and fallback rules deterministic as adaptive policy evolves.
+// Role: verifies the daily-practice selector applies dynamic sizing, started-lesson progression, and no-set guards deterministically.
 import { Test, type TestingModule } from '@nestjs/testing';
 import {
   DailyPracticeSelectionBucketValues,
   FsrsReviewGradeValues,
 } from '@scholarxp/api-contracts';
 import { DailyPracticeCandidateReadService } from './daily-practice-candidate-read.service';
+import { DailyPracticeModuleProgressReadService } from './daily-practice-module-progress-read.service';
 import { DailyPracticeQuestionStateReadService } from './daily-practice-question-state-read.service';
 import { DailyPracticeSetSelectorService } from './daily-practice-set-selector.service';
 import type {
   DailyPracticeCandidateQuestionRecord,
+  ModuleUnitProgressRecord,
   StudentQuestionStateRecord,
 } from './daily-practice.types';
 
@@ -17,6 +19,9 @@ describe('DailyPracticeSetSelectorService', () => {
   let candidateReadService: {
     listModuleCandidateQuestions: jest.Mock;
   };
+  let moduleProgressReadService: {
+    listModuleUnitProgress: jest.Mock;
+  };
   let questionStateReadService: {
     listStatesForModule: jest.Mock;
   };
@@ -24,6 +29,9 @@ describe('DailyPracticeSetSelectorService', () => {
   beforeEach(async () => {
     candidateReadService = {
       listModuleCandidateQuestions: jest.fn(),
+    };
+    moduleProgressReadService = {
+      listModuleUnitProgress: jest.fn(),
     };
     questionStateReadService = {
       listStatesForModule: jest.fn(),
@@ -35,6 +43,10 @@ describe('DailyPracticeSetSelectorService', () => {
         {
           provide: DailyPracticeCandidateReadService,
           useValue: candidateReadService,
+        },
+        {
+          provide: DailyPracticeModuleProgressReadService,
+          useValue: moduleProgressReadService,
         },
         {
           provide: DailyPracticeQuestionStateReadService,
@@ -50,38 +62,35 @@ describe('DailyPracticeSetSelectorService', () => {
     jest.resetAllMocks();
   });
 
-  it('selects default due, new-sequence, and reinforcement quotas for a seven-question set', async () => {
+  it('derives a three-question review-first plan from light review burden', async () => {
     const now = new Date('2026-03-17T12:00:00.000Z');
     candidateReadService.listModuleCandidateQuestions.mockResolvedValue([
       buildCandidate(101, 1, 1),
       buildCandidate(102, 1, 2),
       buildCandidate(201, 2, 1),
-      buildCandidate(202, 2, 2),
       buildCandidate(301, 3, 1),
       buildCandidate(302, 3, 2),
-      buildCandidate(401, 4, 1),
+      buildCandidate(303, 3, 3),
     ] satisfies DailyPracticeCandidateQuestionRecord[]);
+    moduleProgressReadService.listModuleUnitProgress.mockResolvedValue(
+      [] satisfies ModuleUnitProgressRecord[],
+    );
     questionStateReadService.listStatesForModule.mockResolvedValue([
-      buildState(201, 2, {
+      buildState(101, 1, {
         fsrsDueAt: new Date('2026-03-15T12:00:00.000Z'),
-        lastGrade: FsrsReviewGradeValues.good,
       }),
-      buildState(202, 2, {
+      buildState(102, 1, {
         fsrsDueAt: new Date('2026-03-16T12:00:00.000Z'),
-        lastGrade: FsrsReviewGradeValues.good,
       }),
-      buildState(301, 3, {
-        fsrsDueAt: new Date('2026-03-14T12:00:00.000Z'),
-        lastGrade: FsrsReviewGradeValues.good,
-      }),
-      buildState(302, 3, {
-        fsrsDueAt: new Date('2026-03-13T12:00:00.000Z'),
-        lastGrade: FsrsReviewGradeValues.good,
-      }),
-      buildState(401, 4, {
+      buildState(201, 2, {
         fsrsDueAt: new Date('2026-03-20T12:00:00.000Z'),
         lastGrade: FsrsReviewGradeValues.hard,
         lastSeenAt: new Date('2026-03-16T12:00:00.000Z'),
+      }),
+      // A single seen question marks lesson 3 as started so its unseen questions can become new-sequence candidates.
+      buildState(301, 3, {
+        fsrsDueAt: new Date('2026-03-22T12:00:00.000Z'),
+        lastGrade: FsrsReviewGradeValues.good,
       }),
     ] satisfies StudentQuestionStateRecord[]);
 
@@ -92,24 +101,17 @@ describe('DailyPracticeSetSelectorService', () => {
     });
 
     expect(result.plan).toEqual({
-      targetQuestionCount: 7,
-      dueReviewQuota: 4,
-      newSequenceQuota: 2,
+      targetQuestionCount: 3,
+      dueReviewQuota: 2,
+      newSequenceQuota: 0,
       reinforcementQuota: 1,
     });
-    expect(result.selectedQuestions).toHaveLength(7);
+    expect(result.selectedQuestions).toHaveLength(3);
     expect(
       result.selectedQuestions.filter(
         (question) =>
           question.sourceBucket ===
           DailyPracticeSelectionBucketValues.dueReview,
-      ),
-    ).toHaveLength(4);
-    expect(
-      result.selectedQuestions.filter(
-        (question) =>
-          question.sourceBucket ===
-          DailyPracticeSelectionBucketValues.newSequence,
       ),
     ).toHaveLength(2);
     expect(
@@ -120,41 +122,35 @@ describe('DailyPracticeSetSelectorService', () => {
       ),
     ).toHaveLength(1);
     expect(
-      result.selectedQuestions
-        .filter(
-          (question) =>
-            question.sourceBucket ===
-            DailyPracticeSelectionBucketValues.newSequence,
-        )
-        .every((question) => question.moduleUnitId === 1),
-    ).toBe(true);
+      result.selectedQuestions.filter(
+        (question) =>
+          question.sourceBucket ===
+          DailyPracticeSelectionBucketValues.newSequence,
+      ),
+    ).toHaveLength(0);
   });
 
-  it('backfills due shortfalls from reinforcement and then new-sequence candidates', async () => {
+  it('backfills due shortfalls from new-sequence and excludes never-attempted lessons', async () => {
     const now = new Date('2026-03-17T12:00:00.000Z');
     candidateReadService.listModuleCandidateQuestions.mockResolvedValue([
       buildCandidate(101, 1, 1),
-      buildCandidate(102, 1, 2),
-      buildCandidate(103, 1, 3),
-      buildCandidate(104, 1, 4),
       buildCandidate(201, 2, 1),
       buildCandidate(202, 2, 2),
+      buildCandidate(203, 2, 3),
       buildCandidate(301, 3, 1),
       buildCandidate(302, 3, 2),
     ] satisfies DailyPracticeCandidateQuestionRecord[]);
+    moduleProgressReadService.listModuleUnitProgress.mockResolvedValue(
+      [] satisfies ModuleUnitProgressRecord[],
+    );
     questionStateReadService.listStatesForModule.mockResolvedValue([
-      buildState(201, 2, {
+      buildState(101, 1, {
         fsrsDueAt: new Date('2026-03-16T12:00:00.000Z'),
       }),
-      buildState(202, 2, {
+      // Lesson 2 is started but incomplete, so its unseen questions are eligible as new-sequence top-ups.
+      buildState(201, 2, {
         fsrsDueAt: new Date('2026-03-20T12:00:00.000Z'),
-        lastGrade: FsrsReviewGradeValues.again,
-        lastSeenAt: new Date('2026-03-16T12:00:00.000Z'),
-      }),
-      buildState(301, 3, {
-        fsrsDueAt: new Date('2026-03-21T12:00:00.000Z'),
-        lastGrade: FsrsReviewGradeValues.hard,
-        lastSeenAt: new Date('2026-03-15T12:00:00.000Z'),
+        lastGrade: FsrsReviewGradeValues.good,
       }),
     ] satisfies StudentQuestionStateRecord[]);
 
@@ -164,21 +160,60 @@ describe('DailyPracticeSetSelectorService', () => {
       now,
     });
 
-    expect(result.selectedQuestions).toHaveLength(7);
+    expect(result.plan.targetQuestionCount).toBe(3);
+    expect(result.selectedQuestions).toHaveLength(3);
     expect(
       result.selectedQuestions.filter(
         (question) =>
           question.sourceBucket ===
-          DailyPracticeSelectionBucketValues.reinforcement,
+          DailyPracticeSelectionBucketValues.dueReview,
       ),
-    ).toHaveLength(2);
+    ).toHaveLength(1);
+    const newSequenceSelections = result.selectedQuestions.filter(
+      (question) =>
+        question.sourceBucket ===
+        DailyPracticeSelectionBucketValues.newSequence,
+    );
+    expect(newSequenceSelections).toHaveLength(2);
     expect(
-      result.selectedQuestions.filter(
-        (question) =>
-          question.sourceBucket ===
-          DailyPracticeSelectionBucketValues.newSequence,
-      ),
-    ).toHaveLength(4);
+      newSequenceSelections.every((question) => question.moduleUnitId === 2),
+    ).toBe(true);
+  });
+
+  it('returns no set when fewer than three eligible questions exist', async () => {
+    const now = new Date('2026-03-17T12:00:00.000Z');
+    candidateReadService.listModuleCandidateQuestions.mockResolvedValue([
+      buildCandidate(101, 1, 1),
+      buildCandidate(201, 2, 1),
+      buildCandidate(202, 2, 2),
+    ] satisfies DailyPracticeCandidateQuestionRecord[]);
+    moduleProgressReadService.listModuleUnitProgress.mockResolvedValue(
+      [] satisfies ModuleUnitProgressRecord[],
+    );
+    questionStateReadService.listStatesForModule.mockResolvedValue([
+      buildState(101, 1, {
+        fsrsDueAt: new Date('2026-03-16T12:00:00.000Z'),
+      }),
+      // Only one unseen question remains in a started lesson, so total eligible inventory is below the minimum floor.
+      buildState(201, 2, {
+        fsrsDueAt: new Date('2026-03-20T12:00:00.000Z'),
+        lastGrade: FsrsReviewGradeValues.good,
+      }),
+    ] satisfies StudentQuestionStateRecord[]);
+
+    const result = await service.selectQuestions({
+      userId: 42,
+      moduleId: 7,
+      now,
+    });
+
+    expect(result.plan).toEqual({
+      targetQuestionCount: 0,
+      dueReviewQuota: 0,
+      newSequenceQuota: 0,
+      reinforcementQuota: 0,
+    });
+    expect(result.selectedQuestions).toEqual([]);
   });
 
   it('caps selections at two questions per lesson when alternatives exist', async () => {
@@ -190,7 +225,11 @@ describe('DailyPracticeSetSelectorService', () => {
       buildCandidate(201, 2, 1),
       buildCandidate(202, 2, 2),
       buildCandidate(301, 3, 1),
+      buildCandidate(302, 3, 2),
     ] satisfies DailyPracticeCandidateQuestionRecord[]);
+    moduleProgressReadService.listModuleUnitProgress.mockResolvedValue(
+      [] satisfies ModuleUnitProgressRecord[],
+    );
     questionStateReadService.listStatesForModule.mockResolvedValue([
       buildState(101, 1, { fsrsDueAt: new Date('2026-03-13T12:00:00.000Z') }),
       buildState(102, 1, { fsrsDueAt: new Date('2026-03-14T12:00:00.000Z') }),
@@ -199,8 +238,7 @@ describe('DailyPracticeSetSelectorService', () => {
       buildState(202, 2, { fsrsDueAt: new Date('2026-03-12T12:00:00.000Z') }),
       buildState(301, 3, {
         fsrsDueAt: new Date('2026-03-20T12:00:00.000Z'),
-        lastGrade: FsrsReviewGradeValues.hard,
-        lastSeenAt: new Date('2026-03-16T12:00:00.000Z'),
+        lastGrade: FsrsReviewGradeValues.good,
       }),
     ] satisfies StudentQuestionStateRecord[]);
 
@@ -215,6 +253,7 @@ describe('DailyPracticeSetSelectorService', () => {
       (question) => question.moduleUnitId === 1,
     );
 
+    expect(result.plan.targetQuestionCount).toBe(5);
     expect(lessonOneSelections).toHaveLength(2);
     expect(result.selectedQuestions).toHaveLength(5);
   });

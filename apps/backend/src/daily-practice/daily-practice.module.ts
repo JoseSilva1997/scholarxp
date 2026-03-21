@@ -8,6 +8,7 @@ import { DailyPracticeController } from './daily-practice.controller';
 import { DailyPracticeEligibilityService } from './daily-practice-eligibility.service';
 import { DailyPracticeInterleavingService } from './daily-practice-interleaving.service';
 import { DailyPracticeMapper } from './daily-practice.mapper';
+import { DailyPracticeModuleProgressReadService } from './daily-practice-module-progress-read.service';
 import { DailyPracticeReviewStateModule } from './daily-practice-review-state.module';
 import { DailyPracticeService } from './daily-practice.service';
 import { DailyPracticeSetSelectorService } from './daily-practice-set-selector.service';
@@ -26,6 +27,7 @@ import { DailyPracticeSetReadService } from './daily-practice-set-read.service';
     DailyPracticeEligibilityService,
     DailyPracticeMapper,
     DailyPracticeInterleavingService,
+    DailyPracticeModuleProgressReadService,
     DailyPracticeService,
     DailyPracticeSetSelectorService,
     DailyPracticeSetReadService,
@@ -35,6 +37,7 @@ import { DailyPracticeSetReadService } from './daily-practice-set-read.service';
     DailyPracticeEligibilityService,
     DailyPracticeMapper,
     DailyPracticeInterleavingService,
+    DailyPracticeModuleProgressReadService,
     DailyPracticeService,
     DailyPracticeSetSelectorService,
     DailyPracticeSetReadService,

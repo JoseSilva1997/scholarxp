@@ -1,9 +1,11 @@
 // Role: validates daily-practice selection buckets and ordering so adaptive sets remain stable and product rules stay executable.
 import { INestApplication } from '@nestjs/common';
+import request from 'supertest';
 import {
   DailyPracticeSelectionBucketValues,
   PracticeSessionTypeValues,
 } from '@scholarxp/api-contracts';
+import { DateHelpers } from '../../src/helpers/helpers';
 import { PrismaService } from '../../src/prisma/prisma.service';
 import {
   assertSafeE2eDatabaseUrl,
@@ -14,7 +16,11 @@ import {
   setAuthenticatedUserId,
 } from './helpers';
 import {
-  seedStudentMixedHistoryScenario,
+  seedCompletedLessonProgress,
+  seedDueReviewStateForQuestions,
+  seedLiveModuleUnitWithMcqQuestions,
+  seedStudentQuestionState,
+  seedStudentStartedLessonFallbackScenario,
   seedStudentReviewReadyScenario,
 } from './scenarios';
 
@@ -45,8 +51,8 @@ describe('Daily practice selection rules (e2e)', () => {
     const body = await fetchTodayDailyPractice(app, base.moduleId);
 
     expect(body.sessionType).toBe(PracticeSessionTypeValues.dailyPractice);
-    expect(body.progress.totalQuestions).toBe(7);
-    expect(body.questions).toHaveLength(7);
+    expect(body.progress.totalQuestions).toBe(3);
+    expect(body.questions).toHaveLength(3);
     expect(
       body.questions.every(
         (question) =>
@@ -72,7 +78,7 @@ describe('Daily practice selection rules (e2e)', () => {
         },
       },
     });
-    expect(persistedSet?.items).toHaveLength(7);
+    expect(persistedSet?.items).toHaveLength(3);
     expect(
       persistedSet?.items.every(
         (item) =>
@@ -81,21 +87,24 @@ describe('Daily practice selection rules (e2e)', () => {
     ).toBe(true);
   });
 
-  it('uses the default 4/2/1 bucket mix and interleaves lessons when the module has mixed candidate types', async () => {
+  it('backfills from a started lesson and excludes untouched lessons from new-sequence', async () => {
     const base = await seedStudentModuleScenario(prisma);
     setAuthenticatedUserId(base.studentId);
-    await seedStudentMixedHistoryScenario(prisma, base);
+    const scenario = await seedStudentStartedLessonFallbackScenario(
+      prisma,
+      base,
+    );
 
     const body = await fetchTodayDailyPractice(app, base.moduleId);
 
-    expect(body.questions).toHaveLength(7);
+    expect(body.questions).toHaveLength(3);
     expect(
       body.questions.filter(
         (question) =>
           question.sourceBucket ===
           DailyPracticeSelectionBucketValues.dueReview,
       ),
-    ).toHaveLength(4);
+    ).toHaveLength(1);
     expect(
       body.questions.filter(
         (question) =>
@@ -104,17 +113,96 @@ describe('Daily practice selection rules (e2e)', () => {
       ),
     ).toHaveLength(2);
     expect(
-      body.questions.filter(
+      body.questions
+        .filter(
+          (question) =>
+            question.sourceBucket ===
+            DailyPracticeSelectionBucketValues.newSequence,
+        )
+        .every(
+          (question) =>
+            question.moduleUnitId === scenario.startedLesson.moduleUnitId,
+        ),
+    ).toBe(true);
+    expect(
+      body.questions.every(
         (question) =>
-          question.sourceBucket ===
-          DailyPracticeSelectionBucketValues.reinforcement,
+          question.moduleUnitId !== scenario.untouchedLesson.moduleUnitId,
       ),
-    ).toHaveLength(1);
+    ).toBe(true);
+  });
 
-    for (let index = 1; index < body.questions.length; index += 1) {
-      expect(body.questions[index]?.moduleUnitId).not.toBe(
-        body.questions[index - 1]?.moduleUnitId,
-      );
-    }
+  it('does not create a daily set when fewer than three eligible questions exist', async () => {
+    const base = await seedStudentModuleScenario(prisma);
+    setAuthenticatedUserId(base.studentId);
+
+    const completedLesson = await seedLiveModuleUnitWithMcqQuestions(
+      prisma,
+      base.moduleId,
+      {
+        title: 'Completed lesson',
+        sortOrder: 1,
+        questionCount: 1,
+      },
+    );
+    const startedLesson = await seedLiveModuleUnitWithMcqQuestions(
+      prisma,
+      base.moduleId,
+      {
+        title: 'Started lesson',
+        sortOrder: 2,
+        questionCount: 2,
+      },
+    );
+    const { dayStartUtc } = DateHelpers.getUtcDayBounds(new Date());
+    const completedAt = new Date(
+      dayStartUtc.getTime() - 24 * 60 * 60 * 1000 + 60 * 60 * 1000,
+    );
+
+    await seedCompletedLessonProgress(prisma, {
+      moduleUnitId: completedLesson.moduleUnitId,
+      studentId: base.studentId,
+      completedAt,
+    });
+    await seedDueReviewStateForQuestions(prisma, {
+      studentId: base.studentId,
+      moduleId: base.moduleId,
+      moduleUnitId: completedLesson.moduleUnitId,
+      questionIds: completedLesson.questions.map(
+        (question) => question.questionUnitId,
+      ),
+      dueAt: new Date(dayStartUtc.getTime() - 2 * 60 * 60 * 1000),
+      lastSeenAt: completedAt,
+    });
+    await seedStudentQuestionState(prisma, {
+      studentId: base.studentId,
+      moduleId: base.moduleId,
+      moduleUnitId: startedLesson.moduleUnitId,
+      questionUnitId: startedLesson.questions[0].questionUnitId,
+      fsrsDueAt: new Date(dayStartUtc.getTime() + 24 * 60 * 60 * 1000),
+      lastSeenAt: new Date(dayStartUtc.getTime() - 2 * 60 * 60 * 1000),
+      lastGrade: 'good',
+      lapseCount: 0,
+      firstSeenAt: completedAt,
+      lastCorrectAt: completedAt,
+      reviewCount: 1,
+    });
+
+    await request(app.getHttpServer())
+      .get(`/module/${base.moduleId}/daily-practice/today`)
+      .expect(404)
+      .expect((response) => {
+        expect(response.body.message).toBe(
+          'No daily practice questions are available for this module yet.',
+        );
+      });
+
+    const persistedSetCount = await prisma.dailyPracticeSet.count({
+      where: {
+        userId: base.studentId,
+        moduleId: base.moduleId,
+      },
+    });
+    expect(persistedSetCount).toBe(0);
   });
 });

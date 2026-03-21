@@ -228,6 +228,9 @@ export function useSingleModulePageState({
     const isLockedDailyPractice =
       todayDailyPracticeQuery.error instanceof ApiError &&
       todayDailyPracticeQuery.error.status === 403;
+    const hasNoDailyPracticeSet =
+      todayDailyPracticeQuery.error instanceof ApiError &&
+      todayDailyPracticeQuery.error.status === 404;
 
     if (todayDailyPracticeQuery.isPending) {
       return {
@@ -240,6 +243,15 @@ export function useSingleModulePageState({
     if (isLockedDailyPractice) {
       return {
         buttonLabel: 'Daily Practice Locked',
+        statusText: todayDailyPracticeQuery.error.message,
+        isDisabled: true,
+      };
+    }
+
+    if (hasNoDailyPracticeSet) {
+      return {
+        // Backend-owned 404 copy signals a valid caught-up state, so keep the CTA non-actionable instead of linking into a known empty route.
+        buttonLabel: 'No Daily Practice Today',
         statusText: todayDailyPracticeQuery.error.message,
         isDisabled: true,
       };

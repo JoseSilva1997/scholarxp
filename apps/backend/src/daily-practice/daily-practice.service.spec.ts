@@ -168,9 +168,9 @@ describe('DailyPracticeService', () => {
     dailyPracticeSetReadService.findSetForUtcDay.mockResolvedValueOnce(null);
     dailyPracticeSetSelectorService.selectQuestions.mockResolvedValue({
       plan: {
-        targetQuestionCount: 7,
-        dueReviewQuota: 4,
-        newSequenceQuota: 2,
+        targetQuestionCount: 3,
+        dueReviewQuota: 2,
+        newSequenceQuota: 0,
         reinforcementQuota: 1,
       },
       selectedQuestions: orderedQuestions,

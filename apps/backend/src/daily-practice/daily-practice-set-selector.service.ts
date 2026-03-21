@@ -5,18 +5,18 @@ import {
   FsrsReviewGradeValues,
 } from '@scholarxp/api-contracts';
 import { DailyPracticeCandidateReadService } from './daily-practice-candidate-read.service';
+import { DailyPracticeModuleProgressReadService } from './daily-practice-module-progress-read.service';
 import { DailyPracticeQuestionStateReadService } from './daily-practice-question-state-read.service';
+import { buildDailyPracticeSelectionPlan } from './daily-practice-set-sizing.policy';
 import type {
   DailyPracticeCandidateQuestionRecord,
-  DailyPracticeSelectionPlan,
+  DailyPracticeSelectionInventory,
   DailyPracticeSelectionResult,
+  ModuleUnitProgressRecord,
   SelectedDailyPracticeQuestionRecord,
   StudentQuestionStateRecord,
 } from './daily-practice.types';
 
-const DEFAULT_TARGET_QUESTION_COUNT = 7;
-const MIN_TARGET_QUESTION_COUNT = 5;
-const MAX_TARGET_QUESTION_COUNT = 10;
 const MAX_QUESTIONS_PER_LESSON = 2;
 const RECENT_STRUGGLE_WINDOW_DAYS = 14;
 
@@ -43,6 +43,7 @@ type CandidateWithSelectionMetadata = {
 export class DailyPracticeSetSelectorService {
   constructor(
     private readonly candidateReadService: DailyPracticeCandidateReadService,
+    private readonly moduleProgressReadService: DailyPracticeModuleProgressReadService,
     private readonly questionStateReadService: DailyPracticeQuestionStateReadService,
   ) {}
 
@@ -50,15 +51,18 @@ export class DailyPracticeSetSelectorService {
   async selectQuestions(
     params: BuildDailyPracticeSelectionParams,
   ): Promise<DailyPracticeSelectionResult> {
-    const [candidates, states] = await Promise.all([
+    const [candidates, moduleProgress, states] = await Promise.all([
       this.candidateReadService.listModuleCandidateQuestions(params.moduleId),
+      this.moduleProgressReadService.listModuleUnitProgress(
+        params.userId,
+        params.moduleId,
+      ),
       this.questionStateReadService.listStatesForModule(
         params.userId,
         params.moduleId,
       ),
     ]);
 
-    const selectionPlan = this.buildSelectionPlan(params.targetQuestionCount);
     const stateByQuestionId = new Map(
       states.map((state) => [state.questionUnitId, state]),
     );
@@ -67,44 +71,66 @@ export class DailyPracticeSetSelectorService {
       studentQuestionState:
         stateByQuestionId.get(candidate.questionUnitId) ?? null,
     }));
+    const dueReviewCandidates = this.buildDueReviewCandidates(
+      enrichedCandidates,
+      params.now,
+    );
+    const reinforcementCandidates = this.buildReinforcementCandidates(
+      enrichedCandidates,
+      params.now,
+    );
+    const newSequenceCandidates = this.buildNewSequenceCandidates(
+      enrichedCandidates,
+      states,
+      moduleProgress,
+    );
+    const selectionPlan = buildDailyPracticeSelectionPlan(
+      this.buildSelectionInventory({
+        dueReviewCandidates,
+        reinforcementCandidates,
+        newSequenceCandidates,
+      }),
+      params.targetQuestionCount,
+    );
+
+    if (selectionPlan.targetQuestionCount === 0) {
+      return {
+        plan: selectionPlan,
+        selectedQuestions: [],
+      };
+    }
 
     const selectedQuestionIds = new Set<number>();
     const lessonCounts = new Map<number, number>();
 
     const dueReviewSelections = this.selectFromBucket({
-      bucketCandidates: this.buildDueReviewCandidates(
-        enrichedCandidates,
-        params.now,
-      ),
+      bucketCandidates: dueReviewCandidates,
       count: selectionPlan.dueReviewQuota,
       sourceBucket: DailyPracticeSelectionBucketValues.dueReview,
       selectedQuestionIds,
       lessonCounts,
     });
 
-    const newSequenceSelections = this.selectFromBucket({
-      bucketCandidates: this.buildNewSequenceCandidates(enrichedCandidates),
-      count: selectionPlan.newSequenceQuota,
-      sourceBucket: DailyPracticeSelectionBucketValues.newSequence,
-      selectedQuestionIds,
-      lessonCounts,
-    });
-
     const reinforcementSelections = this.selectFromBucket({
-      bucketCandidates: this.buildReinforcementCandidates(
-        enrichedCandidates,
-        params.now,
-      ),
+      bucketCandidates: reinforcementCandidates,
       count: selectionPlan.reinforcementQuota,
       sourceBucket: DailyPracticeSelectionBucketValues.reinforcement,
       selectedQuestionIds,
       lessonCounts,
     });
 
+    const newSequenceSelections = this.selectFromBucket({
+      bucketCandidates: newSequenceCandidates,
+      count: selectionPlan.newSequenceQuota,
+      sourceBucket: DailyPracticeSelectionBucketValues.newSequence,
+      selectedQuestionIds,
+      lessonCounts,
+    });
+
     const selectedQuestions = [
       ...dueReviewSelections,
-      ...newSequenceSelections,
       ...reinforcementSelections,
+      ...newSequenceSelections,
     ];
 
     const dueReviewShortfall =
@@ -115,15 +141,11 @@ export class DailyPracticeSetSelectorService {
           [
             {
               sourceBucket: DailyPracticeSelectionBucketValues.reinforcement,
-              bucketCandidates: this.buildReinforcementCandidates(
-                enrichedCandidates,
-                params.now,
-              ),
+              bucketCandidates: reinforcementCandidates,
             },
             {
               sourceBucket: DailyPracticeSelectionBucketValues.newSequence,
-              bucketCandidates:
-                this.buildNewSequenceCandidates(enrichedCandidates),
+              bucketCandidates: newSequenceCandidates,
             },
           ],
           dueReviewShortfall,
@@ -141,22 +163,15 @@ export class DailyPracticeSetSelectorService {
           [
             {
               sourceBucket: DailyPracticeSelectionBucketValues.dueReview,
-              bucketCandidates: this.buildDueReviewCandidates(
-                enrichedCandidates,
-                params.now,
-              ),
+              bucketCandidates: dueReviewCandidates,
             },
             {
               sourceBucket: DailyPracticeSelectionBucketValues.reinforcement,
-              bucketCandidates: this.buildReinforcementCandidates(
-                enrichedCandidates,
-                params.now,
-              ),
+              bucketCandidates: reinforcementCandidates,
             },
             {
               sourceBucket: DailyPracticeSelectionBucketValues.newSequence,
-              bucketCandidates:
-                this.buildNewSequenceCandidates(enrichedCandidates),
+              bucketCandidates: newSequenceCandidates,
             },
           ],
           remainingCount,
@@ -172,38 +187,16 @@ export class DailyPracticeSetSelectorService {
     };
   }
 
-  private buildSelectionPlan(
-    requestedTargetQuestionCount?: number,
-  ): DailyPracticeSelectionPlan {
-    const targetQuestionCount = this.clampTargetQuestionCount(
-      requestedTargetQuestionCount ?? DEFAULT_TARGET_QUESTION_COUNT,
-    );
-    const dueReviewQuota = Math.min(
-      targetQuestionCount,
-      Math.max(1, Math.round(targetQuestionCount * 0.57)),
-    );
-    const newSequenceQuota = Math.min(
-      Math.max(1, targetQuestionCount - dueReviewQuota),
-      Math.max(1, Math.round(targetQuestionCount * 0.29)),
-    );
-    const reinforcementQuota = Math.max(
-      0,
-      targetQuestionCount - dueReviewQuota - newSequenceQuota,
-    );
-
+  private buildSelectionInventory(input: {
+    dueReviewCandidates: CandidateWithSelectionMetadata[];
+    reinforcementCandidates: CandidateWithSelectionMetadata[];
+    newSequenceCandidates: CandidateWithSelectionMetadata[];
+  }): DailyPracticeSelectionInventory {
     return {
-      targetQuestionCount,
-      dueReviewQuota,
-      newSequenceQuota,
-      reinforcementQuota,
+      dueReviewCount: input.dueReviewCandidates.length,
+      reinforcementCount: input.reinforcementCandidates.length,
+      newSequenceCount: input.newSequenceCandidates.length,
     };
-  }
-
-  private clampTargetQuestionCount(targetQuestionCount: number): number {
-    return Math.min(
-      MAX_TARGET_QUESTION_COUNT,
-      Math.max(MIN_TARGET_QUESTION_COUNT, targetQuestionCount),
-    );
   }
 
   private buildDueReviewCandidates(
@@ -248,25 +241,42 @@ export class DailyPracticeSetSelectorService {
 
   private buildNewSequenceCandidates(
     candidates: EnrichedCandidate[],
+    states: StudentQuestionStateRecord[],
+    moduleProgress: ModuleUnitProgressRecord[],
   ): CandidateWithSelectionMetadata[] {
+    const startedModuleUnitIds = new Set(
+      states.map((state) => state.moduleUnitId),
+    );
+    const completedModuleUnitIds = new Set(
+      moduleProgress
+        .filter((progress) => progress.isCompleted)
+        .map((progress) => progress.moduleUnitId),
+    );
     const unseenCandidates = candidates.filter(
-      ({ studentQuestionState }) => studentQuestionState === null,
+      ({ candidate, studentQuestionState }) =>
+        studentQuestionState === null &&
+        this.isStartedIncompleteModuleUnit(
+          candidate.moduleUnitId,
+          startedModuleUnitIds,
+          completedModuleUnitIds,
+        ),
     );
     if (unseenCandidates.length === 0) {
       return [];
     }
 
-    const earliestModuleUnitSortOrder = unseenCandidates.reduce(
-      (smallest, current) =>
-        Math.min(smallest, current.candidate.moduleUnitSortOrder),
-      Number.POSITIVE_INFINITY,
+    const earliestStartedIncompleteModuleUnitId =
+      this.findEarliestStartedIncompleteModuleUnitId(unseenCandidates);
+    if (earliestStartedIncompleteModuleUnitId === null) {
+      return [];
+    }
+
+    const earliestLessonCandidates = unseenCandidates.filter(
+      ({ candidate }) =>
+        candidate.moduleUnitId === earliestStartedIncompleteModuleUnitId,
     );
 
-    return unseenCandidates
-      .filter(
-        ({ candidate }) =>
-          candidate.moduleUnitSortOrder === earliestModuleUnitSortOrder,
-      )
+    return earliestLessonCandidates
       .sort((left, right) => {
         return (
           left.candidate.moduleUnitSortOrder -
@@ -282,10 +292,49 @@ export class DailyPracticeSetSelectorService {
         candidate,
         studentQuestionState,
         // Lower sort-order questions should remain more attractive, so invert the index into a descending score.
-        selectionScore: unseenCandidates.length - index,
+        selectionScore: earliestLessonCandidates.length - index,
         selectionReason:
-          'Question introduces the earliest live lesson content the student has not seen yet.',
+          'Question advances the earliest live lesson the student has started but not yet completed.',
       }));
+  }
+
+  private isStartedIncompleteModuleUnit(
+    moduleUnitId: number,
+    startedModuleUnitIds: Set<number>,
+    completedModuleUnitIds: Set<number>,
+  ): boolean {
+    return (
+      startedModuleUnitIds.has(moduleUnitId) &&
+      !completedModuleUnitIds.has(moduleUnitId)
+    );
+  }
+
+  private findEarliestStartedIncompleteModuleUnitId(
+    unseenCandidates: EnrichedCandidate[],
+  ): number | null {
+    const earliestCandidate =
+      unseenCandidates.reduce<DailyPracticeCandidateQuestionRecord | null>(
+        (currentEarliest, { candidate }) => {
+          if (!currentEarliest) {
+            return candidate;
+          }
+
+          if (
+            candidate.moduleUnitSortOrder <
+              currentEarliest.moduleUnitSortOrder ||
+            (candidate.moduleUnitSortOrder ===
+              currentEarliest.moduleUnitSortOrder &&
+              candidate.moduleUnitId < currentEarliest.moduleUnitId)
+          ) {
+            return candidate;
+          }
+
+          return currentEarliest;
+        },
+        null,
+      );
+
+    return earliestCandidate?.moduleUnitId ?? null;
   }
 
   private buildReinforcementCandidates(

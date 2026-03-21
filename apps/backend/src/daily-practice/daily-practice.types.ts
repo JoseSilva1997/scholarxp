@@ -27,6 +27,12 @@ export type StudentQuestionStateRecord = {
   algorithmVersion: string;
 };
 
+// Lesson-level progress reads let selector policy distinguish "started" from "completed" without embedding Prisma details in selection logic.
+export type ModuleUnitProgressRecord = {
+  moduleUnitId: number;
+  isCompleted: boolean;
+};
+
 // Candidate questions expose the minimum selector inputs needed for future FSRS-backed set generation.
 export type DailyPracticeCandidateQuestionRecord = {
   moduleUnitId: number;
@@ -39,6 +45,13 @@ export type DailyPracticeCandidateQuestionRecord = {
   coreContentId: number;
   questionType: string;
   questionDifficultyScore: number;
+};
+
+// Inventory counts stay explicit so sizing heuristics can change without coupling to bucket-building internals.
+export type DailyPracticeSelectionInventory = {
+  dueReviewCount: number;
+  reinforcementCount: number;
+  newSequenceCount: number;
 };
 
 // Persisted daily-practice sets keep ordered items attached so later controllers can hydrate the set in one read.

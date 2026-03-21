@@ -321,7 +321,7 @@ describe('useSingleModulePageState', () => {
       data: {
         sessionId: '11111111-1111-4111-8111-111111111115',
         progress: {
-          totalQuestions: 7,
+          totalQuestions: 5,
           answeredQuestions: 2,
           completedAt: null,
         },
@@ -340,7 +340,7 @@ describe('useSingleModulePageState', () => {
       '/main/modules/14/daily-practice?sessionId=11111111-1111-4111-8111-111111111115',
     );
     expect(result.current.dailyPracticeButtonLabel).toBe('Resume Daily Practice');
-    expect(result.current.dailyPracticeStatusText).toBe('2/7 answered');
+    expect(result.current.dailyPracticeStatusText).toBe('2/5 answered');
     expect(result.current.isDailyPracticeButtonDisabled).toBe(false);
   });
 
@@ -378,6 +378,44 @@ describe('useSingleModulePageState', () => {
     );
     expect(result.current.dailyPracticeStatusText).toBe(
       'Daily practice unlocks tomorrow after you complete your first lesson in this module.',
+    );
+    expect(result.current.isDailyPracticeButtonDisabled).toBe(true);
+    expect(mocks.assign).not.toHaveBeenCalled();
+  });
+
+  it('keeps the daily-practice CTA disabled when the backend reports no eligible set for today', async () => {
+    moduleQueryState = {
+      data: {
+        id: 14,
+        title: 'History',
+      },
+      isPending: false,
+      error: null,
+    };
+    todayDailyPracticeQueryState = {
+      isPending: false,
+      error: new ApiError({
+        message: 'No daily practice questions are available for this module yet.',
+        status: 404,
+        code: 'NOT_FOUND',
+        data: null,
+      }),
+      data: null,
+    };
+
+    const { result } = renderHook(() =>
+      useSingleModulePageState({ moduleIdParam: '14', user: mockUser }),
+    );
+
+    await act(async () => {
+      await result.current.handleDailyPracticeClick();
+    });
+
+    expect(result.current.dailyPracticeButtonLabel).toBe(
+      'No Daily Practice Today',
+    );
+    expect(result.current.dailyPracticeStatusText).toBe(
+      'No daily practice questions are available for this module yet.',
     );
     expect(result.current.isDailyPracticeButtonDisabled).toBe(true);
     expect(mocks.assign).not.toHaveBeenCalled();
