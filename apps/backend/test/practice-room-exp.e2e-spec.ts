@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { GlobalRole, ModuleUnitStatus } from '@prisma/client';
+import type { SubmitAttemptResponse } from '@scholarxp/api-contracts';
 import { ExpLedgerEventTypes } from '@scholarxp/constants';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
@@ -109,7 +110,7 @@ describe('Practice room XP policy (e2e)', () => {
       q1,
       0,
     );
-    expect(first.moduleExpAwarded).toBe(383); // baseline 333 + first-attempt bonus 50
+    expect(getAwardedModuleExp(first)).toBe(383); // baseline 333 + first-attempt bonus 50
 
     const secondWrong = await submitAttempt(
       app,
@@ -119,7 +120,7 @@ describe('Practice room XP policy (e2e)', () => {
       q2,
       1,
     );
-    expect(secondWrong.moduleExpAwarded).toBe(0);
+    expect(getAwardedModuleExp(secondWrong)).toBe(0);
 
     const secondCorrect = await submitAttempt(
       app,
@@ -129,7 +130,7 @@ describe('Practice room XP policy (e2e)', () => {
       q2,
       0,
     );
-    expect(secondCorrect.moduleExpAwarded).toBe(333); // first-attempt bonus blocked after prior wrong attempt
+    expect(getAwardedModuleExp(secondCorrect)).toBe(333); // first-attempt bonus blocked after prior wrong attempt
 
     const thirdWrong = await submitAttempt(
       app,
@@ -139,7 +140,7 @@ describe('Practice room XP policy (e2e)', () => {
       q3,
       1,
     );
-    expect(thirdWrong.moduleExpAwarded).toBe(0);
+    expect(getAwardedModuleExp(thirdWrong)).toBe(0);
 
     const thirdCorrect = await submitAttempt(
       app,
@@ -149,7 +150,7 @@ describe('Practice room XP policy (e2e)', () => {
       q3,
       0,
     );
-    expect(thirdCorrect.moduleExpAwarded).toBe(334); // remainder is assigned to last question
+    expect(getAwardedModuleExp(thirdCorrect)).toBe(334); // remainder is assigned to last question
 
     const baselineEvents = await prisma.expLedger.findMany({
       where: {
@@ -287,7 +288,7 @@ describe('Practice room XP policy (e2e)', () => {
       orderBy: { eventTimestamp: 'asc' },
     });
     expect(completionEvents.map((entry) => entry.awardedExp)).toEqual([
-      100, 25,
+      100, 25, 0,
     ]);
 
     const avatar = await prisma.avatar.findUnique({
@@ -321,7 +322,7 @@ describe('Practice room XP policy (e2e)', () => {
       question,
       0,
     );
-    expect(first.moduleExpAwarded).toBe(575); // baseline 500 + first-attempt bonus 75
+    expect(getAwardedModuleExp(first)).toBe(575); // baseline 500 + first-attempt bonus 75
 
     const retry = await submitAttempt(
       app,
@@ -331,7 +332,7 @@ describe('Practice room XP policy (e2e)', () => {
       question,
       0,
     );
-    expect(retry.moduleExpAwarded).toBe(0);
+    expect(getAwardedModuleExp(retry)).toBe(0);
 
     const baselineEvents = await prisma.expLedger.findMany({
       where: {
@@ -507,10 +508,17 @@ async function submitAttempt(
     })
     .expect(201);
 
-  return response.body as {
-    moduleExpAwarded: number;
-    hasCorrectAttempt: boolean;
-  };
+  return response.body as SubmitAttemptResponse;
+}
+
+// Submit responses now separate module XP from account XP, so tests derive the
+// legacy per-attempt module total from the structured reward buckets.
+function getAwardedModuleExp(response: SubmitAttemptResponse): number {
+  return (
+    response.awards.baseQuestionExp +
+    response.awards.firstAttemptBonus +
+    response.awards.streakBonus
+  );
 }
 
 // Completes a 1-question unit through real endpoints to trigger completion XP policy evaluation.
