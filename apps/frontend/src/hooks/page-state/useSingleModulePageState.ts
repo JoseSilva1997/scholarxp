@@ -236,7 +236,7 @@ export function useSingleModulePageState({
     if (todayDailyPracticeQuery.isPending) {
       return {
         buttonLabel: "Start Daily Practice",
-        statusText: "Preparing today’s set\u2026",
+        statusText: "Preparing today's set...",
         tooltipText: null,
         isDisabled: true,
       };

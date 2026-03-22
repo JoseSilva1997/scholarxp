@@ -9,6 +9,7 @@ import {
 } from 'react-icons/fa6';
 import MainSection from '../../components/MainSection';
 import { useDailyPracticePageState } from '../../hooks/page-state/useDailyPracticePageState';
+import { useModuleDetailQuery } from '../../hooks/queries/useModulesQueries';
 import { buildPracticeRoomAnswerFeedback } from './practice-room-answer-feedback';
 import styles from './PracticeRoomPage.module.css';
 
@@ -16,7 +17,7 @@ function getDailyPracticeQuestionStatusClass(
   question: {
     hasCorrectAttempt: boolean | null;
     coreQuestion: {
-      lastAttempt: { isCorrect: boolean } | null;
+      lastAttempt: { isCorrect: boolean | null } | null;
     };
   },
   isCurrent: boolean,
@@ -61,6 +62,8 @@ export default function DailyPracticePage() {
     submitActiveQuestionAttempt,
   } = useDailyPracticePageState({ moduleIdParam: moduleId });
 
+  const moduleDetail = useModuleDetailQuery(parsedModuleId);
+
   const hasSubmittedFeedback =
     activeQuestionItem?.coreQuestion.lastAttempt !== null &&
     !hasActiveOptionOverride;
@@ -96,7 +99,9 @@ export default function DailyPracticePage() {
             <Link className={styles.backLink} to={`/main/modules/${moduleId}`}>
               ← Back to module
             </Link>
-            <h1 className={styles.title}>Daily Practice</h1>
+            <h1 className={styles.title}>
+              Daily Practice{moduleDetail.data ? ` - ${moduleDetail.data.title}` : ''}
+            </h1>
           </div>
 
           {progress ? (
@@ -143,9 +148,6 @@ export default function DailyPracticePage() {
         activeQuestionItem && activeQuestion ? (
           <section className={styles.questionPanel}>
             <div className={styles.stemHeader}>
-              <div className={styles.progressCounter}>
-                {activeQuestionItem.moduleUnitTitle}
-              </div>
               <h2 className={styles.questionStem}>
                 {activeQuestion.question.questionStem}
               </h2>
