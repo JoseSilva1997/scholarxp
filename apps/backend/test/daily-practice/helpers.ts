@@ -7,7 +7,10 @@ import {
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { GlobalRole } from '@prisma/client';
-import type { DailyPracticeTodayResponse } from '@scholarxp/api-contracts';
+import type {
+  DailyPracticeTodayResponse,
+  SubmitDailyPracticeAttemptResponse,
+} from '@scholarxp/api-contracts';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
 import { AuthorizationGuard } from '../../src/auth/guards/authorization.guard';
@@ -124,6 +127,37 @@ export async function submitDailyPracticeAttemptCorrect(
       studentAnswer: { selectedOptionIndex: 0 },
     })
     .expect(201);
+}
+
+// Submits an incorrect MCQ answer for one question in an active daily-practice session.
+// All seeded MCQ questions use correctOptionIndex: 0, so selectedOptionIndex: 1 is always wrong.
+// Returns the full response body so callers can assert on encounterGrade, hasCorrectAttempt, etc.
+export async function submitDailyPracticeAttemptIncorrect(
+  app: INestApplication,
+  moduleId: number,
+  params: {
+    setId: string;
+    sessionId: string;
+    moduleUnitId: number;
+    questionUnitId: number;
+    questionContentId: number;
+  },
+): Promise<SubmitDailyPracticeAttemptResponse> {
+  const response = await request(app.getHttpServer())
+    .post(`/module/${moduleId}/daily-practice/attempts`)
+    .send({
+      setId: params.setId,
+      sessionId: params.sessionId,
+      moduleUnitId: params.moduleUnitId,
+      questionUnitId: params.questionUnitId,
+      questionContentId: params.questionContentId,
+      timeTakenMs: 5000,
+      hintUnlocked: false,
+      studentAnswer: { selectedOptionIndex: 1 },
+    })
+    .expect(201);
+
+  return response.body as SubmitDailyPracticeAttemptResponse;
 }
 
 export function assertSafeE2eDatabaseUrl() {
