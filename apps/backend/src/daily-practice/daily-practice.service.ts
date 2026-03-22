@@ -321,6 +321,13 @@ export class DailyPracticeService {
       timestamp,
     );
     if (existingSet) {
+      // An empty set is a sentinel created when no questions were available on the day it was first checked.
+      // Re-throwing here keeps today's "no set" state stable even if questions become eligible later in the day.
+      if (existingSet.items.length === 0) {
+        throw new NotFoundException(
+          'No daily practice questions are available for this module yet.',
+        );
+      }
       return existingSet;
     }
 
@@ -329,13 +336,35 @@ export class DailyPracticeService {
       studentId,
       timestamp,
     );
+    const { dayStartUtc } = DateHelpers.getUtcDayBounds(timestamp);
+
     if (orderedQuestions.length === 0) {
+      // Persist an empty sentinel row so the unique constraint prevents re-generation later today.
+      // P2002 means a concurrent request already wrote the sentinel; either way we throw 404.
+      try {
+        await this.prisma.dailyPracticeSet.create({
+          data: {
+            userId: studentId,
+            moduleId,
+            practiceDateUtc: dayStartUtc,
+            algorithmVersion: DailyPracticeAlgorithmVersionValues.fsrsV1,
+          },
+          select: { id: true },
+        });
+      } catch (error) {
+        if (
+          !(
+            error instanceof Prisma.PrismaClientKnownRequestError &&
+            error.code === 'P2002'
+          )
+        ) {
+          throw error;
+        }
+      }
       throw new NotFoundException(
         'No daily practice questions are available for this module yet.',
       );
     }
-
-    const { dayStartUtc } = DateHelpers.getUtcDayBounds(timestamp);
 
     try {
       const createdSet = await this.prisma.dailyPracticeSet.create({
@@ -377,6 +406,12 @@ export class DailyPracticeService {
             timestamp,
           );
         if (concurrentSet) {
+          // Edge case: concurrent request may have written an empty sentinel instead of a real set.
+          if (concurrentSet.items.length === 0) {
+            throw new NotFoundException(
+              'No daily practice questions are available for this module yet.',
+            );
+          }
           return concurrentSet;
         }
       }
