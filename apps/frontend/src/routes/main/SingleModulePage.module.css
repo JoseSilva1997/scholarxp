@@ -205,7 +205,6 @@
   gap: 32px;
   box-shadow: var(--shadow-md);
   position: relative;
-  overflow: hidden;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -380,6 +379,23 @@
   transform: translateY(0) scale(0.98);
 }
 
+.dailyRevisionButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.dailyRevisionButton:disabled:hover {
+  transform: none;
+  box-shadow: none;
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-dark) 100%);
+}
+
+.dailyRevisionButton:disabled .dailyRevisionIcon {
+  animation: none;
+}
+
 .dailyRevisionIcon {
   font-size: 1.25rem;
   animation: pulse 2.5s infinite ease-in-out;
@@ -392,6 +408,61 @@
   font-size: 0.9rem;
   font-weight: 600;
   letter-spacing: 0.01em;
+}
+
+.dailyPracticeButtonWrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.dailyPracticeInfoWrapper {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  display: inline-flex;
+}
+
+.dailyPracticeInfoButton {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  cursor: help;
+  padding: 0;
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  box-shadow: var(--shadow-sm);
+}
+
+.dailyPracticeInfoTooltip {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  color: var(--color-text);
+  width: 220px;
+  white-space: normal;
+  box-shadow: var(--shadow-md);
+  z-index: 10;
+  pointer-events: none;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+}
+
+.dailyPracticeInfoWrapper:hover .dailyPracticeInfoTooltip,
+.dailyPracticeInfoWrapper:focus-within .dailyPracticeInfoTooltip {
+  visibility: visible;
+  opacity: 1;
 }
 
 @keyframes pulse {

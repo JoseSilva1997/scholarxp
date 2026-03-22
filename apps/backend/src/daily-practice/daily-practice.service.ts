@@ -202,6 +202,7 @@ export class DailyPracticeService {
         tx,
       );
 
+      // FSRS state is updated at most once per day — subsequent retries on the same question don't re-grade.
       if (!hadAnyDailyAttemptBeforeSubmit) {
         await this.dailyPracticeFsrsStateService.applyEncounter(
           {
@@ -342,6 +343,7 @@ export class DailyPracticeService {
         return persistedSet;
       }
     } catch (error) {
+      // P2002 means a concurrent request already created the set for this day; return that row instead of failing.
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2002'
@@ -458,6 +460,7 @@ export class DailyPracticeService {
     const correctQuestionIds = new Set<number>();
     const answeredQuestionIds = new Set<number>();
 
+    // Attempts are ordered newest-first; the first entry per questionId is therefore the latest attempt.
     for (const attempt of attempts) {
       answeredQuestionIds.add(attempt.questionId);
       if (attempt.isCorrect) {
@@ -547,11 +550,13 @@ export class DailyPracticeService {
     const answeredQuestionIds = new Set(
       answeredAttempts.map((attempt) => attempt.questionId),
     );
+    // Preserve the original completedAt timestamp if the set was already finished; only stamp it on the first completion.
     const completedAt =
       answeredQuestionIds.size >= dailyPracticeSet.items.length
         ? (dailyPracticeSet.completedAt ?? attemptedAt)
         : dailyPracticeSet.completedAt;
 
+    // Only write to the DB when the completedAt value actually changes to avoid unnecessary updates.
     if (
       completedAt &&
       (!dailyPracticeSet.completedAt ||

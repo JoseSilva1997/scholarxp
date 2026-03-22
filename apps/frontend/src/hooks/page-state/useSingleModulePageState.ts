@@ -54,6 +54,7 @@ type UseSingleModulePageStateResult = {
   isCreatingUnit: boolean;
   dailyPracticeButtonLabel: string;
   dailyPracticeStatusText: string | null;
+  dailyPracticeTooltip: string | null;
   isDailyPracticeButtonDisabled: boolean;
   handleDailyPracticeClick: () => Promise<void>;
   handleOpenStudentPracticeRoom: (unitId: string, questionId?: string) => Promise<void>;
@@ -234,56 +235,62 @@ export function useSingleModulePageState({
 
     if (todayDailyPracticeQuery.isPending) {
       return {
-        buttonLabel: 'Daily Practice',
-        statusText: 'Preparing today’s set…',
+        buttonLabel: "Start Daily Practice",
+        statusText: "Preparing today’s set\u2026",
+        tooltipText: null,
         isDisabled: true,
       };
     }
 
     if (isLockedDailyPractice) {
       return {
-        buttonLabel: 'Daily Practice Locked',
-        statusText: todayDailyPracticeQuery.error.message,
+        buttonLabel: "No Daily Practice Yet",
+        statusText: null,
+        tooltipText: todayDailyPracticeQuery.error!.message,
         isDisabled: true,
       };
     }
 
     if (hasNoDailyPracticeSet) {
       return {
-        // Backend-owned 404 copy signals a valid caught-up state, so keep the CTA non-actionable instead of linking into a known empty route.
-        buttonLabel: 'No Daily Practice Today',
-        statusText: todayDailyPracticeQuery.error.message,
+        buttonLabel: "All Caught Up",
+        statusText: null,
+        tooltipText: todayDailyPracticeQuery.error!.message,
         isDisabled: true,
       };
     }
 
     if (!progress) {
       return {
-        buttonLabel: 'Daily Practice',
-        statusText: 'Open today’s adaptive set',
+        buttonLabel: "Start Daily Practice",
+        statusText: null,
+        tooltipText: null,
         isDisabled: false,
       };
     }
 
     if (progress.completedAt) {
       return {
-        buttonLabel: 'Review Daily Practice',
-        statusText: 'Completed today',
+        buttonLabel: "Review Daily Practice",
+        statusText: "Completed today",
+        tooltipText: null,
         isDisabled: false,
       };
     }
 
     if (progress.answeredQuestions > 0) {
       return {
-        buttonLabel: 'Resume Daily Practice',
+        buttonLabel: "Resume Daily Practice",
         statusText: `${progress.answeredQuestions}/${progress.totalQuestions} answered`,
+        tooltipText: null,
         isDisabled: false,
       };
     }
 
     return {
-      buttonLabel: 'Start Daily Practice',
+      buttonLabel: "Start Daily Practice",
       statusText: `${progress.totalQuestions} questions ready`,
+      tooltipText: null,
       isDisabled: false,
     };
   }, [
@@ -424,6 +431,7 @@ export function useSingleModulePageState({
     isCreatingUnit: createModuleUnitMutation.isPending,
     dailyPracticeButtonLabel: dailyPracticeEntry.buttonLabel,
     dailyPracticeStatusText: dailyPracticeEntry.statusText,
+    dailyPracticeTooltip: dailyPracticeEntry.tooltipText,
     isDailyPracticeButtonDisabled: dailyPracticeEntry.isDisabled,
     handleDailyPracticeClick,
     handleOpenStudentPracticeRoom,
