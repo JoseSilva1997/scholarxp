@@ -233,6 +233,68 @@ describe('PracticeRoomReadService', () => {
         },
       });
     });
+
+    it('scopes viewAnswers latest-attempt reads to the specific session being reviewed', async () => {
+      const drafts = [buildQuestionUnitDraft()];
+      prisma.questionAttempt.findMany.mockResolvedValue([] as never);
+
+      await service.getLatestAttempts(
+        TEST_MODULE_UNIT_ID,
+        TEST_STUDENT_ID,
+        drafts,
+        '11111111-1111-4111-8111-111111111333',
+        PracticeSessionTypeValues.viewAnswers,
+      );
+
+      expect(prisma.questionAttempt.findMany).toHaveBeenCalledWith({
+        where: {
+          moduleUnitId: TEST_MODULE_UNIT_ID,
+          studentId: TEST_STUDENT_ID,
+          sessionId: '11111111-1111-4111-8111-111111111333',
+          questionId: { in: [TEST_QUESTION_UNIT_ID] },
+          contentId: { in: [TEST_QUESTION_CONTENT_ID] },
+        },
+        orderBy: [{ attemptedAt: 'desc' }, { id: 'desc' }],
+        select: {
+          questionId: true,
+          contentId: true,
+          studentAnswer: true,
+          isCorrect: true,
+          attemptedAt: true,
+        },
+      });
+    });
+
+    it('scopes practiceRoom latest-attempt reads by sessionType to exclude daily-practice attempts', async () => {
+      const drafts = [buildQuestionUnitDraft()];
+      prisma.questionAttempt.findMany.mockResolvedValue([] as never);
+
+      await service.getLatestAttempts(
+        TEST_MODULE_UNIT_ID,
+        TEST_STUDENT_ID,
+        drafts,
+        '11111111-1111-4111-8111-111111111444',
+        PracticeSessionTypeValues.practiceRoom,
+      );
+
+      expect(prisma.questionAttempt.findMany).toHaveBeenCalledWith({
+        where: {
+          moduleUnitId: TEST_MODULE_UNIT_ID,
+          studentId: TEST_STUDENT_ID,
+          session: { sessionType: PracticeSessionTypeValues.practiceRoom },
+          questionId: { in: [TEST_QUESTION_UNIT_ID] },
+          contentId: { in: [TEST_QUESTION_CONTENT_ID] },
+        },
+        orderBy: [{ attemptedAt: 'desc' }, { id: 'desc' }],
+        select: {
+          questionId: true,
+          contentId: true,
+          studentAnswer: true,
+          isCorrect: true,
+          attemptedAt: true,
+        },
+      });
+    });
   });
 
   describe('getModuleProgressSnapshot', () => {

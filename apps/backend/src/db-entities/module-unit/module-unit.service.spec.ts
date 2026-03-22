@@ -222,7 +222,7 @@ describe('ModuleUnitService.findByModule', () => {
         session: {
           is: {
             sessionType: {
-              not: 'retry',
+              in: ['practice_room', 'view_answers'],
             },
           },
         },
@@ -259,7 +259,7 @@ describe('ModuleUnitService.findByModule', () => {
     expect(result[0]?.isCompleted).toBe(true);
   });
 
-  it('ignores retry-session attempts when deriving student card question status', async () => {
+  it('ignores retry and daily-practice attempts when deriving student card question status', async () => {
     prisma.moduleUnit.findMany.mockResolvedValue([
       {
         id: 1,
@@ -293,7 +293,7 @@ describe('ModuleUnitService.findByModule', () => {
           session: {
             is: {
               sessionType: {
-                not: 'retry',
+                in: ['practice_room', 'view_answers'],
               },
             },
           },

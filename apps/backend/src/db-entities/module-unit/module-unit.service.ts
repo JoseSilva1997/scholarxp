@@ -328,7 +328,10 @@ export class ModuleUnitService {
         session: {
           is: {
             sessionType: {
-              not: PracticeSessionTypeValues.retry,
+              in: [
+                PracticeSessionTypeValues.practiceRoom,
+                PracticeSessionTypeValues.viewAnswers,
+              ],
             },
           },
         },
