@@ -139,7 +139,7 @@ export function useDailyPracticePageState({
   const closedSessionIdsRef = useRef<Set<string>>(new Set());
   const activeSetId = room?.setId ?? null;
   // Seed streak from server on first load for the active set; after that, submit responses drive updates.
-  const isStreakInitialized = streakState.setId === activeSetId;
+  const isStreakInitialized = activeSetId !== null && streakState.setId === activeSetId;
   const currentStreak = isStreakInitialized ? streakState.value.currentStreak : 0;
   const highestStreak = isStreakInitialized ? streakState.value.highestStreak : 0;
   if (!isStreakInitialized && room) {
