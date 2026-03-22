@@ -212,6 +212,7 @@ describe('ModuleUnitService.findByModule', () => {
         id: 1,
       },
     ] as any);
+    prisma.expLedger.groupBy.mockResolvedValue([] as any);
 
     const result = await service.findByModule(77, 42);
 
@@ -284,6 +285,7 @@ describe('ModuleUnitService.findByModule', () => {
         isCorrect: true,
       },
     ] as any);
+    prisma.expLedger.groupBy.mockResolvedValue([] as any);
 
     const result = await service.findByModule(77, 42);
 

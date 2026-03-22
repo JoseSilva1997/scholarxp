@@ -149,7 +149,10 @@ export function useSingleModulePageState({
         isCompleted: unit.isCompleted,
         // Persist API count so cards show an accurate question total even when group previews are collapsed.
         questionCount: unit.questionCount ?? 0,
-        expEarned: unit.expEarned,
+        // Guard against stale cached responses that predate the mastery field.
+        expEarned: unit.expEarned
+          ? { ...unit.expEarned, mastery: unit.expEarned.mastery ?? 0 }
+          : undefined,
         questionGroups: (unit.questionGroups ?? []).map((group) => {
           return {
             id: String(group.id),

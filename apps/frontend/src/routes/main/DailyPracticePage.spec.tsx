@@ -113,6 +113,14 @@ vi.mock('../../hooks/page-state/useDailyPracticePageState', () => ({
   }),
 }));
 
+vi.mock('../../hooks/queries/useModulesQueries', () => ({
+  useModuleDetailQuery: () => ({
+    data: { id: 7, title: 'Test Module' },
+    isPending: false,
+    error: null,
+  }),
+}));
+
 vi.mock('../../components/MainSection', () => ({
   default: ({
     children,
@@ -209,8 +217,7 @@ describe('DailyPracticePage route', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('Daily Practice')).toBeInTheDocument();
-    expect(screen.getByText('Lesson 1')).toBeInTheDocument();
+    expect(screen.getByText('Daily Practice - Test Module')).toBeInTheDocument();
     expect(screen.getByText('Question?')).toBeInTheDocument();
     expect(screen.getByText('0/1 answered')).toBeInTheDocument();
 

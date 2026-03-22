@@ -383,7 +383,7 @@ export class ModuleUnitService {
       return new Map();
     }
 
-    // Only aggregate the three module-proficiency event types.
+    // Aggregate module-proficiency and daily-practice mastery event types.
     // COMPLETE_MODULE_UNIT is account XP (avatarService), not module XP, so it is excluded.
     const rows = await this.prisma.expLedger.groupBy({
       by: ['moduleUnitId', 'eventType'],
@@ -395,17 +395,26 @@ export class ModuleUnitService {
             ExpLedgerEventTypes.CORRECT_PRACTICE_ROOM_ANSWER,
             ExpLedgerEventTypes.PRACTICE_ROOM_CORRECT_AT_FIRST_ATTEMPT,
             ExpLedgerEventTypes.PRACTICE_ROOM_STREAK,
+            ExpLedgerEventTypes.DAILY_PRACTICE_MASTERY_ENCOUNTERED,
+            ExpLedgerEventTypes.DAILY_PRACTICE_MASTERY_GRADUATED,
+            ExpLedgerEventTypes.DAILY_PRACTICE_MASTERY_RETAINED,
           ],
         },
       },
       _sum: { awardedExp: true },
     });
 
+    const MASTERY_EVENT_TYPES: ReadonlySet<string> = new Set([
+      ExpLedgerEventTypes.DAILY_PRACTICE_MASTERY_ENCOUNTERED,
+      ExpLedgerEventTypes.DAILY_PRACTICE_MASTERY_GRADUATED,
+      ExpLedgerEventTypes.DAILY_PRACTICE_MASTERY_RETAINED,
+    ]);
+
     const result = new Map<number, ModuleUnitExpEarned>();
     for (const row of rows) {
       if (row.moduleUnitId === null) continue;
       if (!result.has(row.moduleUnitId)) {
-        result.set(row.moduleUnitId, { base: 0, firstAttempt: 0, streak: 0 });
+        result.set(row.moduleUnitId, { base: 0, firstAttempt: 0, streak: 0, mastery: 0 });
       }
       const entry = result.get(row.moduleUnitId)!;
       const awarded = row._sum.awardedExp ?? 0;
@@ -417,6 +426,8 @@ export class ModuleUnitService {
         entry.firstAttempt += awarded;
       } else if (row.eventType === ExpLedgerEventTypes.PRACTICE_ROOM_STREAK) {
         entry.streak += awarded;
+      } else if (MASTERY_EVENT_TYPES.has(row.eventType)) {
+        entry.mastery += awarded;
       }
     }
 

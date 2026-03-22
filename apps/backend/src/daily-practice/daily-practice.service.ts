@@ -13,6 +13,7 @@ import { PracticeRoomSessionService } from '../practice-room/practice-session.se
 import { QuestProgressService } from '../quests/quest-progress.service';
 import { DailyPracticeFsrsGradeService } from './daily-practice-fsrs-grade.service';
 import { DailyPracticeFsrsStateService } from './daily-practice-fsrs-state.service';
+import { DailyPracticeMasteryExpService } from './daily-practice-mastery-exp.service';
 import { DailyPracticeEligibilityService } from './daily-practice-eligibility.service';
 import { DailyPracticeInterleavingService } from './daily-practice-interleaving.service';
 import { DailyPracticeMapper } from './daily-practice.mapper';
@@ -28,6 +29,7 @@ const ZERO_AWARDS = {
   baseQuestionExp: 0,
   firstAttemptBonus: 0,
   streakBonus: 0,
+  masteryExp: 0,
   accountExp: 0,
 } as const;
 
@@ -45,6 +47,7 @@ export class DailyPracticeService {
     private readonly dailyPracticeInterleavingService: DailyPracticeInterleavingService,
     private readonly dailyPracticeFsrsGradeService: DailyPracticeFsrsGradeService,
     private readonly dailyPracticeFsrsStateService: DailyPracticeFsrsStateService,
+    private readonly dailyPracticeMasteryExpService: DailyPracticeMasteryExpService,
     private readonly dailyPracticeEligibilityService: DailyPracticeEligibilityService,
     private readonly dailyPracticeMapper: DailyPracticeMapper,
     private readonly practiceRoomAttemptService: PracticeRoomAttemptService,
@@ -205,20 +208,37 @@ export class DailyPracticeService {
       );
 
       // FSRS state is updated at most once per day — subsequent retries on the same question don't re-grade.
+      // Mastery XP evaluation piggybacks on the same guard since it depends on the updated FSRS state.
+      let masteryExpAwarded = 0;
       if (!hadAnyDailyAttemptBeforeSubmit) {
-        await this.dailyPracticeFsrsStateService.applyEncounter(
-          {
-            userId: studentId,
-            moduleId,
-            moduleUnitId: payload.moduleUnitId,
-            questionUnitId: payload.questionUnitId,
-            reviewedAt: attemptedAt,
-            firstAttemptCorrect: isCorrect,
-            hintUnlocked: payload.hintUnlocked,
-            timeTakenMs: payload.timeTakenMs,
-          },
-          tx,
-        );
+        const updatedState =
+          await this.dailyPracticeFsrsStateService.applyEncounter(
+            {
+              userId: studentId,
+              moduleId,
+              moduleUnitId: payload.moduleUnitId,
+              questionUnitId: payload.questionUnitId,
+              reviewedAt: attemptedAt,
+              firstAttemptCorrect: isCorrect,
+              hintUnlocked: payload.hintUnlocked,
+              timeTakenMs: payload.timeTakenMs,
+            },
+            tx,
+          );
+
+        const masteryResult =
+          await this.dailyPracticeMasteryExpService.evaluateAndAward(
+            {
+              userId: studentId,
+              moduleId,
+              moduleUnitId: payload.moduleUnitId,
+              questionUnitId: payload.questionUnitId,
+              sessionId: payload.sessionId,
+              updatedState,
+            },
+            tx,
+          );
+        masteryExpAwarded = masteryResult.masteryExpAwarded;
       }
 
       const todaysAttempts = await tx.questionAttempt.findMany({
@@ -264,12 +284,13 @@ export class DailyPracticeService {
             progressSnapshot,
             hasCorrectAttempt,
             streak,
+            masteryExpAwarded,
           };
         });
     });
 
     return this.dailyPracticeMapper.buildSubmitResponse({
-      awards: { ...ZERO_AWARDS },
+      awards: { ...ZERO_AWARDS, masteryExp: progress.masteryExpAwarded },
       hasCorrectAttempt: progress.hasCorrectAttempt,
       currentStreak: progress.streak.currentStreak,
       highestStreak: progress.streak.highestStreak,

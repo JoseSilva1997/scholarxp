@@ -14,6 +14,7 @@ import { DailyPracticeEligibilityService } from './daily-practice-eligibility.se
 import { DailyPracticeFsrsGradeService } from './daily-practice-fsrs-grade.service';
 import { DailyPracticeFsrsStateService } from './daily-practice-fsrs-state.service';
 import { DailyPracticeInterleavingService } from './daily-practice-interleaving.service';
+import { DailyPracticeMasteryExpService } from './daily-practice-mastery-exp.service';
 import { DailyPracticeMapper } from './daily-practice.mapper';
 import { DailyPracticeService } from './daily-practice.service';
 import { DailyPracticeSetReadService } from './daily-practice-set-read.service';
@@ -42,6 +43,9 @@ describe('DailyPracticeService', () => {
   };
   let dailyPracticeFsrsStateService: {
     applyEncounter: jest.Mock;
+  };
+  let dailyPracticeMasteryExpService: {
+    evaluateAndAward: jest.Mock;
   };
   let dailyPracticeEligibilityService: {
     assertEligibleForToday: jest.Mock;
@@ -83,7 +87,29 @@ describe('DailyPracticeService', () => {
       mapEncounterToGrade: jest.fn(),
     };
     dailyPracticeFsrsStateService = {
-      applyEncounter: jest.fn(),
+      applyEncounter: jest.fn().mockResolvedValue({
+        id: 'state-uuid',
+        userId: 100,
+        moduleId: 10,
+        moduleUnitId: 20,
+        questionUnitId: 30,
+        fsrsState: 'learning',
+        fsrsDifficulty: 0.3,
+        fsrsStability: 1.0,
+        fsrsDueAt: new Date(),
+        fsrsLastReviewedAt: new Date(),
+        reviewCount: 1,
+        lapseCount: 0,
+        lastGrade: 'good',
+        lastSeenAt: new Date(),
+        lastCorrectAt: new Date(),
+        recentAvgTimeMs: 5000,
+        firstSeenAt: new Date(),
+        algorithmVersion: 'fsrs_v1',
+      }),
+    };
+    dailyPracticeMasteryExpService = {
+      evaluateAndAward: jest.fn().mockResolvedValue({ masteryExpAwarded: 0 }),
     };
     dailyPracticeEligibilityService = {
       assertEligibleForToday: jest.fn().mockResolvedValue(undefined),
@@ -132,6 +158,10 @@ describe('DailyPracticeService', () => {
         {
           provide: DailyPracticeFsrsStateService,
           useValue: dailyPracticeFsrsStateService,
+        },
+        {
+          provide: DailyPracticeMasteryExpService,
+          useValue: dailyPracticeMasteryExpService,
         },
         {
           provide: DailyPracticeEligibilityService,

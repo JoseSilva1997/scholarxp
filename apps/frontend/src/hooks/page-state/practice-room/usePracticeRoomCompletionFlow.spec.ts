@@ -11,6 +11,7 @@ function buildSubmitResponse(): SubmitAttemptResponse {
       baseQuestionExp: 10,
       firstAttemptBonus: 5,
       streakBonus: 0,
+        masteryExp: 0,
       accountExp: 25,
     },
     hasCorrectAttempt: true,

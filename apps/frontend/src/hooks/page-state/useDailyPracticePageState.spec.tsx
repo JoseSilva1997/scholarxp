@@ -110,6 +110,7 @@ function buildSubmitResponse(
       baseQuestionExp: 0,
       firstAttemptBonus: 0,
       streakBonus: 0,
+        masteryExp: 0,
       accountExp: 0,
     },
     hasCorrectAttempt: true,

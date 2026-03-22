@@ -282,6 +282,10 @@
   color: var(--color-secondary);
 }
 
+.xpStatLabelMastery {
+  color: var(--color-accent);
+}
+
 .xpSymbol {
   color: var(--color-accent);
 }

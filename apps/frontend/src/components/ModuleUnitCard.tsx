@@ -29,7 +29,7 @@ export type ModuleUnit = {
   questionCount: number;
   isCompleted: boolean;
   questionGroups: QuestionUnitGroup[];
-  expEarned?: { base: number; firstAttempt: number; streak: number };
+  expEarned?: { base: number; firstAttempt: number; streak: number; mastery: number };
 };
 
 type ModuleUnitCardProps = {

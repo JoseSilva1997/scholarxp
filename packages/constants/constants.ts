@@ -49,6 +49,8 @@ export const MODULE_UNIT_BASELINE_EXP = 1000;
 export const STREAK_BONUS_EXP_PER_DELTA = 50;
  // Potential maximum bonus for first-attempt correctness across all questions in a module unit.
 export const MAXIMUM_FIRST_ATTEMPT_BONUS_EXP = 150;
+// Total mastery XP pool earned through daily practice spaced repetition across all questions in a module unit.
+export const MASTERY_TOTAL_EXP = 700;
 
 // Module Unit completion rewards with deminishing returs per completion per UTC day
 export const MODULE_UNIT_COMPLETION_REWARDS = {
@@ -74,7 +76,9 @@ export const ExpLedgerEventTypes = {
     CORRECT_PRACTICE_ROOM_ANSWER: 'practice_room_answer_correct',
     PRACTICE_ROOM_STREAK: 'practice_room_streak',
     PRACTICE_ROOM_CORRECT_AT_FIRST_ATTEMPT: 'practice_room_correct_at_first_attempt',
-    // Add more event types as needed
+    DAILY_PRACTICE_MASTERY_ENCOUNTERED: 'daily_practice_mastery_encountered',
+    DAILY_PRACTICE_MASTERY_GRADUATED: 'daily_practice_mastery_graduated',
+    DAILY_PRACTICE_MASTERY_RETAINED: 'daily_practice_mastery_retained',
 } as const
 
 export type ExpLedgerEventType = typeof ExpLedgerEventTypes[keyof typeof ExpLedgerEventTypes];

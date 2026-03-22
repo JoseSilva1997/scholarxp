@@ -330,6 +330,7 @@ describe('PracticeRoomService', () => {
           baseQuestionExp: 33,
           firstAttemptBonus: 17,
           streakBonus: 9,
+          masteryExp: 0,
           accountExp: 75,
         },
         awardReasons: rewardReasons,
@@ -479,6 +480,7 @@ describe('PracticeRoomService', () => {
           baseQuestionExp: 0,
           firstAttemptBonus: 0,
           streakBonus: 0,
+          masteryExp: 0,
           accountExp: 0,
         },
         awardReasons: {

@@ -6,6 +6,7 @@ import { FaCheck, FaMinus, FaXmark } from 'react-icons/fa6';
 import { IoMdLock } from "react-icons/io"
 import type { QuestionAttemptResult } from '@scholarxp/api-contracts';
 import {
+  MASTERY_TOTAL_EXP,
   MAXIMUM_FIRST_ATTEMPT_BONUS_EXP,
   MODULE_UNIT_BASELINE_EXP,
   STREAK_BONUS_EXP_PER_DELTA,
@@ -109,13 +110,13 @@ export default function StudentModuleUnitCard({
                        <span className={styles.xpTotalValue}>
                          <span className={styles.xpSymbol}>⚡</span>
                          {unit.expEarned
-                           ? (unit.expEarned.base + unit.expEarned.firstAttempt + unit.expEarned.streak)
-                           : (MODULE_UNIT_BASELINE_EXP + MAXIMUM_FIRST_ATTEMPT_BONUS_EXP + (hasStreakBonus ? maximumStreakBonusExp : 0))
+                           ? (unit.expEarned.base + unit.expEarned.firstAttempt + unit.expEarned.streak + unit.expEarned.mastery)
+                           : (MODULE_UNIT_BASELINE_EXP + MAXIMUM_FIRST_ATTEMPT_BONUS_EXP + (hasStreakBonus ? maximumStreakBonusExp : 0) + MASTERY_TOTAL_EXP)
                          }
                        </span>
                        <span className={styles.xpTotalSubtext}>
-                         {unit.expEarned 
-                           ? `of ${MODULE_UNIT_BASELINE_EXP + MAXIMUM_FIRST_ATTEMPT_BONUS_EXP + (hasStreakBonus ? maximumStreakBonusExp : 0)} XP` 
+                         {unit.expEarned
+                           ? `of ${MODULE_UNIT_BASELINE_EXP + MAXIMUM_FIRST_ATTEMPT_BONUS_EXP + (hasStreakBonus ? maximumStreakBonusExp : 0) + MASTERY_TOTAL_EXP} XP`
                            : 'AVAILABLE'}
                        </span>
                      </div>
@@ -141,11 +142,19 @@ export default function StudentModuleUnitCard({
                          <div className={styles.xpStatRow} title="Bonus XP for maintaining a streak">
                            <span className={`${styles.xpStatLabel} ${styles.xpStatLabelStreak}`}>Streak</span>
                            <span className={styles.xpStatValue}>
-                             {unit.expEarned ? unit.expEarned.streak : `+${maximumStreakBonusExp}`} 
+                             {unit.expEarned ? unit.expEarned.streak : `+${maximumStreakBonusExp}`}
                              {unit.expEarned && <span className={styles.xpStatMax}>/{maximumStreakBonusExp}</span>}
                            </span>
                          </div>
                        )}
+
+                       <div className={styles.xpStatRow} title="XP earned through daily practice mastery">
+                         <span className={`${styles.xpStatLabel} ${styles.xpStatLabelMastery}`}>Mastery</span>
+                         <span className={styles.xpStatValue}>
+                           {unit.expEarned ? unit.expEarned.mastery : `+${MASTERY_TOTAL_EXP}`}
+                           {unit.expEarned && <span className={styles.xpStatMax}>/{MASTERY_TOTAL_EXP}</span>}
+                         </span>
+                       </div>
                      </div>
                    </div>
                 )}

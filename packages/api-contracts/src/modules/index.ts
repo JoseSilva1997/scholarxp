@@ -63,6 +63,7 @@ export interface ModuleUnitExpEarned {
   base: number;
   firstAttempt: number;
   streak: number;
+  mastery: number;
 }
 
 export interface ModuleUnitResponse {

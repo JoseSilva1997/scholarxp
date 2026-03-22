@@ -374,9 +374,10 @@ describe('useSingleModulePageState', () => {
     });
 
     expect(result.current.dailyPracticeButtonLabel).toBe(
-      'Daily Practice Locked',
+      'No Daily Practice Yet',
     );
-    expect(result.current.dailyPracticeStatusText).toBe(
+    expect(result.current.dailyPracticeStatusText).toBeNull();
+    expect(result.current.dailyPracticeTooltip).toBe(
       'Daily practice unlocks tomorrow after you complete your first lesson in this module.',
     );
     expect(result.current.isDailyPracticeButtonDisabled).toBe(true);
@@ -412,9 +413,10 @@ describe('useSingleModulePageState', () => {
     });
 
     expect(result.current.dailyPracticeButtonLabel).toBe(
-      'No Daily Practice Today',
+      'All Caught Up',
     );
-    expect(result.current.dailyPracticeStatusText).toBe(
+    expect(result.current.dailyPracticeStatusText).toBeNull();
+    expect(result.current.dailyPracticeTooltip).toBe(
       'No daily practice questions are available for this module yet.',
     );
     expect(result.current.isDailyPracticeButtonDisabled).toBe(true);

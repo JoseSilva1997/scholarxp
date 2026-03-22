@@ -315,6 +315,7 @@ export class PracticeRoomService {
         baseQuestionExp: moduleAwards.baseQuestionExp,
         firstAttemptBonus: moduleAwards.firstAttemptBonus,
         streakBonus: moduleAwards.streakBonus,
+        masteryExp: 0,
         accountExp: awardedAccountExp,
       },
       awardReasons: this.practiceRoomAttemptService.resolveSubmitAwardReasons({
