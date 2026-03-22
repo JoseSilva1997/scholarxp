@@ -80,11 +80,7 @@ describe('Daily practice attempt behaviour (e2e)', () => {
     // mutate FSRS state again." If this guard breaks, the 'good' grade would
     // overwrite the 'again' grade, pushing the next review date far into the
     // future and corrupting the student's spaced-repetition schedule.
-    await submitDailyPracticeAttemptCorrect(
-      app,
-      base.moduleId,
-      attemptParams,
-    );
+    await submitDailyPracticeAttemptCorrect(app, base.moduleId, attemptParams);
 
     // ── Assert: two QuestionAttempt rows exist ──
     // Both the incorrect first attempt and the correct retry must be persisted
@@ -103,13 +99,12 @@ describe('Daily practice attempt behaviour (e2e)', () => {
     // ── Assert: FSRS state is identical to the post-first-attempt snapshot ──
     // These are the scheduling-critical fields. If any of them changed, the
     // retry mutated FSRS state — which is the exact regression this test guards.
-    const stateAfterRetry =
-      await prisma.studentQuestionState.findFirstOrThrow({
-        where: {
-          userId: base.studentId,
-          questionUnitId: targetQuestion.questionUnitId,
-        },
-      });
+    const stateAfterRetry = await prisma.studentQuestionState.findFirstOrThrow({
+      where: {
+        userId: base.studentId,
+        questionUnitId: targetQuestion.questionUnitId,
+      },
+    });
 
     expect(stateAfterRetry.fsrsDueAt.toISOString()).toBe(
       stateAfterFirstAttempt.fsrsDueAt.toISOString(),
@@ -124,9 +119,7 @@ describe('Daily practice attempt behaviour (e2e)', () => {
     expect(stateAfterRetry.reviewCount).toBe(
       stateAfterFirstAttempt.reviewCount,
     );
-    expect(stateAfterRetry.lapseCount).toBe(
-      stateAfterFirstAttempt.lapseCount,
-    );
+    expect(stateAfterRetry.lapseCount).toBe(stateAfterFirstAttempt.lapseCount);
     expect(stateAfterRetry.lastGrade).toBe(stateAfterFirstAttempt.lastGrade);
 
     // ── Assert: progress counts the question once, not twice ──

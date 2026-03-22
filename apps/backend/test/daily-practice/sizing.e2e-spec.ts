@@ -43,7 +43,9 @@ describe('Daily practice sizing boundaries (e2e)', () => {
     // The unseen question in the started lesson must NOT appear even though it is eligible for new-sequence.
     const base = await seedStudentModuleScenario(prisma);
     setAuthenticatedUserId(base.studentId);
-    await seedStudentSizingBoundaryScenario(prisma, base, { dueReviewCount: 12 });
+    await seedStudentSizingBoundaryScenario(prisma, base, {
+      dueReviewCount: 12,
+    });
 
     const body = await fetchTodayDailyPractice(app, base.moduleId);
 
@@ -90,8 +92,7 @@ describe('Daily practice sizing boundaries (e2e)', () => {
 
     expect(body.questions).toHaveLength(4);
     const newSequenceQuestions = body.questions.filter(
-      (q) =>
-        q.sourceBucket === DailyPracticeSelectionBucketValues.newSequence,
+      (q) => q.sourceBucket === DailyPracticeSelectionBucketValues.newSequence,
     );
     // Exactly one new-sequence question must appear now that the threshold is crossed.
     expect(newSequenceQuestions).toHaveLength(1);
@@ -137,18 +138,21 @@ describe('Daily practice sizing boundaries (e2e)', () => {
     expect(
       body.questions.filter(
         (question) =>
-          question.sourceBucket === DailyPracticeSelectionBucketValues.dueReview,
+          question.sourceBucket ===
+          DailyPracticeSelectionBucketValues.dueReview,
       ),
     ).toHaveLength(4);
     expect(
       body.questions.filter(
         (question) =>
-          question.sourceBucket === DailyPracticeSelectionBucketValues.reinforcement,
+          question.sourceBucket ===
+          DailyPracticeSelectionBucketValues.reinforcement,
       ),
     ).toHaveLength(1);
     const newSequenceQuestions = body.questions.filter(
       (question) =>
-        question.sourceBucket === DailyPracticeSelectionBucketValues.newSequence,
+        question.sourceBucket ===
+        DailyPracticeSelectionBucketValues.newSequence,
     );
     expect(newSequenceQuestions).toHaveLength(1);
 
@@ -171,13 +175,15 @@ describe('Daily practice sizing boundaries (e2e)', () => {
     expect(persistedSet?.items).toHaveLength(6);
     expect(
       persistedSet?.items.filter(
-        (item) => item.sourceBucket === DailyPracticeSelectionBucketValues.dueReview,
+        (item) =>
+          item.sourceBucket === DailyPracticeSelectionBucketValues.dueReview,
       ),
     ).toHaveLength(4);
     expect(
       persistedSet?.items.filter(
         (item) =>
-          item.sourceBucket === DailyPracticeSelectionBucketValues.reinforcement,
+          item.sourceBucket ===
+          DailyPracticeSelectionBucketValues.reinforcement,
       ),
     ).toHaveLength(1);
     expect(

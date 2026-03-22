@@ -35,7 +35,7 @@ describe('Daily practice session stability (e2e)', () => {
     await app.close();
   });
 
-  it('generates a fresh set and session on the next UTC day, leaving yesterday\'s set untouched', async () => {
+  it("generates a fresh set and session on the next UTC day, leaving yesterday's set untouched", async () => {
     // Scenario: student practiced yesterday (simulated by inserting a DailyPracticeSet directly).
     // Today's fetch must create a brand-new set rather than resuming the stale one.
     const base = await seedStudentModuleScenario(prisma);

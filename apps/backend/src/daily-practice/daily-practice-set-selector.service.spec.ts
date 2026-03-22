@@ -245,11 +245,16 @@ describe('DailyPracticeSetSelectorService', () => {
       }),
     ] satisfies StudentQuestionStateRecord[]);
 
-    const result = await service.selectQuestions({ userId: 42, moduleId: 7, now });
+    const result = await service.selectQuestions({
+      userId: 42,
+      moduleId: 7,
+      now,
+    });
 
     const reinforcementSelections = result.selectedQuestions.filter(
       (question) =>
-        question.sourceBucket === DailyPracticeSelectionBucketValues.reinforcement,
+        question.sourceBucket ===
+        DailyPracticeSelectionBucketValues.reinforcement,
     );
     expect(reinforcementSelections).toHaveLength(1);
     expect(reinforcementSelections[0].questionUnitId).toBe(103);
@@ -274,11 +279,16 @@ describe('DailyPracticeSetSelectorService', () => {
       buildState(103, 1, { lapseCount: 1 }),
     ] satisfies StudentQuestionStateRecord[]);
 
-    const result = await service.selectQuestions({ userId: 42, moduleId: 7, now });
+    const result = await service.selectQuestions({
+      userId: 42,
+      moduleId: 7,
+      now,
+    });
 
     const reinforcementSelections = result.selectedQuestions.filter(
       (question) =>
-        question.sourceBucket === DailyPracticeSelectionBucketValues.reinforcement,
+        question.sourceBucket ===
+        DailyPracticeSelectionBucketValues.reinforcement,
     );
     expect(reinforcementSelections).toHaveLength(1);
     expect(reinforcementSelections[0].questionUnitId).toBe(103);
@@ -306,7 +316,11 @@ describe('DailyPracticeSetSelectorService', () => {
       // Q104 has no state → new-sequence candidate.
     ] satisfies StudentQuestionStateRecord[]);
 
-    const result = await service.selectQuestions({ userId: 42, moduleId: 7, now });
+    const result = await service.selectQuestions({
+      userId: 42,
+      moduleId: 7,
+      now,
+    });
 
     expect(
       result.selectedQuestions.some(
@@ -316,7 +330,8 @@ describe('DailyPracticeSetSelectorService', () => {
     expect(
       result.selectedQuestions.filter(
         (question) =>
-          question.sourceBucket === DailyPracticeSelectionBucketValues.reinforcement,
+          question.sourceBucket ===
+          DailyPracticeSelectionBucketValues.reinforcement,
       ),
     ).toHaveLength(0);
   });
@@ -344,7 +359,11 @@ describe('DailyPracticeSetSelectorService', () => {
       }),
     ] satisfies StudentQuestionStateRecord[]);
 
-    const result = await service.selectQuestions({ userId: 42, moduleId: 7, now });
+    const result = await service.selectQuestions({
+      userId: 42,
+      moduleId: 7,
+      now,
+    });
 
     expect(
       result.selectedQuestions.some(
@@ -354,7 +373,8 @@ describe('DailyPracticeSetSelectorService', () => {
     expect(
       result.selectedQuestions.filter(
         (question) =>
-          question.sourceBucket === DailyPracticeSelectionBucketValues.reinforcement,
+          question.sourceBucket ===
+          DailyPracticeSelectionBucketValues.reinforcement,
       ),
     ).toHaveLength(0);
   });
@@ -400,7 +420,6 @@ describe('DailyPracticeSetSelectorService', () => {
     expect(lessonOneSelections).toHaveLength(2);
     expect(result.selectedQuestions).toHaveLength(5);
   });
-});
 
   // --- new_sequence ordering ---
 
@@ -451,7 +470,8 @@ describe('DailyPracticeSetSelectorService', () => {
 
     const newSequenceSelections = result.selectedQuestions.filter(
       (question) =>
-        question.sourceBucket === DailyPracticeSelectionBucketValues.newSequence,
+        question.sourceBucket ===
+        DailyPracticeSelectionBucketValues.newSequence,
     );
     expect(newSequenceSelections).toHaveLength(1);
     // Must be from lesson 2 (sortOrder=2), never from lesson 3 (sortOrder=3).

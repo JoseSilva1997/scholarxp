@@ -1,6 +1,9 @@
 // Role: verifies that mapper methods produce correctly shaped DTOs and handle all date/null edge cases.
 import { Test, type TestingModule } from '@nestjs/testing';
-import { DailyPracticeSelectionBucketValues } from '@scholarxp/api-contracts';
+import {
+  DailyPracticeSelectionBucketValues,
+  PracticeSessionTypeValues,
+} from '@scholarxp/api-contracts';
 import { DailyPracticeMapper } from './daily-practice.mapper';
 
 const PRACTICE_DATE = new Date('2026-03-22T00:00:00.000Z');
@@ -27,13 +30,19 @@ describe('DailyPracticeMapper', () => {
       expect(result.moduleId).toBe(7);
       expect(result.practiceDateUtc).toBe('2026-03-22T00:00:00.000Z');
       expect(result.sessionId).toBe('session-uuid');
-      expect(result.sessionType).toBe('new');
+      expect(result.sessionType).toBe(PracticeSessionTypeValues.dailyPractice);
       expect(result.algorithmVersion).toBe('fsrs_v1');
     });
 
     it('maps progress fields and converts completedAt Date to ISO string', () => {
       const result = mapper.buildTodayResponse(
-        buildTodayInput({ progress: { totalQuestions: 5, answeredQuestions: 3, completedAt: COMPLETED_AT } }),
+        buildTodayInput({
+          progress: {
+            totalQuestions: 5,
+            answeredQuestions: 3,
+            completedAt: COMPLETED_AT,
+          },
+        }),
       );
 
       expect(result.progress.totalQuestions).toBe(5);
@@ -73,11 +82,12 @@ describe('DailyPracticeMapper', () => {
     });
 
     it('maps lastAttempt when present', () => {
-      const input = buildTodayInput();
-      input.questions[0].coreQuestion.lastAttempt = {
-        studentAnswer: { selectedOptionId: 2 },
-        isCorrect: true,
-      };
+      const input = buildTodayInput({
+        lastAttempt: {
+          studentAnswer: { selectedOptionId: 2 },
+          isCorrect: true,
+        },
+      });
 
       const result = mapper.buildTodayResponse(input);
 
@@ -94,7 +104,9 @@ describe('DailyPracticeMapper', () => {
     });
 
     it('returns a DailyPracticeTodayResponseDto instance', () => {
-      const { DailyPracticeTodayResponseDto } = jest.requireActual('./dto/daily-practice-response.dto');
+      const { DailyPracticeTodayResponseDto } = jest.requireActual(
+        './dto/daily-practice-response.dto',
+      );
       const result = mapper.buildTodayResponse(buildTodayInput());
 
       expect(result).toBeInstanceOf(DailyPracticeTodayResponseDto);
@@ -108,7 +120,11 @@ describe('DailyPracticeMapper', () => {
       const result = mapper.buildSubmitResponse({
         awards: { xp: 10, streakBonus: 0 } as any,
         hasCorrectAttempt: true,
-        progress: { totalQuestions: 5, answeredQuestions: 2, completedAt: null },
+        progress: {
+          totalQuestions: 5,
+          answeredQuestions: 2,
+          completedAt: null,
+        },
         encounterGrade: 'good',
       });
 
@@ -124,7 +140,11 @@ describe('DailyPracticeMapper', () => {
       const result = mapper.buildSubmitResponse({
         awards: {} as any,
         hasCorrectAttempt: false,
-        progress: { totalQuestions: 5, answeredQuestions: 5, completedAt: COMPLETED_AT },
+        progress: {
+          totalQuestions: 5,
+          answeredQuestions: 5,
+          completedAt: COMPLETED_AT,
+        },
         encounterGrade: 'again',
       });
 
@@ -139,7 +159,11 @@ describe('DailyPracticeMapper', () => {
       const result = mapper.buildCloseResponse({
         sessionId: 'session-uuid',
         closedAt: '2026-03-22T15:00:00.000Z',
-        progress: { totalQuestions: 5, answeredQuestions: 2, completedAt: null },
+        progress: {
+          totalQuestions: 5,
+          answeredQuestions: 2,
+          completedAt: null,
+        },
       });
 
       expect(result.sessionId).toBe('session-uuid');
@@ -154,7 +178,11 @@ describe('DailyPracticeMapper', () => {
       const result = mapper.buildCloseResponse({
         sessionId: 'session-uuid',
         closedAt: '2026-03-22T15:00:00.000Z',
-        progress: { totalQuestions: 5, answeredQuestions: 5, completedAt: COMPLETED_AT },
+        progress: {
+          totalQuestions: 5,
+          answeredQuestions: 5,
+          completedAt: COMPLETED_AT,
+        },
       });
 
       expect(result.setCompleted).toBe(true);
@@ -167,7 +195,12 @@ describe('DailyPracticeMapper', () => {
 
 function buildTodayInput(
   overrides: {
-    progress?: { totalQuestions: number; answeredQuestions: number; completedAt: Date | null };
+    progress?: {
+      totalQuestions: number;
+      answeredQuestions: number;
+      completedAt: Date | null;
+    };
+    lastAttempt?: { studentAnswer: unknown; isCorrect: boolean } | null;
   } = {},
 ) {
   return {
@@ -175,7 +208,7 @@ function buildTodayInput(
     moduleId: 7,
     practiceDateUtc: PRACTICE_DATE,
     sessionId: 'session-uuid',
-    sessionType: 'new' as const,
+    sessionType: PracticeSessionTypeValues.dailyPractice,
     algorithmVersion: 'fsrs_v1',
     progress: overrides.progress ?? {
       totalQuestions: 5,
@@ -200,7 +233,7 @@ function buildTodayInput(
             hint: 'Think small.',
             difficultyScore: 0.4,
           },
-          lastAttempt: null,
+          lastAttempt: overrides.lastAttempt ?? null,
         },
       },
     ],

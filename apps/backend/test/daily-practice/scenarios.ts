@@ -545,7 +545,9 @@ export async function seedStudentMaxPressureScenario(
     studentId: base.studentId,
     moduleId: base.moduleId,
     moduleUnitId: heavyLesson.moduleUnitId,
-    questionIds: heavyLesson.questions.map((question) => question.questionUnitId),
+    questionIds: heavyLesson.questions.map(
+      (question) => question.questionUnitId,
+    ),
     dueAt: new Date(dayStartUtc.getTime() - 2 * 60 * 60 * 1000),
     lastSeenAt: completedAt,
   });

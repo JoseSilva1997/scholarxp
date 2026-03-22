@@ -150,12 +150,14 @@ describe('Daily practice selection rules (e2e)', () => {
     expect(
       body.questions.filter(
         (question) =>
-          question.sourceBucket === DailyPracticeSelectionBucketValues.dueReview,
+          question.sourceBucket ===
+          DailyPracticeSelectionBucketValues.dueReview,
       ),
     ).toHaveLength(2);
     const reinforcementQuestions = body.questions.filter(
       (question) =>
-        question.sourceBucket === DailyPracticeSelectionBucketValues.reinforcement,
+        question.sourceBucket ===
+        DailyPracticeSelectionBucketValues.reinforcement,
     );
     expect(reinforcementQuestions).toHaveLength(1);
     // The reinforcement question must come from the mixed lesson, not the completed due lesson.
@@ -165,7 +167,8 @@ describe('Daily practice selection rules (e2e)', () => {
     expect(
       body.questions.filter(
         (question) =>
-          question.sourceBucket === DailyPracticeSelectionBucketValues.newSequence,
+          question.sourceBucket ===
+          DailyPracticeSelectionBucketValues.newSequence,
       ),
     ).toHaveLength(0);
   });
@@ -230,7 +233,8 @@ describe('Daily practice selection rules (e2e)', () => {
     expect(
       persistedSet?.items.filter(
         (item) =>
-          item.sourceBucket === DailyPracticeSelectionBucketValues.reinforcement,
+          item.sourceBucket ===
+          DailyPracticeSelectionBucketValues.reinforcement,
       ),
     ).toHaveLength(2);
   });

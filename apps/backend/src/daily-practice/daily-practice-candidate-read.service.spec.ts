@@ -107,7 +107,9 @@ describe('DailyPracticeCandidateReadService', () => {
   });
 
   it('uses the provided transaction client instead of the injected prisma', async () => {
-    const txClient = { moduleUnit: { findMany: jest.fn().mockResolvedValue([]) } };
+    const txClient = {
+      moduleUnit: { findMany: jest.fn().mockResolvedValue([]) },
+    };
 
     await service.listModuleCandidateQuestions(7, txClient as any);
 
@@ -130,10 +132,14 @@ describe('DailyPracticeCandidateReadService', () => {
   it('flattens question units across multiple module units preserving order', async () => {
     prisma.moduleUnit.findMany.mockResolvedValue([
       buildModuleUnit(1, 'Lesson A', 0, [
-        buildQuestionUnit(10, 'Q10', null, null, [buildContent(1001, 'multiple_choice', 0.3)]),
+        buildQuestionUnit(10, 'Q10', null, null, [
+          buildContent(1001, 'multiple_choice', 0.3),
+        ]),
       ]),
       buildModuleUnit(2, 'Lesson B', 1, [
-        buildQuestionUnit(20, 'Q20', null, null, [buildContent(2001, 'multiple_choice', 0.7)]),
+        buildQuestionUnit(20, 'Q20', null, null, [
+          buildContent(2001, 'multiple_choice', 0.7),
+        ]),
       ]),
     ]);
 
