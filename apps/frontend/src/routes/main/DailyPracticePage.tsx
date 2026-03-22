@@ -8,6 +8,7 @@ import {
   FaLightbulb,
 } from 'react-icons/fa6';
 import MainSection from '../../components/MainSection';
+import StreakIndicator from '../../components/PracticeRoom/StreakTrackerIndicator';
 import { useDailyPracticePageState } from '../../hooks/page-state/useDailyPracticePageState';
 import { useModuleDetailQuery } from '../../hooks/queries/useModulesQueries';
 import { buildPracticeRoomAnswerFeedback } from './practice-room-answer-feedback';
@@ -54,6 +55,9 @@ export default function DailyPracticePage() {
     selectedOptionIndex,
     hasActiveOptionOverride,
     isActiveHintUnlocked,
+    currentStreak,
+    highestStreak,
+    isStreakInitialized,
     selectQuestion,
     selectOption,
     unlockHintForContent,
@@ -104,11 +108,19 @@ export default function DailyPracticePage() {
             </h1>
           </div>
 
-          {progress ? (
-            <div className={styles.progressCounter}>
-              {progress.answeredQuestions}/{progress.totalQuestions} answered
-            </div>
-          ) : null}
+          <div className={styles.headerProgress}>
+            <StreakIndicator
+              currentStreak={currentStreak}
+              highestStreak={highestStreak}
+              totalQuestions={room?.questions.length ?? 0}
+              isStreakInitialized={isStreakInitialized}
+            />
+            {progress ? (
+              <div className={styles.progressCounter}>
+                {progress.answeredQuestions}/{progress.totalQuestions} answered
+              </div>
+            ) : null}
+          </div>
         </div>
 
         {room ? (

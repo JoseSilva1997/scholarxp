@@ -26,6 +26,8 @@ type BuildTodayResponseInput = {
   sessionId: string;
   sessionType: PracticeSessionType;
   algorithmVersion: string;
+  currentStreak: number;
+  highestStreak: number;
   progress: {
     totalQuestions: number;
     answeredQuestions: number;
@@ -67,6 +69,8 @@ export class DailyPracticeMapper {
     response.sessionType = input.sessionType;
     response.algorithmVersion =
       input.algorithmVersion as DailyPracticeTodayResponseDto['algorithmVersion'];
+    response.currentStreak = input.currentStreak;
+    response.highestStreak = input.highestStreak;
     response.progress = this.buildProgressDto(input.progress);
     response.questions = input.questions.map((question) =>
       this.buildQuestionItemDto(question),
@@ -79,6 +83,8 @@ export class DailyPracticeMapper {
   buildSubmitResponse(input: {
     awards: Awards;
     hasCorrectAttempt: boolean;
+    currentStreak: number;
+    highestStreak: number;
     progress: {
       totalQuestions: number;
       answeredQuestions: number;
@@ -89,6 +95,8 @@ export class DailyPracticeMapper {
     const response = new SubmitDailyPracticeAttemptResponseDto();
     response.awards = input.awards;
     response.hasCorrectAttempt = input.hasCorrectAttempt;
+    response.currentStreak = input.currentStreak;
+    response.highestStreak = input.highestStreak;
     response.progress = this.buildProgressDto(input.progress);
     response.encounterGrade = input.encounterGrade;
 

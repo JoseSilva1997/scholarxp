@@ -33,7 +33,7 @@ const ZERO_AWARDS = {
 
 type DailyPracticeQuestionAttemptSnapshot = Pick<
   QuestionAttempt,
-  'questionId' | 'studentAnswer' | 'isCorrect' | 'attemptedAt'
+  'questionId' | 'studentAnswer' | 'isCorrect' | 'attemptedAt' | 'hintsUsed'
 >;
 
 @Injectable()
@@ -89,6 +89,8 @@ export class DailyPracticeService {
       sessionId: session.id,
       sessionType: PracticeSessionTypeValues.dailyPractice,
       algorithmVersion: dailyPracticeSet.algorithmVersion,
+      currentStreak: hydratedState.currentStreak,
+      highestStreak: hydratedState.highestStreak,
       progress: hydratedState.progress,
       questions: hydratedState.questions,
     });
@@ -219,6 +221,22 @@ export class DailyPracticeService {
         );
       }
 
+      const todaysAttempts = await tx.questionAttempt.findMany({
+        where: {
+          studentId,
+          questionId: { in: dailyPracticeSet.items.map((item) => item.questionUnitId) },
+          attemptedAt: { gte: dayStartUtc, lt: nextDayStartUtc },
+          session: {
+            moduleId,
+            userId: studentId,
+            sessionType: PracticeSessionTypeValues.dailyPractice,
+          },
+        },
+        orderBy: [{ attemptedAt: 'asc' }, { id: 'asc' }],
+        select: { questionId: true, isCorrect: true, hintsUsed: true },
+      });
+      const streak = this.computeDailyPracticeStreak(todaysAttempts);
+
       return this.syncProgressForSet(
         dailyPracticeSet,
         studentId,
@@ -230,8 +248,9 @@ export class DailyPracticeService {
           progressSnapshot,
           hasCorrectAttempt:
             Boolean(hadCorrectDailyAttemptBeforeSubmit) || isCorrect,
+          streak,
         }))
-        .then(async ({ progressSnapshot, hasCorrectAttempt }) => {
+        .then(async ({ progressSnapshot, hasCorrectAttempt, streak }) => {
           await this.questProgressService.recordDailyPracticeSetProgress(
             {
               userId: studentId,
@@ -244,6 +263,7 @@ export class DailyPracticeService {
           return {
             progressSnapshot,
             hasCorrectAttempt,
+            streak,
           };
         });
     });
@@ -251,6 +271,8 @@ export class DailyPracticeService {
     return this.dailyPracticeMapper.buildSubmitResponse({
       awards: { ...ZERO_AWARDS },
       hasCorrectAttempt: progress.hasCorrectAttempt,
+      currentStreak: progress.streak.currentStreak,
+      highestStreak: progress.streak.highestStreak,
       progress: progress.progressSnapshot,
       encounterGrade,
     });
@@ -446,6 +468,7 @@ export class DailyPracticeService {
             studentAnswer: true,
             isCorrect: true,
             attemptedAt: true,
+            hintsUsed: true,
           },
         })
       : [];
@@ -507,6 +530,9 @@ export class DailyPracticeService {
       };
     });
 
+    // Attempts are newest-first; reverse for chronological streak computation.
+    const streak = this.computeDailyPracticeStreak([...attempts].reverse());
+
     return {
       progress: {
         totalQuestions: dailyPracticeSet.items.length,
@@ -514,7 +540,35 @@ export class DailyPracticeService {
         completedAt: dailyPracticeSet.completedAt,
       },
       questions,
+      currentStreak: streak.currentStreak,
+      highestStreak: streak.highestStreak,
     };
+  }
+
+  // Mirrors the quest system's streak logic: first attempt per question, correct and no hints used.
+  // Returns both the live count and the session high so the client can drive the streak indicator.
+  private computeDailyPracticeStreak(
+    attempts: Array<{ questionId: number; isCorrect: boolean; hintsUsed: number }>,
+  ): { currentStreak: number; highestStreak: number } {
+    const seenQuestionIds = new Set<number>();
+    let currentStreak = 0;
+    let highestStreak = 0;
+
+    for (const attempt of attempts) {
+      if (seenQuestionIds.has(attempt.questionId)) {
+        continue;
+      }
+      seenQuestionIds.add(attempt.questionId);
+
+      if (attempt.isCorrect && attempt.hintsUsed === 0) {
+        currentStreak += 1;
+        highestStreak = Math.max(highestStreak, currentStreak);
+      } else {
+        currentStreak = 0;
+      }
+    }
+
+    return { currentStreak, highestStreak };
   }
 
   private async syncProgressForSet(

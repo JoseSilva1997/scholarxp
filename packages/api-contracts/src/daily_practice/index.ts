@@ -129,6 +129,8 @@ export interface DailyPracticeTodayResponse {
   algorithmVersion: DailyPracticeAlgorithmVersion;
   progress: DailyPracticeProgress;
   questions: DailyPracticeQuestionItem[];
+  currentStreak?: number;
+  highestStreak?: number;
 }
 
 // Submit payload mirrors the practice-room answer shape and adds the persisted daily set id for ownership validation.
@@ -149,6 +151,8 @@ export interface SubmitDailyPracticeAttemptResponse {
   hasCorrectAttempt: boolean;
   progress: DailyPracticeProgress;
   encounterGrade: Exclude<FsrsReviewGrade, typeof FsrsReviewGradeValues.easy>;
+  currentStreak?: number;
+  highestStreak?: number;
 }
 
 // Explicit close mirrors the practice-room lifecycle endpoint while also returning current set progress.

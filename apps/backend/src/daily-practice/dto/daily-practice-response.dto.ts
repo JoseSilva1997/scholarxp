@@ -36,6 +36,8 @@ export class DailyPracticeTodayResponseDto implements DailyPracticeTodayResponse
   algorithmVersion!: DailyPracticeTodayResponse['algorithmVersion'];
   progress!: DailyPracticeProgressDto;
   questions!: DailyPracticeQuestionItemDto[];
+  currentStreak?: number;
+  highestStreak?: number;
 }
 
 export class SubmitDailyPracticeAttemptResponseDto implements SubmitDailyPracticeAttemptResponse {
@@ -43,6 +45,8 @@ export class SubmitDailyPracticeAttemptResponseDto implements SubmitDailyPractic
   hasCorrectAttempt!: boolean;
   progress!: DailyPracticeProgressDto;
   encounterGrade!: SubmitDailyPracticeAttemptResponse['encounterGrade'];
+  currentStreak?: number;
+  highestStreak?: number;
 }
 
 export class CloseDailyPracticeSessionResponseDto implements CloseDailyPracticeSessionResponse {

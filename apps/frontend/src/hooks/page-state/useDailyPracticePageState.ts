@@ -56,6 +56,9 @@ type UseDailyPracticePageStateResult = {
   selectedOptionIndex: number | null;
   hasActiveOptionOverride: boolean;
   isActiveHintUnlocked: boolean;
+  currentStreak: number;
+  highestStreak: number;
+  isStreakInitialized: boolean;
   selectQuestion: (index: number) => void;
   selectOption: (contentId: number, optionIndex: number) => void;
   unlockHintForContent: (contentId: number) => void;
@@ -120,6 +123,12 @@ export function useDailyPracticePageState({
       setId: null,
       value: null,
     });
+  const [streakState, setStreakState] = useState<
+    SetScopedValue<{ currentStreak: number; highestStreak: number }>
+  >({
+    setId: null,
+    value: { currentStreak: 0, highestStreak: 0 },
+  });
 
   const room = dailyPracticeQuery.data ?? null;
   const activeContentIdRef = useRef<number | null>(null);
@@ -129,6 +138,19 @@ export function useDailyPracticePageState({
   const closeSessionRef = useRef(closeSessionMutation.mutate);
   const closedSessionIdsRef = useRef<Set<string>>(new Set());
   const activeSetId = room?.setId ?? null;
+  // Seed streak from server on first load for the active set; after that, submit responses drive updates.
+  const isStreakInitialized = streakState.setId === activeSetId;
+  const currentStreak = isStreakInitialized ? streakState.value.currentStreak : 0;
+  const highestStreak = isStreakInitialized ? streakState.value.highestStreak : 0;
+  if (!isStreakInitialized && room) {
+    setStreakState({
+      setId: activeSetId,
+      value: {
+        currentStreak: room.currentStreak ?? 0,
+        highestStreak: room.highestStreak ?? 0,
+      },
+    });
+  }
   const firstUnansweredQuestionIndex = useMemo(() => {
     if (!room || room.questions.length === 0) {
       return 0;
@@ -536,6 +558,16 @@ export function useDailyPracticePageState({
         };
       });
 
+      if (submitResponse.currentStreak !== undefined) {
+        setStreakState({
+          setId: activeSetId,
+          value: {
+            currentStreak: submitResponse.currentStreak,
+            highestStreak: submitResponse.highestStreak ?? submitResponse.currentStreak,
+          },
+        });
+      }
+
       void submitAttemptMutation.syncAttemptSuccessEffects(submitResponse);
     } catch (error) {
       setSubmitErrorMessage(
@@ -572,6 +604,9 @@ export function useDailyPracticePageState({
     selectedOptionIndex,
     hasActiveOptionOverride,
     isActiveHintUnlocked,
+    currentStreak,
+    highestStreak,
+    isStreakInitialized,
     selectQuestion,
     selectOption,
     unlockHintForContent,
