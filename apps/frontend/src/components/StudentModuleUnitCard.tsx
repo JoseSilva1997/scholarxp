@@ -102,21 +102,24 @@ export default function StudentModuleUnitCard({
             </div>
             <div className={styles.middleMeta}>
                 {!isLocked && (
-                   <div className={styles.xpSummary} aria-label="Possible XP rewards">
+                   <div className={styles.xpSummary} aria-label={unit.expEarned ? 'Earned XP rewards' : 'Possible XP rewards'}>
                      <span className={styles.xpMainTotal}>
                        <span className={styles.xpSymbol}>⚡</span>
-                       Up to {MODULE_UNIT_BASELINE_EXP + MAXIMUM_FIRST_ATTEMPT_BONUS_EXP + (hasStreakBonus ? maximumStreakBonusExp : 0)} XP
+                       {unit.expEarned
+                         ? `${unit.expEarned.base + unit.expEarned.firstAttempt + unit.expEarned.streak} / ${MODULE_UNIT_BASELINE_EXP + MAXIMUM_FIRST_ATTEMPT_BONUS_EXP + (hasStreakBonus ? maximumStreakBonusExp : 0)} XP`
+                         : `Up to ${MODULE_UNIT_BASELINE_EXP + MAXIMUM_FIRST_ATTEMPT_BONUS_EXP + (hasStreakBonus ? maximumStreakBonusExp : 0)} XP`
+                       }
                      </span>
                      <div className={styles.xpBreakdown}>
                        <span className={styles.xpBreakdownItem} title="Guaranteed baseline for completing all questions">
-                         +{MODULE_UNIT_BASELINE_EXP} base
+                         {unit.expEarned ? `${unit.expEarned.base}/${MODULE_UNIT_BASELINE_EXP}` : `+${MODULE_UNIT_BASELINE_EXP}`} base
                        </span>
                        <span className={styles.xpBreakdownItem} title="Bonus for answering questions correctly on the first try">
-                         +{MAXIMUM_FIRST_ATTEMPT_BONUS_EXP} first try
+                         {unit.expEarned ? `${unit.expEarned.firstAttempt}/${MAXIMUM_FIRST_ATTEMPT_BONUS_EXP}` : `+${MAXIMUM_FIRST_ATTEMPT_BONUS_EXP}`} first try
                        </span>
                        {hasStreakBonus && (
                          <span className={styles.xpBreakdownItem} title="Bonus for reaching streak thresholds">
-                           +{maximumStreakBonusExp} streaks
+                           {unit.expEarned ? `${unit.expEarned.streak}/${maximumStreakBonusExp}` : `+${maximumStreakBonusExp}`} streaks
                          </span>
                        )}
                      </div>

@@ -59,6 +59,12 @@ export const getModuleUnitGroupName = (sortOrder: number): string => {
   return `${MODULE_UNIT_GROUP_NAME_PREFIX} ${normalizedSortOrder}`;
 };
 
+export interface ModuleUnitExpEarned {
+  base: number;
+  firstAttempt: number;
+  streak: number;
+}
+
 export interface ModuleUnitResponse {
   id: number;
   moduleId: number | null;
@@ -70,6 +76,8 @@ export interface ModuleUnitResponse {
   sortOrder: number;
   createdAt: string;
   questionGroups: ModuleUnitGroupResponse[];
+  // Per-category earned EXP breakdown. Only present for student-scoped calls.
+  expEarned?: ModuleUnitExpEarned;
 }
 
 export interface CreateModulePayload {
