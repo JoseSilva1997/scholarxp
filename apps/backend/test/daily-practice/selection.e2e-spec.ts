@@ -19,6 +19,7 @@ import {
   seedCompletedLessonProgress,
   seedDueReviewStateForQuestions,
   seedLiveModuleUnitWithMcqQuestions,
+  seedStudentDueShortfallScenario,
   seedStudentMixedHistoryScenario,
   seedStudentQuestionState,
   seedStudentStartedLessonFallbackScenario,
@@ -167,6 +168,71 @@ describe('Daily practice selection rules (e2e)', () => {
           question.sourceBucket === DailyPracticeSelectionBucketValues.newSequence,
       ),
     ).toHaveLength(0);
+  });
+
+  it('backfills a due-review shortfall with extra reinforcement candidates when no new-sequence pool exists', async () => {
+    // seedStudentDueShortfallScenario produces:
+    //   - completedLesson: 1 due-review question
+    //   - startedLesson:   2 reinforcement candidates ('again' grade, not yet due), 0 unseen questions
+    // reviewEligible = 1 + 2 = 3 → Math.round(0.75) = 1 → clamped to MIN = 3.
+    // Nominal quota at size 3: 2 due_review, 1 reinforcement.
+    // Due shortfall = 1 → selector backfills with the second reinforcement candidate.
+    // Expected result: 1 dueReview + 2 reinforcement (bucket label preserved, not the quota slot).
+    const base = await seedStudentModuleScenario(prisma);
+    setAuthenticatedUserId(base.studentId);
+    const scenario = await seedStudentDueShortfallScenario(prisma, base);
+
+    const body = await fetchTodayDailyPractice(app, base.moduleId);
+
+    expect(body.questions).toHaveLength(3);
+
+    // Exactly one due-review question (the only one available).
+    expect(
+      body.questions.filter(
+        (q) => q.sourceBucket === DailyPracticeSelectionBucketValues.dueReview,
+      ),
+    ).toHaveLength(1);
+
+    // Two reinforcement questions: one fills the reinforcement quota, the other covers the due shortfall.
+    // The sourceBucket label reflects classification, not which quota slot the question filled.
+    const reinforcementQuestions = body.questions.filter(
+      (q) =>
+        q.sourceBucket === DailyPracticeSelectionBucketValues.reinforcement,
+    );
+    expect(reinforcementQuestions).toHaveLength(2);
+    // Both reinforcement questions must come from the started lesson.
+    expect(
+      reinforcementQuestions.every(
+        (q) => q.moduleUnitId === scenario.startedLesson.moduleUnitId,
+      ),
+    ).toBe(true);
+
+    // No new-sequence questions should appear — the backfill was satisfied by reinforcement alone.
+    expect(
+      body.questions.filter(
+        (q) =>
+          q.sourceBucket === DailyPracticeSelectionBucketValues.newSequence,
+      ),
+    ).toHaveLength(0);
+
+    // Confirm persisted set matches the same distribution.
+    const persistedSet = await prisma.dailyPracticeSet.findUnique({
+      where: {
+        userId_moduleId_practiceDateUtc: {
+          userId: base.studentId,
+          moduleId: base.moduleId,
+          practiceDateUtc: new Date(body.practiceDateUtc),
+        },
+      },
+      include: { items: true },
+    });
+    expect(persistedSet?.items).toHaveLength(3);
+    expect(
+      persistedSet?.items.filter(
+        (item) =>
+          item.sourceBucket === DailyPracticeSelectionBucketValues.reinforcement,
+      ),
+    ).toHaveLength(2);
   });
 
   it('does not create a daily set when fewer than three eligible questions exist', async () => {

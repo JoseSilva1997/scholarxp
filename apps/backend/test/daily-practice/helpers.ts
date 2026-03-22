@@ -98,6 +98,34 @@ export async function fetchTodayDailyPractice(
   return response.body as DailyPracticeTodayResponse;
 }
 
+// Submits a correct MCQ answer for one question in an active daily-practice session.
+// All seeded MCQ questions use correctOptionIndex: 0, so selectedOptionIndex: 0 is always correct.
+export async function submitDailyPracticeAttemptCorrect(
+  app: INestApplication,
+  moduleId: number,
+  params: {
+    setId: string;
+    sessionId: string;
+    moduleUnitId: number;
+    questionUnitId: number;
+    questionContentId: number;
+  },
+): Promise<void> {
+  await request(app.getHttpServer())
+    .post(`/module/${moduleId}/daily-practice/attempts`)
+    .send({
+      setId: params.setId,
+      sessionId: params.sessionId,
+      moduleUnitId: params.moduleUnitId,
+      questionUnitId: params.questionUnitId,
+      questionContentId: params.questionContentId,
+      timeTakenMs: 5000,
+      hintUnlocked: false,
+      studentAnswer: { selectedOptionIndex: 0 },
+    })
+    .expect(201);
+}
+
 export function assertSafeE2eDatabaseUrl() {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) {

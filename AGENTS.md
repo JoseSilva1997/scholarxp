@@ -1,13 +1,12 @@
 # Repository Guidelines
 
 ## Project Goal (ScholarXP)
-ScholarXP is an LMS-launched study companion that helps students practice course content through short, repeatable sessions (daily practice/revision) with light gamification (XP/quests). The goal is to encourage consistent engagement and mastery without “grind” incentives.
+ScholarXP is a study companion that helps students practice course content through short, repeatable sessions (daily practice/revision) with light gamification (XP/quests). The goal is to encourage consistent engagement and mastery without “grind” incentives.
 
 ## Architecture Notes (high level)
 - Monorepo managed with `pnpm-workspace.yaml`. Workspaces live in `apps/*` and `packages/*`.
 - Backend is a NestJS API in `apps/backend`.
 - Frontend is a React + Vite app in `apps/frontend`.
-- LMS-launched via LTI 1.3.
 - Use a **domain-module** layout in NestJS: keep controllers thin, put business rules in services, and keep recommendation/selection logic (daily sets, quests, XP rules) isolated in dedicated services so it can be unit-tested easily.
 - Data access via Prisma only (no raw SQL unless unavoidable). Treat Prisma models as persistence, not your domain API—use DTOs/entities where it keeps boundaries clean.
 - Permissions: use the shared matrix in `packages/permissions` as the single source of truth. Backend must enforce with the shared evaluator and return capabilities to the frontend; frontend should gate UI using server-provided capabilities or the shared evaluator as fallback.
@@ -23,29 +22,13 @@ ScholarXP is an LMS-launched study companion that helps students practice course
 ## Rules
 - Load the frontend-engineer agent at `apps/agents/frontend-engineer.md` when making changes to the frontend.
 - Load the backend-engineer agent at `apps/agents/backend-engineer.md` when making changes to the backend.
-- Whenever creating a new file, add a description of what its role is at the top
-- You MUST add comments. Comments must explain why it is coded that way and offer a very brief description of what is being done.
-- Break tasks down into smaller chunks and formulate a plan to complete a task. 
-- Write production ready code.
-- Error-handling: use backend-owned, user-safe messages for expected errors. Throw NestJS `HttpException`s with clear safe messages, let the global exception filter normalize/log them, and display those sanitized messages in the UI. Unexpected/unhandled errors must still resolve to a generic message. Log full details server-side/monitoring; never expose stack traces or raw internal errors.
-- DO NOT USE DEPRECATED PACKAGES!
-
-## Frontend state-management pattern
-- Use TanStack Query as the default for **server state** in frontend routes/components that fetch backend data.
-- Use query keys from a centralized registry (`src/hooks/query-keys.ts`) and keep query/mutation wiring in `src/hooks/queries`.
-- Keep presentational components focused on rendering; move data-fetching, mutation side effects, and cache invalidation logic into hooks.
-- Use route/page state hooks in `src/hooks/page-state` so route files stay render-focused.
-- For non-trivial routes, require a page-state hook (`use<ExactRouteName>PageState`) and avoid mixing heavy orchestration directly in route TSX files.
-- Keep **local UI state** (open/closed toggles, selected tab, input focus, transient draft UI) local, but managed from the page-state hook for route-level concerns.
-- Do not force TanStack Query on components that do not fetch/mutate server data.
-- For mutations, prefer cache updates plus targeted `invalidateQueries` so related screens stay synchronized.
-
-## Frontend hook structure
-- Do not organize hooks ad-hoc by feature naming.
-- Use exactly two hook folders under `apps/frontend/src/hooks`:
-  - `queries/` for TanStack query/mutation hooks
-  - `page-state/` for route/page orchestration hooks
-- Use component/page-matched naming so each hook clearly maps to one route when applicable (for example `useModulesPageState`, `useSingleModulePageState`, `useModuleUnitEditorPageState`).
+- New files must open with a single-line comment (max ~120 chars) stating the file's responsibility in the domain context, e.g.:`// Encapsulates XP award logic; called by QuestService after activity completion`
+- Comments must explain **why** a decision was made — the constraint, tradeoff, or intent — not restate what the code does. Write in plain, direct English as if briefing a teammate.
+- Break tasks into a numbered plan before writing code; confirm the plan covers edge cases first.
+- Error-handling: throw NestJS `HttpException`s with user-safe messages; let the global filter log and normalize. Never expose stack traces or internal error details in responses.
+- Do not use deprecated packages. Verify package status before introducing any new dependency.
+- All public service methods require a unit test. Do not leave unresolved `TODO`s in committed code.
+- Frontend state management and hook structure are governed by `apps/agents/frontend-engineer.md`.
 
 ## Project Structure & Module Organization
 - Backend source: `apps/backend/src` (feature modules like `users`, `module-unit`, `question-*`).
@@ -73,17 +56,19 @@ ScholarXP is an LMS-launched study companion that helps students practice course
 - Test files: unit `*.spec.ts`, e2e `*.e2e-spec.ts`.
 - Frontend uses React + Vite conventions; keep components small and composable.
 
+## Comment Style
+- Write comments as if explaining to a teammate who knows the tech but not this repo's decisions.
+- Focus on **why** — the reasoning, constraint, or tradeoff — not a restatement of what the code does.
+- Use plain, direct English. Avoid filler words ("basically", "simply", "just") and do not chain unrelated clauses.
+- Bad: `// iterate users array and call service to update each user entity`
+- Good: `// Process each user individually — bulk update isn't used here because XP recalculation must fire per-user`
+
 ## Testing Guidelines
 - Jest is configured in `apps/backend/package.json` with `ts-jest`.
 - Run unit tests: `pnpm --filter backend test`.
 - Run e2e tests: `pnpm --filter backend test:e2e`.
 - Coverage: `pnpm --filter backend test:cov`.
-- Prisma service unit tests should use `createPrismaMock()` from `apps/backend/src/testing/test-helpers.ts` (jest-mock-extended deep mocks). When using `mockResolvedValue`, return objects must include all required Prisma model fields (e.g., `createdAt`, `updatedAt`, or non-nullable fields) so TypeScript type checks pass. Prefer mocking Prisma methods directly (e.g., `prisma.user.findUnique.mockResolvedValue(...)`) and inject the mock with `useValue` in `Test.createTestingModule()`.
-
-## Commit & Pull Request Guidelines
-- Commit messages follow short, sentence-case, past-tense summaries (e.g., "Added QuestionUnit service" or "Updated prisma schema").
-- PRs should include a brief summary, tests run, and any migration notes.
-- Link related issues/tickets when applicable; call out breaking API or schema changes.
+- Prisma service unit tests should use `createPrismaMock()` from `apps/backend/src/test/test-helpers.ts` (jest-mock-extended deep mocks). When using `mockResolvedValue`, return objects must include all required Prisma model fields (e.g., `createdAt`, `updatedAt`, or non-nullable fields) so TypeScript type checks pass. Prefer mocking Prisma methods directly (e.g., `prisma.user.findUnique.mockResolvedValue(...)`) and inject the mock with `useValue` in `Test.createTestingModule()`.
 
 ## Agents
 - Agent prompts live under `apps/agents`.

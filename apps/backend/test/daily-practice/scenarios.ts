@@ -318,6 +318,202 @@ export async function seedStudentMixedHistoryScenario(
   };
 }
 
+// Inserts a DailyPracticeSet row anchored to yesterday's UTC calendar date.
+// Used by the day-boundary test to prove today's fetch creates a new set instead of reusing yesterday's.
+// No PracticeSession is seeded for yesterday — the service only finds open sessions scoped to today's set.
+// Seeds a scenario where the due-review bucket falls short of its quota and the selector must
+// backfill with extra reinforcement candidates instead of new-sequence questions.
+//
+// Inventory: 1 due-review question (completed lesson) + 2 reinforcement candidates (started lesson,
+// both seen with 'again' grade, not yet due) + 0 new-sequence candidates (no unseen questions).
+// reviewEligible = 1 + 2 = 3 → Math.round(3 × 0.25) = 1 → clamped to MIN = 3.
+// Nominal quota at size 3: 2 due_review, 1 reinforcement, 0 new_sequence.
+// Due shortfall = 1 → backfill draws the second reinforcement candidate.
+// Expected selection: 1 dueReview + 2 reinforcement + 0 newSequence.
+export async function seedStudentDueShortfallScenario(
+  prisma: PrismaLike,
+  base: SeededStudentModuleScenario,
+) {
+  // Single due-review question in a completed lesson (unlocked yesterday).
+  const completedLesson = await seedLiveModuleUnitWithMcqQuestions(
+    prisma,
+    base.moduleId,
+    {
+      title: 'Completed lesson',
+      sortOrder: 1,
+      questionCount: 1,
+    },
+  );
+  const { dayStartUtc } = DateHelpers.getUtcDayBounds(new Date());
+  const completedAt = new Date(
+    dayStartUtc.getTime() - 24 * 60 * 60 * 1000 + 60 * 60 * 1000,
+  );
+
+  await seedCompletedLessonProgress(prisma, {
+    moduleUnitId: completedLesson.moduleUnitId,
+    studentId: base.studentId,
+    completedAt,
+  });
+  await seedDueReviewStateForQuestions(prisma, {
+    studentId: base.studentId,
+    moduleId: base.moduleId,
+    moduleUnitId: completedLesson.moduleUnitId,
+    questionIds: completedLesson.questions.map((q) => q.questionUnitId),
+    dueAt: new Date(dayStartUtc.getTime() - 2 * 60 * 60 * 1000),
+    lastSeenAt: completedAt,
+  });
+
+  // Started incomplete lesson: both questions are reinforcement candidates.
+  // Having 2 StudentQuestionState rows makes this lesson "started", satisfying the new-sequence
+  // eligibility check — but since there are no unseen questions, no new-sequence pool exists.
+  const startedLesson = await seedLiveModuleUnitWithMcqQuestions(
+    prisma,
+    base.moduleId,
+    {
+      title: 'Started lesson',
+      sortOrder: 2,
+      questionCount: 2,
+    },
+  );
+
+  for (const question of startedLesson.questions) {
+    await seedStudentQuestionState(prisma, {
+      studentId: base.studentId,
+      moduleId: base.moduleId,
+      moduleUnitId: startedLesson.moduleUnitId,
+      questionUnitId: question.questionUnitId,
+      // Future due → not a due-review candidate; 'again' grade + lapse → reinforcement candidate.
+      fsrsDueAt: new Date(dayStartUtc.getTime() + 48 * 60 * 60 * 1000),
+      lastSeenAt: new Date(dayStartUtc.getTime() - 24 * 60 * 60 * 1000),
+      lastGrade: 'again',
+      lapseCount: 1,
+      firstSeenAt: completedAt,
+      lastCorrectAt: null,
+      reviewCount: 2,
+    });
+  }
+
+  return {
+    ...base,
+    completedLesson,
+    startedLesson,
+    completedAt,
+  };
+}
+
+export async function seedYesterdayDailyPracticeSet(
+  prisma: PrismaLike,
+  params: {
+    studentId: number;
+    moduleId: number;
+    // Questions to include in yesterday's set — caller supplies module-unit context for each item.
+    questions: { questionUnitId: number; moduleUnitId: number }[];
+  },
+): Promise<{ setId: string }> {
+  const { dayStartUtc } = DateHelpers.getUtcDayBounds(new Date());
+  // Roll back exactly 24 h to land on yesterday's UTC midnight — the @db.Date column stores only the date portion.
+  const yesterdayUtc = new Date(dayStartUtc.getTime() - 24 * 60 * 60 * 1000);
+
+  const set = await prisma.dailyPracticeSet.create({
+    data: {
+      userId: params.studentId,
+      moduleId: params.moduleId,
+      practiceDateUtc: yesterdayUtc,
+      algorithmVersion: 'fsrs_v1',
+      items: {
+        create: params.questions.map((question, index) => ({
+          questionUnitId: question.questionUnitId,
+          moduleUnitId: question.moduleUnitId,
+          position: index + 1,
+          sourceBucket: 'due_review',
+          selectionReason: 'due_review',
+          selectionScore: 1.0,
+        })),
+      },
+    },
+  });
+
+  return { setId: set.id };
+}
+
+// Parameterised scenario for the sizing 3→4 boundary tests.
+// Seeds a completed lesson with exactly `dueReviewCount` due-review questions and an in-progress lesson
+// with one reinforcement candidate (Q0) and one unseen question (Q1, new-sequence eligible).
+//
+// reviewEligible = dueReviewCount + 1 reinforcement candidate.
+// At dueReviewCount=12 → reviewEligible=13 → Math.round(13×0.25)=3 (no new-sequence slot).
+// At dueReviewCount=13 → reviewEligible=14 → Math.round(14×0.25)=4 (new-sequence slot appears).
+export async function seedStudentSizingBoundaryScenario(
+  prisma: PrismaLike,
+  base: SeededStudentModuleScenario,
+  { dueReviewCount }: { dueReviewCount: number },
+) {
+  // Completed yesterday so the next-day unlock rule is satisfied.
+  const completedLesson = await seedLiveModuleUnitWithMcqQuestions(
+    prisma,
+    base.moduleId,
+    {
+      title: 'Heavy review lesson',
+      sortOrder: 1,
+      questionCount: dueReviewCount,
+    },
+  );
+  const { dayStartUtc } = DateHelpers.getUtcDayBounds(new Date());
+  const completedAt = new Date(
+    dayStartUtc.getTime() - 24 * 60 * 60 * 1000 + 60 * 60 * 1000,
+  );
+
+  await seedCompletedLessonProgress(prisma, {
+    moduleUnitId: completedLesson.moduleUnitId,
+    studentId: base.studentId,
+    completedAt,
+  });
+  await seedDueReviewStateForQuestions(prisma, {
+    studentId: base.studentId,
+    moduleId: base.moduleId,
+    moduleUnitId: completedLesson.moduleUnitId,
+    questionIds: completedLesson.questions.map((q) => q.questionUnitId),
+    dueAt: new Date(dayStartUtc.getTime() - 2 * 60 * 60 * 1000),
+    lastSeenAt: completedAt,
+  });
+
+  // Started incomplete lesson: Q0 is the reinforcement candidate (seen recently, 'again' grade, not yet due).
+  // Q1 is intentionally left without a StudentQuestionState row so it qualifies for new-sequence.
+  // Because Q0 has a state row, this lesson is "started" and Q1 is eligible for new-sequence selection.
+  const startedLesson = await seedLiveModuleUnitWithMcqQuestions(
+    prisma,
+    base.moduleId,
+    {
+      title: 'In-progress lesson',
+      sortOrder: 2,
+      questionCount: 2,
+    },
+  );
+
+  await seedStudentQuestionState(prisma, {
+    studentId: base.studentId,
+    moduleId: base.moduleId,
+    moduleUnitId: startedLesson.moduleUnitId,
+    questionUnitId: startedLesson.questions[0].questionUnitId,
+    // Due far in the future → not a due-review candidate; 'again' grade + lapse → reinforcement candidate.
+    fsrsDueAt: new Date(dayStartUtc.getTime() + 48 * 60 * 60 * 1000),
+    lastSeenAt: new Date(dayStartUtc.getTime() - 24 * 60 * 60 * 1000),
+    lastGrade: 'again',
+    lapseCount: 1,
+    firstSeenAt: completedAt,
+    lastCorrectAt: null,
+    reviewCount: 2,
+  });
+  // Q1 (startedLesson.questions[1]) has no state row → new-sequence candidate.
+
+  return {
+    ...base,
+    completedLesson,
+    startedLesson,
+    completedAt,
+  };
+}
+
 export async function seedStudentMaxPressureScenario(
   prisma: PrismaLike,
   base: SeededStudentModuleScenario,

@@ -12,7 +12,6 @@ If the user does not name file(s), ask them to specify exact paths and do not pr
 ## Scope
 - Only target the exact file(s) the user names (services, controllers, guards, pipes, interceptors in `apps/backend/src`).
 - Do not suggest or generate tests for other parts of the repository unless explicitly requested.
-- Prefer unit tests; only mention e2e if explicitly requested.
 
 ## Required Approach
 - Use `@nestjs/testing` to build a `TestingModule`.
@@ -28,7 +27,7 @@ If the user does not name file(s), ask them to specify exact paths and do not pr
 - Assert error paths and edge cases, not just happy paths.
 
 ## Preferred Patterns
-- For service tests, mock repository or Prisma calls with `jest.fn()`.
+- For service tests with Prisma, use `createPrismaMock()` and inject with `useValue`. Use `jest.fn()` only for non-Prisma dependencies.
 - For controller tests, mock the underlying service.
 - Use Nest’s `TestingModule` and `module.get()` for DI.
 - Use `jest.spyOn` for specific method overrides.
@@ -43,13 +42,19 @@ When asked to write tests, provide only for the requested file(s):
 ```ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExampleService } from './example.service';
+import { createPrismaMock } from '../testing/test-helpers';
+import { PrismaService } from '../prisma/prisma.service';
 
 describe('ExampleService', () => {
   let service: ExampleService;
+  const prismaMock = createPrismaMock();
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [ExampleService],
+      providers: [
+        ExampleService,
+        { provide: PrismaService, useValue: prismaMock },
+      ],
     }).compile();
 
     service = module.get(ExampleService);
@@ -59,10 +64,10 @@ describe('ExampleService', () => {
     expect(service).toBeDefined();
   });
 });
+
 ```
 
 ## Quality Checklist
 - Uses Nest `TestingModule` and DI.
 - Mocks external dependencies.
 - Covers edge cases and error handling.
-- Matches repository test style and filenames.

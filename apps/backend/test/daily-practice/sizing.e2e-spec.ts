@@ -13,7 +13,10 @@ import {
   seedStudentModuleScenario,
   setAuthenticatedUserId,
 } from './helpers';
-import { seedStudentMaxPressureScenario } from './scenarios';
+import {
+  seedStudentMaxPressureScenario,
+  seedStudentSizingBoundaryScenario,
+} from './scenarios';
 
 describe('Daily practice sizing boundaries (e2e)', () => {
   let app: INestApplication;
@@ -32,6 +35,89 @@ describe('Daily practice sizing boundaries (e2e)', () => {
 
   afterAll(async () => {
     await app.close();
+  });
+
+  it('produces a three-question set with no new-sequence slot when review pressure is just below the size-4 threshold', async () => {
+    // reviewEligible = 12 due_review + 1 reinforcement = 13.
+    // Math.round(13 × 0.25) = Math.round(3.25) = 3 → size floor, new-sequence quota stays zero.
+    // The unseen question in the started lesson must NOT appear even though it is eligible for new-sequence.
+    const base = await seedStudentModuleScenario(prisma);
+    setAuthenticatedUserId(base.studentId);
+    await seedStudentSizingBoundaryScenario(prisma, base, { dueReviewCount: 12 });
+
+    const body = await fetchTodayDailyPractice(app, base.moduleId);
+
+    expect(body.questions).toHaveLength(3);
+    // No new-sequence question must be present at this size.
+    expect(
+      body.questions.filter(
+        (q) =>
+          q.sourceBucket === DailyPracticeSelectionBucketValues.newSequence,
+      ),
+    ).toHaveLength(0);
+
+    // Confirm the persisted snapshot also has 3 items with no new-sequence bucket.
+    const persistedSet = await prisma.dailyPracticeSet.findUnique({
+      where: {
+        userId_moduleId_practiceDateUtc: {
+          userId: base.studentId,
+          moduleId: base.moduleId,
+          practiceDateUtc: new Date(body.practiceDateUtc),
+        },
+      },
+      include: { items: true },
+    });
+    expect(persistedSet?.items).toHaveLength(3);
+    expect(
+      persistedSet?.items.filter(
+        (item) =>
+          item.sourceBucket === DailyPracticeSelectionBucketValues.newSequence,
+      ),
+    ).toHaveLength(0);
+  });
+
+  it('produces a four-question set with one new-sequence slot when review pressure crosses the size-4 threshold', async () => {
+    // reviewEligible = 13 due_review + 1 reinforcement = 14.
+    // Math.round(14 × 0.25) = Math.round(3.5) = 4 → new-sequence quota of 1 unlocks.
+    // This is the exact integer boundary where the new-sequence slot first appears.
+    const base = await seedStudentModuleScenario(prisma);
+    setAuthenticatedUserId(base.studentId);
+    const scenario = await seedStudentSizingBoundaryScenario(prisma, base, {
+      dueReviewCount: 13,
+    });
+
+    const body = await fetchTodayDailyPractice(app, base.moduleId);
+
+    expect(body.questions).toHaveLength(4);
+    const newSequenceQuestions = body.questions.filter(
+      (q) =>
+        q.sourceBucket === DailyPracticeSelectionBucketValues.newSequence,
+    );
+    // Exactly one new-sequence question must appear now that the threshold is crossed.
+    expect(newSequenceQuestions).toHaveLength(1);
+    // It must come from the started incomplete lesson (the only source of unseen questions).
+    expect(newSequenceQuestions[0].moduleUnitId).toBe(
+      scenario.startedLesson.moduleUnitId,
+    );
+
+    // Confirm the persisted set reflects the same 4-question distribution.
+    const persistedSet = await prisma.dailyPracticeSet.findUnique({
+      where: {
+        userId_moduleId_practiceDateUtc: {
+          userId: base.studentId,
+          moduleId: base.moduleId,
+          practiceDateUtc: new Date(body.practiceDateUtc),
+        },
+      },
+      include: { items: true },
+    });
+    expect(persistedSet?.items).toHaveLength(4);
+    expect(
+      persistedSet?.items.filter(
+        (item) =>
+          item.sourceBucket === DailyPracticeSelectionBucketValues.newSequence,
+      ),
+    ).toHaveLength(1);
   });
 
   it('builds a six-question set when review pressure reaches the maximum ceiling', async () => {
