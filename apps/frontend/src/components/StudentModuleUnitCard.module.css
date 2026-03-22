@@ -96,20 +96,28 @@
   height: 72px;
 }
 
+.titleSection {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 32px;
+  flex: 1 1 0;
+  border-right: 1px solid var(--color-border-subtle);
+  padding-right: 24px;
+}
+
 .meta {
   display: flex;
   flex-direction: column;
   gap: 8px;
   min-width: 0;
-  flex: 0 1 auto; /* Allow it to grow but fit content, and shrink if needed */
+  flex: 1 1 0; /* Let it grow text freely */
 }
 
 .middleMeta {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  border-left: 1px solid var(--color-border-subtle);
-  padding-left: 24px;
   min-height: 60px;
   flex-shrink: 0; /* Keep XP reward area sizes stable */
 }
@@ -181,34 +189,97 @@
 
 .xpSummary {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: row;
+  align-items: center;
+  gap: 20px;
 }
 
 .xpMainTotal {
   display: flex;
+  flex-direction: column;
+  justify-content: center;
   align-items: center;
-  gap: 6px;
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--color-text);
+  min-width: 60px;
 }
 
-.xpBreakdown {
+.xpTotalValue {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  align-items: center;
+  gap: 4px;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--color-text);
+  line-height: 1;
 }
 
-.xpBreakdownItem {
-  font-size: 0.75rem;
-  font-weight: 500;
+.xpTotalSubtext {
+  font-size: 0.65rem;
+  font-weight: 700;
   color: var(--color-text-dim);
-  background: var(--color-bg);
-  padding: 1px 6px;
-  border-radius: 4px;
-  border: 1px dashed var(--color-border);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 4px;
+}
+
+/* Minimalist Gamified Stats List - Horizontal Layout */
+.xpStatsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  margin-top: 0;
+}
+
+.xpStatRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 16px;
   cursor: help;
+  transition: opacity 0.2s ease;
+}
+
+.xpStatRow:hover {
+  opacity: 0.85;
+}
+
+.xpStatLabel {
+  color: var(--color-text-dim);
+  font-size: 0.65rem;
+  font-weight: 500;
+  text-align: left;
+  width: 45px;
+  flex-shrink: 0;
+  text-transform: capitalize;
+}
+
+.xpStatValue {
+  color: var(--color-text-muted);
+  font-size: 0.65rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+  text-align: left;
+}
+
+.xpStatMax {
+  color: var(--color-text-dim);
+  font-weight: 500;
+  opacity: 0.7;
+}
+
+/* Distinctive label styles */
+.xpStatLabelBase {
+  color: var(--color-accent);
+}
+
+.xpStatLabelFirst {
+  color: var(--color-primary);
+}
+
+.xpStatLabelStreak {
+  color: var(--color-secondary);
 }
 
 .xpSymbol {
@@ -453,21 +524,50 @@
   }
 }
 
-@media (max-width: 640px) {
+/* Tablet: title on top row, XP and actions on second row */
+@media (max-width: 900px) {
   .header {
-    grid-template-columns: auto 1fr;
-    gap: 16px;
+    flex-wrap: wrap;
+    gap: 16px 20px;
   }
 
-  .actions {
-    grid-column: 1 / -1;
-    margin-top: 16px;
+  .titleSection {
+    flex: 0 0 100%; /* Take the full first row */
+    border-right: none;
+    border-bottom: 1px solid var(--color-border-subtle);
     padding-right: 0;
-    justify-content: stretch;
+    padding-bottom: 14px;
+    gap: 20px;
   }
 
-  .practiceButton {
-    width: 100%;
+  .middleMeta {
+    /* Natural order puts this on the second row */
+    flex: 1 1 0; /* Gush next to the actions */
+    min-height: auto;
+  }
+  
+  .actions {
+    /* Naturally falls to the right of middleMeta */
+    flex: 0 0 auto;
+  }
+
+  .actionStack {
+    flex-direction: row;
+    gap: 12px; /* Add some nice horizontal spacing so they don't look awkwardly packed */
+  }
+}
+
+@media (max-width: 640px) {
+  .content {
+    padding: 16px 8px 16px 16px;
+  }
+
+  .header {
+    gap: 12px;
+  }
+
+  .title {
+    font-size: 1.05rem;
   }
 
   .statusButton {
@@ -480,16 +580,39 @@
     height: 42px;
   }
 
+  /* Adjust padding and gap under meta for tiny screens */
+  .titleSection {
+    padding-bottom: 12px;
+    gap: 12px;
+  }
+
+  /* Actions drop to their own full-width row below XP */
+  .actions {
+    flex: 0 0 100%;
+    padding-right: 0;
+    margin-left: 0;
+  }
+
+  /* Side-by-side buttons on small screens to avoid a tall button stack */
+  .actionStack {
+    width: 100%;
+  }
+
+  .practiceButton,
+  .retryButton {
+    flex: 1;
+  }
+
+  .bottomRow {
+    gap: 12px;
+  }
+
   .panelOpen {
-    padding: 24px 16px;
+    padding: 20px 16px;
   }
 
   .question {
     flex: 0 1 100%;
     min-width: 0;
-  }
-
-  .bottomRow {
-    gap: 12px;
   }
 }
