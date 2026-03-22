@@ -16,6 +16,7 @@ import { AppModule } from '../../src/app.module';
 import { AuthorizationGuard } from '../../src/auth/guards/authorization.guard';
 import { SessionAuthGuard } from '../../src/auth/guards/session-auth.guard';
 import { PrismaService } from '../../src/prisma/prisma.service';
+import { QuestGenerationStartupService } from '../../src/quests/quest-generation-startup.service';
 
 export type SeededQuestion = {
   questionUnitId: number;
@@ -66,6 +67,10 @@ export async function createDailyPracticeE2eApp(): Promise<{
     .useClass(TestSessionGuard)
     .overrideGuard(AuthorizationGuard)
     .useClass(TestAuthorizationGuard)
+    // Suppress the startup quest-generation batch so it cannot race against app.close()
+    // in afterAll and hit the Prisma pool after it has been torn down.
+    .overrideProvider(QuestGenerationStartupService)
+    .useValue({ onModuleInit: () => {} })
     .compile();
 
   const app = moduleFixture.createNestApplication();

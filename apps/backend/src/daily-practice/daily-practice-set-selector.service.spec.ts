@@ -379,6 +379,81 @@ describe('DailyPracticeSetSelectorService', () => {
     ).toHaveLength(0);
   });
 
+  it('includes a reinforcement candidate whose last-seen timestamp is exactly fourteen days ago', async () => {
+    // The recency window check is ≤ (inclusive): elapsed ≤ 14 days × ms.
+    // A question seen at exactly the boundary must be included, not excluded.
+    const now = new Date('2026-03-17T12:00:00.000Z');
+    const exactlyFourteenDaysAgo = new Date(
+      now.getTime() - 14 * 24 * 60 * 60 * 1000,
+    );
+    candidateReadService.listModuleCandidateQuestions.mockResolvedValue([
+      buildCandidate(101, 1, 1),
+      buildCandidate(102, 1, 2),
+      buildCandidate(103, 1, 3),
+    ] satisfies DailyPracticeCandidateQuestionRecord[]);
+    moduleProgressReadService.listModuleUnitProgress.mockResolvedValue(
+      [] satisfies ModuleUnitProgressRecord[],
+    );
+    questionStateReadService.listStatesForModule.mockResolvedValue([
+      buildState(101, 1, { fsrsDueAt: new Date('2026-03-16T10:00:00.000Z') }),
+      buildState(102, 1, { fsrsDueAt: new Date('2026-03-16T11:00:00.000Z') }),
+      // Exactly at the 14-day inclusive boundary → must be classified as reinforcement.
+      buildState(103, 1, {
+        lastGrade: FsrsReviewGradeValues.again,
+        lastSeenAt: exactlyFourteenDaysAgo,
+      }),
+    ] satisfies StudentQuestionStateRecord[]);
+
+    const result = await service.selectQuestions({ userId: 42, moduleId: 7, now });
+
+    const reinforcementSelections = result.selectedQuestions.filter(
+      (q) => q.sourceBucket === DailyPracticeSelectionBucketValues.reinforcement,
+    );
+    expect(reinforcementSelections).toHaveLength(1);
+    expect(reinforcementSelections[0].questionUnitId).toBe(103);
+  });
+
+  it('excludes a reinforcement candidate whose last-seen timestamp is fourteen days and one millisecond ago', async () => {
+    // One millisecond past the 14-day boundary makes the elapsed time strictly greater than the
+    // window — the check is ≤, so this question must be excluded from reinforcement.
+    // Q104 has no state, making it a new-sequence candidate that keeps total inventory at MIN (3).
+    const now = new Date('2026-03-17T12:00:00.000Z');
+    const oneMillisecondPastWindow = new Date(
+      now.getTime() - 14 * 24 * 60 * 60 * 1000 - 1,
+    );
+    candidateReadService.listModuleCandidateQuestions.mockResolvedValue([
+      buildCandidate(101, 1, 1),
+      buildCandidate(102, 1, 2),
+      buildCandidate(103, 1, 3),
+      buildCandidate(104, 1, 4), // unseen → new-sequence to keep totalEligible ≥ 3
+    ] satisfies DailyPracticeCandidateQuestionRecord[]);
+    moduleProgressReadService.listModuleUnitProgress.mockResolvedValue(
+      [] satisfies ModuleUnitProgressRecord[],
+    );
+    questionStateReadService.listStatesForModule.mockResolvedValue([
+      buildState(101, 1, { fsrsDueAt: new Date('2026-03-16T10:00:00.000Z') }),
+      buildState(102, 1, { fsrsDueAt: new Date('2026-03-16T11:00:00.000Z') }),
+      // 1 ms past the window → must be excluded despite 'again' grade.
+      buildState(103, 1, {
+        lastGrade: FsrsReviewGradeValues.again,
+        lastSeenAt: oneMillisecondPastWindow,
+      }),
+      // Q104 has no state row → new-sequence candidate.
+    ] satisfies StudentQuestionStateRecord[]);
+
+    const result = await service.selectQuestions({ userId: 42, moduleId: 7, now });
+
+    expect(
+      result.selectedQuestions.some((q) => q.questionUnitId === 103),
+    ).toBe(false);
+    expect(
+      result.selectedQuestions.filter(
+        (q) =>
+          q.sourceBucket === DailyPracticeSelectionBucketValues.reinforcement,
+      ),
+    ).toHaveLength(0);
+  });
+
   it('caps selections at two questions per lesson when alternatives exist', async () => {
     const now = new Date('2026-03-17T12:00:00.000Z');
     candidateReadService.listModuleCandidateQuestions.mockResolvedValue([

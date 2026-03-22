@@ -20,8 +20,12 @@ import {
   seedDueReviewStateForQuestions,
   seedLiveModuleUnitWithMcqQuestions,
   seedStudentDueShortfallScenario,
+  seedStudentFullySeenEarlierLessonScenario,
   seedStudentMixedHistoryScenario,
+  seedStudentMultipleCompletedLessonsScenario,
+  seedStudentMultipleStartedLessonsScenario,
   seedStudentQuestionState,
+  seedStudentReinforcementShortfallSize4Scenario,
   seedStudentStartedLessonFallbackScenario,
   seedStudentReviewReadyScenario,
 } from './scenarios';
@@ -235,6 +239,309 @@ describe('Daily practice selection rules (e2e)', () => {
         (item) =>
           item.sourceBucket ===
           DailyPracticeSelectionBucketValues.reinforcement,
+      ),
+    ).toHaveLength(2);
+  });
+
+  it('fills the new-sequence slot from the earliest started lesson when multiple started lessons have unseen questions', async () => {
+    // seedStudentMultipleStartedLessonsScenario produces:
+    //   completedLesson: 13 due-review questions
+    //   lesson2 (sortOrder 2): 1 reinforcement candidate + 3 unseen new-sequence candidates
+    //   lesson3 (sortOrder 3): started (1 invisible 'good' state) + 3 unseen new-sequence candidates
+    // reviewEligible = 13 + 1 = 14 → Math.round(14 × 0.25) = 4 → quota: 2 dueReview, 1 reinforcement, 1 newSequence.
+    // Both lesson2 and lesson3 are eligible for new-sequence, but lesson2 must win because it has a lower sortOrder.
+    const base = await seedStudentModuleScenario(prisma);
+    setAuthenticatedUserId(base.studentId);
+    const scenario = await seedStudentMultipleStartedLessonsScenario(
+      prisma,
+      base,
+    );
+
+    const body = await fetchTodayDailyPractice(app, base.moduleId);
+
+    expect(body.questions).toHaveLength(4);
+    const newSequenceQuestions = body.questions.filter(
+      (q) => q.sourceBucket === DailyPracticeSelectionBucketValues.newSequence,
+    );
+    expect(newSequenceQuestions).toHaveLength(1);
+    // The new-sequence question must come from lesson2 (earliest started lesson), not lesson3.
+    expect(newSequenceQuestions[0].moduleUnitId).toBe(
+      scenario.lesson2.moduleUnitId,
+    );
+    // No question from lesson3 may appear anywhere in the set.
+    expect(
+      body.questions.every(
+        (q) => q.moduleUnitId !== scenario.lesson3.moduleUnitId,
+      ),
+    ).toBe(true);
+
+    // Confirm the persisted set matches the same lesson-source distribution.
+    const persistedSet = await prisma.dailyPracticeSet.findUnique({
+      where: {
+        userId_moduleId_practiceDateUtc: {
+          userId: base.studentId,
+          moduleId: base.moduleId,
+          practiceDateUtc: new Date(body.practiceDateUtc),
+        },
+      },
+      include: { items: true },
+    });
+    expect(persistedSet?.items).toHaveLength(4);
+    const persistedNewSequence = persistedSet?.items.filter(
+      (item) =>
+        item.sourceBucket === DailyPracticeSelectionBucketValues.newSequence,
+    );
+    expect(persistedNewSequence).toHaveLength(1);
+    expect(persistedNewSequence?.[0].moduleUnitId).toBe(
+      scenario.lesson2.moduleUnitId,
+    );
+  });
+
+  it('skips a started lesson with no unseen questions and fills the new-sequence slot from the next eligible lesson', async () => {
+    // seedStudentFullySeenEarlierLessonScenario produces:
+    //   completedLesson: 13 due-review questions
+    //   lesson2 (sortOrder 2, fully-seen): 1 invisible 'good' state + 2 reinforcement candidates, 0 unseen
+    //   lesson3 (sortOrder 3): 1 invisible 'good' state (makes it "started") + 2 unseen
+    // reviewEligible = 13 + 2 = 15 → Math.round(15 × 0.25) = 4 → quota: 2 dueReview, 1 reinforcement, 1 newSequence.
+    // lesson2 is earlier but has no unseen questions → cannot supply new-sequence.
+    // lesson3 is next and DOES have unseen questions → must supply the new-sequence slot.
+    const base = await seedStudentModuleScenario(prisma);
+    setAuthenticatedUserId(base.studentId);
+    const scenario = await seedStudentFullySeenEarlierLessonScenario(
+      prisma,
+      base,
+    );
+
+    const body = await fetchTodayDailyPractice(app, base.moduleId);
+
+    expect(body.questions).toHaveLength(4);
+    const newSequenceQuestions = body.questions.filter(
+      (q) => q.sourceBucket === DailyPracticeSelectionBucketValues.newSequence,
+    );
+    expect(newSequenceQuestions).toHaveLength(1);
+    // The new-sequence question must come from lesson3, not lesson2 (lesson2 has no unseen questions).
+    expect(newSequenceQuestions[0].moduleUnitId).toBe(
+      scenario.lesson3.moduleUnitId,
+    );
+
+    // The reinforcement slot must still be filled from lesson2 (its 'again' candidates are valid).
+    const reinforcementQuestions = body.questions.filter(
+      (q) =>
+        q.sourceBucket === DailyPracticeSelectionBucketValues.reinforcement,
+    );
+    expect(reinforcementQuestions).toHaveLength(1);
+    expect(reinforcementQuestions[0].moduleUnitId).toBe(
+      scenario.lesson2.moduleUnitId,
+    );
+
+    // Confirm the persisted set matches the same bucket distribution.
+    const persistedSet = await prisma.dailyPracticeSet.findUnique({
+      where: {
+        userId_moduleId_practiceDateUtc: {
+          userId: base.studentId,
+          moduleId: base.moduleId,
+          practiceDateUtc: new Date(body.practiceDateUtc),
+        },
+      },
+      include: { items: true },
+    });
+    expect(persistedSet?.items).toHaveLength(4);
+    expect(
+      persistedSet?.items.filter(
+        (item) =>
+          item.sourceBucket === DailyPracticeSelectionBucketValues.newSequence,
+      ),
+    ).toHaveLength(1);
+  });
+
+  it('returns a zero-plan when the student is unlocked but all reviewed questions are fully up-to-date and not yet due', async () => {
+    // Scenario: student completed a lesson yesterday (unlocked today) but every question was
+    // answered correctly and is not due again for several days. There are no reinforcement
+    // candidates (no 'again'/'hard' grades, no lapses) and no started lessons for new-sequence.
+    // The selector finds zero eligible questions and must return a zero-plan (404), not an error.
+    // This validates that 'good'-graded non-due questions are excluded from BOTH the due_review
+    // and reinforcement buckets, and that "no eligible content today" is a valid product state.
+    const base = await seedStudentModuleScenario(prisma);
+    setAuthenticatedUserId(base.studentId);
+
+    const completedLesson = await seedLiveModuleUnitWithMcqQuestions(
+      prisma,
+      base.moduleId,
+      {
+        title: 'Completed lesson',
+        sortOrder: 1,
+        questionCount: 7,
+      },
+    );
+    const { dayStartUtc } = DateHelpers.getUtcDayBounds(new Date());
+    // Completed yesterday — satisfies the next-day unlock rule.
+    const completedAt = new Date(
+      dayStartUtc.getTime() - 24 * 60 * 60 * 1000 + 60 * 60 * 1000,
+    );
+
+    await seedCompletedLessonProgress(prisma, {
+      moduleUnitId: completedLesson.moduleUnitId,
+      studentId: base.studentId,
+      completedAt,
+    });
+    // All questions answered correctly, scheduled 3 days from now.
+    // seedDueReviewStateForQuestions uses 'good' grade and lapseCount 0, so none qualify as
+    // reinforcement candidates; passing a future dueAt means none qualify as due_review either.
+    await seedDueReviewStateForQuestions(prisma, {
+      studentId: base.studentId,
+      moduleId: base.moduleId,
+      moduleUnitId: completedLesson.moduleUnitId,
+      questionIds: completedLesson.questions.map((q) => q.questionUnitId),
+      dueAt: new Date(dayStartUtc.getTime() + 3 * 24 * 60 * 60 * 1000),
+      lastSeenAt: completedAt,
+    });
+    // No started lessons → new-sequence pool is empty.
+
+    await request(app.getHttpServer())
+      .get(`/module/${base.moduleId}/daily-practice/today`)
+      .expect(404)
+      .expect((response) => {
+        expect(response.body.message).toBe(
+          'No daily practice questions are available for this module yet.',
+        );
+      });
+
+    // No set should have been persisted — a zero-plan produces no row.
+    const persistedSetCount = await prisma.dailyPracticeSet.count({
+      where: {
+        userId: base.studentId,
+        moduleId: base.moduleId,
+      },
+    });
+    expect(persistedSetCount).toBe(0);
+  });
+
+  it('backfills the reinforcement shortfall from due-review while preserving the new-sequence slot at size 4', async () => {
+    // seedStudentReinforcementShortfallSize4Scenario produces:
+    //   completedLesson: 14 due-review questions
+    //   startedLesson:   1 invisible 'good' state (makes it "started") + 3 unseen
+    // reviewEligible = 14 + 0 (no reinforcement candidates) = 14 → size 4.
+    // Quota: 2 dueReview + 1 reinforcement + 1 newSequence.
+    // 0 reinforcement candidates → remainingCount = 1 → backfill draws 1 extra from dueReview.
+    // Expected result: 3 dueReview + 0 reinforcement + 1 newSequence (slot preserved, not consumed).
+    const base = await seedStudentModuleScenario(prisma);
+    setAuthenticatedUserId(base.studentId);
+    const scenario = await seedStudentReinforcementShortfallSize4Scenario(
+      prisma,
+      base,
+    );
+
+    const body = await fetchTodayDailyPractice(app, base.moduleId);
+
+    expect(body.questions).toHaveLength(4);
+
+    // The reinforcement shortfall must be filled by extra due-review, not by shrinking the set.
+    expect(
+      body.questions.filter(
+        (q) => q.sourceBucket === DailyPracticeSelectionBucketValues.dueReview,
+      ),
+    ).toHaveLength(3);
+    expect(
+      body.questions.filter(
+        (q) =>
+          q.sourceBucket === DailyPracticeSelectionBucketValues.reinforcement,
+      ),
+    ).toHaveLength(0);
+
+    // The new-sequence slot must survive the backfill — it must not be consumed to cover the shortfall.
+    const newSequenceQuestions = body.questions.filter(
+      (q) => q.sourceBucket === DailyPracticeSelectionBucketValues.newSequence,
+    );
+    expect(newSequenceQuestions).toHaveLength(1);
+    expect(newSequenceQuestions[0].moduleUnitId).toBe(
+      scenario.startedLesson.moduleUnitId,
+    );
+
+    // Confirm the persisted set matches.
+    const persistedSet = await prisma.dailyPracticeSet.findUnique({
+      where: {
+        userId_moduleId_practiceDateUtc: {
+          userId: base.studentId,
+          moduleId: base.moduleId,
+          practiceDateUtc: new Date(body.practiceDateUtc),
+        },
+      },
+      include: { items: true },
+    });
+    expect(persistedSet?.items).toHaveLength(4);
+    expect(
+      persistedSet?.items.filter(
+        (item) =>
+          item.sourceBucket === DailyPracticeSelectionBucketValues.newSequence,
+      ),
+    ).toHaveLength(1);
+    expect(
+      persistedSet?.items.filter(
+        (item) =>
+          item.sourceBucket ===
+          DailyPracticeSelectionBucketValues.reinforcement,
+      ),
+    ).toHaveLength(0);
+  });
+
+  it('draws due-review questions from all completed lessons, not just one', async () => {
+    // seedStudentMultipleCompletedLessonsScenario produces:
+    //   completedLesson1 (sortOrder 1): 1 due-review question
+    //   completedLesson2 (sortOrder 2): 2 due-review questions
+    //   No started lessons → 0 reinforcement, 0 new-sequence candidates.
+    // reviewEligible = 3 → size = 3 → quota: 2 dueReview + 1 reinforcement.
+    // 0 reinforcement → backfill → 3 dueReview total.
+    // With exactly 3 due-review candidates across 2 lessons, all 3 must be selected,
+    // making the cross-lesson distribution fully deterministic.
+    const base = await seedStudentModuleScenario(prisma);
+    setAuthenticatedUserId(base.studentId);
+    const scenario = await seedStudentMultipleCompletedLessonsScenario(
+      prisma,
+      base,
+    );
+
+    const body = await fetchTodayDailyPractice(app, base.moduleId);
+
+    expect(body.questions).toHaveLength(3);
+    expect(
+      body.questions.every(
+        (q) => q.sourceBucket === DailyPracticeSelectionBucketValues.dueReview,
+      ),
+    ).toBe(true);
+
+    // Exactly 1 question must come from lesson 1 and exactly 2 from lesson 2.
+    // If the query were accidentally scoped to a single lesson this assertion would fail.
+    expect(
+      body.questions.filter(
+        (q) => q.moduleUnitId === scenario.completedLesson1.moduleUnitId,
+      ),
+    ).toHaveLength(1);
+    expect(
+      body.questions.filter(
+        (q) => q.moduleUnitId === scenario.completedLesson2.moduleUnitId,
+      ),
+    ).toHaveLength(2);
+
+    // Confirm the persisted set has the same cross-lesson distribution.
+    const persistedSet = await prisma.dailyPracticeSet.findUnique({
+      where: {
+        userId_moduleId_practiceDateUtc: {
+          userId: base.studentId,
+          moduleId: base.moduleId,
+          practiceDateUtc: new Date(body.practiceDateUtc),
+        },
+      },
+      include: { items: true },
+    });
+    expect(persistedSet?.items).toHaveLength(3);
+    expect(
+      persistedSet?.items.filter(
+        (item) => item.moduleUnitId === scenario.completedLesson1.moduleUnitId,
+      ),
+    ).toHaveLength(1);
+    expect(
+      persistedSet?.items.filter(
+        (item) => item.moduleUnitId === scenario.completedLesson2.moduleUnitId,
       ),
     ).toHaveLength(2);
   });
