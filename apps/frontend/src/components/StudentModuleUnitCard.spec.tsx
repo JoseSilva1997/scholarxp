@@ -35,11 +35,16 @@ describe('StudentModuleUnitCard', () => {
     // baseUnit has questionCount: 2 (< 4) so streak bonus must not appear.
     render(<StudentModuleUnitCard unit={baseUnit} />);
 
+    const xpSummary = screen.getByLabelText('Possible XP rewards');
+    const baseRow = within(xpSummary).getByTitle('Base XP gained when a question is answered correctly.');
+    const firstTryRow = within(xpSummary).getByTitle('Bonus XP for first-try correct answers');
+    const masteryRow = within(xpSummary).getByTitle('XP earned through daily practice mastery');
+
     expect(screen.getByText('0/2 Questions')).toBeInTheDocument();
     expect(screen.getByText(new RegExp(String(baseOnlyExp)))).toBeInTheDocument();
-    expect(screen.getByText(`+${MODULE_UNIT_BASELINE_EXP}`)).toBeInTheDocument();
-    expect(screen.getByText(`+${MAXIMUM_FIRST_ATTEMPT_BONUS_EXP}`)).toBeInTheDocument();
-    expect(screen.getByText(`+${MASTERY_TOTAL_EXP}`)).toBeInTheDocument();
+    expect(within(baseRow).getByText(String(MODULE_UNIT_BASELINE_EXP))).toBeInTheDocument();
+    expect(within(firstTryRow).getByText(String(MAXIMUM_FIRST_ATTEMPT_BONUS_EXP))).toBeInTheDocument();
+    expect(within(masteryRow).getByText(String(MASTERY_TOTAL_EXP))).toBeInTheDocument();
     expect(screen.queryByText('Streak')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Expand lesson details' }));
     expect(screen.getByRole('button', { name: 'Practice Q1' })).toBeInTheDocument();
@@ -62,12 +67,11 @@ describe('StudentModuleUnitCard', () => {
     render(<StudentModuleUnitCard unit={{ ...baseUnit, questionCount: 4 }} />);
 
     const xpSummary = screen.getByLabelText('Possible XP rewards');
-    const streakRow = within(xpSummary)
-      .getByText('Streak')
-      .closest('div');
+    // Target the full streak reward card so layout refactors inside the card do not break the assertion.
+    const streakRow = within(xpSummary).getByTitle('Bonus XP for maintaining a streak');
 
     expect(streakRow).not.toBeNull();
-    expect(within(streakRow as HTMLDivElement).getByText(`+${maximumStreakBonusExp}`)).toBeInTheDocument();
+    expect(within(streakRow as HTMLDivElement).getByText(String(maximumStreakBonusExp))).toBeInTheDocument();
     expect(screen.getByText(new RegExp(String(fullExp)))).toBeInTheDocument();
   });
 

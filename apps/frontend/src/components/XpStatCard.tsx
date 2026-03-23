@@ -34,7 +34,7 @@ export default function XpStatCard({
           </div>
           <div className={styles.classicBarWrapper}>
             <div className={styles.classicBarTrack}>
-              <div 
+            <div 
                 className={styles.classicBarFill} 
                 style={{ width: `${percent}%` }}
               />

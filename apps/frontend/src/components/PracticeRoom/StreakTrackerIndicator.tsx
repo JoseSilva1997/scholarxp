@@ -1,7 +1,8 @@
-// Displays the student's live session streak as a fire icon whose visual intensity
-// matches the backend's XP bonus tier thresholds (30 % and 50 % of total questions).
-// Intentionally mirrors `ExpCalculationService.resolveReachedStreakTier` so
-// visual state and actual XP bonuses are always in sync.
+// Displays the student's live session streak as a fire icon. Supports two variants:
+// 'practice-room' — mirrors ExpCalculationService XP bonus thresholds (30%/50%/100%),
+// shows pip indicators, and animates bonus notifications; gates streak on ≥4 questions.
+// 'daily-practice' — always shows streak regardless of question count; no pips or
+// bonus animation since daily practice does not award account XP streak bonuses.
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { FaFire } from 'react-icons/fa6';
@@ -39,6 +40,10 @@ type StreakIndicatorProps = {
   // first render — before any new streak is built in the current session.
   // Defaults to [] so callers outside the practice room don't need to supply it.
   claimedTiers?: number[];
+  // Controls which feature set is active. 'practice-room' is the full XP-bonus
+  // mode with pips and bonus animation; 'daily-practice' is display-only with no
+  // thresholds or bonus notifications. Defaults to 'practice-room'.
+  variant?: 'practice-room' | 'daily-practice';
 };
 
 // Determines which visual tier to render based on the same percentage thresholds
@@ -61,6 +66,18 @@ function resolveStreakTier(
   if (currentStreak >= tierTwo) return 3;
   if (currentStreak >= tierOne) return 2;
   // currentStreak is between 1 and tierOne threshold
+  return 1;
+}
+
+// Determines visual tier for daily practice using absolute thresholds rather than
+// question-count-relative ones. Daily practice sets vary in size and carry no XP
+// streak bonuses, so a fixed progression gives useful visual feedback without
+// implying any particular bonus will fire.
+function resolveStreakTierForDailyPractice(currentStreak: number): StreakTier {
+  if (currentStreak === 0) return 0;
+  if (currentStreak >= 10) return 4;
+  if (currentStreak >= 6) return 3;
+  if (currentStreak >= 3) return 2;
   return 1;
 }
 
@@ -130,20 +147,27 @@ export default function StreakIndicator({
   totalQuestions,
   isStreakInitialized = true,
   claimedTiers = [],
+  variant = 'practice-room',
 }: StreakIndicatorProps) {
-  const tier = resolveStreakTier(currentStreak, totalQuestions);
-  // Show the count badge and pips on any eligible unit.
-  const showBadge = totalQuestions >= 4;
+  const isDailyPractice = variant === 'daily-practice';
 
-  // Compute pip states only for eligible units; thresholds mirror resolveStreakTier.
-  const tierOneThreshold = totalQuestions >= 4 ? Math.max(3, Math.ceil(totalQuestions * 0.3)) : Infinity;
-  const tierTwoThreshold = totalQuestions >= 4 ? Math.max(3, Math.ceil(totalQuestions * 0.5)) : Infinity;
-  const tierThreeThreshold = totalQuestions >= 4 ? totalQuestions : Infinity;
+  const tier = isDailyPractice
+    ? resolveStreakTierForDailyPractice(currentStreak)
+    : resolveStreakTier(currentStreak, totalQuestions);
+
+  // Daily practice always shows the badge; practice-room gates it on 4+ questions
+  // because the XP streak mechanic is suppressed on smaller units.
+  const showBadge = isDailyPractice || totalQuestions >= 4;
+
+  // Pip state is only relevant in practice-room mode where XP bonuses fire.
+  const tierOneThreshold = !isDailyPractice && totalQuestions >= 4 ? Math.max(3, Math.ceil(totalQuestions * 0.3)) : Infinity;
+  const tierTwoThreshold = !isDailyPractice && totalQuestions >= 4 ? Math.max(3, Math.ceil(totalQuestions * 0.5)) : Infinity;
+  const tierThreeThreshold = !isDailyPractice && totalQuestions >= 4 ? totalQuestions : Infinity;
   // Pass lifetime-claimed status so entering the room pre-populates claimed pips
   // from the backend's streakRewardState, not just this session's highestStreak.
-  const pip1State = showBadge ? resolvePipState(currentStreak, highestStreak, tierOneThreshold, claimedTiers.includes(1)) : 'inactive';
-  const pip2State = showBadge ? resolvePipState(currentStreak, highestStreak, tierTwoThreshold, claimedTiers.includes(2)) : 'inactive';
-  const pip3State = showBadge ? resolvePipState(currentStreak, highestStreak, tierThreeThreshold, claimedTiers.includes(3)) : 'inactive';
+  const pip1State = showBadge && !isDailyPractice ? resolvePipState(currentStreak, highestStreak, tierOneThreshold, claimedTiers.includes(1)) : 'inactive';
+  const pip2State = showBadge && !isDailyPractice ? resolvePipState(currentStreak, highestStreak, tierTwoThreshold, claimedTiers.includes(2)) : 'inactive';
+  const pip3State = showBadge && !isDailyPractice ? resolvePipState(currentStreak, highestStreak, tierThreeThreshold, claimedTiers.includes(3)) : 'inactive';
 
   // Track the previous highestStreak for threshold-crossing detection.
   const prevHighestStreakRef = useRef(highestStreak);
@@ -155,7 +179,13 @@ export default function StreakIndicator({
   const prevIsStreakInitializedRef = useRef(isStreakInitialized);
 
   // Detect when highestStreak crossed a bonus tier threshold during active play.
+  // Skipped entirely in daily-practice mode since no XP bonuses are awarded there.
   useEffect(() => {
+    if (isDailyPractice) {
+      prevHighestStreakRef.current = highestStreak;
+      return;
+    }
+
     const wasInitialized = prevIsStreakInitializedRef.current;
     prevIsStreakInitializedRef.current = isStreakInitialized;
 
@@ -172,15 +202,15 @@ export default function StreakIndicator({
     const showBadgeThreshold = totalQuestions >= 4;
 
     // Calculate thresholds and check if highestStreak just crossed any of them.
-    const tierOneThreshold = showBadgeThreshold ? Math.max(3, Math.ceil(totalQuestions * 0.3)) : Infinity;
-    const tierTwoThreshold = showBadgeThreshold ? Math.max(3, Math.ceil(totalQuestions * 0.5)) : Infinity;
-    const tierThreeThreshold = showBadgeThreshold ? totalQuestions : Infinity;
+    const t1 = showBadgeThreshold ? Math.max(3, Math.ceil(totalQuestions * 0.3)) : Infinity;
+    const t2 = showBadgeThreshold ? Math.max(3, Math.ceil(totalQuestions * 0.5)) : Infinity;
+    const t3 = showBadgeThreshold ? totalQuestions : Infinity;
 
     // A bonus was earned if highestStreak just crossed a threshold.
     const bonusEarned =
-      (prevHighestStreak < tierOneThreshold && highestStreak >= tierOneThreshold) ||
-      (prevHighestStreak < tierTwoThreshold && highestStreak >= tierTwoThreshold) ||
-      (prevHighestStreak < tierThreeThreshold && highestStreak >= tierThreeThreshold);
+      (prevHighestStreak < t1 && highestStreak >= t1) ||
+      (prevHighestStreak < t2 && highestStreak >= t2) ||
+      (prevHighestStreak < t3 && highestStreak >= t3);
 
     prevHighestStreakRef.current = highestStreak;
 
@@ -200,7 +230,7 @@ export default function StreakIndicator({
         }
       };
     }
-  }, [highestStreak, totalQuestions, isStreakInitialized])
+  }, [highestStreak, totalQuestions, isStreakInitialized, isDailyPractice])
 
   return (
     <div
@@ -208,9 +238,10 @@ export default function StreakIndicator({
       aria-label={`${TIER_LABEL[tier]}${showBadge ? ` — ${currentStreak} in a row` : ''}`}
       title={`${TIER_LABEL[tier]}${showBadge ? ` (${currentStreak})` : ''}`}
     >
-      {/* Floating "Bonus!" text that appears when a pip earns a bonus for the first time */}
+      {/* Floating "Bonus!" text that appears when a pip earns a bonus for the first time.
+          Not rendered in daily-practice mode since no XP streak bonuses fire there. */}
       <AnimatePresence>
-        {showFloatingBonus && (
+        {!isDailyPractice && showFloatingBonus && (
           <motion.div
             className={styles.floatingBonus}
             initial={{ opacity: 0 }}
@@ -240,9 +271,9 @@ export default function StreakIndicator({
 
         {/* Pips arranged horizontally below flame: pip 1 = 30%, pip 2 = 50%, pip 3 = 100% threshold.
             Inactive pips still render as dim outlines so the layout is stable
-            and the student can see what's coming. Pips only appear on eligible
-            units (4+ questions) where the streak mechanic is active. */}
-        {showBadge && (
+            and the student can see what's coming. Pips only appear in practice-room
+            mode on eligible units (4+ questions) where XP streak bonuses are active. */}
+        {showBadge && !isDailyPractice && (
           <span className={styles.pips} aria-hidden="true">
             <span
               data-testid="pip-tier1"

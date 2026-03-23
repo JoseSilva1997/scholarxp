@@ -153,4 +153,105 @@ describe('StreakIndicator', () => {
       expect(screen.queryByTestId('pip-tier2')).not.toBeInTheDocument();
     });
   });
+
+  describe('variant="daily-practice"', () => {
+    it('always shows badge regardless of totalQuestions count', () => {
+      // Daily practice sessions can have any number of questions; the streak
+      // mechanic is never suppressed based on set size.
+      for (const totalQuestions of [0, 1, 2, 3]) {
+        const { unmount } = render(
+          <StreakIndicator
+            currentStreak={5}
+            highestStreak={0}
+            totalQuestions={totalQuestions}
+            isStreakInitialized={true}
+            variant="daily-practice"
+          />,
+        );
+        expect(screen.getByText('5')).toBeInTheDocument();
+        unmount();
+      }
+    });
+
+    it('never renders pip threshold indicators', () => {
+      // No XP bonuses fire in daily practice so pips would be misleading.
+      render(
+        <StreakIndicator
+          currentStreak={10}
+          highestStreak={5}
+          totalQuestions={10}
+          isStreakInitialized={true}
+          variant="daily-practice"
+        />,
+      );
+      expect(screen.queryByTestId('pip-tier1')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('pip-tier2')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('pip-tier3')).not.toBeInTheDocument();
+    });
+
+    it('shows tier 0 (no streak) when currentStreak is 0', () => {
+      render(
+        <StreakIndicator
+          currentStreak={0}
+          highestStreak={0}
+          totalQuestions={5}
+          isStreakInitialized={true}
+          variant="daily-practice"
+        />,
+      );
+      expect(screen.getByLabelText('No streak yet — 0 in a row')).toBeInTheDocument();
+    });
+
+    it('uses absolute thresholds: streak of 1 reaches tier 1', () => {
+      render(
+        <StreakIndicator
+          currentStreak={1}
+          highestStreak={0}
+          totalQuestions={5}
+          isStreakInitialized={true}
+          variant="daily-practice"
+        />,
+      );
+      expect(screen.getByLabelText('Streak: building — 1 in a row')).toBeInTheDocument();
+    });
+
+    it('uses absolute thresholds: streak of 3 reaches tier 2 (warm)', () => {
+      render(
+        <StreakIndicator
+          currentStreak={3}
+          highestStreak={0}
+          totalQuestions={5}
+          isStreakInitialized={true}
+          variant="daily-practice"
+        />,
+      );
+      expect(screen.getByLabelText('Streak: warm — 3 in a row')).toBeInTheDocument();
+    });
+
+    it('uses absolute thresholds: streak of 6 reaches tier 3 (hot)', () => {
+      render(
+        <StreakIndicator
+          currentStreak={6}
+          highestStreak={0}
+          totalQuestions={10}
+          isStreakInitialized={true}
+          variant="daily-practice"
+        />,
+      );
+      expect(screen.getByLabelText('Streak: hot — 6 in a row')).toBeInTheDocument();
+    });
+
+    it('uses absolute thresholds: streak of 10 reaches tier 4 (blazing)', () => {
+      render(
+        <StreakIndicator
+          currentStreak={10}
+          highestStreak={0}
+          totalQuestions={5}
+          isStreakInitialized={true}
+          variant="daily-practice"
+        />,
+      );
+      expect(screen.getByLabelText('Streak: blazing — 10 in a row')).toBeInTheDocument();
+    });
+  });
 });
