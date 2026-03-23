@@ -19,7 +19,7 @@ type EvaluateMasteryParams = {
 
 type MasteryStageDefinition = {
   stage: MasteryStage;
-  eventType: string;
+  eventType: (typeof ExpLedgerEventTypes)[keyof typeof ExpLedgerEventTypes];
   isEligible: (state: StudentQuestionStateRecord) => boolean;
 };
 

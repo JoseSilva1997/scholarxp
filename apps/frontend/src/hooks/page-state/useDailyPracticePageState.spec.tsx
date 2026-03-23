@@ -11,6 +11,18 @@ vi.mock('../queries/useDailyPracticeQueries', () => ({
   useSubmitDailyPracticeAttemptMutation: vi.fn(),
   useCloseDailyPracticeSessionMutation: vi.fn(),
 }));
+vi.mock('../queries/useModulesQueries', () => ({
+  useModuleDetailQuery: () => ({ data: null, isPending: false, error: null }),
+}));
+vi.mock('./useModuleProgressAnimation', () => ({
+  useModuleProgressAnimation: () => ({
+    moduleProgress: null,
+    moduleExpGainIndicator: null,
+    showLevelUp: false,
+    isProgressInitialized: false,
+    applyExpAward: vi.fn(),
+  }),
+}));
 vi.mock('../../api/get-display-error', () => ({
   getDisplayErrorMessage: (err: unknown) => `display:${String(err)}`,
   shouldLogApiError: () => true,
@@ -62,6 +74,8 @@ function buildDailyPracticeResponse(
               options: [
                 { optionText: 'A', explanation: undefined },
                 { optionText: 'B', explanation: undefined },
+                { optionText: 'C', explanation: undefined },
+                { optionText: 'D', explanation: undefined },
               ],
               correctOptionIndex: 0,
             },
@@ -88,6 +102,8 @@ function buildDailyPracticeResponse(
               options: [
                 { optionText: 'A', explanation: undefined },
                 { optionText: 'B', explanation: undefined },
+                { optionText: 'C', explanation: undefined },
+                { optionText: 'D', explanation: undefined },
               ],
               correctOptionIndex: 1,
             },

@@ -39,7 +39,7 @@ function buildQuestion(
         questionStem: 'Question?',
         type: 'mcq',
         questionData: {
-          options: [{ optionText: 'A' }, { optionText: 'B' }],
+          options: [{ optionText: 'A' }, { optionText: 'B' }, { optionText: 'C' }, { optionText: 'D' }],
           correctOptionIndex: 0,
         } as DailyPracticeQuestionItem['coreQuestion']['questionContent']['questionData'],
         hint: null,
@@ -182,7 +182,7 @@ describe('DailyPracticePage route', () => {
           questionStem: 'Question?',
           type: 'mcq',
           questionData: {
-            options: [{ optionText: 'A' }, { optionText: 'B' }],
+            options: [{ optionText: 'A' }, { optionText: 'B' }, { optionText: 'C' }, { optionText: 'D' }],
             correctOptionIndex: 0,
           } as DailyPracticeQuestionItem['coreQuestion']['questionContent']['questionData'],
           hint: 'Helpful hint',
@@ -219,7 +219,6 @@ describe('DailyPracticePage route', () => {
 
     expect(screen.getByText('Daily Practice - Test Module')).toBeInTheDocument();
     expect(screen.getByText('Question?')).toBeInTheDocument();
-    expect(screen.getByText('0/1 answered')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /Question 1/i }));
     expect(mocks.selectQuestion).toHaveBeenCalledWith(0);

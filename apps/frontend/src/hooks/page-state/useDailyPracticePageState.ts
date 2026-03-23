@@ -18,8 +18,10 @@ import {
   useSubmitDailyPracticeAttemptMutation,
   useTodayDailyPracticeQuery,
 } from '../queries/useDailyPracticeQueries';
+import { useModuleDetailQuery } from '../queries/useModulesQueries';
 import { buildQuestionUnitNav, parsePracticeRoomSessionIdQuery, readQuestionOptions, readSelectedOptionIndex } from './practice-room/practiceRoomDerivedState';
 import { parsePositiveIntegerParam } from './practice-room/practiceRoomPageStateUtils';
+import { useModuleProgressAnimation, type ExpBreakdown } from './useModuleProgressAnimation';
 
 type UseDailyPracticePageStateParams = {
   moduleIdParam: string | undefined;
@@ -59,6 +61,9 @@ type UseDailyPracticePageStateResult = {
   currentStreak: number;
   highestStreak: number;
   isStreakInitialized: boolean;
+  moduleProgress: { level: number; currentExp: number; expPercent: number } | null;
+  moduleExpGainIndicator: ExpBreakdown | null;
+  showLevelUp: boolean;
   selectQuestion: (index: number) => void;
   selectOption: (contentId: number, optionIndex: number) => void;
   unlockHintForContent: (contentId: number) => void;
@@ -94,6 +99,15 @@ export function useDailyPracticePageState({
     useSubmitDailyPracticeAttemptMutation(parsedModuleId);
   const closeSessionMutation =
     useCloseDailyPracticeSessionMutation(parsedModuleId);
+
+  const moduleDetailQuery = useModuleDetailQuery(parsedModuleId);
+  const moduleDetail = moduleDetailQuery.data ?? null;
+  const {
+    moduleProgress,
+    moduleExpGainIndicator,
+    showLevelUp,
+    applyExpAward,
+  } = useModuleProgressAnimation({ moduleDetail, moduleId: parsedModuleId });
 
   const [selectedQuestionIndexState, setSelectedQuestionIndexState] =
     useState<SetScopedValue<number>>({
@@ -568,6 +582,18 @@ export function useDailyPracticePageState({
         });
       }
 
+      // Show mastery XP gain chip and animate the progress bar.
+      const masteryExp = submitResponse.awards.masteryExp ?? 0;
+      if (masteryExp > 0) {
+        const breakdown: ExpBreakdown = {
+          base: 0,
+          firstAttemptBonus: 0,
+          streakBonus: 0,
+          total: masteryExp,
+        };
+        applyExpAward(breakdown, moduleDetail);
+      }
+
       void submitAttemptMutation.syncAttemptSuccessEffects(submitResponse);
     } catch (error) {
       setSubmitErrorMessage(
@@ -607,6 +633,9 @@ export function useDailyPracticePageState({
     currentStreak,
     highestStreak,
     isStreakInitialized,
+    moduleProgress,
+    moduleExpGainIndicator,
+    showLevelUp,
     selectQuestion,
     selectOption,
     unlockHintForContent,

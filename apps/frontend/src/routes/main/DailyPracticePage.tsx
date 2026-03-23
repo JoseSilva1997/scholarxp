@@ -1,5 +1,6 @@
 // Module-scoped daily-practice route that reuses the practice-room visual language for the adaptive daily set flow.
 import { Link, useParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
 import { IconContext } from 'react-icons';
 import {
   FaChevronDown,
@@ -9,6 +10,7 @@ import {
 } from 'react-icons/fa6';
 import MainSection from '../../components/MainSection';
 import StreakIndicator from '../../components/PracticeRoom/StreakTrackerIndicator';
+import expIcon from '../../assets/exp_icon.svg';
 import { useDailyPracticePageState } from '../../hooks/page-state/useDailyPracticePageState';
 import { useModuleDetailQuery } from '../../hooks/queries/useModulesQueries';
 import { buildPracticeRoomAnswerFeedback } from './practice-room-answer-feedback';
@@ -41,7 +43,6 @@ export default function DailyPracticePage() {
   const {
     parsedModuleId,
     room,
-    progress,
     isLoading,
     pageError,
     submitErrorMessage,
@@ -58,6 +59,9 @@ export default function DailyPracticePage() {
     currentStreak,
     highestStreak,
     isStreakInitialized,
+    moduleProgress,
+    moduleExpGainIndicator,
+    showLevelUp,
     selectQuestion,
     selectOption,
     unlockHintForContent,
@@ -115,11 +119,51 @@ export default function DailyPracticePage() {
               totalQuestions={room?.questions.length ?? 0}
               isStreakInitialized={isStreakInitialized}
             />
-            {progress ? (
-              <div className={styles.progressCounter}>
-                {progress.answeredQuestions}/{progress.totalQuestions} answered
+            {moduleProgress && (
+              <div className={styles.levelIndicatorMini}>
+                <img src={expIcon} alt="" aria-hidden="true" className={styles.miniLevelIcon} />
+                <div className={styles.levelTextWrapper}>
+                  <span className={styles.levelText}>Lvl {moduleProgress.level}</span>
+                  <AnimatePresence>
+                    {showLevelUp && (
+                      <motion.span
+                        key="level-up-badge"
+                        initial={{ opacity: 0, scale: 0.5, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.5, y: -10 }}
+                        transition={{ duration: 0.5, type: 'spring', bounce: 0.4 }}
+                        className={styles.levelUpBadge}
+                      >
+                        LEVEL UP!
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </div>
+                <div className={styles.miniBarTrack}>
+                  <div
+                    className={`${styles.miniBarFill} ${showLevelUp ? styles.miniBarFillLevelUp : ''}`}
+                    style={{ width: `${moduleProgress.expPercent}%` }}
+                  />
+                </div>
+                <div className={styles.xpValueContainer}>
+                  <span className={styles.miniExpLabel}>{moduleProgress.currentExp} xp</span>
+                  {moduleExpGainIndicator && moduleExpGainIndicator.total > 0 && (
+                    <motion.span
+                      key={`${moduleExpGainIndicator.awardId}-mastery`}
+                      initial={{ y: 0, opacity: 0 }}
+                      animate={{ y: -40, opacity: [0, 1, 1, 0] }}
+                      transition={{
+                        y: { ease: 'linear', duration: 2.5, delay: 0 },
+                        opacity: { duration: 2.5, times: [0, 0.04, 0.6, 1], delay: 0.2 },
+                      }}
+                      className={styles.xpFloatChip}
+                    >
+                      +{moduleExpGainIndicator.total} xp
+                    </motion.span>
+                  )}
+                </div>
               </div>
-            ) : null}
+            )}
           </div>
         </div>
 
@@ -163,6 +207,11 @@ export default function DailyPracticePage() {
               <h2 className={styles.questionStem}>
                 {activeQuestion.question.questionStem}
               </h2>
+              <div style={{ fontSize: '0.75rem', color: '#999', marginTop: '0.5rem' }}>
+                Debug: moduleUnitId = {activeQuestionItem.moduleUnitId}, questionId ={' '}
+                {activeQuestionItem.coreQuestion.questionId}, questionContentId ={' '}
+                {activeQuestion.question.id}
+              </div>
             </div>
 
             <div className={styles.questionContent}>

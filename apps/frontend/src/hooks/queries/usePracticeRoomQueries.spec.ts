@@ -42,8 +42,7 @@ describe('useModuleUnitPracticeRoomQuery', () => {
     useMutationMock.mockReturnValue({ mutateAsync: vi.fn() });
     getPracticeRoomMock.mockResolvedValue('result');
     submitPracticeRoomAttemptMock.mockResolvedValue({
-        masteryExp: 0,
-      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
+      awards: { masteryExp: 0, baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: false,
     });
     closePracticeRoomSessionMock.mockResolvedValue({
@@ -138,8 +137,7 @@ describe('useSubmitModuleUnitPracticeAttemptMutation', () => {
     useMutationMock.mockReturnValue({ mutateAsync: vi.fn() });
     getPracticeRoomMock.mockResolvedValue('result');
     submitPracticeRoomAttemptMock.mockResolvedValue({
-        masteryExp: 0,
-      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
+      awards: { masteryExp: 0, baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: false,
     });
     closePracticeRoomSessionMock.mockResolvedValue({
@@ -189,8 +187,7 @@ describe('useSubmitModuleUnitPracticeAttemptMutation', () => {
   it('syncs practice room and reward caches when the caller flushes success effects', async () => {
     const result = useSubmitModuleUnitPracticeAttemptMutation(5, 2);
     const mockResponse = {
-        masteryExp: 0,
-      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
+      awards: { masteryExp: 0, baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: true,
     };
     await result.syncAttemptSuccessEffects(mockResponse);
@@ -221,8 +218,7 @@ describe('useSubmitModuleUnitPracticeAttemptMutation', () => {
     };
 
     await result.syncAttemptSuccessEffects({
-        masteryExp: 0,
-      awards: { baseQuestionExp: 10, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
+      awards: { masteryExp: 0, baseQuestionExp: 10, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: true,
       updatedModuleProgress,
     });
