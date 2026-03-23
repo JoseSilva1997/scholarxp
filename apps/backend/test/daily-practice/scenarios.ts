@@ -407,7 +407,11 @@ export async function seedYesterdayDailyPracticeSet(
     studentId: number;
     moduleId: number;
     // Questions to include in yesterday's set — caller supplies module-unit context for each item.
-    questions: { questionUnitId: number; moduleUnitId: number }[];
+    questions: {
+      questionUnitId: number;
+      questionContentId: number;
+      moduleUnitId: number;
+    }[];
   },
 ): Promise<{ setId: string }> {
   const { dayStartUtc } = DateHelpers.getUtcDayBounds(new Date());
@@ -423,6 +427,7 @@ export async function seedYesterdayDailyPracticeSet(
       items: {
         create: params.questions.map((question, index) => ({
           questionUnitId: question.questionUnitId,
+          questionContentId: question.questionContentId,
           moduleUnitId: question.moduleUnitId,
           position: index + 1,
           sourceBucket: 'due_review',

@@ -208,6 +208,7 @@ function buildSet(
         id: `item-${id}-1`,
         dailyPracticeSetId: id,
         questionUnitId: 10,
+        questionContentId: 100,
         moduleUnitId: 1,
         position: 0,
         selectionReason: 'due_review',

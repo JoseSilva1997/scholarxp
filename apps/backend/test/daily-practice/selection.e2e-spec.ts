@@ -93,6 +93,75 @@ describe('Daily practice selection rules (e2e)', () => {
     ).toBe(true);
   });
 
+  it('shows an unseen active variant in daily practice while keeping the set question-scoped', async () => {
+    const base = await seedStudentModuleScenario(prisma);
+    setAuthenticatedUserId(base.studentId);
+    const scenario = await seedStudentReviewReadyScenario(prisma, base);
+    const targetQuestion = scenario.firstLesson.questions[0];
+
+    const variantContent = await prisma.questionContent.create({
+      data: {
+        type: 'mcq',
+        questionUnitId: targetQuestion.questionUnitId,
+        isCore: false,
+        questionStem: 'Variant phrasing for question 1',
+        questionData: {
+          options: [{ optionText: 'Correct' }, { optionText: 'Wrong' }],
+          correctOptionIndex: 0,
+        },
+        hint: 'Variant hint',
+        difficultyScore: 1,
+        source: 'seeded-daily-practice-e2e',
+        isArchived: false,
+      },
+    });
+    await prisma.questionVariant.create({
+      data: {
+        questionUnitId: targetQuestion.questionUnitId,
+        contentId: variantContent.id,
+        variantLabel: 'Variant A',
+      },
+    });
+
+    const body = await fetchTodayDailyPractice(app, base.moduleId);
+    const selectedQuestion = body.questions.find(
+      (question) => question.questionUnitId === targetQuestion.questionUnitId,
+    );
+
+    expect(selectedQuestion).toBeDefined();
+    expect(selectedQuestion?.coreQuestion.questionId).toBe(
+      targetQuestion.questionUnitId,
+    );
+    expect(selectedQuestion?.coreQuestion.questionContent.id).toBe(
+      variantContent.id,
+    );
+    expect(selectedQuestion?.coreQuestion.questionContent.questionStem).toBe(
+      'Variant phrasing for question 1',
+    );
+
+    const persistedSet = await prisma.dailyPracticeSet.findUnique({
+      where: {
+        userId_moduleId_practiceDateUtc: {
+          userId: base.studentId,
+          moduleId: base.moduleId,
+          practiceDateUtc: new Date(body.practiceDateUtc),
+        },
+      },
+      include: {
+        items: {
+          orderBy: {
+            position: 'asc',
+          },
+        },
+      },
+    });
+    const persistedItem = persistedSet?.items.find(
+      (item) => item.questionUnitId === targetQuestion.questionUnitId,
+    );
+
+    expect(persistedItem?.questionContentId).toBe(variantContent.id);
+  });
+
   it('backfills from a started lesson and excludes untouched lessons from new-sequence', async () => {
     const base = await seedStudentModuleScenario(prisma);
     setAuthenticatedUserId(base.studentId);

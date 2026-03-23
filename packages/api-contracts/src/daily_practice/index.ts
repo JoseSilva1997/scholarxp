@@ -89,6 +89,7 @@ export interface DailyPracticeSetItem {
   id: string;
   dailyPracticeSetId: string;
   questionUnitId: number;
+  questionContentId: number;
   moduleUnitId: number;
   position: number;
   selectionReason: string;
@@ -116,6 +117,7 @@ export interface DailyPracticeQuestionItem {
   position: number;
   hasCorrectAttempt: boolean | null;
   sourceBucket: DailyPracticeSelectionBucket;
+  // The shared "coreQuestion" envelope is reused here even when daily practice selected a variant for presentation.
   coreQuestion: PracticeQuestionWithLatestAttempt;
 }
 

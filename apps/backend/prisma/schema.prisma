@@ -329,6 +329,8 @@ model DailyPracticeSetItem {
   id                 String           @id @default(uuid()) @db.Uuid
   dailyPracticeSetId String           @map("daily_practice_set_id") @db.Uuid
   questionUnitId     Int              @map("question_unit_id")
+  // Persist the displayed content so daily-practice refreshes never reshuffle core-vs-variant presentation within the same day.
+  questionContentId  Int              @map("question_content_id")
   moduleUnitId       Int              @map("module_unit_id")
   position           Int
   // Reason stays string-backed so selector heuristics can become more specific without schema churn.
@@ -336,6 +338,7 @@ model DailyPracticeSetItem {
   selectionScore     Float            @map("selection_score")
   sourceBucket       String           @map("source_bucket")
   dailyPracticeSet   DailyPracticeSet @relation(fields: [dailyPracticeSetId], references: [id], onDelete: Cascade)
+  questionContent    QuestionContent  @relation(fields: [questionContentId], references: [id], onDelete: Restrict)
   questionUnit       QuestionUnit     @relation(fields: [questionUnitId], references: [id], onDelete: Cascade)
   moduleUnit         ModuleUnit       @relation(fields: [moduleUnitId], references: [id], onDelete: Cascade)
 
@@ -343,6 +346,7 @@ model DailyPracticeSetItem {
   @@unique([dailyPracticeSetId, questionUnitId], map: "daily_practice_set_item_question_key")
   // Position is persisted so refreshes preserve deterministic interleaving order.
   @@unique([dailyPracticeSetId, position], map: "daily_practice_set_item_position_key")
+  @@index([questionContentId], map: "daily_practice_set_item_content_lookup_idx")
   @@index([moduleUnitId, sourceBucket], map: "daily_practice_set_item_bucket_lookup_idx")
   @@map("daily_practice_set_items")
 }
@@ -361,6 +365,8 @@ model QuestionContent {
   createdAt        DateTime          @default(now()) @map("created_at")
   updatedAt        DateTime          @updatedAt @map("updated_at")
   questionUnit     QuestionUnit      @relation(fields: [questionUnitId], references: [id], onDelete: Cascade)
+  // Daily-practice items pin the exact content shown so variant rotation stays stable across refreshes.
+  dailyPracticeSetItems DailyPracticeSetItem[]
   questionAttempts QuestionAttempt[]
   variantMetadata  QuestionVariant?
 
