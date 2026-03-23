@@ -148,8 +148,8 @@ export class PracticeRoomReadService {
               ...(isSessionIdScoped
                 ? { sessionId }
                 : sessionType
-                ? { session: { sessionType } }
-                : {}),
+                  ? { session: { sessionType } }
+                  : {}),
               questionId: { in: questionUnitIds },
               contentId: { in: contentIds },
             },

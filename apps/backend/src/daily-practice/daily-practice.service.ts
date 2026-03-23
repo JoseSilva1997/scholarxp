@@ -244,7 +244,9 @@ export class DailyPracticeService {
       const todaysAttempts = await tx.questionAttempt.findMany({
         where: {
           studentId,
-          questionId: { in: dailyPracticeSet.items.map((item) => item.questionUnitId) },
+          questionId: {
+            in: dailyPracticeSet.items.map((item) => item.questionUnitId),
+          },
           attemptedAt: { gte: dayStartUtc, lt: nextDayStartUtc },
           session: {
             moduleId,
@@ -604,7 +606,11 @@ export class DailyPracticeService {
   // Mirrors the quest system's streak logic: first attempt per question, correct and no hints used.
   // Returns both the live count and the session high so the client can drive the streak indicator.
   private computeDailyPracticeStreak(
-    attempts: Array<{ questionId: number; isCorrect: boolean; hintsUsed: number }>,
+    attempts: Array<{
+      questionId: number;
+      isCorrect: boolean;
+      hintsUsed: number;
+    }>,
   ): { currentStreak: number; highestStreak: number } {
     const seenQuestionIds = new Set<number>();
     let currentStreak = 0;

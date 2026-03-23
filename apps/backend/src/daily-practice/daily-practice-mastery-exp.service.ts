@@ -5,8 +5,14 @@ import { ExpLedgerEventTypes } from '@scholarxp/constants';
 import { ExpLedgerService } from '../db-entities/exp-ledger/exp-ledger.service';
 import { UserModuleService } from '../db-entities/user-module/user-module.service';
 import { ExpQuestionContextService } from '../exp-engine/exp-question-context.service';
-import { MASTERY_EXP_CONFIG, type MasteryStage } from './daily-practice-mastery-exp.config';
-import type { PrismaClientLike, StudentQuestionStateRecord } from './daily-practice.types';
+import {
+  MASTERY_EXP_CONFIG,
+  type MasteryStage,
+} from './daily-practice-mastery-exp.config';
+import type {
+  PrismaClientLike,
+  StudentQuestionStateRecord,
+} from './daily-practice.types';
 
 type EvaluateMasteryParams = {
   userId: number;

@@ -81,7 +81,10 @@ describe('DailyPracticeMasteryExpService', () => {
         DailyPracticeMasteryExpService,
         { provide: ExpLedgerService, useValue: expLedgerService },
         { provide: UserModuleService, useValue: userModuleService },
-        { provide: ExpQuestionContextService, useValue: expQuestionContextService },
+        {
+          provide: ExpQuestionContextService,
+          useValue: expQuestionContextService,
+        },
       ],
     }).compile();
 
@@ -122,8 +125,12 @@ describe('DailyPracticeMasteryExpService', () => {
       const eventTypes = expLedgerService.recordEvent.mock.calls.map(
         (call: unknown[]) => (call[0] as { eventType: string }).eventType,
       );
-      expect(eventTypes).toContain(ExpLedgerEventTypes.DAILY_PRACTICE_MASTERY_ENCOUNTERED);
-      expect(eventTypes).toContain(ExpLedgerEventTypes.DAILY_PRACTICE_MASTERY_GRADUATED);
+      expect(eventTypes).toContain(
+        ExpLedgerEventTypes.DAILY_PRACTICE_MASTERY_ENCOUNTERED,
+      );
+      expect(eventTypes).toContain(
+        ExpLedgerEventTypes.DAILY_PRACTICE_MASTERY_GRADUATED,
+      );
       expect(result.masteryExpAwarded).toBeGreaterThan(0);
     });
 
@@ -138,9 +145,15 @@ describe('DailyPracticeMasteryExpService', () => {
       const eventTypes = expLedgerService.recordEvent.mock.calls.map(
         (call: unknown[]) => (call[0] as { eventType: string }).eventType,
       );
-      expect(eventTypes).toContain(ExpLedgerEventTypes.DAILY_PRACTICE_MASTERY_ENCOUNTERED);
-      expect(eventTypes).toContain(ExpLedgerEventTypes.DAILY_PRACTICE_MASTERY_GRADUATED);
-      expect(eventTypes).toContain(ExpLedgerEventTypes.DAILY_PRACTICE_MASTERY_RETAINED);
+      expect(eventTypes).toContain(
+        ExpLedgerEventTypes.DAILY_PRACTICE_MASTERY_ENCOUNTERED,
+      );
+      expect(eventTypes).toContain(
+        ExpLedgerEventTypes.DAILY_PRACTICE_MASTERY_GRADUATED,
+      );
+      expect(eventTypes).toContain(
+        ExpLedgerEventTypes.DAILY_PRACTICE_MASTERY_RETAINED,
+      );
       expect(result.masteryExpAwarded).toBeGreaterThan(0);
     });
 
@@ -171,7 +184,9 @@ describe('DailyPracticeMasteryExpService', () => {
       const eventTypes = expLedgerService.recordEvent.mock.calls.map(
         (call: unknown[]) => (call[0] as { eventType: string }).eventType,
       );
-      expect(eventTypes).not.toContain(ExpLedgerEventTypes.DAILY_PRACTICE_MASTERY_RETAINED);
+      expect(eventTypes).not.toContain(
+        ExpLedgerEventTypes.DAILY_PRACTICE_MASTERY_RETAINED,
+      );
     });
 
     it('awards retained when stability equals threshold exactly', async () => {
@@ -184,7 +199,9 @@ describe('DailyPracticeMasteryExpService', () => {
       const eventTypes = expLedgerService.recordEvent.mock.calls.map(
         (call: unknown[]) => (call[0] as { eventType: string }).eventType,
       );
-      expect(eventTypes).toContain(ExpLedgerEventTypes.DAILY_PRACTICE_MASTERY_RETAINED);
+      expect(eventTypes).toContain(
+        ExpLedgerEventTypes.DAILY_PRACTICE_MASTERY_RETAINED,
+      );
     });
 
     it('returns 0 when idempotency prevents duplicate awards', async () => {

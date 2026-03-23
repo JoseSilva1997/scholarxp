@@ -414,14 +414,20 @@ export class ModuleUnitService {
     for (const row of rows) {
       if (row.moduleUnitId === null) continue;
       if (!result.has(row.moduleUnitId)) {
-        result.set(row.moduleUnitId, { base: 0, firstAttempt: 0, streak: 0, mastery: 0 });
+        result.set(row.moduleUnitId, {
+          base: 0,
+          firstAttempt: 0,
+          streak: 0,
+          mastery: 0,
+        });
       }
       const entry = result.get(row.moduleUnitId)!;
       const awarded = row._sum.awardedExp ?? 0;
       if (row.eventType === ExpLedgerEventTypes.CORRECT_PRACTICE_ROOM_ANSWER) {
         entry.base += awarded;
       } else if (
-        row.eventType === ExpLedgerEventTypes.PRACTICE_ROOM_CORRECT_AT_FIRST_ATTEMPT
+        row.eventType ===
+        ExpLedgerEventTypes.PRACTICE_ROOM_CORRECT_AT_FIRST_ATTEMPT
       ) {
         entry.firstAttempt += awarded;
       } else if (row.eventType === ExpLedgerEventTypes.PRACTICE_ROOM_STREAK) {
