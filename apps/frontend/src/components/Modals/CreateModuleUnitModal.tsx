@@ -62,7 +62,7 @@ export default function CreateModuleUnitModal({ isOpen, onClose, onCreate }: Cre
       onClick={handleClose}
     >
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-        <h2 className={styles.title}>Create module unit</h2>
+        <h2 className={styles.title}>Create a new lesson</h2>
         <form onSubmit={handleSubmit} className={styles.form}>
           <label className={styles.label} htmlFor="unit-title">
             Title
@@ -89,7 +89,7 @@ export default function CreateModuleUnitModal({ isOpen, onClose, onCreate }: Cre
               Cancel
             </button>
             <button type="submit" className={styles.primary} disabled={!isTitleValid} aria-disabled={!isTitleValid}>
-              Add unit
+              Add lesson
             </button>
           </div>
         </form>

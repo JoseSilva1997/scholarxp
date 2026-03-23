@@ -38,6 +38,8 @@ function getDailyPracticeQuestionStatusClass(
   return isCurrent ? `${styles.navBarCurrent} ${statusClass}` : statusClass;
 }
 
+const DEBUG_MODE = false;
+
 export default function DailyPracticePage() {
   const { moduleId } = useParams<{ moduleId: string }>();
   const {
@@ -118,6 +120,7 @@ export default function DailyPracticePage() {
               highestStreak={highestStreak}
               totalQuestions={room?.questions.length ?? 0}
               isStreakInitialized={isStreakInitialized}
+              variant="daily-practice"
             />
             {moduleProgress && (
               <div className={styles.levelIndicatorMini}>
@@ -207,13 +210,14 @@ export default function DailyPracticePage() {
               <h2 className={styles.questionStem}>
                 {activeQuestion.question.questionStem}
               </h2>
+              {DEBUG_MODE ?
               <div style={{ fontSize: '0.75rem', color: '#999', marginTop: '0.5rem' }}>
                 Debug: moduleUnitId = {activeQuestionItem.moduleUnitId}, questionId ={' '}
                 {activeQuestionItem.coreQuestion.questionId}, questionContentId ={' '}
                 {activeQuestion.question.id}
               </div>
+            : null}
             </div>
-
             <div className={styles.questionContent}>
               <div
                 className={`${styles.optionsList} ${

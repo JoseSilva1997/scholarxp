@@ -16,6 +16,7 @@ import { DailyPracticeReviewStateModule } from './daily-practice-review-state.mo
 import { DailyPracticeService } from './daily-practice.service';
 import { DailyPracticeSetSelectorService } from './daily-practice-set-selector.service';
 import { DailyPracticeSetReadService } from './daily-practice-set-read.service';
+import { DailyPracticeVariantResolverService } from './daily-practice-variant-resolver.service';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { DailyPracticeSetReadService } from './daily-practice-set-read.service';
     DailyPracticeService,
     DailyPracticeSetSelectorService,
     DailyPracticeSetReadService,
+    DailyPracticeVariantResolverService,
   ],
   exports: [
     DailyPracticeCandidateReadService,
@@ -48,6 +50,7 @@ import { DailyPracticeSetReadService } from './daily-practice-set-read.service';
     DailyPracticeService,
     DailyPracticeSetSelectorService,
     DailyPracticeSetReadService,
+    DailyPracticeVariantResolverService,
   ],
 })
 export class DailyPracticeModule {}

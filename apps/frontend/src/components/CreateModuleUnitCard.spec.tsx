@@ -8,7 +8,7 @@ describe('CreateModuleUnitCard', () => {
     const onClick = vi.fn();
     render(<CreateModuleUnitCard onClick={onClick} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Start creating a module unit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add a lesson' }));
     expect(onClick).toHaveBeenCalled();
   });
 
@@ -16,6 +16,6 @@ describe('CreateModuleUnitCard', () => {
     render(<CreateModuleUnitCard isSaving />);
 
     expect(screen.getByText('Creating…')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Start creating a module unit' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Add a lesson' })).toBeDisabled();
   });
 });

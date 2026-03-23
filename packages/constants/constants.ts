@@ -60,6 +60,8 @@ export const MODULE_UNIT_COMPLETION_REWARDS = {
 }
 // Quest completion reward (fixed) for baseline quests.
 export const QUEST_COMPLETION_REWARD = 50;
+// Daily quest generation can shrink below this cap, but reward balancing still treats three slots as the baseline day.
+export const MAX_DAILY_QUEST_COUNT = 3;
 // Master Quest completion reward (fixed) for completing all quests in a day.
 export const MASTER_QUEST_COMPLETION_REWARD = 250;
 // Master quest streak caps at five days so the reward boost tops out at 50%.

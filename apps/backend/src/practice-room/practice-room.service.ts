@@ -79,7 +79,8 @@ export class PracticeRoomService {
       );
     const sessionType = normalizeSessionType(roomContext.session.sessionType);
     const retryReferenceHighestStreak =
-      sessionType === PracticeSessionTypeValues.retry
+      sessionType === PracticeSessionTypeValues.retry ||
+      sessionType === PracticeSessionTypeValues.viewAnswers
         ? await this.expStreakService.getHistoricalHighestPracticeStreak(
             moduleUnitId,
             studentId,

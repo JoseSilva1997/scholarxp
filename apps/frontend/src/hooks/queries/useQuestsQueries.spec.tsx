@@ -70,7 +70,7 @@ const mockQuests = [
     isCompleted: false,
     progressCurrent: 1,
     progressTarget: 3,
-    description: 'Complete all 3 daily quests to unlock the master quest reward.',
+    description: 'Complete every daily quest available today to unlock the master quest reward.',
     questDateUtc: TODAY_STR,
     generatedAt: `${TODAY_STR}T00:00:00.000Z`,
     completedAt: null,

@@ -7,7 +7,11 @@ import {
   getQuestDefinition,
   type QuestType,
 } from '@scholarxp/api-contracts';
-import { ExpLedgerEventTypes } from '@scholarxp/constants';
+import {
+  ExpLedgerEventTypes,
+  MAX_DAILY_QUEST_COUNT,
+  QUEST_COMPLETION_REWARD,
+} from '@scholarxp/constants';
 import { AvatarService } from '../db-entities/avatar/avatar.service';
 import { ExpLedgerService } from '../db-entities/exp-ledger/exp-ledger.service';
 import { DateHelpers } from '../helpers/helpers';
@@ -472,11 +476,14 @@ export class QuestProgressService {
       timestamp,
       prismaClient,
     );
+    const dailyQuestCount = todaysQuests.filter(
+      (quest) => quest.type !== QuestTypeValues.masterDailyQuests,
+    ).length;
     const completedDailyQuestCount = todaysQuests.filter(
       (quest) =>
         quest.type !== QuestTypeValues.masterDailyQuests && quest.isCompleted,
     ).length;
-    if (completedDailyQuestCount < 3) {
+    if (dailyQuestCount === 0 || completedDailyQuestCount < dailyQuestCount) {
       return;
     }
 
@@ -494,11 +501,15 @@ export class QuestProgressService {
         timestamp,
         prismaClient,
       );
+    const missingDailyQuestCount = Math.max(
+      0,
+      MAX_DAILY_QUEST_COUNT - dailyQuestCount,
+    );
     await this.completeQuest(
       masterQuest,
       timestamp,
       prismaClient,
-      rewardState.awardedExp,
+      rewardState.awardedExp + missingDailyQuestCount * QUEST_COMPLETION_REWARD,
     );
   }
 
@@ -519,8 +530,7 @@ export class QuestProgressService {
         id: quest.id,
       },
       data: {
-        // Persist the final reward amount on the quest row so history reads match the ledger-backed award.
-        expGranted: awardedExp,
+        // The quest row keeps the generated base reward while the ledger owns the actual awarded amount.
         isCompleted: true,
         completedAt,
       },

@@ -16,7 +16,7 @@ describe('CreateModuleUnitModal', () => {
     render(<CreateModuleUnitModal isOpen onClose={onClose} onCreate={onCreate} />);
 
     fireEvent.change(screen.getByLabelText('Title'), { target: { value: '  Unit A  ' } });
-    fireEvent.submit(screen.getByRole('button', { name: 'Add unit' }).closest('form')!);
+    fireEvent.click(screen.getByRole('button', { name: 'Add lesson' }));
 
     expect(onCreate).toHaveBeenCalledWith('Unit A');
     expect(onClose).toHaveBeenCalled();

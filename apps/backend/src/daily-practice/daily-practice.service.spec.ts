@@ -19,9 +19,11 @@ import { DailyPracticeMapper } from './daily-practice.mapper';
 import { DailyPracticeService } from './daily-practice.service';
 import { DailyPracticeSetReadService } from './daily-practice-set-read.service';
 import { DailyPracticeSetSelectorService } from './daily-practice-set-selector.service';
+import { DailyPracticeVariantResolverService } from './daily-practice-variant-resolver.service';
 import type {
   OrderedDailyPracticeQuestionRecord,
   PersistedDailyPracticeSetRecord,
+  ResolvedDailyPracticeQuestionRecord,
 } from './daily-practice.types';
 
 describe('DailyPracticeService', () => {
@@ -54,6 +56,9 @@ describe('DailyPracticeService', () => {
     buildTodayResponse: jest.Mock;
     buildSubmitResponse: jest.Mock;
     buildCloseResponse: jest.Mock;
+  };
+  let dailyPracticeVariantResolverService: {
+    resolveQuestionContentIds: jest.Mock;
   };
   let practiceRoomAttemptService: {
     computeIsCorrectForPayload: jest.Mock;
@@ -119,6 +124,9 @@ describe('DailyPracticeService', () => {
       buildSubmitResponse: jest.fn(),
       buildCloseResponse: jest.fn(),
     };
+    dailyPracticeVariantResolverService = {
+      resolveQuestionContentIds: jest.fn(),
+    };
     practiceRoomAttemptService = {
       computeIsCorrectForPayload: jest.fn(),
       createAttemptRecord: jest.fn(),
@@ -169,6 +177,10 @@ describe('DailyPracticeService', () => {
         },
         { provide: DailyPracticeMapper, useValue: dailyPracticeMapper },
         {
+          provide: DailyPracticeVariantResolverService,
+          useValue: dailyPracticeVariantResolverService,
+        },
+        {
           provide: PracticeRoomAttemptService,
           useValue: practiceRoomAttemptService,
         },
@@ -193,6 +205,7 @@ describe('DailyPracticeService', () => {
   it('creates today set on first load and returns the mapped response', async () => {
     const persistedSet = buildPersistedSet();
     const orderedQuestions = [buildOrderedQuestion()];
+    const resolvedQuestions = [buildResolvedQuestion()];
     const mappedResponse = { setId: persistedSet.id };
 
     dailyPracticeSetReadService.findSetForUtcDay.mockResolvedValueOnce(null);
@@ -208,6 +221,9 @@ describe('DailyPracticeService', () => {
     dailyPracticeInterleavingService.orderSelectedQuestions.mockReturnValue(
       orderedQuestions,
     );
+    dailyPracticeVariantResolverService.resolveQuestionContentIds.mockResolvedValue(
+      resolvedQuestions,
+    );
     prisma.dailyPracticeSet.create.mockResolvedValue({
       id: persistedSet.id,
     } as never);
@@ -217,23 +233,21 @@ describe('DailyPracticeService', () => {
       sessionType: PracticeSessionTypeValues.dailyPractice,
       endTime: null,
     });
-    prisma.questionUnit.findMany.mockResolvedValue([
+    prisma.questionContent.findMany.mockResolvedValue([
       {
-        id: 101,
-        moduleUnitId: 11,
-        contents: [
-          {
-            id: 501,
-            type: 'mcq',
-            questionStem: 'Question stem',
-            questionData: { correctOptionIndex: 0 },
-            hint: 'Hint',
-            difficultyScore: 0.5,
+        id: 601,
+        questionUnitId: 101,
+        type: 'mcq',
+        questionStem: 'Variant stem',
+        questionData: { correctOptionIndex: 0 },
+        hint: 'Variant hint',
+        difficultyScore: 0.5,
+        questionUnit: {
+          id: 101,
+          moduleUnit: {
+            id: 11,
+            title: 'Lesson 1',
           },
-        ],
-        moduleUnit: {
-          id: 11,
-          title: 'Lesson 1',
         },
       },
     ] as never);
@@ -262,6 +276,7 @@ describe('DailyPracticeService', () => {
             create: [
               expect.objectContaining({
                 questionUnitId: 101,
+                questionContentId: 601,
                 moduleUnitId: 11,
                 position: 0,
               }),
@@ -337,7 +352,7 @@ describe('DailyPracticeService', () => {
       setId: persistedSet.id,
       moduleUnitId: 11,
       questionUnitId: 101,
-      questionContentId: 501,
+      questionContentId: 601,
       sessionId: 'session-1',
       timeTakenMs: 9000,
       hintUnlocked: false,
@@ -349,6 +364,15 @@ describe('DailyPracticeService', () => {
     ).toHaveBeenCalledWith(
       PracticeSessionTypeValues.dailyPractice,
       PracticeSessionTypeValues.dailyPractice,
+    );
+    expect(
+      practiceRoomAttemptService.computeIsCorrectForPayload,
+    ).toHaveBeenCalledWith(
+      11,
+      101,
+      601,
+      { selectedOptionIndex: 0 },
+      { allowVariantContent: true },
     );
     expect(practiceRoomAttemptService.createAttemptRecord).toHaveBeenCalledWith(
       11,
@@ -391,6 +415,33 @@ describe('DailyPracticeService', () => {
     );
     expect(result).toBe(mappedResponse);
   });
+
+  it('rejects submits whose content id does not match the persisted daily-practice item', async () => {
+    const persistedSet = buildPersistedSet();
+
+    dailyPracticeSetReadService.findOwnedSetById.mockResolvedValue(
+      persistedSet,
+    );
+
+    await expect(
+      service.submitAttempt(7, 42, {
+        setId: persistedSet.id,
+        moduleUnitId: 11,
+        questionUnitId: 101,
+        questionContentId: 999,
+        sessionId: 'session-1',
+        timeTakenMs: 9000,
+        hintUnlocked: false,
+        studentAnswer: { selectedOptionIndex: 0 },
+      }),
+    ).rejects.toThrow(
+      'Submitted question content does not match the daily practice set.',
+    );
+
+    expect(
+      practiceRoomAttemptService.computeIsCorrectForPayload,
+    ).not.toHaveBeenCalled();
+  });
 });
 
 function buildPersistedSet(): PersistedDailyPracticeSetRecord {
@@ -407,6 +458,7 @@ function buildPersistedSet(): PersistedDailyPracticeSetRecord {
         id: 'item-1',
         dailyPracticeSetId: '6aa2bc03-a0ee-4ebc-84c5-d6a53b889900',
         questionUnitId: 101,
+        questionContentId: 601,
         moduleUnitId: 11,
         position: 0,
         selectionReason: 'Overdue review item.',
@@ -434,5 +486,12 @@ function buildOrderedQuestion(): OrderedDailyPracticeQuestionRecord {
     selectionReason: 'Overdue review item.',
     studentQuestionState: null,
     position: 0,
+  };
+}
+
+function buildResolvedQuestion(): ResolvedDailyPracticeQuestionRecord {
+  return {
+    ...buildOrderedQuestion(),
+    questionContentId: 601,
   };
 }

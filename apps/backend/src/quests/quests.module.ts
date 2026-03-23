@@ -1,10 +1,17 @@
 // Role: groups quest orchestration services and routes so quest generation/progress logic has a dedicated backend module.
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
+import { DailyPracticeCandidateReadService } from '../daily-practice/daily-practice-candidate-read.service';
+import { DailyPracticeEligibilityService } from '../daily-practice/daily-practice-eligibility.service';
+import { DailyPracticeModuleProgressReadService } from '../daily-practice/daily-practice-module-progress-read.service';
+import { DailyPracticeQuestionStateReadService } from '../daily-practice/daily-practice-question-state-read.service';
+import { DailyPracticeSetReadService } from '../daily-practice/daily-practice-set-read.service';
+import { DailyPracticeSetSelectorService } from '../daily-practice/daily-practice-set-selector.service';
 import { AvatarModule } from '../db-entities/avatar/avatar.module';
 import { DailyQuestModule } from '../db-entities/daily-quest/daily-quest.module';
 import { ExpEngineModule } from '../exp-engine/exp-engine.module';
 import { DailyQuestController } from './daily-quest.controller';
+import { QuestDailyPracticeAvailabilityService } from './quest-daily-practice-availability.service';
 import { QuestGenerationBatchService } from './quest-generation-batch.service';
 import { QuestGenerationService } from './quest-generation.service';
 import { QuestGenerationStartupService } from './quest-generation-startup.service';
@@ -16,7 +23,14 @@ import { QuestStreakService } from './quest-streak.service';
   imports: [AuthModule, AvatarModule, DailyQuestModule, ExpEngineModule],
   controllers: [DailyQuestController],
   providers: [
+    DailyPracticeCandidateReadService,
+    DailyPracticeEligibilityService,
+    DailyPracticeModuleProgressReadService,
+    DailyPracticeQuestionStateReadService,
+    DailyPracticeSetReadService,
+    DailyPracticeSetSelectorService,
     QuestGenerationBatchService,
+    QuestDailyPracticeAvailabilityService,
     QuestGenerationService,
     QuestGenerationStartupService,
     QuestHistoryService,

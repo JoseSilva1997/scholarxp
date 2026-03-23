@@ -6,6 +6,7 @@ import {
   type QuestHistoryResponse,
   type QuestView,
 } from '@scholarxp/api-contracts';
+import { MAX_DAILY_QUEST_COUNT } from '@scholarxp/constants';
 import {
   getMasterQuestStreak,
   listQuests,
@@ -48,7 +49,7 @@ export type TodayQuestList = {
   hasDailyQuests: boolean;
 };
 
-const TODAY_QUEST_MAX = 3;
+const TODAY_QUEST_MAX = MAX_DAILY_QUEST_COUNT;
 
 type PartitionedQuestViews = {
   dailyQuests: QuestView[];

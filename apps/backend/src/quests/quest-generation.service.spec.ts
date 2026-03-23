@@ -3,20 +3,31 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { QuestTypeValues } from '@scholarxp/api-contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock, type PrismaMock } from '../test/test-helpers';
+import { QuestDailyPracticeAvailabilityService } from './quest-daily-practice-availability.service';
 import { QuestGenerationService } from './quest-generation.service';
 
 describe('QuestGenerationService', () => {
   let service: QuestGenerationService;
   let prisma: PrismaMock;
+  let questDailyPracticeAvailabilityService: {
+    findFirstAvailableModuleId: jest.Mock;
+  };
 
   beforeEach(async () => {
     prisma = createPrismaMock();
+    questDailyPracticeAvailabilityService = {
+      findFirstAvailableModuleId: jest.fn().mockResolvedValue(1),
+    };
     prisma.dailyQuest.createMany.mockResolvedValue({ count: 4 } as never);
 
     const moduleRef: TestingModule = await Test.createTestingModule({
       providers: [
         QuestGenerationService,
         { provide: PrismaService, useValue: prisma },
+        {
+          provide: QuestDailyPracticeAvailabilityService,
+          useValue: questDailyPracticeAvailabilityService,
+        },
       ],
     }).compile();
 
@@ -38,6 +49,9 @@ describe('QuestGenerationService', () => {
     prisma.moduleUnit.findFirst.mockResolvedValue({
       moduleId: 1,
     } as never);
+    questDailyPracticeAvailabilityService.findFirstAvailableModuleId.mockResolvedValue(
+      1,
+    );
 
     await service.ensureQuestDayGeneratedForUser(
       42,
@@ -201,6 +215,9 @@ describe('QuestGenerationService', () => {
     prisma.moduleUnit.findFirst.mockResolvedValue({
       moduleId: 2,
     } as never);
+    questDailyPracticeAvailabilityService.findFirstAvailableModuleId.mockResolvedValue(
+      2,
+    );
 
     await service.ensureQuestDayGeneratedForUser(
       42,
@@ -319,5 +336,149 @@ describe('QuestGenerationService', () => {
       },
     });
     expect(prisma.dailyQuest.createMany).toHaveBeenCalled();
+  });
+
+  it('falls back to the first module with an available daily-practice set when the lesson quest module has none', async () => {
+    prisma.dailyQuest.findMany.mockResolvedValue([]);
+    prisma.userModule.findMany.mockResolvedValue([
+      { moduleId: 1 },
+      { moduleId: 2 },
+    ] as never);
+    prisma.moduleUnitUserProgress.findFirst.mockResolvedValue({
+      moduleUnit: {
+        moduleId: 1,
+      },
+    } as never);
+    prisma.moduleUnit.findFirst.mockResolvedValue({
+      moduleId: 1,
+    } as never);
+    questDailyPracticeAvailabilityService.findFirstAvailableModuleId.mockResolvedValue(
+      2,
+    );
+
+    await service.ensureQuestDayGeneratedForUser(
+      42,
+      new Date('2026-03-13T12:30:00.000Z'),
+    );
+
+    expect(
+      questDailyPracticeAvailabilityService.findFirstAvailableModuleId,
+    ).toHaveBeenCalledWith(42, [1, 2], new Date('2026-03-13T12:30:00.000Z'));
+    expect(prisma.dailyQuest.createMany).toHaveBeenCalledWith({
+      data: expect.arrayContaining([
+        expect.objectContaining({
+          type: QuestTypeValues.completeDailyPractice,
+          moduleId: 2,
+        }),
+        expect.objectContaining({
+          type: QuestTypeValues.dailyPracticeStreak,
+          moduleId: 2,
+        }),
+        expect.objectContaining({
+          type: QuestTypeValues.completeNewUnit,
+          moduleId: 1,
+        }),
+      ]),
+      skipDuplicates: true,
+    });
+  });
+
+  it('still creates a master quest when daily practice is unavailable but another daily quest exists', async () => {
+    prisma.dailyQuest.findMany.mockResolvedValue([]);
+    prisma.userModule.findMany.mockResolvedValue([{ moduleId: 1 }] as never);
+    prisma.moduleUnitUserProgress.findFirst.mockResolvedValue({
+      moduleUnit: {
+        moduleId: 1,
+      },
+    } as never);
+    prisma.moduleUnit.findFirst.mockResolvedValue({
+      moduleId: 1,
+    } as never);
+    questDailyPracticeAvailabilityService.findFirstAvailableModuleId.mockResolvedValue(
+      null,
+    );
+
+    await service.ensureQuestDayGeneratedForUser(
+      42,
+      new Date('2026-03-13T12:30:00.000Z'),
+    );
+
+    expect(prisma.dailyQuest.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          userId: 42,
+          moduleId: 1,
+          type: QuestTypeValues.completeNewUnit,
+          expGranted: 50,
+        }),
+        expect.objectContaining({
+          userId: 42,
+          moduleId: null,
+          type: QuestTypeValues.masterDailyQuests,
+          expGranted: 350,
+        }),
+      ],
+      skipDuplicates: true,
+    });
+  });
+
+  it('reconciles an existing incomplete master quest reward when the day now has three daily quests', async () => {
+    prisma.dailyQuest.findMany.mockResolvedValue([
+      {
+        id: 1,
+        type: QuestTypeValues.completeDailyPractice,
+        expGranted: 50,
+        isCompleted: false,
+      },
+      {
+        id: 2,
+        type: QuestTypeValues.dailyPracticeStreak,
+        expGranted: 50,
+        isCompleted: false,
+      },
+      {
+        id: 3,
+        type: QuestTypeValues.masterDailyQuests,
+        expGranted: 300,
+        isCompleted: false,
+      },
+    ] as never);
+    prisma.userModule.findMany.mockResolvedValue([{ moduleId: 1 }] as never);
+    prisma.moduleUnitUserProgress.findFirst.mockResolvedValue({
+      moduleUnit: {
+        moduleId: 1,
+      },
+    } as never);
+    prisma.moduleUnit.findFirst.mockResolvedValue({
+      moduleId: 1,
+    } as never);
+    questDailyPracticeAvailabilityService.findFirstAvailableModuleId.mockResolvedValue(
+      1,
+    );
+
+    await service.ensureQuestDayGeneratedForUser(
+      42,
+      new Date('2026-03-13T12:30:00.000Z'),
+    );
+
+    expect(prisma.dailyQuest.update).toHaveBeenCalledWith({
+      where: {
+        id: 3,
+      },
+      data: {
+        expGranted: 250,
+      },
+    });
+    expect(prisma.dailyQuest.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          userId: 42,
+          moduleId: 1,
+          type: QuestTypeValues.completeNewUnit,
+          expGranted: 50,
+        }),
+      ],
+      skipDuplicates: true,
+    });
   });
 });

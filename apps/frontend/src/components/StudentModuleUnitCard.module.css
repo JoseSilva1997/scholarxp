@@ -5,6 +5,8 @@
   background-color: transparent;
   border-radius: 12px;
   margin-bottom: 24px;
+  container-type: inline-size;
+  container-name: module-card;
 }
 
 .card {
@@ -43,7 +45,7 @@
 .content {
   display: flex;
   flex-direction: column;
-  padding: 24px 8px 24px 24px;
+  padding: 8px 8px 8px 24px;
   flex: 1;
   min-width: 0;
   justify-content: center;
@@ -52,6 +54,7 @@
 .header {
   display: flex;
   flex-direction: row;
+  flex-wrap: wrap;
   gap: 32px;
   align-items: center;
 }
@@ -102,8 +105,6 @@
   align-items: center;
   gap: 32px;
   flex: 1 1 0;
-  border-right: 1px solid var(--color-border-subtle);
-  padding-right: 24px;
 }
 
 .meta {
@@ -221,13 +222,13 @@
   margin-top: 4px;
 }
 
-/* Minimalist Gamified Stats List - Horizontal Layout */
+/* Minimalist Gamified Stats List - 2 Columns */
 .xpStatsList {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* Fixed 2-column layout */
+  gap: 10px;
   flex: 1;
-  margin-top: 0;
+  margin-top: 8px;
 }
 
 .xpStatRow {
@@ -522,17 +523,18 @@
   padding: 12px 8px;
 }
 
-@media (max-width: 1023px) {
+@container module-card (max-width: 900px) {
   .question {
     flex: 0 1 calc(50% - 6px);
   }
 }
 
 /* Tablet: title on top row, XP and actions on second row */
-@media (max-width: 900px) {
+@container module-card (max-width: 860px) {
   .header {
     flex-wrap: wrap;
     gap: 16px 20px;
+    padding: 12px 8px 8px 8px;
   }
 
   .titleSection {
@@ -545,23 +547,25 @@
   }
 
   .middleMeta {
-    /* Natural order puts this on the second row */
-    flex: 1 1 0; /* Gush next to the actions */
+    /* Give it a solid basis so flexbox wraps it when space gets tight! */
+    flex: 1 1 300px; 
     min-height: auto;
   }
   
   .actions {
-    /* Naturally falls to the right of middleMeta */
-    flex: 0 0 auto;
+    /* If it wraps, this will take whatever room. Justify to end if sharing, left if wrapped. */
+    flex: 1 1 auto;
+    display: flex;
+    justify-content: flex-end;
+    margin-left: 0;
   }
 
   .actionStack {
-    flex-direction: row;
-    gap: 12px; /* Add some nice horizontal spacing so they don't look awkwardly packed */
+    gap: 12px;
   }
 }
 
-@media (max-width: 640px) {
+@container module-card (max-width: 580px) {
   .content {
     padding: 16px 8px 16px 16px;
   }
@@ -595,11 +599,13 @@
     flex: 0 0 100%;
     padding-right: 0;
     margin-left: 0;
+    justify-content: center;
   }
 
   /* Side-by-side buttons on small screens to avoid a tall button stack */
   .actionStack {
     width: 100%;
+    flex-direction: row;
   }
 
   .practiceButton,
@@ -608,6 +614,11 @@
   }
 
   .bottomRow {
+    gap: 12px;
+  }
+
+  .xpSummary {
+    flex-wrap: wrap;
     gap: 12px;
   }
 

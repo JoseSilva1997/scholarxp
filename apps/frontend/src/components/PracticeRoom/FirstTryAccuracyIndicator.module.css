@@ -42,6 +42,13 @@
   filter: none;
 }
 
+/* Retry mode disables lesson reward affordances entirely, so no earned/lost badge should be shown. */
+.stateDisabled .icon {
+  color: var(--color-text-muted);
+  filter: none;
+  animation: none;
+}
+
 /* ── Overlay badge ─────────────────────────────────────────────────────────── */
 
 /* Small circular badge anchored to the bottom-right of the target icon.

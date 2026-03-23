@@ -194,7 +194,8 @@ describe('useQuestPageState', () => {
       moduleUnitTitle: null,
       progressCurrent: 2,
       progressTarget: 3,
-      description: 'Complete all 3 daily quests to unlock the master quest reward.',
+      description:
+        'Complete every daily quest available today to unlock the master quest reward.',
     });
 
     vi.mocked(useQuestHistoryInfiniteQuery).mockReturnValue(

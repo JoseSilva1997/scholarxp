@@ -40,6 +40,13 @@
   filter: none;
 }
 
+/* Retry mode disables lesson XP affordances entirely, so the icon must not imply availability or prior payout state. */
+.stateDisabled .icon {
+  color: var(--color-text-muted);
+  filter: none;
+  animation: none;
+}
+
 /* ── Overlay badge ─────────────────────────────────────────────────────────── */
 
 /* Small circular green checkmark anchored to the bottom-right of the bolt icon. */

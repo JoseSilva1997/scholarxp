@@ -47,5 +47,7 @@ if (isE2ETestRun) {
   }
 }
 
-// Unit tests should not require a live database connection.
-process.env.SKIP_PRISMA_TX ??= 'true';
+// Unit specs in src/**/*.spec.ts are mock-driven and should never inherit DB-backed transaction setup from .env.test.
+if (!isE2ETestRun) {
+  process.env.SKIP_PRISMA_TX = 'true';
+}

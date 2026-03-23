@@ -84,6 +84,7 @@ describe('QuestsPage route', () => {
     render(<QuestsPage />);
 
     expect(screen.getByLabelText('Master quest completed')).toBeInTheDocument();
+    expect(screen.getByText('1/1 Quest Completed')).toBeInTheDocument();
   });
 
   it('keeps only one tooltip open across different quest history cards', async () => {

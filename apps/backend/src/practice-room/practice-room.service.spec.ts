@@ -2,6 +2,7 @@
  asserting collaborator coordination instead of re-testing extracted internals.
  */
 import { Test, TestingModule } from '@nestjs/testing';
+import { PracticeSessionTypeValues } from '@scholarxp/api-contracts';
 import { MODULE_UNIT_BASELINE_EXP } from '@scholarxp/constants';
 import { DailyPracticeFsrsStateService } from '../daily-practice/daily-practice-fsrs-state.service';
 import { PracticeRoomService } from './practice-room.service';
@@ -220,6 +221,54 @@ describe('PracticeRoomService', () => {
         }),
       );
       expect(result).toBe(mappedResponse);
+    });
+
+    it('uses the historical lesson streak when loading viewAnswers mode', async () => {
+      const roomContext = {
+        moduleUnit: buildLoadedModuleUnit(),
+        isReadOnly: true,
+        session: buildOwnedPracticeSession({
+          sessionType: PracticeSessionTypeValues.viewAnswers,
+        }),
+        questionUnitDrafts: [buildQuestionUnitDraft()],
+      };
+      practiceRoomReadService.loadRoomContext.mockResolvedValue(roomContext);
+      practiceRoomReadService.getLatestAttemptMap.mockResolvedValue(new Map());
+      practiceRoomReadService.getModuleProgressSnapshot.mockResolvedValue({
+        id: TEST_MODULE_ID,
+      });
+      practiceRoomReadService.getQuestionRewardStateMap.mockResolvedValue(
+        new Map(),
+      );
+      practiceRoomReadService.getClaimedStreakTiers.mockResolvedValue([1, 2]);
+      expStreakService.getHistoricalHighestPracticeStreak.mockResolvedValue(5);
+      practiceRoomMapper.buildResponse.mockReturnValue({
+        practiceRoom: {
+          sessionId: roomContext.session.id,
+          moduleUnitId: roomContext.moduleUnit.id,
+          moduleUnitTitle: roomContext.moduleUnit.title,
+          questions: [],
+        },
+      });
+
+      await service.getPracticeRoom(
+        TEST_MODULE_ID,
+        TEST_MODULE_UNIT_ID,
+        TEST_STUDENT_ID,
+        undefined,
+        PracticeSessionTypeValues.viewAnswers,
+      );
+
+      expect(
+        expStreakService.getHistoricalHighestPracticeStreak,
+      ).toHaveBeenCalledWith(TEST_MODULE_UNIT_ID, TEST_STUDENT_ID);
+      expect(expStreakService.getSessionStreak).not.toHaveBeenCalled();
+      expect(practiceRoomMapper.buildResponse).toHaveBeenCalledWith(
+        expect.objectContaining({
+          currentStreak: 5,
+          highestStreak: 5,
+        }),
+      );
     });
   });
 

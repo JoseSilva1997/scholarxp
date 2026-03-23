@@ -14,6 +14,7 @@ import { AppModule } from '../src/app.module';
 import { AuthorizationGuard } from '../src/auth/guards/authorization.guard';
 import { SessionAuthGuard } from '../src/auth/guards/session-auth.guard';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { QuestGenerationStartupService } from '../src/quests/quest-generation-startup.service';
 
 type SeededQuestion = {
   questionUnitId: number;
@@ -60,6 +61,9 @@ describe('Practice room XP policy (e2e)', () => {
       .useClass(TestSessionGuard)
       .overrideGuard(AuthorizationGuard)
       .useClass(TestAuthorizationGuard)
+      // Suppress startup quest generation so this suite's teardown cannot race a background batch against Prisma shutdown.
+      .overrideProvider(QuestGenerationStartupService)
+      .useValue({ onModuleInit: () => {} })
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -544,6 +548,9 @@ async function completeSingleQuestionUnit(
 
 // Explicit cleanup keeps e2e runs deterministic regardless of prior local test state.
 async function clearDatabase(prisma: PrismaService) {
+  await prisma.dailyPracticeSetItem.deleteMany();
+  await prisma.dailyPracticeSet.deleteMany();
+  await prisma.studentQuestionState.deleteMany();
   await prisma.expLedger.deleteMany();
   await prisma.questionAttempt.deleteMany();
   await prisma.moduleUnitUserProgress.deleteMany();

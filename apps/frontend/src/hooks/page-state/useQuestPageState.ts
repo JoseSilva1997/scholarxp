@@ -86,7 +86,7 @@ export function useQuestPageState(): UseQuestPageStateResult {
         questDayUtc,
         dayLabel: formatQuestDayLabel(questDayUtc),
         isToday: questDayUtc === todayUtc,
-        // The page renders only the three daily quests while the master quest gets its own chest treatment.
+        // The page renders only the generated daily quests while the master quest gets its own chest treatment.
         quests: dailyQuests,
         masterQuest,
       };

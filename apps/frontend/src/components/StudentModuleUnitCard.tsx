@@ -2,8 +2,10 @@
 import { useState } from 'react';
 import styles from './StudentModuleUnitCard.module.css';
 import completionMedalIcon from '../assets/module-unit/module-unit-completed-medal.png';
-import { FaCheck, FaMinus, FaXmark } from 'react-icons/fa6';
+import { FaCheck, FaMinus, FaXmark, FaBolt, FaFire, FaGraduationCap } from 'react-icons/fa6';
+import { TbTargetArrow } from "react-icons/tb";
 import { IoMdLock } from "react-icons/io"
+import XpStatCard from './XpStatCard';
 import type { QuestionAttemptResult } from '@scholarxp/api-contracts';
 import {
   MASTERY_TOTAL_EXP,
@@ -122,39 +124,43 @@ export default function StudentModuleUnitCard({
                      </div>
                      
                      <div className={styles.xpStatsList}>
-                       <div className={styles.xpStatRow} title="Base XP gained when a question is answered correctly.">
-                         <span className={`${styles.xpStatLabel} ${styles.xpStatLabelBase}`}>Base</span>
-                         <span className={styles.xpStatValue}>
-                           {unit.expEarned ? unit.expEarned.base : `+${MODULE_UNIT_BASELINE_EXP}`} 
-                           {unit.expEarned && <span className={styles.xpStatMax}>/{MODULE_UNIT_BASELINE_EXP}</span>}
-                         </span>
-                       </div>
+                       <XpStatCard
+                         label="Base"
+                         current={unit.expEarned?.base ?? 0}
+                         max={MODULE_UNIT_BASELINE_EXP}
+                         title="Base XP gained when a question is answered correctly."
+                         colorClass="colorBase"
+                         icon={<FaBolt />}
+                       />
 
-                       <div className={styles.xpStatRow} title="Bonus XP for first-try correct answers">
-                         <span className={`${styles.xpStatLabel} ${styles.xpStatLabelFirst}`}>1st try</span>
-                         <span className={styles.xpStatValue}>
-                           {unit.expEarned ? unit.expEarned.firstAttempt : `+${MAXIMUM_FIRST_ATTEMPT_BONUS_EXP}`} 
-                           {unit.expEarned && <span className={styles.xpStatMax}>/{MAXIMUM_FIRST_ATTEMPT_BONUS_EXP}</span>}
-                         </span>
-                       </div>
+                       <XpStatCard
+                         label="1st try"
+                         current={unit.expEarned?.firstAttempt ?? 0}
+                         max={MAXIMUM_FIRST_ATTEMPT_BONUS_EXP}
+                         title="Bonus XP for first-try correct answers"
+                         colorClass="colorFirst"
+                         icon={<TbTargetArrow />}
+                       />
 
                        {hasStreakBonus && (
-                         <div className={styles.xpStatRow} title="Bonus XP for maintaining a streak">
-                           <span className={`${styles.xpStatLabel} ${styles.xpStatLabelStreak}`}>Streak</span>
-                           <span className={styles.xpStatValue}>
-                             {unit.expEarned ? unit.expEarned.streak : `+${maximumStreakBonusExp}`}
-                             {unit.expEarned && <span className={styles.xpStatMax}>/{maximumStreakBonusExp}</span>}
-                           </span>
-                         </div>
+                         <XpStatCard
+                           label="Streak"
+                           current={unit.expEarned?.streak ?? 0}
+                           max={maximumStreakBonusExp}
+                           title="Bonus XP for maintaining a streak"
+                           colorClass="colorStreak"
+                           icon={<FaFire />}
+                         />
                        )}
 
-                       <div className={styles.xpStatRow} title="XP earned through daily practice mastery">
-                         <span className={`${styles.xpStatLabel} ${styles.xpStatLabelMastery}`}>Mastery</span>
-                         <span className={styles.xpStatValue}>
-                           {unit.expEarned ? unit.expEarned.mastery : `+${MASTERY_TOTAL_EXP}`}
-                           {unit.expEarned && <span className={styles.xpStatMax}>/{MASTERY_TOTAL_EXP}</span>}
-                         </span>
-                       </div>
+                       <XpStatCard
+                         label="Mastery"
+                         current={unit.expEarned?.mastery ?? 0}
+                         max={MASTERY_TOTAL_EXP}
+                         title="XP earned through daily practice mastery"
+                         colorClass="colorMastery"
+                         icon={<FaGraduationCap />}
+                       />
                      </div>
                    </div>
                 )}

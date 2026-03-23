@@ -7,7 +7,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
-import type { AwardReasons, StudentAnswer } from '@scholarxp/api-contracts';
+import {
+  PracticeSessionTypeValues,
+  type AwardReasons,
+  type StudentAnswer,
+} from '@scholarxp/api-contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { SubmitAttemptDto } from './dto/submit-attempt.dto';
 
@@ -42,11 +46,15 @@ export class PracticeRoomAttemptService {
     questionUnitId: number,
     questionContentId: number,
     studentAnswer: StudentAnswer,
+    options?: {
+      allowVariantContent?: boolean;
+    },
   ): Promise<boolean> {
     const questionContent = await this.loadQuestionContentForAttempt(
       moduleUnitId,
       questionUnitId,
       questionContentId,
+      options,
     );
 
     return this.computeIsCorrectFromContent(questionContent, studentAnswer);
@@ -98,6 +106,10 @@ export class PracticeRoomAttemptService {
         studentId,
         questionId: questionUnitId,
         isCorrect: true,
+        // Daily practice correctness must not consume lesson-specific rewards.
+        session: {
+          sessionType: PracticeSessionTypeValues.practiceRoom,
+        },
       },
       select: { id: true },
     });
@@ -118,6 +130,10 @@ export class PracticeRoomAttemptService {
         moduleUnitId,
         studentId,
         questionId: questionUnitId,
+        // First-try bonus is defined against lesson attempts, not spaced-repetition reviews.
+        session: {
+          sessionType: PracticeSessionTypeValues.practiceRoom,
+        },
       },
       select: { id: true },
     });
@@ -180,45 +196,41 @@ export class PracticeRoomAttemptService {
     moduleUnitId: number,
     questionUnitId: number,
     questionContentId: number,
+    options?: {
+      allowVariantContent?: boolean;
+    },
   ): Promise<AttemptQuestionContent> {
-    const questionUnit = await this.prisma.questionUnit.findFirst({
+    const questionContent = await this.prisma.questionContent.findFirst({
       where: {
-        id: questionUnitId,
-        moduleUnitId,
+        id: questionContentId,
+        questionUnitId,
         isArchived: false,
-      },
-      select: {
-        id: true,
-        contents: {
-          where: {
-            id: questionContentId,
-            isCore: true,
+        ...(options?.allowVariantContent ? {} : { isCore: true }),
+        questionUnit: {
+          is: {
+            id: questionUnitId,
+            moduleUnitId,
             isArchived: false,
-          },
-          select: {
-            id: true,
-            type: true,
-            questionData: true,
           },
         },
       },
+      select: {
+        id: true,
+        type: true,
+        questionData: true,
+      },
     });
 
-    if (!questionUnit) {
-      throw new NotFoundException('Question unit not found.');
+    if (!questionContent) {
+      throw new NotFoundException(
+        'Question content not found for this question unit.',
+      );
     }
 
-    const directContent = questionUnit.contents[0];
-    if (directContent) {
-      return {
-        type: directContent.type,
-        questionData: directContent.questionData,
-      };
-    }
-
-    throw new NotFoundException(
-      'Question content not found for this question unit.',
-    );
+    return {
+      type: questionContent.type,
+      questionData: questionContent.questionData,
+    };
   }
 
   // Shared grading protects submit flows from client-side correctness tampering.

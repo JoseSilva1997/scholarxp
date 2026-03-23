@@ -67,6 +67,7 @@ export type PersistedDailyPracticeSetRecord = {
     id: string;
     dailyPracticeSetId: string;
     questionUnitId: number;
+    questionContentId: number;
     moduleUnitId: number;
     position: number;
     selectionReason: string;
@@ -101,4 +102,9 @@ export type DailyPracticeSelectionResult = {
 export type OrderedDailyPracticeQuestionRecord =
   SelectedDailyPracticeQuestionRecord & {
     position: number;
+  };
+
+export type ResolvedDailyPracticeQuestionRecord =
+  OrderedDailyPracticeQuestionRecord & {
+    questionContentId: number;
   };

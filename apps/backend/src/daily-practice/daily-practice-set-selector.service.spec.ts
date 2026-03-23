@@ -404,10 +404,15 @@ describe('DailyPracticeSetSelectorService', () => {
       }),
     ] satisfies StudentQuestionStateRecord[]);
 
-    const result = await service.selectQuestions({ userId: 42, moduleId: 7, now });
+    const result = await service.selectQuestions({
+      userId: 42,
+      moduleId: 7,
+      now,
+    });
 
     const reinforcementSelections = result.selectedQuestions.filter(
-      (q) => q.sourceBucket === DailyPracticeSelectionBucketValues.reinforcement,
+      (q) =>
+        q.sourceBucket === DailyPracticeSelectionBucketValues.reinforcement,
     );
     expect(reinforcementSelections).toHaveLength(1);
     expect(reinforcementSelections[0].questionUnitId).toBe(103);
@@ -441,11 +446,15 @@ describe('DailyPracticeSetSelectorService', () => {
       // Q104 has no state row → new-sequence candidate.
     ] satisfies StudentQuestionStateRecord[]);
 
-    const result = await service.selectQuestions({ userId: 42, moduleId: 7, now });
+    const result = await service.selectQuestions({
+      userId: 42,
+      moduleId: 7,
+      now,
+    });
 
-    expect(
-      result.selectedQuestions.some((q) => q.questionUnitId === 103),
-    ).toBe(false);
+    expect(result.selectedQuestions.some((q) => q.questionUnitId === 103)).toBe(
+      false,
+    );
     expect(
       result.selectedQuestions.filter(
         (q) =>

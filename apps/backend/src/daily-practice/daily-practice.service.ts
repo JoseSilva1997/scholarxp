@@ -1,5 +1,9 @@
 // Role: orchestrates module-scoped daily-practice set creation, hydration, submit flows, and session lifecycle behind one backend facade.
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma, type QuestionAttempt } from '@prisma/client';
 import {
   type DailyPracticeSelectionBucket,
@@ -19,6 +23,7 @@ import { DailyPracticeInterleavingService } from './daily-practice-interleaving.
 import { DailyPracticeMapper } from './daily-practice.mapper';
 import { DailyPracticeSetReadService } from './daily-practice-set-read.service';
 import { DailyPracticeSetSelectorService } from './daily-practice-set-selector.service';
+import { DailyPracticeVariantResolverService } from './daily-practice-variant-resolver.service';
 import { SubmitDailyPracticeAttemptDto } from './dto/submit-daily-practice-attempt.dto';
 import type {
   OrderedDailyPracticeQuestionRecord,
@@ -50,6 +55,7 @@ export class DailyPracticeService {
     private readonly dailyPracticeMasteryExpService: DailyPracticeMasteryExpService,
     private readonly dailyPracticeEligibilityService: DailyPracticeEligibilityService,
     private readonly dailyPracticeMapper: DailyPracticeMapper,
+    private readonly dailyPracticeVariantResolverService: DailyPracticeVariantResolverService,
     private readonly practiceRoomAttemptService: PracticeRoomAttemptService,
     private readonly practiceRoomSessionService: PracticeRoomSessionService,
     private readonly questProgressService: QuestProgressService,
@@ -128,6 +134,11 @@ export class DailyPracticeService {
         "Question not found in today's daily practice set.",
       );
     }
+    if (setItem.questionContentId !== payload.questionContentId) {
+      throw new BadRequestException(
+        'Submitted question content does not match the daily practice set.',
+      );
+    }
 
     const session =
       await this.practiceRoomSessionService.getOwnedPracticeSessionOrThrow(
@@ -152,6 +163,7 @@ export class DailyPracticeService {
         payload.questionUnitId,
         payload.questionContentId,
         payload.studentAnswer,
+        { allowVariantContent: true },
       );
     const attemptedAt = new Date();
     const encounterGrade =
@@ -244,7 +256,9 @@ export class DailyPracticeService {
       const todaysAttempts = await tx.questionAttempt.findMany({
         where: {
           studentId,
-          questionId: { in: dailyPracticeSet.items.map((item) => item.questionUnitId) },
+          questionId: {
+            in: dailyPracticeSet.items.map((item) => item.questionUnitId),
+          },
           attemptedAt: { gte: dayStartUtc, lt: nextDayStartUtc },
           session: {
             moduleId,
@@ -357,9 +371,14 @@ export class DailyPracticeService {
       studentId,
       timestamp,
     );
+    const resolvedQuestions =
+      await this.dailyPracticeVariantResolverService.resolveQuestionContentIds(
+        studentId,
+        orderedQuestions,
+      );
     const { dayStartUtc } = DateHelpers.getUtcDayBounds(timestamp);
 
-    if (orderedQuestions.length === 0) {
+    if (resolvedQuestions.length === 0) {
       // Persist an empty sentinel row so the unique constraint prevents re-generation later today.
       // P2002 means a concurrent request already wrote the sentinel; either way we throw 404.
       try {
@@ -395,8 +414,9 @@ export class DailyPracticeService {
           practiceDateUtc: dayStartUtc,
           algorithmVersion: DailyPracticeAlgorithmVersionValues.fsrsV1,
           items: {
-            create: orderedQuestions.map((question) => ({
+            create: resolvedQuestions.map((question) => ({
               questionUnitId: question.questionUnitId,
+              questionContentId: question.questionContentId,
               moduleUnitId: question.moduleUnitId,
               position: question.position,
               selectionReason: question.selectionReason,
@@ -471,34 +491,39 @@ export class DailyPracticeService {
     const questionUnitIds = dailyPracticeSet.items.map(
       (item) => item.questionUnitId,
     );
-    const questionUnits = await this.prisma.questionUnit.findMany({
+    const questionContentIds = dailyPracticeSet.items.map(
+      (item) => item.questionContentId,
+    );
+    const questionContents = await this.prisma.questionContent.findMany({
       where: {
-        id: { in: questionUnitIds },
+        id: { in: questionContentIds },
         isArchived: false,
+        questionUnit: {
+          is: {
+            id: {
+              in: questionUnitIds,
+            },
+            isArchived: false,
+          },
+        },
       },
       select: {
         id: true,
-        moduleUnitId: true,
-        contents: {
-          where: {
-            isCore: true,
-            isArchived: false,
-          },
-          orderBy: { id: 'asc' },
-          take: 1,
+        questionUnitId: true,
+        type: true,
+        questionStem: true,
+        questionData: true,
+        hint: true,
+        difficultyScore: true,
+        questionUnit: {
           select: {
             id: true,
-            type: true,
-            questionStem: true,
-            questionData: true,
-            hint: true,
-            difficultyScore: true,
-          },
-        },
-        moduleUnit: {
-          select: {
-            id: true,
-            title: true,
+            moduleUnit: {
+              select: {
+                id: true,
+                title: true,
+              },
+            },
           },
         },
       },
@@ -529,8 +554,11 @@ export class DailyPracticeService {
         })
       : [];
 
-    const questionUnitById = new Map(
-      questionUnits.map((questionUnit) => [questionUnit.id, questionUnit]),
+    const questionContentById = new Map(
+      questionContents.map((questionContent) => [
+        questionContent.id,
+        questionContent,
+      ]),
     );
     const latestAttemptByQuestionId = new Map<
       number,
@@ -552,9 +580,12 @@ export class DailyPracticeService {
     }
 
     const questions = dailyPracticeSet.items.map((item) => {
-      const questionUnit = questionUnitById.get(item.questionUnitId);
-      const coreContent = questionUnit?.contents[0];
-      if (!questionUnit?.moduleUnit || !coreContent) {
+      const questionContent = questionContentById.get(item.questionContentId);
+      if (
+        !questionContent ||
+        questionContent.questionUnitId !== item.questionUnitId ||
+        !questionContent.questionUnit.moduleUnit
+      ) {
         throw new NotFoundException(
           'Daily practice question content is no longer available.',
         );
@@ -563,22 +594,22 @@ export class DailyPracticeService {
       return {
         questionUnitId: item.questionUnitId,
         moduleUnitId: item.moduleUnitId,
-        moduleUnitTitle: questionUnit.moduleUnit.title,
+        moduleUnitTitle: questionContent.questionUnit.moduleUnit.title,
         position: item.position,
         hasCorrectAttempt: correctQuestionIds.has(item.questionUnitId)
           ? true
           : null,
         sourceBucket: item.sourceBucket as DailyPracticeSelectionBucket,
         coreQuestion: {
-          questionId: questionUnit.id,
+          questionId: item.questionUnitId,
           questionContent: {
-            id: coreContent.id,
-            type: coreContent.type,
-            questionStem: coreContent.questionStem,
+            id: questionContent.id,
+            type: questionContent.type,
+            questionStem: questionContent.questionStem,
             questionData:
-              coreContent.questionData as unknown as import('@scholarxp/question-type-dtos').QuestionData,
-            hint: coreContent.hint,
-            difficultyScore: coreContent.difficultyScore,
+              questionContent.questionData as unknown as import('@scholarxp/question-type-dtos').QuestionData,
+            hint: questionContent.hint,
+            difficultyScore: questionContent.difficultyScore,
           },
           lastAttempt:
             latestAttemptByQuestionId.get(item.questionUnitId) ?? null,
@@ -604,7 +635,11 @@ export class DailyPracticeService {
   // Mirrors the quest system's streak logic: first attempt per question, correct and no hints used.
   // Returns both the live count and the session high so the client can drive the streak indicator.
   private computeDailyPracticeStreak(
-    attempts: Array<{ questionId: number; isCorrect: boolean; hintsUsed: number }>,
+    attempts: Array<{
+      questionId: number;
+      isCorrect: boolean;
+      hintsUsed: number;
+    }>,
   ): { currentStreak: number; highestStreak: number } {
     const seenQuestionIds = new Set<number>();
     let currentStreak = 0;

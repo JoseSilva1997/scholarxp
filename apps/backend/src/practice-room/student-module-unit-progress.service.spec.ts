@@ -1,5 +1,6 @@
 // Role: validates module-unit progress aggregation semantics from attempt history where latest attempt per question unit wins.
 import { Test, TestingModule } from '@nestjs/testing';
+import { PracticeSessionTypeValues } from '@scholarxp/api-contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock, type PrismaMock } from '../test/test-helpers';
 import { StudentModuleUnitProgressService } from './student-module-unit-progress.service';
@@ -96,6 +97,9 @@ describe('StudentModuleUnitProgressService', () => {
         where: expect.objectContaining({
           moduleUnitId: 10,
           studentId: 100,
+          session: {
+            sessionType: PracticeSessionTypeValues.practiceRoom,
+          },
         }),
         orderBy: [{ attemptedAt: 'desc' }, { id: 'desc' }],
       }),

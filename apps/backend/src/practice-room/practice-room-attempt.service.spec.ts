@@ -3,6 +3,7 @@
  */
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { PracticeSessionTypeValues } from '@scholarxp/api-contracts';
 import { PracticeRoomAttemptService } from './practice-room-attempt.service';
 import {
   buildSubmitAttemptPayload,
@@ -44,15 +45,10 @@ describe('PracticeRoomAttemptService', () => {
 
   describe('computeIsCorrectForPayload', () => {
     it('grades mcq answers against persisted correctOptionIndex data', async () => {
-      prisma.questionUnit.findFirst.mockResolvedValue({
+      prisma.questionContent.findFirst.mockResolvedValue({
         id: TEST_QUESTION_UNIT_ID,
-        contents: [
-          {
-            id: TEST_QUESTION_CONTENT_ID,
-            type: 'mcq',
-            questionData: { correctOptionIndex: 1 },
-          },
-        ],
+        type: 'mcq',
+        questionData: { correctOptionIndex: 1 },
       } as never);
 
       await expect(
@@ -68,18 +64,13 @@ describe('PracticeRoomAttemptService', () => {
     });
 
     it('grades true-false answers against stored boolean flags', async () => {
-      prisma.questionUnit.findFirst.mockResolvedValue({
+      prisma.questionContent.findFirst.mockResolvedValue({
         id: TEST_QUESTION_UNIT_ID,
-        contents: [
-          {
-            id: TEST_QUESTION_CONTENT_ID,
-            type: 'true-false',
-            questionData: {
-              trueOption: { isCorrect: false },
-              falseOption: { isCorrect: true },
-            },
-          },
-        ],
+        type: 'true-false',
+        questionData: {
+          trueOption: { isCorrect: false },
+          falseOption: { isCorrect: true },
+        },
       } as never);
 
       await expect(
@@ -95,15 +86,10 @@ describe('PracticeRoomAttemptService', () => {
     });
 
     it('throws a safe error for invalid submitted answer formats', async () => {
-      prisma.questionUnit.findFirst.mockResolvedValue({
+      prisma.questionContent.findFirst.mockResolvedValue({
         id: TEST_QUESTION_UNIT_ID,
-        contents: [
-          {
-            id: TEST_QUESTION_CONTENT_ID,
-            type: 'mcq',
-            questionData: { correctOptionIndex: 1 },
-          },
-        ],
+        type: 'mcq',
+        questionData: { correctOptionIndex: 1 },
       } as never);
 
       await expect(
@@ -119,10 +105,7 @@ describe('PracticeRoomAttemptService', () => {
     });
 
     it('throws when the canonical question content is missing', async () => {
-      prisma.questionUnit.findFirst.mockResolvedValue({
-        id: TEST_QUESTION_UNIT_ID,
-        contents: [],
-      } as never);
+      prisma.questionContent.findFirst.mockResolvedValue(null);
 
       await expect(
         service.computeIsCorrectForPayload(
@@ -134,6 +117,82 @@ describe('PracticeRoomAttemptService', () => {
           },
         ),
       ).rejects.toThrow(NotFoundException);
+    });
+
+    it('keeps regular practice-room core-only by querying only isCore content by default', async () => {
+      prisma.questionContent.findFirst.mockResolvedValue({
+        id: TEST_QUESTION_CONTENT_ID,
+        type: 'mcq',
+        questionData: { correctOptionIndex: 1 },
+      } as never);
+
+      await service.computeIsCorrectForPayload(
+        TEST_MODULE_UNIT_ID,
+        TEST_QUESTION_UNIT_ID,
+        TEST_QUESTION_CONTENT_ID,
+        {
+          selectedOptionIndex: 1,
+        },
+      );
+
+      expect(prisma.questionContent.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: TEST_QUESTION_CONTENT_ID,
+          questionUnitId: TEST_QUESTION_UNIT_ID,
+          isArchived: false,
+          isCore: true,
+          questionUnit: {
+            is: {
+              id: TEST_QUESTION_UNIT_ID,
+              moduleUnitId: TEST_MODULE_UNIT_ID,
+              isArchived: false,
+            },
+          },
+        },
+        select: {
+          id: true,
+          type: true,
+          questionData: true,
+        },
+      });
+    });
+
+    it('allows daily practice to grade variant content when explicitly requested', async () => {
+      prisma.questionContent.findFirst.mockResolvedValue({
+        id: TEST_QUESTION_CONTENT_ID,
+        type: 'mcq',
+        questionData: { correctOptionIndex: 1 },
+      } as never);
+
+      await service.computeIsCorrectForPayload(
+        TEST_MODULE_UNIT_ID,
+        TEST_QUESTION_UNIT_ID,
+        TEST_QUESTION_CONTENT_ID,
+        {
+          selectedOptionIndex: 1,
+        },
+        { allowVariantContent: true },
+      );
+
+      expect(prisma.questionContent.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: TEST_QUESTION_CONTENT_ID,
+          questionUnitId: TEST_QUESTION_UNIT_ID,
+          isArchived: false,
+          questionUnit: {
+            is: {
+              id: TEST_QUESTION_UNIT_ID,
+              moduleUnitId: TEST_MODULE_UNIT_ID,
+              isArchived: false,
+            },
+          },
+        },
+        select: {
+          id: true,
+          type: true,
+          questionData: true,
+        },
+      });
     });
   });
 
@@ -176,6 +235,30 @@ describe('PracticeRoomAttemptService', () => {
           TEST_QUESTION_UNIT_ID,
         ),
       ).resolves.toBe(false);
+
+      expect(prisma.questionAttempt.findFirst).toHaveBeenNthCalledWith(1, {
+        where: {
+          moduleUnitId: TEST_MODULE_UNIT_ID,
+          studentId: TEST_STUDENT_ID,
+          questionId: TEST_QUESTION_UNIT_ID,
+          session: {
+            sessionType: PracticeSessionTypeValues.practiceRoom,
+          },
+        },
+        select: { id: true },
+      });
+      expect(prisma.questionAttempt.findFirst).toHaveBeenNthCalledWith(2, {
+        where: {
+          moduleUnitId: TEST_MODULE_UNIT_ID,
+          studentId: TEST_STUDENT_ID,
+          questionId: TEST_QUESTION_UNIT_ID,
+          isCorrect: true,
+          session: {
+            sessionType: PracticeSessionTypeValues.practiceRoom,
+          },
+        },
+        select: { id: true },
+      });
     });
   });
 

@@ -51,6 +51,7 @@ describe('Daily practice session stability (e2e)', () => {
         moduleId: base.moduleId,
         questions: scenario.firstLesson.questions.slice(0, 3).map((q) => ({
           questionUnitId: q.questionUnitId,
+          questionContentId: q.questionContentId,
           moduleUnitId: scenario.firstLesson.moduleUnitId,
         })),
       },
