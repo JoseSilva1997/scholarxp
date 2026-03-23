@@ -113,10 +113,11 @@ export default function QuestsPage() {
               const completedQuestsCount = daySection.quests.filter(
                 (quest) => quest.isCompleted,
               ).length;
+              const dailyQuestCount = daySection.quests.length;
               const allQuestsComplete =
                 daySection.masterQuest?.isCompleted ??
-                (completedQuestsCount === daySection.quests.length &&
-                  daySection.quests.length > 0);
+                (completedQuestsCount === dailyQuestCount &&
+                  dailyQuestCount > 0);
               const MasterQuestIcon = allQuestsComplete
                 ? GiOpenTreasureChest
                 : GiLockedChest;
@@ -142,7 +143,8 @@ export default function QuestsPage() {
                     <div className={styles.dayInfo}>
                       <h2 className={styles.dayLabel}>{daySection.dayLabel}</h2>
                       <p className={styles.dayProgress}>
-                        {completedQuestsCount}/3 Quests Completed
+                        {completedQuestsCount}/{dailyQuestCount}{' '}
+                        {dailyQuestCount === 1 ? 'Quest' : 'Quests'} Completed
                       </p>
                     </div>
                     <div className={styles.dayQuestRow}>
@@ -167,7 +169,7 @@ export default function QuestsPage() {
                         }
                         title={
                           daySection.masterQuest?.description ??
-                          'Complete all 3 daily quests to unlock the master quest reward.'
+                          'Complete every daily quest available today to unlock the master quest reward.'
                         }
                       >
                         <MasterQuestIcon

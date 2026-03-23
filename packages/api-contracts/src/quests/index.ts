@@ -3,6 +3,7 @@
 ================================================================================================= */
 
 import {
+  MAX_DAILY_QUEST_COUNT,
   MASTER_QUEST_COMPLETION_REWARD,
   MASTER_QUEST_STREAK_MAX,
   MASTER_QUEST_STREAK_PERCENT_PER_STEP,
@@ -30,8 +31,8 @@ export type QuestDefinition = {
   expReward: number;
   requiresModuleTarget: boolean;
   requiresModuleUnitTarget: boolean;
-  // Progress target stays shared so the backend can expose generic progress fields
-  // and the frontend can render all quests, including master quests, without type branching.
+  // Most quest types have a fixed target; the master quest can override this per day
+  // so history and header UI reflect the number of generated daily quests.
   defaultProgressTarget: number;
 };
 
@@ -80,7 +81,7 @@ export const QUEST_DEFINITIONS = {
     expReward: MASTER_QUEST_COMPLETION_REWARD,
     requiresModuleTarget: false,
     requiresModuleUnitTarget: false,
-    defaultProgressTarget: 3,
+    defaultProgressTarget: MAX_DAILY_QUEST_COUNT,
   },
 } as const satisfies Record<QuestType, QuestDefinition>;
 

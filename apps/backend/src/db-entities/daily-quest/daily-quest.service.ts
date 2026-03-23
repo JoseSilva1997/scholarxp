@@ -75,7 +75,15 @@ export class DailyQuestService {
       orderBy: [{ questDateUtc: 'desc' }, { id: 'asc' }],
     });
     const completedDailyQuestCountByDay = new Map<string, number>();
+    const dailyQuestCountByDay = new Map<string, number>();
     for (const row of rows) {
+      if (row.type !== QuestTypeValues.masterDailyQuests) {
+        const dayKey = row.questDateUtc.toISOString().slice(0, 10);
+        dailyQuestCountByDay.set(
+          dayKey,
+          (dailyQuestCountByDay.get(dayKey) ?? 0) + 1,
+        );
+      }
       if (row.type === QuestTypeValues.masterDailyQuests || !row.isCompleted) {
         continue;
       }
@@ -93,11 +101,15 @@ export class DailyQuestService {
         const questType = row.type as QuestType;
         const questDefinition = getQuestDefinition(questType);
         const questDayUtc = row.questDateUtc.toISOString().slice(0, 10);
+        const progressTarget =
+          questType === QuestTypeValues.masterDailyQuests
+            ? (dailyQuestCountByDay.get(questDayUtc) ?? 0)
+            : questDefinition.defaultProgressTarget;
         const progressCurrent =
           questType === QuestTypeValues.masterDailyQuests
             ? Math.min(
                 completedDailyQuestCountByDay.get(questDayUtc) ?? 0,
-                questDefinition.defaultProgressTarget,
+                progressTarget,
               )
             : row.isCompleted
               ? questDefinition.defaultProgressTarget
@@ -119,7 +131,7 @@ export class DailyQuestService {
           isCompleted: row.isCompleted,
           // Progress is exposed in a generic shape so master and streak quests can reuse the same UI primitives.
           progressCurrent,
-          progressTarget: questDefinition.defaultProgressTarget,
+          progressTarget,
           // Server-owned description keeps phrasing consistent across all clients.
           description: buildQuestDescription(
             questType,
@@ -273,7 +285,7 @@ function buildQuestDescription(type: QuestType, moduleTitle: string): string {
     return `Achieve a streak of 3 or more during the ${moduleTitle} daily practice set.`;
   }
   if (type === QuestTypeValues.masterDailyQuests) {
-    return 'Complete all 3 daily quests to unlock the master quest reward.';
+    return 'Complete every daily quest available today to unlock the master quest reward.';
   }
   // Defensive fallback for unexpected values from legacy rows.
   return `Complete your quest for the ${moduleTitle} module.`;

@@ -50,6 +50,8 @@ export default function TodayQuestPopover({
   const MasterQuestIcon = masterQuest?.isCompleted
     ? GiOpenTreasureChest
     : GiLockedChest;
+  const displayedMasterReward =
+    masterQuest?.expGranted ?? MASTER_QUEST_COMPLETION_REWARD;
 
   return (
     <motion.section
@@ -101,9 +103,9 @@ export default function TodayQuestPopover({
               </div>
               <div className={styles.masterQuestInfo}>
                 <span className={styles.rewardHint}>
-                  Completing all 3 quests will grant
+                  Completing all today&apos;s quests will grant
                   <span className={styles.expBadge}>
-                    <BsLightningChargeFill /> +{MASTER_QUEST_COMPLETION_REWARD}
+                    <BsLightningChargeFill /> +{displayedMasterReward}
                   </span>
                 </span>
               </div>

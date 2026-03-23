@@ -6,8 +6,14 @@ import {
   getQuestDefinition,
   type QuestType,
 } from '@scholarxp/api-contracts';
+import {
+  MASTER_QUEST_COMPLETION_REWARD,
+  MAX_DAILY_QUEST_COUNT,
+  QUEST_COMPLETION_REWARD,
+} from '@scholarxp/constants';
 import { DateHelpers } from '../helpers/helpers';
 import { PrismaService } from '../prisma/prisma.service';
+import { QuestDailyPracticeAvailabilityService } from './quest-daily-practice-availability.service';
 
 type PrismaClientLike = Prisma.TransactionClient | PrismaService;
 
@@ -20,13 +26,23 @@ type GeneratedQuestDraft = {
   questDateUtc: Date;
 };
 
+type ExistingQuestRecord = {
+  id: number;
+  type: QuestType;
+  expGranted: number;
+  isCompleted: boolean;
+};
+
 type ModuleQuestTarget = {
   moduleId: number;
 };
 
 @Injectable()
 export class QuestGenerationService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly questDailyPracticeAvailabilityService: QuestDailyPracticeAvailabilityService,
+  ) {}
 
   // This seam exists so future quest selection rules can be added without changing read controllers or storage services.
   async ensureQuestDayGeneratedForUser(
@@ -42,11 +58,22 @@ export class QuestGenerationService {
         questDateUtc: dayStartUtc,
       },
       select: {
+        id: true,
         type: true,
+        expGranted: true,
+        isCompleted: true,
       },
     });
     const existingTypes = new Set(
       existingQuests.map((quest) => quest.type as QuestType),
+    );
+    const normalizedExistingQuests = existingQuests.map(
+      (quest): ExistingQuestRecord => ({
+        id: quest.id,
+        type: quest.type as QuestType,
+        expGranted: quest.expGranted,
+        isCompleted: quest.isCompleted,
+      }),
     );
     const hasLessonQuest =
       existingTypes.has(QuestTypeValues.completeNewUnit) ||
@@ -80,25 +107,40 @@ export class QuestGenerationService {
           enrolledModuleIds,
           prismaClient,
         );
-    const targetModule = lessonQuestTarget ?? completedUnitTarget;
+    const dailyPracticeTargetModuleId =
+      await this.selectDailyPracticeTargetModuleId({
+        userId,
+        enrolledModuleIds,
+        preferredModuleIds: [
+          lessonQuestTarget?.moduleId ?? null,
+          completedUnitTarget.moduleId,
+        ],
+        timestamp,
+      });
 
     const drafts: GeneratedQuestDraft[] = [];
-    if (!existingTypes.has(QuestTypeValues.completeDailyPractice)) {
+    if (
+      dailyPracticeTargetModuleId !== null &&
+      !existingTypes.has(QuestTypeValues.completeDailyPractice)
+    ) {
       drafts.push(
         this.buildQuestDraft({
           userId,
-          moduleId: targetModule.moduleId,
+          moduleId: dailyPracticeTargetModuleId,
           moduleUnitId: null,
           type: QuestTypeValues.completeDailyPractice,
           questDateUtc: dayStartUtc,
         }),
       );
     }
-    if (!existingTypes.has(QuestTypeValues.dailyPracticeStreak)) {
+    if (
+      dailyPracticeTargetModuleId !== null &&
+      !existingTypes.has(QuestTypeValues.dailyPracticeStreak)
+    ) {
       drafts.push(
         this.buildQuestDraft({
           userId,
-          moduleId: targetModule.moduleId,
+          moduleId: dailyPracticeTargetModuleId,
           moduleUnitId: null,
           type: QuestTypeValues.dailyPracticeStreak,
           questDateUtc: dayStartUtc,
@@ -118,18 +160,26 @@ export class QuestGenerationService {
       );
     }
 
-    const existingDailyCount =
-      (existingTypes.has(QuestTypeValues.completeDailyPractice) ? 1 : 0) +
-      (existingTypes.has(QuestTypeValues.dailyPracticeStreak) ? 1 : 0) +
-      (hasLessonQuest ? 1 : 0);
+    const existingDailyCount = normalizedExistingQuests.filter(
+      (quest) => quest.type !== QuestTypeValues.masterDailyQuests,
+    ).length;
     const draftedDailyCount = drafts.filter(
       (draft) => getQuestDefinition(draft.type).tier === 'daily',
     ).length;
-    const willHaveThreeDailyQuests =
-      existingDailyCount + draftedDailyCount >= 3;
+    const totalDailyQuestCount = existingDailyCount + draftedDailyCount;
+    const masterQuestReward =
+      this.calculateBaseMasterQuestReward(totalDailyQuestCount);
+    const existingMasterQuest = normalizedExistingQuests.find(
+      (quest) => quest.type === QuestTypeValues.masterDailyQuests,
+    );
+    const shouldReconcileExistingMasterReward =
+      totalDailyQuestCount > 0 &&
+      existingMasterQuest !== undefined &&
+      !existingMasterQuest.isCompleted &&
+      existingMasterQuest.expGranted !== masterQuestReward;
 
     if (
-      willHaveThreeDailyQuests &&
+      totalDailyQuestCount > 0 &&
       !existingTypes.has(QuestTypeValues.masterDailyQuests)
     ) {
       drafts.push(
@@ -138,9 +188,26 @@ export class QuestGenerationService {
           moduleId: null,
           moduleUnitId: null,
           type: QuestTypeValues.masterDailyQuests,
+          expGranted: masterQuestReward,
           questDateUtc: dayStartUtc,
         }),
       );
+    }
+
+    if (drafts.length === 0 && !shouldReconcileExistingMasterReward) {
+      return;
+    }
+
+    if (shouldReconcileExistingMasterReward) {
+      // Existing quest days can gain another daily quest later in the day, so the unclaimed master reward must stay aligned.
+      await prismaClient.dailyQuest.update({
+        where: {
+          id: existingMasterQuest.id,
+        },
+        data: {
+          expGranted: masterQuestReward,
+        },
+      });
     }
 
     if (drafts.length === 0) {
@@ -159,6 +226,7 @@ export class QuestGenerationService {
     moduleId: number | null;
     moduleUnitId: number | null;
     type: QuestType;
+    expGranted?: number;
     questDateUtc: Date;
   }): GeneratedQuestDraft {
     return {
@@ -166,9 +234,48 @@ export class QuestGenerationService {
       moduleId: input.moduleId,
       moduleUnitId: input.moduleUnitId,
       type: input.type,
-      expGranted: getQuestDefinition(input.type).expReward,
+      expGranted: input.expGranted ?? getQuestDefinition(input.type).expReward,
       questDateUtc: input.questDateUtc,
     };
+  }
+
+  private async selectDailyPracticeTargetModuleId(input: {
+    userId: number;
+    enrolledModuleIds: number[];
+    preferredModuleIds: Array<number | null>;
+    timestamp: Date;
+  }): Promise<number | null> {
+    const seenModuleIds = new Set<number>();
+    const orderedCandidateModuleIds = [
+      ...input.preferredModuleIds,
+      ...input.enrolledModuleIds,
+    ].filter((moduleId): moduleId is number => {
+      if (moduleId === null || seenModuleIds.has(moduleId)) {
+        return false;
+      }
+
+      seenModuleIds.add(moduleId);
+      return true;
+    });
+
+    return this.questDailyPracticeAvailabilityService.findFirstAvailableModuleId(
+      input.userId,
+      orderedCandidateModuleIds,
+      input.timestamp,
+    );
+  }
+
+  private calculateBaseMasterQuestReward(totalDailyQuestCount: number): number {
+    const missingDailyQuestCount = Math.max(
+      0,
+      MAX_DAILY_QUEST_COUNT - totalDailyQuestCount,
+    );
+
+    // Missing quest slots are folded into the master reward so the daily quest XP budget stays stable on "all caught up" days.
+    return (
+      MASTER_QUEST_COMPLETION_REWARD +
+      missingDailyQuestCount * QUEST_COMPLETION_REWARD
+    );
   }
 
   private async listEnrolledModuleIds(

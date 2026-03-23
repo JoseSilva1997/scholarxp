@@ -51,8 +51,8 @@ const mockQuests: QuestView[] = [
 const masterQuest: QuestView = {
   id: 99,
   moduleTitle: 'Master quest',
-  description: 'Complete all 3 daily quests to unlock the master quest reward.',
-  expGranted: 250,
+  description: 'Complete every daily quest available today to unlock the master quest reward.',
+  expGranted: 300,
   isCompleted: false,
   questDateUtc: '2024-05-20',
   type: QuestTypeValues.masterDailyQuests,
@@ -97,7 +97,7 @@ const masterQuest: QuestView = {
     expect(screen.queryByText('Progress')).not.toBeInTheDocument();
     expect(
       screen.queryByText((content) =>
-        content.includes('Completing all 3 quests will grant'),
+        content.includes("Completing all today's quests will grant"),
       ),
     ).not.toBeInTheDocument();
   });
@@ -252,8 +252,9 @@ const masterQuest: QuestView = {
 
     expect(
       screen.getByText((content) =>
-        content.includes('Completing all 3 quests will grant'),
+        content.includes("Completing all today's quests will grant"),
       ),
     ).toBeInTheDocument();
+    expect(screen.getByText('+300')).toBeInTheDocument();
   });
 });

@@ -205,4 +205,65 @@ describe('DailyQuestService quest target validation', () => {
       nextDayOffset: null,
     });
   });
+
+  it('derives the master quest target from the number of generated daily quests that day', async () => {
+    prisma.dailyQuest.groupBy.mockResolvedValue([
+      {
+        questDateUtc: new Date('2026-02-19T00:00:00.000Z'),
+      },
+    ]);
+    prisma.dailyQuest.findMany.mockResolvedValue([
+      {
+        id: 200,
+        moduleId: 11,
+        moduleUnitId: null,
+        userId: 22,
+        type: QuestTypeValues.completeNewUnit,
+        expGranted: 50,
+        isCompleted: true,
+        questDateUtc: new Date('2026-02-19T00:00:00.000Z'),
+        generatedAt: new Date('2026-02-19T00:00:00.000Z'),
+        completedAt: new Date('2026-02-19T08:00:00.000Z'),
+        module: {
+          title: 'Biology',
+        },
+        moduleUnit: null,
+      },
+      {
+        id: 201,
+        moduleId: null,
+        moduleUnitId: null,
+        userId: 22,
+        type: QuestTypeValues.masterDailyQuests,
+        expGranted: 350,
+        isCompleted: true,
+        questDateUtc: new Date('2026-02-19T00:00:00.000Z'),
+        generatedAt: new Date('2026-02-19T00:00:00.000Z'),
+        completedAt: new Date('2026-02-19T08:05:00.000Z'),
+        module: null,
+        moduleUnit: null,
+      },
+    ] as never);
+
+    const response = await service.listHistoryForUser(22, {});
+
+    expect(response.quests[1]).toEqual({
+      id: 201,
+      moduleId: null,
+      moduleUnitId: null,
+      moduleTitle: 'Master quest',
+      moduleUnitTitle: null,
+      type: QuestTypeValues.masterDailyQuests,
+      tier: 'master',
+      expGranted: 350,
+      isCompleted: true,
+      progressCurrent: 1,
+      progressTarget: 1,
+      description:
+        'Complete every daily quest available today to unlock the master quest reward.',
+      questDateUtc: '2026-02-19',
+      generatedAt: '2026-02-19T00:00:00.000Z',
+      completedAt: '2026-02-19T08:05:00.000Z',
+    });
+  });
 });

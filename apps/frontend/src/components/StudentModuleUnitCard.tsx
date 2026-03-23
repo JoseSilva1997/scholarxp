@@ -2,7 +2,8 @@
 import { useState } from 'react';
 import styles from './StudentModuleUnitCard.module.css';
 import completionMedalIcon from '../assets/module-unit/module-unit-completed-medal.png';
-import { FaCheck, FaMinus, FaXmark, FaBolt, FaFire, FaArrowTrendUp, FaGraduationCap } from 'react-icons/fa6';
+import { FaCheck, FaMinus, FaXmark, FaBolt, FaFire, FaGraduationCap } from 'react-icons/fa6';
+import { TbTargetArrow } from "react-icons/tb";
 import { IoMdLock } from "react-icons/io"
 import XpStatCard from './XpStatCard';
 import type { QuestionAttemptResult } from '@scholarxp/api-contracts';
@@ -138,7 +139,7 @@ export default function StudentModuleUnitCard({
                          max={MAXIMUM_FIRST_ATTEMPT_BONUS_EXP}
                          title="Bonus XP for first-try correct answers"
                          colorClass="colorFirst"
-                         icon={<FaArrowTrendUp />}
+                         icon={<TbTargetArrow />}
                        />
 
                        {hasStreakBonus && (
