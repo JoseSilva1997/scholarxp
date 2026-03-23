@@ -412,6 +412,79 @@ describe('DailyQuestService quest target validation', () => {
     });
   });
 
+  it('projects streak bonus on top of the compensated base reward for a one-quest day', async () => {
+    prisma.dailyQuest.groupBy.mockResolvedValue([
+      {
+        questDateUtc: new Date('2026-02-19T00:00:00.000Z'),
+      },
+    ]);
+    prisma.dailyQuest.findMany
+      .mockResolvedValueOnce([
+        {
+          id: 330,
+          moduleId: 11,
+          moduleUnitId: null,
+          userId: 22,
+          type: QuestTypeValues.completeNewUnit,
+          expGranted: 50,
+          isCompleted: false,
+          questDateUtc: new Date('2026-02-19T00:00:00.000Z'),
+          generatedAt: new Date('2026-02-19T00:00:00.000Z'),
+          completedAt: null,
+          module: {
+            title: 'Biology',
+          },
+          moduleUnit: null,
+        },
+        {
+          id: 331,
+          moduleId: null,
+          moduleUnitId: null,
+          userId: 22,
+          type: QuestTypeValues.masterDailyQuests,
+          expGranted: 350,
+          isCompleted: false,
+          questDateUtc: new Date('2026-02-19T00:00:00.000Z'),
+          generatedAt: new Date('2026-02-19T00:00:00.000Z'),
+          completedAt: null,
+          module: null,
+          moduleUnit: null,
+        },
+      ] as never)
+      .mockResolvedValueOnce([
+        {
+          questDateUtc: new Date('2026-02-18T00:00:00.000Z'),
+        },
+      ] as never);
+
+    const response = await service.listHistoryForUser(22, {});
+
+    expect(prisma.expLedger.findMany).not.toHaveBeenCalled();
+    expect(response.quests[1]).toEqual({
+      id: 331,
+      moduleId: null,
+      moduleUnitId: null,
+      moduleTitle: 'Master quest',
+      moduleUnitTitle: null,
+      type: QuestTypeValues.masterDailyQuests,
+      tier: 'master',
+      expGranted: 375,
+      isCompleted: false,
+      progressCurrent: 0,
+      progressTarget: 1,
+      rewardBreakdown: {
+        baseExp: 350,
+        streakBonusExp: 25,
+        totalExp: 375,
+      },
+      description:
+        'Complete every daily quest available today to unlock the master quest reward.',
+      questDateUtc: '2026-02-19',
+      generatedAt: '2026-02-19T00:00:00.000Z',
+      completedAt: null,
+    });
+  });
+
   it('resets the projected master quest streak bonus after a missed UTC day', async () => {
     prisma.dailyQuest.groupBy.mockResolvedValue([
       {
@@ -515,9 +588,7 @@ describe('DailyQuestService quest target validation', () => {
       ] as never)
       .mockResolvedValueOnce(
         Array.from({ length: MASTER_QUEST_STREAK_MAX + 2 }, (_, index) => ({
-          questDateUtc: new Date(
-            Date.UTC(2026, 1, 18 - index, 0, 0, 0, 0),
-          ),
+          questDateUtc: new Date(Date.UTC(2026, 1, 18 - index, 0, 0, 0, 0)),
         })) as never,
       );
 

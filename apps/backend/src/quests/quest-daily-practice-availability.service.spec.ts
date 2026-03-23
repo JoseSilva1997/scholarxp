@@ -138,4 +138,29 @@ describe('QuestDailyPracticeAvailabilityService', () => {
       dailyPracticeSetSelectorService.selectQuestions,
     ).toHaveBeenCalledTimes(2);
   });
+
+  it('rethrows selection errors instead of treating them as unavailable modules', async () => {
+    const selectorError = new Error('Selector failed');
+    dailyPracticeSetSelectorService.selectQuestions.mockRejectedValue(
+      selectorError,
+    );
+
+    await expect(
+      service.findFirstAvailableModuleId(
+        42,
+        [5, 8],
+        new Date('2026-03-23T12:00:00.000Z'),
+      ),
+    ).rejects.toThrow(selectorError);
+
+    expect(
+      dailyPracticeEligibilityService.assertEligibleForToday,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      dailyPracticeSetSelectorService.selectQuestions,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      dailyPracticeEligibilityService.assertEligibleForToday,
+    ).not.toHaveBeenCalledWith(8, 42, new Date('2026-03-23T12:00:00.000Z'));
+  });
 });

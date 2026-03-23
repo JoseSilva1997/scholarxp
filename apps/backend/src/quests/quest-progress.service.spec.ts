@@ -491,6 +491,106 @@ describe('QuestProgressService', () => {
     );
   });
 
+  it('adds missing-slot compensation on top of the projected streak reward for a one-quest day', async () => {
+    questStreakService.getRewardForNextMasterQuestCompletion.mockResolvedValue({
+      streakCount: 2,
+      bonusPercent: 20,
+      awardedExp: 300,
+    });
+    prisma.dailyQuest.findMany
+      .mockResolvedValueOnce([
+        buildQuest({
+          id: 14,
+          moduleId: 1,
+          type: QuestTypeValues.completeNewUnit,
+          isCompleted: false,
+        }),
+        {
+          id: 15,
+          userId: 42,
+          moduleId: null,
+          moduleUnitId: null,
+          type: QuestTypeValues.masterDailyQuests,
+          expGranted: 350,
+          isCompleted: false,
+          questDateUtc: new Date('2026-03-13T00:00:00.000Z'),
+        },
+      ] as never)
+      .mockResolvedValueOnce([
+        buildQuest({
+          id: 14,
+          moduleId: 1,
+          type: QuestTypeValues.completeNewUnit,
+          isCompleted: true,
+        }),
+        {
+          id: 15,
+          userId: 42,
+          moduleId: null,
+          moduleUnitId: null,
+          type: QuestTypeValues.masterDailyQuests,
+          expGranted: 350,
+          isCompleted: false,
+          questDateUtc: new Date('2026-03-13T00:00:00.000Z'),
+        },
+      ] as never)
+      .mockResolvedValueOnce([
+        buildQuest({
+          id: 14,
+          moduleId: 1,
+          type: QuestTypeValues.completeNewUnit,
+          isCompleted: true,
+        }),
+        {
+          id: 15,
+          userId: 42,
+          moduleId: null,
+          moduleUnitId: null,
+          type: QuestTypeValues.masterDailyQuests,
+          expGranted: 350,
+          isCompleted: false,
+          questDateUtc: new Date('2026-03-13T00:00:00.000Z'),
+        },
+      ] as never);
+    prisma.expLedger.findFirst.mockResolvedValue({ id: 'ledger-3' } as never);
+
+    await service.recordModuleUnitCompletion(
+      {
+        userId: 42,
+        moduleId: 1,
+        completedAt: new Date('2026-03-13T09:10:00.000Z'),
+      },
+      prisma,
+    );
+
+    const masterQuestUpdateCall = prisma.dailyQuest.update.mock.calls[1]?.[0];
+    expect(masterQuestUpdateCall).toEqual({
+      where: { id: 15 },
+      data: expect.objectContaining({
+        isCompleted: true,
+        completedAt: new Date('2026-03-13T09:10:00.000Z'),
+      }),
+    });
+    expect(masterQuestUpdateCall?.data).not.toHaveProperty('expGranted');
+    expect(expLedgerService.recordEvent).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        userId: 42,
+        questId: 15,
+        eventType: ExpLedgerEventTypes.COMPLETE_QUEST,
+        awardedExp: 400,
+        idempotencyKey: 'quest_completion:quest:15',
+      }),
+      prisma,
+    );
+    expect(avatarService.addStudentExp).toHaveBeenNthCalledWith(
+      2,
+      42,
+      400,
+      prisma,
+    );
+  });
+
   it('does not complete the retry quest when a completed lesson is only viewed', async () => {
     prisma.moduleUnitUserProgress.findUnique.mockResolvedValue({
       isCompleted: true,
