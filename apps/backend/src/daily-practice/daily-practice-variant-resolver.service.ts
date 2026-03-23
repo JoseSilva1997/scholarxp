@@ -12,6 +12,7 @@ export class DailyPracticeVariantResolverService {
   constructor(private readonly prisma: PrismaService) {}
 
   // Variant choice is resolved once per set so refreshes never swap the presented content mid-day.
+  // Unseen variants come first; once all active variants were seen, the least-recently seen variant is reused.
   async resolveQuestionContentIds(
     userId: number,
     orderedQuestions: OrderedDailyPracticeQuestionRecord[],
@@ -48,9 +49,11 @@ export class DailyPracticeVariantResolverService {
             in: questionUnitIds,
           },
         },
+        orderBy: [{ attemptedAt: 'desc' }, { id: 'desc' }],
         select: {
           questionId: true,
           contentId: true,
+          attemptedAt: true,
         },
       }),
     ]);
@@ -63,12 +66,19 @@ export class DailyPracticeVariantResolverService {
       activeVariantContentIdsByQuestionId.set(variant.questionUnitId, existing);
     }
 
-    const seenContentIdsByQuestionId = new Map<number, Set<number>>();
+    const latestSeenAtByQuestionId = new Map<number, Map<number, Date>>();
     for (const attempt of attempts) {
-      const existing =
-        seenContentIdsByQuestionId.get(attempt.questionId) ?? new Set<number>();
-      existing.add(attempt.contentId);
-      seenContentIdsByQuestionId.set(attempt.questionId, existing);
+      const latestSeenAtByContentId =
+        latestSeenAtByQuestionId.get(attempt.questionId) ??
+        new Map<number, Date>();
+      const existingSeenAt = latestSeenAtByContentId.get(attempt.contentId);
+      if (
+        !existingSeenAt ||
+        existingSeenAt.getTime() < attempt.attemptedAt.getTime()
+      ) {
+        latestSeenAtByContentId.set(attempt.contentId, attempt.attemptedAt);
+      }
+      latestSeenAtByQuestionId.set(attempt.questionId, latestSeenAtByContentId);
     }
 
     return orderedQuestions.map((question) => ({
@@ -76,7 +86,7 @@ export class DailyPracticeVariantResolverService {
       questionContentId: this.resolveQuestionContentId(
         question.coreContentId,
         activeVariantContentIdsByQuestionId.get(question.questionUnitId) ?? [],
-        seenContentIdsByQuestionId.get(question.questionUnitId),
+        latestSeenAtByQuestionId.get(question.questionUnitId),
       ),
     }));
   }
@@ -84,12 +94,39 @@ export class DailyPracticeVariantResolverService {
   private resolveQuestionContentId(
     coreContentId: number,
     activeVariantContentIds: number[],
-    seenContentIds: Set<number> | undefined,
+    latestSeenAtByContentId: Map<number, Date> | undefined,
   ): number {
+    if (activeVariantContentIds.length === 0) {
+      return coreContentId;
+    }
+
     const unseenVariantContentId = activeVariantContentIds.find(
-      (contentId) => !seenContentIds?.has(contentId),
+      (contentId) => !latestSeenAtByContentId?.has(contentId),
+    );
+    if (unseenVariantContentId) {
+      return unseenVariantContentId;
+    }
+
+    const leastRecentlySeenVariantContentId = activeVariantContentIds.reduce(
+      (currentLeastRecent, contentId) => {
+        if (currentLeastRecent === null) {
+          return contentId;
+        }
+
+        const seenAt = latestSeenAtByContentId?.get(contentId);
+        const currentLeastRecentSeenAt =
+          latestSeenAtByContentId?.get(currentLeastRecent);
+        if (!seenAt || !currentLeastRecentSeenAt) {
+          return currentLeastRecent;
+        }
+
+        return seenAt.getTime() < currentLeastRecentSeenAt.getTime()
+          ? contentId
+          : currentLeastRecent;
+      },
+      null as number | null,
     );
 
-    return unseenVariantContentId ?? coreContentId;
+    return leastRecentlySeenVariantContentId ?? coreContentId;
   }
 }

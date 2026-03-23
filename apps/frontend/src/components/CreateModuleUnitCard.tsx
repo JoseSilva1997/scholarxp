@@ -13,7 +13,7 @@ type CreateModuleUnitCardProps = {
 export default function CreateModuleUnitCard({ onClick, isSaving }: CreateModuleUnitCardProps) {
   return (
     <div className={styles.wrapper}>
-      <article className={styles.card} role="group" aria-label="Create a module unit">
+      <article className={styles.card} role="group" aria-label="Add lesson">
         <div className={styles.leftContainer} aria-hidden="true" />
         <div className={styles.content}>
           <div className={styles.header}>
@@ -22,15 +22,15 @@ export default function CreateModuleUnitCard({ onClick, isSaving }: CreateModule
               className={styles.createButton}
               onClick={onClick}
               disabled={isSaving}
-              aria-label="Start creating a module unit"
-              title="Create module unit"
+              aria-label="Add a lesson"
+              title="Create lesson"
             >
               <IconContext.Provider value={{ className: styles.createIcon }}>
                 <FaCirclePlus aria-hidden="true" />
               </IconContext.Provider>
             </button>
             <div className={styles.copy}>
-              <h3 className={styles.title}>Create a lesson</h3>
+              <h3 className={styles.title}>New lesson</h3>
               <p className={styles.subtitle}>
                 {isSaving ? 'Creating…' : 'Add practice sets to this module.'}
               </p>

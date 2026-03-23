@@ -38,6 +38,7 @@ describe('DailyPracticeVariantResolverService', () => {
       {
         questionId: 101,
         contentId: 601,
+        attemptedAt: new Date('2026-03-23T10:00:00.000Z'),
       },
     ] as never);
 
@@ -48,19 +49,40 @@ describe('DailyPracticeVariantResolverService', () => {
     expect(result[0]?.questionContentId).toBe(602);
   });
 
-  it('falls back to core content when all active variants were already seen', async () => {
+  it('reuses the least-recently seen active variant when all variants were already seen', async () => {
     prisma.questionVariant.findMany.mockResolvedValue([
       {
         questionUnitId: 101,
         contentId: 601,
+      },
+      {
+        questionUnitId: 101,
+        contentId: 602,
       },
     ] as never);
     prisma.questionAttempt.findMany.mockResolvedValue([
       {
         questionId: 101,
         contentId: 601,
+        attemptedAt: new Date('2026-03-23T12:00:00.000Z'),
+      },
+      {
+        questionId: 101,
+        contentId: 602,
+        attemptedAt: new Date('2026-03-20T12:00:00.000Z'),
       },
     ] as never);
+
+    const result = await service.resolveQuestionContentIds(42, [
+      buildOrderedQuestion(),
+    ]);
+
+    expect(result[0]?.questionContentId).toBe(602);
+  });
+
+  it('falls back to core content only when the question has no active variants', async () => {
+    prisma.questionVariant.findMany.mockResolvedValue([] as never);
+    prisma.questionAttempt.findMany.mockResolvedValue([] as never);
 
     const result = await service.resolveQuestionContentIds(42, [
       buildOrderedQuestion(),
