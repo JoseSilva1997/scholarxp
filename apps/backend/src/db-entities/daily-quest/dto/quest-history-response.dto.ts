@@ -1,6 +1,7 @@
 // DTOs that implement shared quest-history contracts so backend responses stay compile-time aligned with frontend expectations.
 import type {
   QuestHistoryResponse,
+  QuestRewardBreakdown,
   QuestTier,
   QuestType,
   QuestView,
@@ -21,6 +22,7 @@ export class QuestHistoryItemDto implements QuestView {
   questDateUtc: string;
   generatedAt: string;
   completedAt: string | null;
+  rewardBreakdown?: QuestRewardBreakdown | null;
   description: string;
 }
 

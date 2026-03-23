@@ -460,7 +460,6 @@ describe('QuestProgressService', () => {
       data: expect.objectContaining({
         isCompleted: true,
         completedAt: new Date('2026-03-13T09:10:00.000Z'),
-        expGranted: 350,
       }),
     });
     expect(avatarService.addStudentExp).toHaveBeenNthCalledWith(
@@ -894,7 +893,6 @@ describe('QuestProgressService', () => {
       data: expect.objectContaining({
         isCompleted: true,
         completedAt: progressedAt,
-        expGranted: 250,
       }),
     });
     expect(expLedgerService.recordEvent).toHaveBeenCalledTimes(2);
@@ -1019,7 +1017,6 @@ describe('QuestProgressService', () => {
       data: expect.objectContaining({
         isCompleted: true,
         completedAt: progressedAt,
-        expGranted: 300,
       }),
     });
     expect(avatarService.addStudentExp).toHaveBeenNthCalledWith(

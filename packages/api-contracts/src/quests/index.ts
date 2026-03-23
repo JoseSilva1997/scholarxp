@@ -36,6 +36,12 @@ export type QuestDefinition = {
   defaultProgressTarget: number;
 };
 
+export type QuestRewardBreakdown = {
+  baseExp: number;
+  streakBonusExp: number;
+  totalExp: number;
+};
+
 // A mapping of quest type values to their corresponding string representations. This is used for
 // type safety and to ensure consistency across the application when referring to quest types.
 export const QuestTypeValues = {
@@ -121,6 +127,8 @@ export interface Quest {
   generatedAt: string; // ISO date-time string (UTC)
   // Nullable because incomplete quests do not have a completion timestamp.
   completedAt: string | null; // ISO date-time string (UTC)
+  // Only master quests expose a breakdown because streak bonuses never apply to the daily quest rows.
+  rewardBreakdown?: QuestRewardBreakdown | null;
 }
 
 // API view model for quests consumed by frontend screens.

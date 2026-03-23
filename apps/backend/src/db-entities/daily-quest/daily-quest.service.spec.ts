@@ -5,6 +5,7 @@ import {
   QuestTypeValues,
   type QuestHistoryResponse,
 } from '@scholarxp/api-contracts';
+import { ExpLedgerEventTypes } from '@scholarxp/constants';
 import { PrismaService } from '../../prisma/prisma.service';
 import { createPrismaMock, type PrismaMock } from '../../test/test-helpers';
 import { DailyQuestService } from './daily-quest.service';
@@ -159,24 +160,26 @@ describe('DailyQuestService quest target validation', () => {
         questDateUtc: new Date('2026-02-19T00:00:00.000Z'),
       },
     ]);
-    prisma.dailyQuest.findMany.mockResolvedValue([
-      {
-        id: 100,
-        moduleId: 11,
-        moduleUnitId: null,
-        userId: 22,
-        type: QuestTypeValues.dailyPracticeStreak,
-        expGranted: 50,
-        isCompleted: false,
-        questDateUtc: new Date('2026-02-19T00:00:00.000Z'),
-        generatedAt: new Date('2026-02-19T00:00:00.000Z'),
-        completedAt: null,
-        module: {
-          title: 'Biology',
+    prisma.dailyQuest.findMany
+      .mockResolvedValueOnce([
+        {
+          id: 100,
+          moduleId: 11,
+          moduleUnitId: null,
+          userId: 22,
+          type: QuestTypeValues.dailyPracticeStreak,
+          expGranted: 50,
+          isCompleted: false,
+          questDateUtc: new Date('2026-02-19T00:00:00.000Z'),
+          generatedAt: new Date('2026-02-19T00:00:00.000Z'),
+          completedAt: null,
+          module: {
+            title: 'Biology',
+          },
+          moduleUnit: null,
         },
-        moduleUnit: null,
-      },
-    ]);
+      ] as never)
+      .mockResolvedValueOnce([]);
 
     const response = await service.listHistoryForUser(22, {});
 
@@ -194,6 +197,7 @@ describe('DailyQuestService quest target validation', () => {
           isCompleted: false,
           progressCurrent: 0,
           progressTarget: 3,
+          rewardBreakdown: null,
           description:
             'Achieve a streak of 3 or more during the Biology daily practice set.',
           questDateUtc: '2026-02-19',
@@ -212,36 +216,49 @@ describe('DailyQuestService quest target validation', () => {
         questDateUtc: new Date('2026-02-19T00:00:00.000Z'),
       },
     ]);
-    prisma.dailyQuest.findMany.mockResolvedValue([
-      {
-        id: 200,
-        moduleId: 11,
-        moduleUnitId: null,
-        userId: 22,
-        type: QuestTypeValues.completeNewUnit,
-        expGranted: 50,
-        isCompleted: true,
-        questDateUtc: new Date('2026-02-19T00:00:00.000Z'),
-        generatedAt: new Date('2026-02-19T00:00:00.000Z'),
-        completedAt: new Date('2026-02-19T08:00:00.000Z'),
-        module: {
-          title: 'Biology',
+    prisma.dailyQuest.findMany
+      .mockResolvedValueOnce([
+        {
+          id: 200,
+          moduleId: 11,
+          moduleUnitId: null,
+          userId: 22,
+          type: QuestTypeValues.completeNewUnit,
+          expGranted: 50,
+          isCompleted: true,
+          questDateUtc: new Date('2026-02-19T00:00:00.000Z'),
+          generatedAt: new Date('2026-02-19T00:00:00.000Z'),
+          completedAt: new Date('2026-02-19T08:00:00.000Z'),
+          module: {
+            title: 'Biology',
+          },
+          moduleUnit: null,
         },
-        moduleUnit: null,
-      },
+        {
+          id: 201,
+          moduleId: null,
+          moduleUnitId: null,
+          userId: 22,
+          type: QuestTypeValues.masterDailyQuests,
+          expGranted: 300,
+          isCompleted: true,
+          questDateUtc: new Date('2026-02-19T00:00:00.000Z'),
+          generatedAt: new Date('2026-02-19T00:00:00.000Z'),
+          completedAt: new Date('2026-02-19T08:05:00.000Z'),
+          module: null,
+          moduleUnit: null,
+        },
+      ] as never)
+      .mockResolvedValueOnce([
+        {
+          questDateUtc: new Date('2026-02-19T00:00:00.000Z'),
+        },
+      ] as never);
+    prisma.expLedger.findMany.mockResolvedValue([
       {
-        id: 201,
-        moduleId: null,
-        moduleUnitId: null,
-        userId: 22,
-        type: QuestTypeValues.masterDailyQuests,
-        expGranted: 350,
-        isCompleted: true,
-        questDateUtc: new Date('2026-02-19T00:00:00.000Z'),
-        generatedAt: new Date('2026-02-19T00:00:00.000Z'),
-        completedAt: new Date('2026-02-19T08:05:00.000Z'),
-        module: null,
-        moduleUnit: null,
+        questId: 201,
+        awardedExp: 350,
+        eventType: ExpLedgerEventTypes.COMPLETE_QUEST,
       },
     ] as never);
 
@@ -259,11 +276,92 @@ describe('DailyQuestService quest target validation', () => {
       isCompleted: true,
       progressCurrent: 1,
       progressTarget: 1,
+      rewardBreakdown: {
+        baseExp: 300,
+        streakBonusExp: 50,
+        totalExp: 350,
+      },
       description:
         'Complete every daily quest available today to unlock the master quest reward.',
       questDateUtc: '2026-02-19',
       generatedAt: '2026-02-19T00:00:00.000Z',
       completedAt: '2026-02-19T08:05:00.000Z',
+    });
+  });
+
+  it('projects the master quest streak bonus when the quest is still incomplete', async () => {
+    prisma.dailyQuest.groupBy.mockResolvedValue([
+      {
+        questDateUtc: new Date('2026-02-19T00:00:00.000Z'),
+      },
+    ]);
+    prisma.dailyQuest.findMany
+      .mockResolvedValueOnce([
+        {
+          id: 300,
+          moduleId: 11,
+          moduleUnitId: null,
+          userId: 22,
+          type: QuestTypeValues.completeDailyPractice,
+          expGranted: 50,
+          isCompleted: true,
+          questDateUtc: new Date('2026-02-19T00:00:00.000Z'),
+          generatedAt: new Date('2026-02-19T00:00:00.000Z'),
+          completedAt: new Date('2026-02-19T08:00:00.000Z'),
+          module: {
+            title: 'Biology',
+          },
+          moduleUnit: null,
+        },
+        {
+          id: 301,
+          moduleId: 12,
+          moduleUnitId: null,
+          userId: 22,
+          type: QuestTypeValues.moduleUnitRetry,
+          expGranted: 50,
+          isCompleted: false,
+          questDateUtc: new Date('2026-02-19T00:00:00.000Z'),
+          generatedAt: new Date('2026-02-19T00:00:00.000Z'),
+          completedAt: null,
+          module: {
+            title: 'Chemistry',
+          },
+          moduleUnit: null,
+        },
+        {
+          id: 302,
+          moduleId: null,
+          moduleUnitId: null,
+          userId: 22,
+          type: QuestTypeValues.masterDailyQuests,
+          expGranted: 300,
+          isCompleted: false,
+          questDateUtc: new Date('2026-02-19T00:00:00.000Z'),
+          generatedAt: new Date('2026-02-19T00:00:00.000Z'),
+          completedAt: null,
+          module: null,
+          moduleUnit: null,
+        },
+      ] as never)
+      .mockResolvedValueOnce([
+        {
+          questDateUtc: new Date('2026-02-18T00:00:00.000Z'),
+        },
+        {
+          questDateUtc: new Date('2026-02-17T00:00:00.000Z'),
+        },
+      ] as never);
+
+    const response = await service.listHistoryForUser(22, {});
+
+    expect(response.quests[2]).toMatchObject({
+      expGranted: 350,
+      rewardBreakdown: {
+        baseExp: 300,
+        streakBonusExp: 50,
+        totalExp: 350,
+      },
     });
   });
 });

@@ -53,6 +53,11 @@ const masterQuest: QuestView = {
   moduleTitle: 'Master quest',
   description: 'Complete every daily quest available today to unlock the master quest reward.',
   expGranted: 300,
+  rewardBreakdown: {
+    baseExp: 250,
+    streakBonusExp: 50,
+    totalExp: 300,
+  },
   isCompleted: false,
   questDateUtc: '2024-05-20',
   type: QuestTypeValues.masterDailyQuests,
@@ -237,7 +242,7 @@ const masterQuest: QuestView = {
     expect(screen.getByLabelText('Master quest incomplete')).toBeInTheDocument();
   });
 
-  it('shows the master quest reward hint under the progress bar', () => {
+  it('shows the projected master quest reward hint under the progress bar', () => {
     renderWithProviders(
       <TodayQuestPopover
         id="test-popover"
@@ -250,11 +255,31 @@ const masterQuest: QuestView = {
       />
     );
 
+    expect(screen.getByText('Projected')).toBeInTheDocument();
+    expect(screen.getByText('+300')).toBeInTheDocument();
     expect(
-      screen.getByText((content) =>
-        content.includes("Completing all today's quests will grant"),
-      ),
+      screen.getByText('Base +250 and streak bonus +50'),
     ).toBeInTheDocument();
+  });
+
+  it('shows awarded copy when the master quest is complete', () => {
+    renderWithProviders(
+      <TodayQuestPopover
+        id="test-popover"
+        quests={mockQuests}
+        masterQuest={{
+          ...masterQuest,
+          isCompleted: true,
+          completedAt: new Date().toISOString(),
+        }}
+        completed={2}
+        max={2}
+        hasDailyQuests={true}
+        isLoading={false}
+      />
+    );
+
+    expect(screen.getByText('Awarded')).toBeInTheDocument();
     expect(screen.getByText('+300')).toBeInTheDocument();
   });
 });

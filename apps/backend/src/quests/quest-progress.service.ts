@@ -530,8 +530,7 @@ export class QuestProgressService {
         id: quest.id,
       },
       data: {
-        // Persist the final reward amount on the quest row so history reads match the ledger-backed award.
-        expGranted: awardedExp,
+        // The quest row keeps the generated base reward while the ledger owns the actual awarded amount.
         isCompleted: true,
         completedAt,
       },
