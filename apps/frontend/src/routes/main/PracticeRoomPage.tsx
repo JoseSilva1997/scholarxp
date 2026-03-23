@@ -37,6 +37,7 @@ export default function PracticeRoomPage() {
     isSubmittingAttempt,
     isRoomReadOnly,
     canSubmitAttempt,
+    areRewardIndicatorsDisabled,
     selectedQuestionUnitIndex,
     activeQuestionUnit,
     activeQuestion,
@@ -129,10 +130,16 @@ export default function PracticeRoomPage() {
                 {/* Info icon: hover reveals a speech-bubble explaining all reward indicators */}
                   <RewardsGuideTooltip />
                 {/* XP indicator: amber when base XP is still earnable, dimmed once claimed. */}
-                <BaseXpIndicator status={baseXpStatus} />
+                <BaseXpIndicator
+                  status={baseXpStatus}
+                  disabled={areRewardIndicatorsDisabled}
+                />
                 {/* Accuracy indicator (bullseye) sits to the left of the streak
                     indicator so all per-question reward pills are grouped together. */}
-                <FirstTryAccuracyIndicator status={firstTryBonusStatus} />
+                <FirstTryAccuracyIndicator
+                  status={firstTryBonusStatus}
+                  disabled={areRewardIndicatorsDisabled}
+                />
                 {/* Streak indicator sits left of the XP bar so progress metrics are grouped */}
                 <StreakIndicator
                   currentStreak={currentStreak}
@@ -140,6 +147,7 @@ export default function PracticeRoomPage() {
                   totalQuestions={room?.questions.length ?? 0}
                   isStreakInitialized={isStreakInitialized}
                   claimedTiers={rewardIndicators.streak.claimedTiers}
+                  disabled={areRewardIndicatorsDisabled}
                 />
                 <div className={styles.levelIndicatorMini}>
                   <img src={expIcon} alt="" aria-hidden="true" className={styles.miniLevelIcon} />

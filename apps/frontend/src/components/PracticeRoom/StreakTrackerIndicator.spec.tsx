@@ -254,4 +254,25 @@ describe('StreakIndicator', () => {
       expect(screen.getByLabelText('Streak: blazing — 10 in a row')).toBeInTheDocument();
     });
   });
+
+  describe('disabled retry mode', () => {
+    it('renders a disabled label with no badge or pips', () => {
+      render(
+        <StreakIndicator
+          currentStreak={5}
+          highestStreak={5}
+          totalQuestions={10}
+          isStreakInitialized={true}
+          disabled
+        />,
+      );
+
+      expect(
+        screen.getByLabelText('Streak rewards disabled during retry review'),
+      ).toBeInTheDocument();
+      expect(screen.queryByText('5')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('pip-tier1')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('pip-tier2')).not.toBeInTheDocument();
+    });
+  });
 });

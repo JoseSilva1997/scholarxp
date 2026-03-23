@@ -16,6 +16,8 @@ export type FirstTryBonusStatus = 'available' | 'earned' | 'lost';
 type FirstTryAccuracyIndicatorProps = {
   // The resolved first-try bonus status for the active question.
   status: FirstTryBonusStatus;
+  // Retry mode is review-only for rewards, so the accuracy indicator should render disabled.
+  disabled?: boolean;
 };
 
 // CSS class applied to the container per status; controls icon colour and glow.
@@ -32,24 +34,31 @@ const STATE_ARIA_LABEL: Record<FirstTryBonusStatus, string> = {
   lost: 'First-try bonus: lost',
 };
 
-export default function FirstTryAccuracyIndicator({ status }: FirstTryAccuracyIndicatorProps) {
+export default function FirstTryAccuracyIndicator({
+  status,
+  disabled = false,
+}: FirstTryAccuracyIndicatorProps) {
+  const ariaLabel = disabled
+    ? 'First-try bonus indicator disabled during retry review'
+    : STATE_ARIA_LABEL[status];
+
   return (
     // Wrapper carries the state class so the CSS descendant selector (.stateX .icon)
     // can target the icon without extra class juggling on the SVG element.
     <span
-      className={`${styles.container} ${STATE_CLASS[status]}`}
-      aria-label={STATE_ARIA_LABEL[status]}
-      title={STATE_ARIA_LABEL[status]}
+      className={`${styles.container} ${disabled ? styles.stateDisabled : STATE_CLASS[status]}`}
+      aria-label={ariaLabel}
+      title={ariaLabel}
     >
       {/* iconWrapper keeps relative positioning for the overlay badge. */}
       <span className={styles.iconWrapper} aria-hidden="true">
         <TbTargetArrow className={styles.icon} />
-        {status === 'earned' && (
+        {!disabled && status === 'earned' && (
           <span className={`${styles.overlayBadge} ${styles.overlayBadgeEarned}`}>
             <FaCheck className={styles.overlayIcon} />
           </span>
         )}
-        {status === 'lost' && (
+        {!disabled && status === 'lost' && (
           <span className={`${styles.overlayBadge} ${styles.overlayBadgeLost}`}>
             <FaXmark className={styles.overlayIcon} />
           </span>

@@ -234,7 +234,7 @@ describe('PracticeRoomReadService', () => {
       });
     });
 
-    it('scopes viewAnswers latest-attempt reads to the specific session being reviewed', async () => {
+    it('loads historical lesson attempts for viewAnswers so correct answers remain visible', async () => {
       const drafts = [buildQuestionUnitDraft()];
       prisma.questionAttempt.findMany.mockResolvedValue([] as never);
 
@@ -250,7 +250,7 @@ describe('PracticeRoomReadService', () => {
         where: {
           moduleUnitId: TEST_MODULE_UNIT_ID,
           studentId: TEST_STUDENT_ID,
-          sessionId: '11111111-1111-4111-8111-111111111333',
+          session: { sessionType: PracticeSessionTypeValues.practiceRoom },
           questionId: { in: [TEST_QUESTION_UNIT_ID] },
           contentId: { in: [TEST_QUESTION_CONTENT_ID] },
         },

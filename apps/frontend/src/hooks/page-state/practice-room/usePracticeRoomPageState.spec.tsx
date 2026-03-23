@@ -7,9 +7,11 @@ import type { Mock } from 'vitest';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import type {
   ModuleUnitPracticeRoomResponse,
+  PracticeSessionType,
   PracticeQuestionUnit,
   SubmitAttemptResponse,
 } from '@scholarxp/api-contracts';
+import { PracticeSessionTypeValues } from '@scholarxp/api-contracts';
 import { logError } from '../../../utils/logger';
 
 vi.mock('../../queries/usePracticeRoomQueries', () => ({
@@ -78,6 +80,7 @@ function buildQuestionUnit(input: {
 
 function buildPracticeRoomResponse(input?: {
   sessionId?: string;
+  sessionType?: PracticeSessionType;
   questions?: PracticeQuestionUnit[];
   isReadOnly?: boolean;
   currentStreak?: number;
@@ -86,6 +89,7 @@ function buildPracticeRoomResponse(input?: {
   return {
     practiceRoom: {
       sessionId: input?.sessionId ?? DEFAULT_SESSION_ID,
+      sessionType: input?.sessionType,
       moduleUnitId: 3,
       moduleUnitTitle: 'Unit',
       isReadOnly: input?.isReadOnly,
@@ -325,6 +329,31 @@ describe('usePracticeRoomPageState (composition)', () => {
     state = rendered.getState();
     expect(state.selectedOptionIndex).toBeNull();
     expect(state.isActiveHintUnlocked).toBe(false);
+    expect(state.canSubmitAttempt).toBe(false);
+  });
+
+  it('disables reward indicators for retry sessions while keeping submissions enabled', () => {
+    useModuleUnitPracticeRoomQueryMock.mockReturnValue({
+      isPending: false,
+      error: null,
+      data: buildPracticeRoomResponse({
+        sessionType: PracticeSessionTypeValues.retry,
+        questions: [
+          buildQuestionUnit({
+            questionUnitId: 22,
+            contentId: 200,
+            correctOptionIndex: 1,
+          }),
+        ],
+      }),
+    });
+
+    const rendered = renderHookWithParams('1', '1');
+    const state = rendered.getState();
+
+    expect(state.sessionType).toBe(PracticeSessionTypeValues.retry);
+    expect(state.isRoomReadOnly).toBe(false);
+    expect(state.areRewardIndicatorsDisabled).toBe(true);
     expect(state.canSubmitAttempt).toBe(false);
   });
 

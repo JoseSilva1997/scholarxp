@@ -203,6 +203,8 @@ export function usePracticeRoomPageState({
   const isRoomReadOnly =
     moduleUnitRoom?.isReadOnly === true ||
     sessionType === PracticeSessionTypeValues.viewAnswers;
+  const areRewardIndicatorsDisabled =
+    sessionType === PracticeSessionTypeValues.retry;
 
   const {
     roomWithLocalAttempts,
@@ -390,6 +392,7 @@ export function usePracticeRoomPageState({
     isSubmittingAttempt,
     isRoomReadOnly,
     canSubmitAttempt,
+    areRewardIndicatorsDisabled,
     selectedQuestionUnitIndex,
     activeQuestionUnit,
     activeQuestion,

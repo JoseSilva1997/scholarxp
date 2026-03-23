@@ -130,13 +130,10 @@ export class PracticeRoomReadService {
       (questionUnit) => questionUnit.coreContentId,
     );
 
-    // retry and viewAnswers are both scoped to a specific session by ID.
-    // practiceRoom (and any other type) is scoped by sessionType so daily-practice
-    // attempts don't bleed into the practice-room view and vice versa.
+    // Retry replays the active retry session only, while viewAnswers should reveal
+    // the completed lesson's historical practice answers instead of the empty review session.
     const isSessionIdScoped =
-      (sessionType === PracticeSessionTypeValues.retry ||
-        sessionType === PracticeSessionTypeValues.viewAnswers) &&
-      sessionId;
+      sessionType === PracticeSessionTypeValues.retry && sessionId;
 
     const latestAttempts =
       questionUnitIds.length === 0 || contentIds.length === 0
@@ -147,9 +144,15 @@ export class PracticeRoomReadService {
               studentId,
               ...(isSessionIdScoped
                 ? { sessionId }
-                : sessionType
-                  ? { session: { sessionType } }
-                  : {}),
+                : sessionType === PracticeSessionTypeValues.viewAnswers
+                  ? {
+                      session: {
+                        sessionType: PracticeSessionTypeValues.practiceRoom,
+                      },
+                    }
+                  : sessionType
+                    ? { session: { sessionType } }
+                    : {}),
               questionId: { in: questionUnitIds },
               contentId: { in: contentIds },
             },

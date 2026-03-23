@@ -44,6 +44,8 @@ type StreakIndicatorProps = {
   // mode with pips and bonus animation; 'daily-practice' is display-only with no
   // thresholds or bonus notifications. Defaults to 'practice-room'.
   variant?: 'practice-room' | 'daily-practice';
+  // Retry mode keeps practice interactive but disables reward affordances entirely.
+  disabled?: boolean;
 };
 
 // Determines which visual tier to render based on the same percentage thresholds
@@ -148,21 +150,33 @@ export default function StreakIndicator({
   isStreakInitialized = true,
   claimedTiers = [],
   variant = 'practice-room',
+  disabled = false,
 }: StreakIndicatorProps) {
   const isDailyPractice = variant === 'daily-practice';
 
-  const tier = isDailyPractice
+  const tier = disabled
+    ? 0
+    : isDailyPractice
     ? resolveStreakTierForDailyPractice(currentStreak)
     : resolveStreakTier(currentStreak, totalQuestions);
 
   // Daily practice always shows the badge; practice-room gates it on 4+ questions
   // because the XP streak mechanic is suppressed on smaller units.
-  const showBadge = isDailyPractice || totalQuestions >= 4;
+  const showBadge = !disabled && (isDailyPractice || totalQuestions >= 4);
 
   // Pip state is only relevant in practice-room mode where XP bonuses fire.
-  const tierOneThreshold = !isDailyPractice && totalQuestions >= 4 ? Math.max(3, Math.ceil(totalQuestions * 0.3)) : Infinity;
-  const tierTwoThreshold = !isDailyPractice && totalQuestions >= 4 ? Math.max(3, Math.ceil(totalQuestions * 0.5)) : Infinity;
-  const tierThreeThreshold = !isDailyPractice && totalQuestions >= 4 ? totalQuestions : Infinity;
+  const tierOneThreshold =
+    !disabled && !isDailyPractice && totalQuestions >= 4
+      ? Math.max(3, Math.ceil(totalQuestions * 0.3))
+      : Infinity;
+  const tierTwoThreshold =
+    !disabled && !isDailyPractice && totalQuestions >= 4
+      ? Math.max(3, Math.ceil(totalQuestions * 0.5))
+      : Infinity;
+  const tierThreeThreshold =
+    !disabled && !isDailyPractice && totalQuestions >= 4
+      ? totalQuestions
+      : Infinity;
   // Pass lifetime-claimed status so entering the room pre-populates claimed pips
   // from the backend's streakRewardState, not just this session's highestStreak.
   const pip1State = showBadge && !isDailyPractice ? resolvePipState(currentStreak, highestStreak, tierOneThreshold, claimedTiers.includes(1)) : 'inactive';
@@ -181,7 +195,7 @@ export default function StreakIndicator({
   // Detect when highestStreak crossed a bonus tier threshold during active play.
   // Skipped entirely in daily-practice mode since no XP bonuses are awarded there.
   useEffect(() => {
-    if (isDailyPractice) {
+    if (disabled || isDailyPractice) {
       prevHighestStreakRef.current = highestStreak;
       return;
     }
@@ -230,13 +244,21 @@ export default function StreakIndicator({
         }
       };
     }
-  }, [highestStreak, totalQuestions, isStreakInitialized, isDailyPractice])
+  }, [disabled, highestStreak, totalQuestions, isStreakInitialized, isDailyPractice])
 
   return (
     <div
       className={`${styles.container} ${TIER_CLASS[tier]}`}
-      aria-label={`${TIER_LABEL[tier]}${showBadge ? ` — ${currentStreak} in a row` : ''}`}
-      title={`${TIER_LABEL[tier]}${showBadge ? ` (${currentStreak})` : ''}`}
+      aria-label={
+        disabled
+          ? 'Streak rewards disabled during retry review'
+          : `${TIER_LABEL[tier]}${showBadge ? ` — ${currentStreak} in a row` : ''}`
+      }
+      title={
+        disabled
+          ? 'Streak rewards disabled during retry review'
+          : `${TIER_LABEL[tier]}${showBadge ? ` (${currentStreak})` : ''}`
+      }
     >
       {/* Floating "Bonus!" text that appears when a pip earns a bonus for the first time.
           Not rendered in daily-practice mode since no XP streak bonuses fire there. */}
