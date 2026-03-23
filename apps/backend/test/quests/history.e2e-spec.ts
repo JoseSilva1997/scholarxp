@@ -129,6 +129,70 @@ describe('Quest history reward breakdown (e2e)', () => {
     expect(responseBody.nextDayOffset).toBeNull();
   });
 
+  it('falls back to the stored base reward when a completed master quest has no ledger row', async () => {
+    const today = new Date('2026-03-23T00:00:00.000Z');
+    const student = await seedStudent(prisma, 'fallback');
+    const module = await seedModule(prisma, student.id, 'fallback');
+    setAuthenticatedUserId(student.id);
+
+    await prisma.dailyQuest.create({
+      data: buildDailyQuest({
+        userId: student.id,
+        moduleId: module.id,
+        type: QuestTypeValues.completeDailyPractice,
+        questDateUtc: today,
+        isCompleted: true,
+        completedAt: new Date('2026-03-23T00:01:00.000Z'),
+      }),
+    });
+    await prisma.dailyQuest.create({
+      data: {
+        userId: student.id,
+        moduleId: null,
+        moduleUnitId: null,
+        type: QuestTypeValues.masterDailyQuests,
+        expGranted: 300,
+        isCompleted: true,
+        questDateUtc: today,
+        generatedAt: new Date('2026-03-23T00:00:37.050Z'),
+        completedAt: new Date('2026-03-23T15:25:13.651Z'),
+      },
+    });
+
+    const response = await request(app.getHttpServer())
+      .get('/daily-quest/history')
+      .query({ dayLimit: 1, dayOffset: 0 })
+      .expect(200);
+
+    const responseBody = response.body as {
+      quests: Array<{
+        type: string;
+        expGranted: number;
+        isCompleted: boolean;
+        rewardBreakdown?: {
+          baseExp: number;
+          streakBonusExp: number;
+          totalExp: number;
+        } | null;
+      }>;
+    };
+    const returnedMasterQuest = responseBody.quests.find(
+      (quest) => quest.type === QuestTypeValues.masterDailyQuests,
+    );
+
+    expect(returnedMasterQuest).toEqual(
+      expect.objectContaining({
+        expGranted: 300,
+        isCompleted: true,
+        rewardBreakdown: {
+          baseExp: 300,
+          streakBonusExp: 0,
+          totalExp: 300,
+        },
+      }),
+    );
+  });
+
   it('projects the master quest streak bonus when the current quest is still incomplete', async () => {
     const today = new Date('2026-03-23T00:00:00.000Z');
     const yesterday = new Date('2026-03-22T00:00:00.000Z');

@@ -5,7 +5,10 @@ import {
   QuestTypeValues,
   type QuestHistoryResponse,
 } from '@scholarxp/api-contracts';
-import { ExpLedgerEventTypes } from '@scholarxp/constants';
+import {
+  ExpLedgerEventTypes,
+  MASTER_QUEST_STREAK_MAX,
+} from '@scholarxp/constants';
 import { PrismaService } from '../../prisma/prisma.service';
 import { createPrismaMock, type PrismaMock } from '../../test/test-helpers';
 import { DailyQuestService } from './daily-quest.service';
@@ -289,6 +292,50 @@ describe('DailyQuestService quest target validation', () => {
     });
   });
 
+  it('falls back to the stored base reward when a completed master quest has no ledger award row', async () => {
+    prisma.dailyQuest.groupBy.mockResolvedValue([
+      {
+        questDateUtc: new Date('2026-02-19T00:00:00.000Z'),
+      },
+    ]);
+    prisma.dailyQuest.findMany
+      .mockResolvedValueOnce([
+        {
+          id: 210,
+          moduleId: null,
+          moduleUnitId: null,
+          userId: 22,
+          type: QuestTypeValues.masterDailyQuests,
+          expGranted: 300,
+          isCompleted: true,
+          questDateUtc: new Date('2026-02-19T00:00:00.000Z'),
+          generatedAt: new Date('2026-02-19T00:00:00.000Z'),
+          completedAt: new Date('2026-02-19T08:05:00.000Z'),
+          module: null,
+          moduleUnit: null,
+        },
+      ] as never)
+      .mockResolvedValueOnce([
+        {
+          questDateUtc: new Date('2026-02-19T00:00:00.000Z'),
+        },
+      ] as never);
+    prisma.expLedger.findMany.mockResolvedValue([]);
+
+    const response = await service.listHistoryForUser(22, {});
+
+    expect(response.quests[0]).toMatchObject({
+      id: 210,
+      type: QuestTypeValues.masterDailyQuests,
+      expGranted: 300,
+      rewardBreakdown: {
+        baseExp: 300,
+        streakBonusExp: 0,
+        totalExp: 300,
+      },
+    });
+  });
+
   it('projects the master quest streak bonus when the quest is still incomplete', async () => {
     prisma.dailyQuest.groupBy.mockResolvedValue([
       {
@@ -361,6 +408,128 @@ describe('DailyQuestService quest target validation', () => {
         baseExp: 300,
         streakBonusExp: 50,
         totalExp: 350,
+      },
+    });
+  });
+
+  it('resets the projected master quest streak bonus after a missed UTC day', async () => {
+    prisma.dailyQuest.groupBy.mockResolvedValue([
+      {
+        questDateUtc: new Date('2026-02-19T00:00:00.000Z'),
+      },
+    ]);
+    prisma.dailyQuest.findMany
+      .mockResolvedValueOnce([
+        {
+          id: 310,
+          moduleId: 11,
+          moduleUnitId: null,
+          userId: 22,
+          type: QuestTypeValues.completeDailyPractice,
+          expGranted: 50,
+          isCompleted: true,
+          questDateUtc: new Date('2026-02-19T00:00:00.000Z'),
+          generatedAt: new Date('2026-02-19T00:00:00.000Z'),
+          completedAt: new Date('2026-02-19T08:00:00.000Z'),
+          module: {
+            title: 'Biology',
+          },
+          moduleUnit: null,
+        },
+        {
+          id: 311,
+          moduleId: null,
+          moduleUnitId: null,
+          userId: 22,
+          type: QuestTypeValues.masterDailyQuests,
+          expGranted: 300,
+          isCompleted: false,
+          questDateUtc: new Date('2026-02-19T00:00:00.000Z'),
+          generatedAt: new Date('2026-02-19T00:00:00.000Z'),
+          completedAt: null,
+          module: null,
+          moduleUnit: null,
+        },
+      ] as never)
+      .mockResolvedValueOnce([
+        {
+          questDateUtc: new Date('2026-02-17T00:00:00.000Z'),
+        },
+        {
+          questDateUtc: new Date('2026-02-16T00:00:00.000Z'),
+        },
+      ] as never);
+
+    const response = await service.listHistoryForUser(22, {});
+
+    expect(prisma.expLedger.findMany).not.toHaveBeenCalled();
+    expect(response.quests[1]).toMatchObject({
+      id: 311,
+      expGranted: 300,
+      rewardBreakdown: {
+        baseExp: 300,
+        streakBonusExp: 0,
+        totalExp: 300,
+      },
+    });
+  });
+
+  it('caps the projected master quest streak bonus at the maximum streak limit', async () => {
+    prisma.dailyQuest.groupBy.mockResolvedValue([
+      {
+        questDateUtc: new Date('2026-02-19T00:00:00.000Z'),
+      },
+    ]);
+    prisma.dailyQuest.findMany
+      .mockResolvedValueOnce([
+        {
+          id: 320,
+          moduleId: 11,
+          moduleUnitId: null,
+          userId: 22,
+          type: QuestTypeValues.completeDailyPractice,
+          expGranted: 50,
+          isCompleted: true,
+          questDateUtc: new Date('2026-02-19T00:00:00.000Z'),
+          generatedAt: new Date('2026-02-19T00:00:00.000Z'),
+          completedAt: new Date('2026-02-19T08:00:00.000Z'),
+          module: {
+            title: 'Biology',
+          },
+          moduleUnit: null,
+        },
+        {
+          id: 321,
+          moduleId: null,
+          moduleUnitId: null,
+          userId: 22,
+          type: QuestTypeValues.masterDailyQuests,
+          expGranted: 250,
+          isCompleted: false,
+          questDateUtc: new Date('2026-02-19T00:00:00.000Z'),
+          generatedAt: new Date('2026-02-19T00:00:00.000Z'),
+          completedAt: null,
+          module: null,
+          moduleUnit: null,
+        },
+      ] as never)
+      .mockResolvedValueOnce(
+        Array.from({ length: MASTER_QUEST_STREAK_MAX + 2 }, (_, index) => ({
+          questDateUtc: new Date(
+            Date.UTC(2026, 1, 18 - index, 0, 0, 0, 0),
+          ),
+        })) as never,
+      );
+
+    const response = await service.listHistoryForUser(22, {});
+
+    expect(response.quests[1]).toMatchObject({
+      id: 321,
+      expGranted: 375,
+      rewardBreakdown: {
+        baseExp: 250,
+        streakBonusExp: 125,
+        totalExp: 375,
       },
     });
   });

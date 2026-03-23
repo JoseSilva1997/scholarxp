@@ -5,6 +5,7 @@ import {
   QuestTypeValues,
   type QuestType,
 } from '@scholarxp/api-contracts';
+import { ExpLedgerEventTypes } from '@scholarxp/constants';
 import { AvatarService } from '../db-entities/avatar/avatar.service';
 import { ExpLedgerService } from '../db-entities/exp-ledger/exp-ledger.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -455,13 +456,27 @@ describe('QuestProgressService', () => {
         completedAt: new Date('2026-03-13T09:10:00.000Z'),
       }),
     });
-    expect(prisma.dailyQuest.update).toHaveBeenNthCalledWith(2, {
+    const masterQuestUpdateCall = prisma.dailyQuest.update.mock.calls[1]?.[0];
+    expect(masterQuestUpdateCall).toEqual({
       where: { id: 13 },
       data: expect.objectContaining({
         isCompleted: true,
         completedAt: new Date('2026-03-13T09:10:00.000Z'),
       }),
     });
+    // The quest row now keeps only the generated base reward so the ledger remains the source of truth for boosted awards.
+    expect(masterQuestUpdateCall?.data).not.toHaveProperty('expGranted');
+    expect(expLedgerService.recordEvent).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        userId: 42,
+        questId: 13,
+        eventType: ExpLedgerEventTypes.COMPLETE_QUEST,
+        awardedExp: 350,
+        idempotencyKey: 'quest_completion:quest:13',
+      }),
+      prisma,
+    );
     expect(avatarService.addStudentExp).toHaveBeenNthCalledWith(
       1,
       42,

@@ -255,11 +255,35 @@ const masterQuest: QuestView = {
       />
     );
 
-    expect(screen.getByText('Projected')).toBeInTheDocument();
+    expect(screen.getByText(/Completing all quests today grants/)).toBeInTheDocument();
     expect(screen.getByText('+300')).toBeInTheDocument();
-    expect(
-      screen.getByText('Base +250 and streak bonus +50'),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/\+250 Base, \+50 Streak bonus/)).toBeInTheDocument();
+  });
+
+  it('prefers rewardBreakdown total exp over the master quest expGranted field', () => {
+    renderWithProviders(
+      <TodayQuestPopover
+        id="test-popover"
+        quests={mockQuests}
+        masterQuest={{
+          ...masterQuest,
+          expGranted: 250,
+          rewardBreakdown: {
+            baseExp: 250,
+            streakBonusExp: 50,
+            totalExp: 300,
+          },
+        }}
+        completed={1}
+        max={2}
+        hasDailyQuests={true}
+        isLoading={false}
+      />
+    );
+
+    expect(screen.getByText('+300')).toBeInTheDocument();
+    expect(screen.queryByText('+250')).not.toBeInTheDocument();
+    expect(screen.getByText(/\+250 Base, \+50 Streak bonus/)).toBeInTheDocument();
   });
 
   it('shows awarded copy when the master quest is complete', () => {
