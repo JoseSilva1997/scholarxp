@@ -212,6 +212,10 @@ export class PracticeRoomReadService {
         moduleUnitId,
         studentId,
         questionId: { in: questionUnitIds },
+        // Reward indicators describe lesson XP eligibility, so daily-practice history must stay out of this read.
+        session: {
+          sessionType: PracticeSessionTypeValues.practiceRoom,
+        },
       },
       orderBy: [{ attemptedAt: 'asc' }, { id: 'asc' }],
       select: {

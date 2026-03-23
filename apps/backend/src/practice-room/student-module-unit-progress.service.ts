@@ -1,6 +1,7 @@
 // Role: derives and persists student module-unit progress aggregates from validated practice attempts.
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
+import { PracticeSessionTypeValues } from '@scholarxp/api-contracts';
 import { PrismaService } from '../prisma/prisma.service';
 
 type PrismaClientLike = Prisma.TransactionClient | PrismaService;
@@ -155,6 +156,10 @@ export class StudentModuleUnitProgressService {
       where: {
         moduleUnitId,
         studentId,
+        // Daily practice and retry are separate loops; unit completion should only reflect lesson practice history.
+        session: {
+          sessionType: PracticeSessionTypeValues.practiceRoom,
+        },
         question: {
           isArchived: false,
           contents: {

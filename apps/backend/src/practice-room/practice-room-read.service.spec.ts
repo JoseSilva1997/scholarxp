@@ -347,6 +347,22 @@ describe('PracticeRoomReadService', () => {
         baseQuestionExpStatus: 'already_earned',
         firstAttemptBonusStatus: 'lost',
       });
+      expect(prisma.questionAttempt.findMany).toHaveBeenCalledWith({
+        where: {
+          moduleUnitId: TEST_MODULE_UNIT_ID,
+          studentId: TEST_STUDENT_ID,
+          questionId: { in: [TEST_QUESTION_UNIT_ID] },
+          session: {
+            sessionType: PracticeSessionTypeValues.practiceRoom,
+          },
+        },
+        orderBy: [{ attemptedAt: 'asc' }, { id: 'asc' }],
+        select: {
+          questionId: true,
+          isCorrect: true,
+          hintsUsed: true,
+        },
+      });
     });
   });
 

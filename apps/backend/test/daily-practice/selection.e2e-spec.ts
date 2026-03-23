@@ -406,14 +406,18 @@ describe('Daily practice selection rules (e2e)', () => {
         );
       });
 
-    // No set should have been persisted — a zero-plan produces no row.
-    const persistedSetCount = await prisma.dailyPracticeSet.count({
+    // A zero-plan persists an empty sentinel row so the same UTC day stays locked to "no set".
+    const persistedSet = await prisma.dailyPracticeSet.findFirst({
       where: {
         userId: base.studentId,
         moduleId: base.moduleId,
       },
+      include: {
+        items: true,
+      },
     });
-    expect(persistedSetCount).toBe(0);
+    expect(persistedSet).not.toBeNull();
+    expect(persistedSet?.items).toHaveLength(0);
   });
 
   it('backfills the reinforcement shortfall from due-review while preserving the new-sequence slot at size 4', async () => {
@@ -611,12 +615,17 @@ describe('Daily practice selection rules (e2e)', () => {
         );
       });
 
-    const persistedSetCount = await prisma.dailyPracticeSet.count({
+    // "Too few eligible questions" is also persisted as an empty sentinel for the rest of the UTC day.
+    const persistedSet = await prisma.dailyPracticeSet.findFirst({
       where: {
         userId: base.studentId,
         moduleId: base.moduleId,
       },
+      include: {
+        items: true,
+      },
     });
-    expect(persistedSetCount).toBe(0);
+    expect(persistedSet).not.toBeNull();
+    expect(persistedSet?.items).toHaveLength(0);
   });
 });

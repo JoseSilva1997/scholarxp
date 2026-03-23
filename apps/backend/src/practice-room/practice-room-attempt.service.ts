@@ -7,7 +7,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
-import type { AwardReasons, StudentAnswer } from '@scholarxp/api-contracts';
+import {
+  PracticeSessionTypeValues,
+  type AwardReasons,
+  type StudentAnswer,
+} from '@scholarxp/api-contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { SubmitAttemptDto } from './dto/submit-attempt.dto';
 
@@ -98,6 +102,10 @@ export class PracticeRoomAttemptService {
         studentId,
         questionId: questionUnitId,
         isCorrect: true,
+        // Daily practice correctness must not consume lesson-specific rewards.
+        session: {
+          sessionType: PracticeSessionTypeValues.practiceRoom,
+        },
       },
       select: { id: true },
     });
@@ -118,6 +126,10 @@ export class PracticeRoomAttemptService {
         moduleUnitId,
         studentId,
         questionId: questionUnitId,
+        // First-try bonus is defined against lesson attempts, not spaced-repetition reviews.
+        session: {
+          sessionType: PracticeSessionTypeValues.practiceRoom,
+        },
       },
       select: { id: true },
     });

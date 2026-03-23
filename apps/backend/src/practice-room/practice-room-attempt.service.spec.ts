@@ -3,6 +3,7 @@
  */
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { PracticeSessionTypeValues } from '@scholarxp/api-contracts';
 import { PracticeRoomAttemptService } from './practice-room-attempt.service';
 import {
   buildSubmitAttemptPayload,
@@ -176,6 +177,30 @@ describe('PracticeRoomAttemptService', () => {
           TEST_QUESTION_UNIT_ID,
         ),
       ).resolves.toBe(false);
+
+      expect(prisma.questionAttempt.findFirst).toHaveBeenNthCalledWith(1, {
+        where: {
+          moduleUnitId: TEST_MODULE_UNIT_ID,
+          studentId: TEST_STUDENT_ID,
+          questionId: TEST_QUESTION_UNIT_ID,
+          session: {
+            sessionType: PracticeSessionTypeValues.practiceRoom,
+          },
+        },
+        select: { id: true },
+      });
+      expect(prisma.questionAttempt.findFirst).toHaveBeenNthCalledWith(2, {
+        where: {
+          moduleUnitId: TEST_MODULE_UNIT_ID,
+          studentId: TEST_STUDENT_ID,
+          questionId: TEST_QUESTION_UNIT_ID,
+          isCorrect: true,
+          session: {
+            sessionType: PracticeSessionTypeValues.practiceRoom,
+          },
+        },
+        select: { id: true },
+      });
     });
   });
 

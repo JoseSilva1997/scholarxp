@@ -78,6 +78,8 @@ export default function PracticeRoomPage() {
     : [];
   const activeQuestionRewardIndicators = rewardIndicators.activeQuestion;
 
+  const DEBUG_MODE = true;
+
   // Resolve base XP status into a two-value signal for the header indicator.
   // The server snapshot is sufficient here: base XP can only move from
   // 'available' → 'already_earned' and never resets, so no live override needed.
@@ -223,7 +225,13 @@ export default function PracticeRoomPage() {
               </div>
             )}
           </div>
-
+          {DEBUG_MODE ?
+              <div style={{ fontSize: '0.75rem', color: '#999', marginTop: '0.5rem' }}>
+                Debug: moduleUnitId =
+                {activeQuestionUnit?.coreQuestion.questionId}, questionContentId ={' '}
+                {activeQuestionUnit?.coreQuestion.questionContent.id}
+              </div>
+            : null}
           {room && (
             <div className={styles.headerBottom}>
               <div className={styles.progressCounter}>
