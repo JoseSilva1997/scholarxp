@@ -21,8 +21,12 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "NODE_ENV=test E2E_TEST_RUN=true jest --config ./test/jest-e2e.json",
+    "test:e2e:reset": "pnpm run reset:test && pnpm run test:e2e",
     "migrate:dev": "pnpm prisma migrate dev",
-    "migrate:development": "pnpm dotenv -e .env.development -- pnpm prisma migrate dev"
+    "migrate:development": "pnpm dotenv -e .env.development -- pnpm prisma migrate dev",
+    "migrate:test": "pnpm exec dotenv -e .env.test -- pnpm prisma migrate deploy",
+    "generate:test": "pnpm exec dotenv -e .env.test -- pnpm prisma generate",
+    "reset:test": "pnpm exec dotenv -e .env.test -- pnpm prisma migrate reset --force"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.12",
@@ -54,7 +58,8 @@
     "pg": "^8.18.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
-    "swagger-ui-express": "^5.0.1"
+    "swagger-ui-express": "^5.0.1",
+    "ts-fsrs": "^5.2.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.3",

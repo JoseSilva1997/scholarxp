@@ -194,7 +194,8 @@ describe('DailyQuestService quest target validation', () => {
           isCompleted: false,
           progressCurrent: 0,
           progressTarget: 3,
-          description: 'Reach a 30% streak in the Biology daily practice set.',
+          description:
+            'Achieve a streak of 3 or more during the Biology daily practice set.',
           questDateUtc: '2026-02-19',
           generatedAt: '2026-02-19T00:00:00.000Z',
           completedAt: null,

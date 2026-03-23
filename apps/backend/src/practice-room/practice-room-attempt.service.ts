@@ -125,6 +125,28 @@ export class PracticeRoomAttemptService {
     return Boolean(existingAttempt);
   }
 
+  // Adaptive review state should update once per session encounter, so lesson and retry flows need a session-scoped attempt lookup in addition to the historical lookup used by XP.
+  async hasAnySessionAttempt(
+    moduleUnitId: number,
+    studentId: number,
+    questionUnitId: number,
+    sessionId: string,
+    tx?: PrismaClientLike,
+  ): Promise<boolean> {
+    const prismaClient = tx ?? this.prisma;
+    const existingAttempt = await prismaClient.questionAttempt.findFirst({
+      where: {
+        moduleUnitId,
+        studentId,
+        questionId: questionUnitId,
+        sessionId,
+      },
+      select: { id: true },
+    });
+
+    return Boolean(existingAttempt);
+  }
+
   // Attempt persistence is isolated so the submit workflow can stay focused on transaction sequencing.
   createAttemptRecord(
     moduleUnitId: number,

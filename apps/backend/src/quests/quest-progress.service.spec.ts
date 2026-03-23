@@ -1,6 +1,10 @@
-// Role: verifies quest completion events stay aligned with the product triggers for daily revision, new-unit completion, and retry review.
+// Role: verifies quest completion events stay aligned with the product triggers for daily practice, new-unit completion, and retry review.
 import { Test, TestingModule } from '@nestjs/testing';
-import { QuestTypeValues } from '@scholarxp/api-contracts';
+import {
+  PracticeSessionTypeValues,
+  QuestTypeValues,
+  type QuestType,
+} from '@scholarxp/api-contracts';
 import { AvatarService } from '../db-entities/avatar/avatar.service';
 import { ExpLedgerService } from '../db-entities/exp-ledger/exp-ledger.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -513,4 +517,314 @@ describe('QuestProgressService', () => {
     expect(expLedgerService.recordEvent).not.toHaveBeenCalled();
     expect(avatarService.addStudentExp).not.toHaveBeenCalled();
   });
+
+  it('completes the daily-practice completion quest when today set is fully answered', async () => {
+    const progressedAt = new Date('2026-03-20T09:15:00.000Z');
+    prisma.dailyQuest.findMany
+      .mockResolvedValueOnce([
+        buildQuest({
+          id: 31,
+          moduleId: 7,
+          type: QuestTypeValues.completeDailyPractice,
+          isCompleted: false,
+        }),
+        buildQuest({
+          id: 32,
+          moduleId: 7,
+          type: QuestTypeValues.dailyPracticeStreak,
+          isCompleted: false,
+        }),
+        buildQuest({
+          id: 33,
+          moduleId: null,
+          type: QuestTypeValues.masterDailyQuests,
+          isCompleted: false,
+        }),
+      ] as never)
+      .mockResolvedValueOnce([
+        buildQuest({
+          id: 31,
+          moduleId: 7,
+          type: QuestTypeValues.completeDailyPractice,
+          isCompleted: true,
+        }),
+        buildQuest({
+          id: 32,
+          moduleId: 7,
+          type: QuestTypeValues.dailyPracticeStreak,
+          isCompleted: false,
+        }),
+        buildQuest({
+          id: 33,
+          moduleId: null,
+          type: QuestTypeValues.masterDailyQuests,
+          isCompleted: false,
+        }),
+      ] as never);
+    prisma.dailyPracticeSet.findUnique.mockResolvedValue({
+      completedAt: progressedAt,
+      items: [{ questionUnitId: 101 }, { questionUnitId: 102 }],
+    } as never);
+    prisma.questionAttempt.findMany.mockResolvedValue([
+      {
+        questionId: 101,
+        isCorrect: true,
+        hintsUsed: 1,
+      },
+      {
+        questionId: 102,
+        isCorrect: true,
+        hintsUsed: 0,
+      },
+    ] as never);
+
+    await service.recordDailyPracticeSetProgress(
+      {
+        userId: 42,
+        moduleId: 7,
+        progressedAt,
+      },
+      prisma,
+    );
+
+    expect(prisma.dailyPracticeSet.findUnique).toHaveBeenCalledWith({
+      where: {
+        userId_moduleId_practiceDateUtc: {
+          userId: 42,
+          moduleId: 7,
+          practiceDateUtc: new Date('2026-03-20T00:00:00.000Z'),
+        },
+      },
+      select: {
+        completedAt: true,
+        items: {
+          select: {
+            questionUnitId: true,
+          },
+        },
+      },
+    });
+    expect(prisma.questionAttempt.findMany).toHaveBeenCalledWith({
+      where: {
+        studentId: 42,
+        questionId: {
+          in: [101, 102],
+        },
+        attemptedAt: {
+          gte: new Date('2026-03-20T00:00:00.000Z'),
+          lt: new Date('2026-03-21T00:00:00.000Z'),
+        },
+        session: {
+          moduleId: 7,
+          userId: 42,
+          sessionType: PracticeSessionTypeValues.dailyPractice,
+        },
+      },
+      orderBy: [{ attemptedAt: 'asc' }, { id: 'asc' }],
+      select: {
+        questionId: true,
+        isCorrect: true,
+        hintsUsed: true,
+      },
+    });
+    expect(prisma.dailyQuest.update).toHaveBeenCalledTimes(1);
+    expect(prisma.dailyQuest.update).toHaveBeenCalledWith({
+      where: { id: 31 },
+      data: expect.objectContaining({
+        isCompleted: true,
+        completedAt: progressedAt,
+      }),
+    });
+    expect(expLedgerService.recordEvent).toHaveBeenCalledTimes(1);
+    expect(avatarService.addStudentExp).toHaveBeenCalledWith(42, 50, prisma);
+  });
+
+  it('completes the daily-practice streak quest from first attempts across the persisted set timeline', async () => {
+    const progressedAt = new Date('2026-03-20T09:30:00.000Z');
+    prisma.dailyQuest.findMany
+      .mockResolvedValueOnce([
+        buildQuest({
+          id: 41,
+          moduleId: 7,
+          type: QuestTypeValues.completeDailyPractice,
+          isCompleted: true,
+        }),
+        buildQuest({
+          id: 42,
+          moduleId: 7,
+          type: QuestTypeValues.dailyPracticeStreak,
+          isCompleted: false,
+        }),
+        buildQuest({
+          id: 43,
+          moduleId: 7,
+          type: QuestTypeValues.completeNewUnit,
+          isCompleted: true,
+        }),
+        buildQuest({
+          id: 44,
+          moduleId: null,
+          type: QuestTypeValues.masterDailyQuests,
+          isCompleted: false,
+        }),
+      ] as never)
+      .mockResolvedValueOnce([
+        buildQuest({
+          id: 41,
+          moduleId: 7,
+          type: QuestTypeValues.completeDailyPractice,
+          isCompleted: true,
+        }),
+        buildQuest({
+          id: 42,
+          moduleId: 7,
+          type: QuestTypeValues.dailyPracticeStreak,
+          isCompleted: true,
+        }),
+        buildQuest({
+          id: 43,
+          moduleId: 7,
+          type: QuestTypeValues.completeNewUnit,
+          isCompleted: true,
+        }),
+        buildQuest({
+          id: 44,
+          moduleId: null,
+          type: QuestTypeValues.masterDailyQuests,
+          isCompleted: false,
+        }),
+      ] as never)
+      .mockResolvedValueOnce([
+        buildQuest({
+          id: 41,
+          moduleId: 7,
+          type: QuestTypeValues.completeDailyPractice,
+          isCompleted: true,
+        }),
+        buildQuest({
+          id: 42,
+          moduleId: 7,
+          type: QuestTypeValues.dailyPracticeStreak,
+          isCompleted: true,
+        }),
+        buildQuest({
+          id: 43,
+          moduleId: 7,
+          type: QuestTypeValues.completeNewUnit,
+          isCompleted: true,
+        }),
+        buildQuest({
+          id: 44,
+          moduleId: null,
+          type: QuestTypeValues.masterDailyQuests,
+          isCompleted: false,
+        }),
+      ] as never);
+    prisma.dailyPracticeSet.findUnique.mockResolvedValue({
+      completedAt: null,
+      items: [
+        { questionUnitId: 101 },
+        { questionUnitId: 102 },
+        { questionUnitId: 103 },
+        { questionUnitId: 104 },
+      ],
+    } as never);
+    prisma.questionAttempt.findMany.mockResolvedValue([
+      {
+        questionId: 101,
+        isCorrect: false,
+        hintsUsed: 0,
+      },
+      {
+        questionId: 101,
+        isCorrect: true,
+        hintsUsed: 0,
+      },
+      {
+        questionId: 102,
+        isCorrect: true,
+        hintsUsed: 0,
+      },
+      {
+        questionId: 103,
+        isCorrect: true,
+        hintsUsed: 1,
+      },
+      {
+        questionId: 104,
+        isCorrect: true,
+        hintsUsed: 0,
+      },
+      {
+        questionId: 105,
+        isCorrect: true,
+        hintsUsed: 0,
+      },
+      {
+        questionId: 106,
+        isCorrect: true,
+        hintsUsed: 0,
+      },
+    ] as never);
+
+    await service.recordDailyPracticeSetProgress(
+      {
+        userId: 42,
+        moduleId: 7,
+        progressedAt,
+      },
+      prisma,
+    );
+
+    expect(prisma.dailyQuest.update).toHaveBeenCalledTimes(2);
+    expect(prisma.dailyQuest.update).toHaveBeenNthCalledWith(1, {
+      where: { id: 42 },
+      data: expect.objectContaining({
+        isCompleted: true,
+        completedAt: progressedAt,
+      }),
+    });
+    expect(prisma.dailyQuest.update).toHaveBeenNthCalledWith(2, {
+      where: { id: 44 },
+      data: expect.objectContaining({
+        isCompleted: true,
+        completedAt: progressedAt,
+        expGranted: 250,
+      }),
+    });
+    expect(expLedgerService.recordEvent).toHaveBeenCalledTimes(2);
+    expect(avatarService.addStudentExp).toHaveBeenNthCalledWith(
+      1,
+      42,
+      50,
+      prisma,
+    );
+    expect(avatarService.addStudentExp).toHaveBeenNthCalledWith(
+      2,
+      42,
+      250,
+      prisma,
+    );
+    expect(
+      questStreakService.getRewardForNextMasterQuestCompletion,
+    ).toHaveBeenCalledWith(42, progressedAt, prisma);
+  });
 });
+
+function buildQuest(params: {
+  id: number;
+  moduleId: number | null;
+  type: QuestType;
+  isCompleted: boolean;
+}) {
+  return {
+    id: params.id,
+    userId: 42,
+    moduleId: params.moduleId,
+    moduleUnitId: null,
+    type: params.type,
+    expGranted: params.type === QuestTypeValues.masterDailyQuests ? 250 : 50,
+    isCompleted: params.isCompleted,
+    questDateUtc: new Date('2026-03-20T00:00:00.000Z'),
+  };
+}

@@ -1,5 +1,6 @@
 export * from './questions';
 export * from './auth';
+export * from './daily_practice';
 export * from './modules';
 export * from './invites';
 export * from './practice_room';

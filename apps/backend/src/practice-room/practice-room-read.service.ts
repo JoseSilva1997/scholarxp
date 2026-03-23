@@ -17,7 +17,7 @@ import {
 } from '@scholarxp/constants';
 import { PrismaService } from '../prisma/prisma.service';
 import { PracticeRoomMapper } from './practice-room.mapper';
-import { PracticeRoomSessionService } from './practice-room-session.service';
+import { PracticeRoomSessionService } from './practice-session.service';
 import type {
   LatestAttemptSnapshot,
   LoadedModuleUnit,
@@ -130,6 +130,14 @@ export class PracticeRoomReadService {
       (questionUnit) => questionUnit.coreContentId,
     );
 
+    // retry and viewAnswers are both scoped to a specific session by ID.
+    // practiceRoom (and any other type) is scoped by sessionType so daily-practice
+    // attempts don't bleed into the practice-room view and vice versa.
+    const isSessionIdScoped =
+      (sessionType === PracticeSessionTypeValues.retry ||
+        sessionType === PracticeSessionTypeValues.viewAnswers) &&
+      sessionId;
+
     const latestAttempts =
       questionUnitIds.length === 0 || contentIds.length === 0
         ? []
@@ -137,8 +145,10 @@ export class PracticeRoomReadService {
             where: {
               moduleUnitId,
               studentId,
-              ...(sessionType === PracticeSessionTypeValues.retry && sessionId
+              ...(isSessionIdScoped
                 ? { sessionId }
+                : sessionType
+                ? { session: { sessionType } }
                 : {}),
               questionId: { in: questionUnitIds },
               contentId: { in: contentIds },

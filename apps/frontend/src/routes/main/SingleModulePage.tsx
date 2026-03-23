@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { IconContext } from 'react-icons';
 import { IoSettingsSharp } from 'react-icons/io5';
+import { BsInfoCircle, BsLightningChargeFill } from 'react-icons/bs';
 import toggleStudentViewIcon from '../../assets/toggle-student-view.svg';
 import toggleStudentViewDarkIcon from '../../assets/toggle-student-view-dark.svg';
 import untoggleStudentViewIcon from '../../assets/untoggle-student-view.svg';
@@ -41,7 +42,11 @@ export default function SingleModulePage() {
     expPercent,
     expMax,
     isCreatingUnit,
-    handleDailyRevisionClick,
+    dailyPracticeButtonLabel,
+    dailyPracticeStatusText,
+    dailyPracticeTooltip,
+    isDailyPracticeButtonDisabled,
+    handleDailyPracticeClick,
     handleOpenStudentPracticeRoom,
     handleRetryStudentPracticeRoom,
     handleCreateUnit,
@@ -160,16 +165,36 @@ export default function SingleModulePage() {
                   </div>
 
                   <div className={styles.progressActions}>
-                    <button
-                      type="button"
-                      className={styles.dailyRevisionButton}
-                      onClick={() => {
-                        void handleDailyRevisionClick();
-                      }}
-                    >
-                      <span className={styles.dailyRevisionIcon}>⚡</span>
-                      <span>Daily Revision</span>
-                    </button>
+                    <div className={styles.dailyPracticeButtonWrapper}>
+                      <button
+                        type="button"
+                        className={styles.dailyRevisionButton}
+                        disabled={isDailyPracticeButtonDisabled}
+                        onClick={() => {
+                          void handleDailyPracticeClick();
+                        }}
+                      >
+                        <BsLightningChargeFill className={styles.dailyRevisionIcon} aria-hidden="true" />
+                        <span>{dailyPracticeButtonLabel}</span>
+                      </button>
+                      {dailyPracticeTooltip ? (
+                        <div className={styles.dailyPracticeInfoWrapper}>
+                          <button
+                            type="button"
+                            className={styles.dailyPracticeInfoButton}
+                            aria-label={dailyPracticeTooltip}
+                          >
+                            <BsInfoCircle aria-hidden="true" />
+                          </button>
+                          <div className={styles.dailyPracticeInfoTooltip} role="tooltip">
+                            {dailyPracticeTooltip}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                    {dailyPracticeStatusText ? (
+                      <p className={styles.dailyPracticeStatus}>{dailyPracticeStatusText}</p>
+                    ) : null}
                   </div>
                 </div>
               ) : null}

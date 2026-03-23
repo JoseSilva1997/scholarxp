@@ -9,6 +9,7 @@ export interface Awards {
   baseQuestionExp: number;
   firstAttemptBonus: number;
   streakBonus: number;
+  masteryExp: number;
   accountExp: number;
 }
 

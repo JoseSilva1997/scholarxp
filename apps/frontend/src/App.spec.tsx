@@ -51,6 +51,7 @@ vi.mock('./routes/main/AcceptInvite', () => ({ default: () => <div>accept-invite
 vi.mock('./routes/main/ModulesPage', () => ({ default: () => <div>modules-page</div> }));
 vi.mock('./routes/main/SingleModulePage', () => ({ default: () => <div>single-module-page</div> }));
 vi.mock('./routes/main/ModuleUnitEditor', () => ({ default: () => <div>module-unit-editor-page</div> }));
+vi.mock('./routes/main/DailyPracticePage', () => ({ default: () => <div>daily-practice-page</div> }));
 vi.mock('./routes/main/QuestsPage', () => ({ default: () => <div>quests-page</div> }));
 vi.mock('./routes/main/ProfilePage', () => ({ default: () => <div>profile-page</div> }));
 

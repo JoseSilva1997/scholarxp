@@ -1,19 +1,25 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
+import { DailyPracticeReviewStateModule } from '../daily-practice/daily-practice-review-state.module';
 import { ExpEngineModule } from '../exp-engine/exp-engine.module';
 import { QuestsModule } from '../quests/quests.module';
 import { PracticeRoomController } from './practice-room.controller';
 import { PracticeRoomAttemptService } from './practice-room-attempt.service';
 import { PracticeRoomMapper } from './practice-room.mapper';
 import { PracticeRoomReadService } from './practice-room-read.service';
-import { PracticeRoomSessionService } from './practice-room-session.service';
+import { PracticeRoomSessionService } from './practice-session.service';
 import { PracticeRoomSessionSweepService } from './practice-room-session-sweep.service';
 import { PracticeRoomService } from './practice-room.service';
 import { StudentModuleUnitProgressService } from './student-module-unit-progress.service';
 
 // This module isolates practice-room read orchestration and keeps route wiring explicit in one place.
 @Module({
-  imports: [AuthModule, ExpEngineModule, QuestsModule],
+  imports: [
+    AuthModule,
+    ExpEngineModule,
+    QuestsModule,
+    DailyPracticeReviewStateModule,
+  ],
   controllers: [PracticeRoomController],
   providers: [
     PracticeRoomService,
@@ -24,6 +30,11 @@ import { StudentModuleUnitProgressService } from './student-module-unit-progress
     PracticeRoomSessionService,
     StudentModuleUnitProgressService,
   ],
-  exports: [PracticeRoomService],
+  exports: [
+    PracticeRoomService,
+    PracticeRoomAttemptService,
+    PracticeRoomMapper,
+    PracticeRoomSessionService,
+  ],
 })
 export class PracticeRoomModule {}

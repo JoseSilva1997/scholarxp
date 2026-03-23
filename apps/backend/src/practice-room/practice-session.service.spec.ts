@@ -4,7 +4,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PracticeSessionTypeValues } from '@scholarxp/api-contracts';
-import { PracticeRoomSessionService } from './practice-room-session.service';
+import { PracticeRoomSessionService } from './practice-session.service';
 import {
   buildOwnedPracticeSession,
   TEST_MODULE_ID,
@@ -103,6 +103,48 @@ describe('PracticeRoomSessionService', () => {
         select: { id: true, sessionType: true, endTime: true },
       });
       expect(result.sessionType).toBe(PracticeSessionTypeValues.retry);
+    });
+  });
+
+  describe('resolveOwnedSessionByType', () => {
+    it('reuses an open matching session before creating a new one', async () => {
+      const openSession = buildOwnedPracticeSession({
+        sessionType: PracticeSessionTypeValues.dailyPractice,
+      });
+      const findOpenSessionSpy = jest
+        .spyOn(service, 'findOwnedOpenPracticeSessionByType')
+        .mockResolvedValue(openSession);
+
+      const result = await service.resolveOwnedSessionByType(
+        TEST_MODULE_ID,
+        TEST_STUDENT_ID,
+        PracticeSessionTypeValues.dailyPractice,
+      );
+
+      expect(findOpenSessionSpy).toHaveBeenCalledWith(
+        TEST_MODULE_ID,
+        TEST_STUDENT_ID,
+        PracticeSessionTypeValues.dailyPractice,
+      );
+      expect(result).toBe(openSession);
+      expect(prisma.practiceSession.create).not.toHaveBeenCalled();
+    });
+
+    it('validates a provided session id matches the requested session type', async () => {
+      jest.spyOn(service, 'getOwnedPracticeSessionOrThrow').mockResolvedValue(
+        buildOwnedPracticeSession({
+          sessionType: PracticeSessionTypeValues.practiceRoom,
+        }),
+      );
+
+      await expect(
+        service.resolveOwnedSessionByType(
+          TEST_MODULE_ID,
+          TEST_STUDENT_ID,
+          PracticeSessionTypeValues.dailyPractice,
+          TEST_SESSION_ID,
+        ),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 

@@ -90,7 +90,7 @@ function buildParams(overrides: Partial<BaseParams> = {}): BaseParams {
     activeContentIdRef: buildRef(QUESTION_ID),
     activeContentViewStartMsRef: buildRef(null),
     mutateAsync: vi.fn().mockResolvedValue({
-      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
+      awards: { masteryExp: 0, baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: true,
     } satisfies SubmitAttemptResponse),
     isPending: false,
@@ -178,7 +178,7 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — payload', () => {
 
   it('builds the correct payload with required fields', async () => {
     const mutateAsync = vi.fn().mockResolvedValue({
-      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
+      awards: { masteryExp: 0, baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: false,
     } satisfies SubmitAttemptResponse);
     const { result } = renderHook(() =>
@@ -197,7 +197,7 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — payload', () => {
 
   it('uses view-start ref for timeTakenMs when the ref tracks the active question', async () => {
     const mutateAsync = vi.fn().mockResolvedValue({
-      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
+      awards: { masteryExp: 0, baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: false,
     } satisfies SubmitAttemptResponse);
     const viewStartMs = Date.now() - 3000;
@@ -220,7 +220,7 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — payload', () => {
 
   it('falls back to timeTakenMs of 0 when the view-start ref does not match the active question', async () => {
     const mutateAsync = vi.fn().mockResolvedValue({
-      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
+      awards: { masteryExp: 0, baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: false,
     } satisfies SubmitAttemptResponse);
     const { result } = renderHook(() =>
@@ -241,7 +241,7 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — payload', () => {
 
   it('includes hintUnlocked: true when the hint was unlocked before submitting', async () => {
     const mutateAsync = vi.fn().mockResolvedValue({
-      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
+      awards: { masteryExp: 0, baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: true,
     } satisfies SubmitAttemptResponse);
     const { result } = renderHook(() =>
@@ -258,7 +258,7 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
   it('syncs caches immediately after a normal successful submit', async () => {
     const syncAttemptSuccessEffects = vi.fn().mockResolvedValue(undefined);
     const submitResponse = {
-      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
+      awards: { masteryExp: 0, baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: false,
       awardReasons: {
         baseQuestionExp: 'incorrect',
@@ -282,7 +282,7 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
     const applyExpAward = vi.fn();
     const moduleDetail = { userModuleLevel: 1, currentExp: 50, expMax: 100 };
     const mutateAsync = vi.fn().mockResolvedValue({
-      awards: { baseQuestionExp: 10, firstAttemptBonus: 15, streakBonus: 0, accountExp: 0 },
+      awards: { masteryExp: 0, baseQuestionExp: 10, firstAttemptBonus: 15, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: true,
     } satisfies SubmitAttemptResponse);
     const { result } = renderHook(() =>
@@ -298,7 +298,7 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
   it('does not call applyExpAward when awarded module XP is 0', async () => {
     const applyExpAward = vi.fn();
     const mutateAsync = vi.fn().mockResolvedValue({
-      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
+      awards: { masteryExp: 0, baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: true,
     } satisfies SubmitAttemptResponse);
     const { result } = renderHook(() =>
@@ -328,7 +328,7 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
       },
     };
     const submitResponse = {
-      awards: { baseQuestionExp: 10, firstAttemptBonus: 5, streakBonus: 0, accountExp: 25 },
+      awards: { masteryExp: 0, baseQuestionExp: 10, firstAttemptBonus: 5, streakBonus: 0, accountExp: 25 },
       hasCorrectAttempt: true,
       awardReasons: {
         baseQuestionExp: 'awarded',
@@ -371,7 +371,7 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
     const onModuleUnitCompleted = vi.fn();
     const syncAttemptSuccessEffects = vi.fn().mockResolvedValue(undefined);
     const submitResponse = {
-      awards: { baseQuestionExp: 10, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
+      awards: { masteryExp: 0, baseQuestionExp: 10, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: true,
       awardReasons: {
         baseQuestionExp: 'awarded',
@@ -418,7 +418,7 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
   it('stores latest-attempt correctness from awardReasons in the optimistic attempt callback', async () => {
     const recordSubmittedAttempt = vi.fn();
     const mutateAsync = vi.fn().mockResolvedValue({
-      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
+      awards: { masteryExp: 0, baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       // `hasCorrectAttempt` stays true once a question has ever been solved;
       // awardReasons carries this specific submission outcome.
       hasCorrectAttempt: true,
@@ -440,7 +440,7 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
   it('falls back to hasCorrectAttempt when awardReasons is missing', async () => {
     const recordSubmittedAttempt = vi.fn();
     const mutateAsync = vi.fn().mockResolvedValue({
-      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
+      awards: { masteryExp: 0, baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: true,
     } satisfies SubmitAttemptResponse);
     const { result } = renderHook(() =>
@@ -456,7 +456,7 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
   it('keeps lost first-try state on correct retries without first-attempt bonus', async () => {
     const updateLastAttemptResult = vi.fn();
     const mutateAsync = vi.fn().mockResolvedValue({
-      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
+      awards: { masteryExp: 0, baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: true,
       awardReasons: {
         baseQuestionExp: 'already_earned',
@@ -479,7 +479,7 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
   it('marks first-try as lost when backend reports hint_used', async () => {
     const updateLastAttemptResult = vi.fn();
     const mutateAsync = vi.fn().mockResolvedValue({
-      awards: { baseQuestionExp: 10, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
+      awards: { masteryExp: 0, baseQuestionExp: 10, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: true,
       awardReasons: {
         baseQuestionExp: 'awarded',
@@ -502,7 +502,7 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
   it('preserves earned first-try status on later incorrect retries', async () => {
     const updateLastAttemptResult = vi.fn();
     const mutateAsync = vi.fn().mockResolvedValue({
-      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
+      awards: { masteryExp: 0, baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: true,
       awardReasons: {
         baseQuestionExp: 'incorrect',
@@ -528,7 +528,7 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
   it('marks the active question as submitted in the session-state callback', async () => {
     const markQuestionSubmitted = vi.fn();
     const mutateAsync = vi.fn().mockResolvedValue({
-      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
+      awards: { masteryExp: 0, baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: true,
     } satisfies SubmitAttemptResponse);
     const { result } = renderHook(() =>
@@ -541,7 +541,7 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
   it('clears the active-question draft selection after a successful submission', async () => {
     const clearSelectedOptionOverride = vi.fn();
     const mutateAsync = vi.fn().mockResolvedValue({
-      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
+      awards: { masteryExp: 0, baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: true,
     } satisfies SubmitAttemptResponse);
     const { result } = renderHook(() =>
@@ -555,7 +555,7 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — success', () => {
   it('disables submissions for roughly 1s after a successful submit', async () => {
     vi.useFakeTimers();
     const mutateAsync = vi.fn().mockResolvedValue({
-      awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
+      awards: { masteryExp: 0, baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
       hasCorrectAttempt: true,
     } satisfies SubmitAttemptResponse);
     const { result } = renderHook(() => useSubmitAttempt(buildParams({ mutateAsync })));
@@ -623,7 +623,7 @@ describe('useSubmitAttempt — submitActiveQuestionAttempt — error', () => {
     const mutateAsync = vi.fn()
       .mockRejectedValueOnce(new Error('First'))
       .mockResolvedValueOnce({
-        awards: { baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
+        awards: { masteryExp: 0, baseQuestionExp: 0, firstAttemptBonus: 0, streakBonus: 0, accountExp: 0 },
         hasCorrectAttempt: true,
       } satisfies SubmitAttemptResponse);
     const { result } = renderHook(() =>

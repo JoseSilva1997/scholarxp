@@ -7,7 +7,7 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
-import { PracticeRoomSessionService } from './practice-room-session.service';
+import { PracticeRoomSessionService } from './practice-session.service';
 
 const SESSION_SWEEP_INTERVAL_MS = 5 * 60 * 1000;
 const STALE_SESSION_MINUTES = 60;

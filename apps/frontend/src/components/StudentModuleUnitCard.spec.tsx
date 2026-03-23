@@ -1,8 +1,9 @@
 // Verifies student lesson card behavior for lock state and collapsible detail display.
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import StudentModuleUnitCard from './StudentModuleUnitCard';
 import {
+  MASTERY_TOTAL_EXP,
   MAXIMUM_FIRST_ATTEMPT_BONUS_EXP,
   MODULE_UNIT_BASELINE_EXP,
   STREAK_BONUS_EXP_PER_DELTA,
@@ -26,7 +27,7 @@ const baseUnit = {
 describe('StudentModuleUnitCard', () => {
   const maximumStreakBonusExp = STREAK_BONUS_EXP_PER_DELTA * 3;
   // Base XP without streak — used when the unit has < 4 questions.
-  const baseOnlyExp = MODULE_UNIT_BASELINE_EXP + MAXIMUM_FIRST_ATTEMPT_BONUS_EXP;
+  const baseOnlyExp = MODULE_UNIT_BASELINE_EXP + MAXIMUM_FIRST_ATTEMPT_BONUS_EXP + MASTERY_TOTAL_EXP;
   // Full XP including streak — used when the unit has >= 4 questions.
   const fullExp = baseOnlyExp + maximumStreakBonusExp;
 
@@ -35,10 +36,11 @@ describe('StudentModuleUnitCard', () => {
     render(<StudentModuleUnitCard unit={baseUnit} />);
 
     expect(screen.getByText('0/2 Questions')).toBeInTheDocument();
-    expect(screen.getByText(`Up to ${baseOnlyExp} XP`)).toBeInTheDocument();
-    expect(screen.getByText(`+${MODULE_UNIT_BASELINE_EXP} base`)).toBeInTheDocument();
-    expect(screen.getByText(`+${MAXIMUM_FIRST_ATTEMPT_BONUS_EXP} first try`)).toBeInTheDocument();
-    expect(screen.queryByText(`+${maximumStreakBonusExp} streaks`)).not.toBeInTheDocument();
+    expect(screen.getByText(new RegExp(String(baseOnlyExp)))).toBeInTheDocument();
+    expect(screen.getByText(`+${MODULE_UNIT_BASELINE_EXP}`)).toBeInTheDocument();
+    expect(screen.getByText(`+${MAXIMUM_FIRST_ATTEMPT_BONUS_EXP}`)).toBeInTheDocument();
+    expect(screen.getByText(`+${MASTERY_TOTAL_EXP}`)).toBeInTheDocument();
+    expect(screen.queryByText('Streak')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Expand lesson details' }));
     expect(screen.getByRole('button', { name: 'Practice Q1' })).toBeInTheDocument();
   });
@@ -49,8 +51,8 @@ describe('StudentModuleUnitCard', () => {
       const { unmount } = render(
         <StudentModuleUnitCard unit={{ ...baseUnit, questionCount }} />,
       );
-      expect(screen.queryByText(`+${maximumStreakBonusExp} streaks`)).not.toBeInTheDocument();
-      expect(screen.getByText(`Up to ${baseOnlyExp} XP`)).toBeInTheDocument();
+      expect(screen.queryByText('Streak')).not.toBeInTheDocument();
+      expect(screen.getByText(new RegExp(String(baseOnlyExp)))).toBeInTheDocument();
       unmount();
     }
   });
@@ -59,8 +61,14 @@ describe('StudentModuleUnitCard', () => {
     // 4 is the minimum unit size that participates in the streak mechanic.
     render(<StudentModuleUnitCard unit={{ ...baseUnit, questionCount: 4 }} />);
 
-    expect(screen.getByText(`+${maximumStreakBonusExp} streaks`)).toBeInTheDocument();
-    expect(screen.getByText(`Up to ${fullExp} XP`)).toBeInTheDocument();
+    const xpSummary = screen.getByLabelText('Possible XP rewards');
+    const streakRow = within(xpSummary)
+      .getByText('Streak')
+      .closest('div');
+
+    expect(streakRow).not.toBeNull();
+    expect(within(streakRow as HTMLDivElement).getByText(`+${maximumStreakBonusExp}`)).toBeInTheDocument();
+    expect(screen.getByText(new RegExp(String(fullExp)))).toBeInTheDocument();
   });
 
   it('disables practice button for locked lessons', () => {

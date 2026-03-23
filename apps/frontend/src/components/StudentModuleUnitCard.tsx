@@ -6,6 +6,7 @@ import { FaCheck, FaMinus, FaXmark } from 'react-icons/fa6';
 import { IoMdLock } from "react-icons/io"
 import type { QuestionAttemptResult } from '@scholarxp/api-contracts';
 import {
+  MASTERY_TOTAL_EXP,
   MAXIMUM_FIRST_ATTEMPT_BONUS_EXP,
   MODULE_UNIT_BASELINE_EXP,
   STREAK_BONUS_EXP_PER_DELTA,
@@ -68,57 +69,92 @@ export default function StudentModuleUnitCard({
         <div className={styles.leftContainer} aria-hidden="true" />
         <div className={styles.content}>
           <div className={styles.header}>
-            {/* Badge placeholder: displays lock when unit is locked, badge when completed */}
-            <div className={styles.statusButton}>
-              {initialIsCompleted ? (
-                // Completion medal is shown as soon as backend progress marks the unit complete.
-                <img
-                  src={completionMedalIcon}
-                  alt="Completion medal awarded"
-                  className={`${styles.statusIconImage} ${styles.completionMedal}`}
-                />
-              ) : isLocked ? (
-                <IoMdLock className={styles.lockedPadlockIcon} aria-hidden="true" />
-              ) : null
-              }
-            </div>
-            <div className={styles.meta}>
-              <div className={styles.topRow}>
-                <span className={styles.categoryLabel}>Practice</span>
-                <span className={styles.statusTag}>
-                  {isLocked ? 'Locked' : (isFullyMastered ? 'Complete' : (initialIsCompleted ? 'Resume' : 'Available'))}
-                </span>
+            <div className={styles.titleSection}>
+              {/* Badge placeholder: displays lock when unit is locked, badge when completed */}
+              <div className={styles.statusButton}>
+                {initialIsCompleted ? (
+                  // Completion medal is shown as soon as backend progress marks the unit complete.
+                  <img
+                    src={completionMedalIcon}
+                    alt="Completion medal awarded"
+                    className={`${styles.statusIconImage} ${styles.completionMedal}`}
+                  />
+                ) : isLocked ? (
+                  <IoMdLock className={styles.lockedPadlockIcon} aria-hidden="true" />
+                ) : null
+                }
               </div>
-              <h3 className={styles.title}>{unit.title}</h3>
-              <div className={styles.bottomRow}>
-                {unit.status === 'live' ? (
-                   <span className={styles.engagementStat}>
-                     <FaCheck className={styles.statIcon} />
-                     {completedQuestionsCount}/{unit.questionCount} Questions
-                   </span>
-                ) : null}
-                {isLocked && <span className={styles.lockedText}>Unlocks soon...</span>}
+              <div className={styles.meta}>
+                <div className={styles.topRow}>
+                  <span className={styles.categoryLabel}>Practice</span>
+                  <span className={styles.statusTag}>
+                    {isLocked ? 'Locked' : (isFullyMastered ? 'Complete' : (initialIsCompleted ? 'Resume' : 'Available'))}
+                  </span>
+                </div>
+                <h3 className={styles.title}>{unit.title}</h3>
+                <div className={styles.bottomRow}>
+                  {unit.status === 'live' ? (
+                     <span className={styles.engagementStat}>
+                       <FaCheck className={styles.statIcon} />
+                       {completedQuestionsCount}/{unit.questionCount} Questions
+                     </span>
+                  ) : null}
+                  {isLocked && <span className={styles.lockedText}>Unlocks soon...</span>}
+                </div>
               </div>
             </div>
             <div className={styles.middleMeta}>
                 {!isLocked && (
-                   <div className={styles.xpSummary} aria-label="Possible XP rewards">
-                     <span className={styles.xpMainTotal}>
-                       <span className={styles.xpSymbol}>⚡</span>
-                       Up to {MODULE_UNIT_BASELINE_EXP + MAXIMUM_FIRST_ATTEMPT_BONUS_EXP + (hasStreakBonus ? maximumStreakBonusExp : 0)} XP
-                     </span>
-                     <div className={styles.xpBreakdown}>
-                       <span className={styles.xpBreakdownItem} title="Guaranteed baseline for completing all questions">
-                         +{MODULE_UNIT_BASELINE_EXP} base
+                   <div className={styles.xpSummary} aria-label={unit.expEarned ? 'Earned XP rewards' : 'Possible XP rewards'}>
+                     <div className={styles.xpMainTotal}>
+                       <span className={styles.xpTotalValue}>
+                         <span className={styles.xpSymbol}>⚡</span>
+                         {unit.expEarned
+                           ? (unit.expEarned.base + unit.expEarned.firstAttempt + unit.expEarned.streak + unit.expEarned.mastery)
+                           : (MODULE_UNIT_BASELINE_EXP + MAXIMUM_FIRST_ATTEMPT_BONUS_EXP + (hasStreakBonus ? maximumStreakBonusExp : 0) + MASTERY_TOTAL_EXP)
+                         }
                        </span>
-                       <span className={styles.xpBreakdownItem} title="Bonus for answering questions correctly on the first try">
-                         +{MAXIMUM_FIRST_ATTEMPT_BONUS_EXP} first try
+                       <span className={styles.xpTotalSubtext}>
+                         {unit.expEarned
+                           ? `of ${MODULE_UNIT_BASELINE_EXP + MAXIMUM_FIRST_ATTEMPT_BONUS_EXP + (hasStreakBonus ? maximumStreakBonusExp : 0) + MASTERY_TOTAL_EXP} XP`
+                           : 'AVAILABLE'}
                        </span>
-                       {hasStreakBonus && (
-                         <span className={styles.xpBreakdownItem} title="Bonus for reaching streak thresholds">
-                           +{maximumStreakBonusExp} streaks
+                     </div>
+                     
+                     <div className={styles.xpStatsList}>
+                       <div className={styles.xpStatRow} title="Base XP gained when a question is answered correctly.">
+                         <span className={`${styles.xpStatLabel} ${styles.xpStatLabelBase}`}>Base</span>
+                         <span className={styles.xpStatValue}>
+                           {unit.expEarned ? unit.expEarned.base : `+${MODULE_UNIT_BASELINE_EXP}`} 
+                           {unit.expEarned && <span className={styles.xpStatMax}>/{MODULE_UNIT_BASELINE_EXP}</span>}
                          </span>
+                       </div>
+
+                       <div className={styles.xpStatRow} title="Bonus XP for first-try correct answers">
+                         <span className={`${styles.xpStatLabel} ${styles.xpStatLabelFirst}`}>1st try</span>
+                         <span className={styles.xpStatValue}>
+                           {unit.expEarned ? unit.expEarned.firstAttempt : `+${MAXIMUM_FIRST_ATTEMPT_BONUS_EXP}`} 
+                           {unit.expEarned && <span className={styles.xpStatMax}>/{MAXIMUM_FIRST_ATTEMPT_BONUS_EXP}</span>}
+                         </span>
+                       </div>
+
+                       {hasStreakBonus && (
+                         <div className={styles.xpStatRow} title="Bonus XP for maintaining a streak">
+                           <span className={`${styles.xpStatLabel} ${styles.xpStatLabelStreak}`}>Streak</span>
+                           <span className={styles.xpStatValue}>
+                             {unit.expEarned ? unit.expEarned.streak : `+${maximumStreakBonusExp}`}
+                             {unit.expEarned && <span className={styles.xpStatMax}>/{maximumStreakBonusExp}</span>}
+                           </span>
+                         </div>
                        )}
+
+                       <div className={styles.xpStatRow} title="XP earned through daily practice mastery">
+                         <span className={`${styles.xpStatLabel} ${styles.xpStatLabelMastery}`}>Mastery</span>
+                         <span className={styles.xpStatValue}>
+                           {unit.expEarned ? unit.expEarned.mastery : `+${MASTERY_TOTAL_EXP}`}
+                           {unit.expEarned && <span className={styles.xpStatMax}>/{MASTERY_TOTAL_EXP}</span>}
+                         </span>
+                       </div>
                      </div>
                    </div>
                 )}
