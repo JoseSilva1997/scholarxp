@@ -38,7 +38,7 @@ function getDailyPracticeQuestionStatusClass(
   return isCurrent ? `${styles.navBarCurrent} ${statusClass}` : statusClass;
 }
 
-const DEBUG_MODE = false;
+const DEBUG_MODE = true;
 
 export default function DailyPracticePage() {
   const { moduleId } = useParams<{ moduleId: string }>();
@@ -214,7 +214,7 @@ export default function DailyPracticePage() {
               <div style={{ fontSize: '0.75rem', color: '#999', marginTop: '0.5rem' }}>
                 Debug: moduleUnitId = {activeQuestionItem.moduleUnitId}, questionId ={' '}
                 {activeQuestionItem.coreQuestion.questionId}, questionContentId ={' '}
-                {activeQuestion.question.id}
+                {activeQuestion.question.id}, module unit title = {activeQuestionItem.moduleUnitTitle}
               </div>
             : null}
             </div>

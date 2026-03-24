@@ -63,8 +63,10 @@ describe('UserBadge', () => {
     // Initial XP state is set after first rAF.
     await vi.advanceTimersByTimeAsync(1);
 
-    expect(screen.getByText(/Level/)).toBeInTheDocument();
-    expect(screen.getByText('5')).toBeInTheDocument();
+    // Level label is gone — progress is now conveyed by the SVG arc progressbar.
+    expect(screen.getByRole('progressbar', { name: 'XP progress to next level' })).toBeInTheDocument();
+    // Level number lives in the aria-hidden ring badge overlay; query with hidden:true to reach it.
+    expect(screen.getByText('5', { hidden: true })).toBeInTheDocument();
     expect(screen.getByText('Jane Doe')).toBeInTheDocument();
   });
 

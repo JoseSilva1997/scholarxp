@@ -1,9 +1,9 @@
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: clamp(6px, 2vw, 16px);
+  gap: clamp(6px, 2vw, 12px);
   border-radius: var(--radius-full);
-  padding: clamp(4px, 1.5vw, 8px) clamp(4px, 1vw, 6px) clamp(4px, 1.5vw, 8px) clamp(12px, 3vw, 28px);
+  padding: clamp(4px, 1.5vw, 8px) clamp(4px, 1vw, 6px) clamp(4px, 1.5vw, 8px) clamp(12px, 3vw, 20px);
   background: var(--color-glass-bg); /* Glassy background for dark header context */
   backdrop-filter: blur(12px);
   border: 1px solid var(--color-glass-border); /* Subtle glass border */
@@ -21,7 +21,7 @@
   background: var(--color-glass-bg-hover);
   border-color: var(--color-primary-light);
   transform: translateY(-1px);
-  box-shadow: 
+  box-shadow:
     var(--shadow-lg),
     inset 0 1px 1px var(--color-glass-border);
 }
@@ -58,6 +58,42 @@
   transition: left 0.8s ease-in-out;
 }
 
+/* ── Avatar + ring cluster ───────────────────────────────────────────────────── */
+
+/* Wrapper is position:relative so the SVG ring and level badge can position
+   themselves relative to the avatar without needing a separate stacking context */
+.avatarRingWrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* SVG arc replaces the horizontal bar — sized to bleed 6px beyond the avatar on
+   all sides; rotate(-90deg) starts the fill arc at 12 o'clock */
+.progressRing {
+  position: absolute;
+  inset: -6px;
+  width: calc(100% + 12px);
+  height: calc(100% + 12px);
+  pointer-events: none;
+  z-index: 1;
+  transform: rotate(-90deg);
+  transform-origin: center;
+  overflow: visible;
+}
+
+.progressRingTrack {
+  /* Stepped up from glass-border-subtle so the empty arc is legible against the dark header */
+  stroke: var(--color-glass-border-strong);
+}
+
+.progressRingFill {
+  stroke: var(--color-secondary);
+  /* transition is set inline so the sequencer can vary duration per phase (fill / instant-reset / final-fill) */
+}
+
 .avatar {
   width: clamp(32px, 8vw, 40px);
   height: clamp(32px, 8vw, 40px);
@@ -68,6 +104,8 @@
   transition: all var(--transition-fast);
   display: block;
   box-shadow: 0 0 10px var(--color-primary-soft);
+  position: relative;
+  z-index: 2; /* sits above the ring track so the border renders cleanly */
 }
 
 .avatarButton {
@@ -78,12 +116,62 @@
   cursor: pointer;
   border-radius: 50%; /* Match avatar shape */
   overflow: hidden; /* Clip any bleeding edges */
+  position: relative;
+  z-index: 2;
 }
 
 .avatarButton:hover .avatar {
   transform: scale(1.1);
 }
 
+/* Level badge sits at the bottom of the ring, partially overlapping the arc,
+   so the number feels embedded in the progress indicator rather than floating free */
+.levelBadge {
+  position: absolute;
+  bottom: -10px;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  width: fit-content;
+  background: var(--color-primary);
+  color: var(--color-text-on-dark);
+  font-size: 0.55rem;
+  font-weight: 900;
+  padding: 2px 4px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--color-brand-surface-dark);
+  box-shadow: 0 0 8px var(--color-primary-soft);
+  z-index: 3;
+  min-width: 20px;
+  text-align: center;
+  overflow: hidden; /* clips the 3D level-number flip animation at the badge edge */
+}
+
+/* During level-up the badge turns amber to match the ring accent colour change */
+.levelBadgeLevelUp {
+  background: var(--color-accent-dark);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 10px var(--color-accent-soft);
+}
+
+.levelValueWrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 1000px;
+}
+
+.levelValue {
+  display: inline-block;
+  position: relative;
+  z-index: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Name meta ───────────────────────────────────────────────────────────────── */
+
+/* Simplified to name-only — level is now surfaced through the ring badge */
 .meta {
   display: flex;
   flex-direction: column;
@@ -109,113 +197,31 @@
   -webkit-text-fill-color: transparent;
 }
 
-.progress {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  margin-top: 8px; /* Space for the absolute XP label */
-  white-space: nowrap;
-}
+/* ── XP gain floating indicator ─────────────────────────────────────────────── */
 
-.barRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.trackContainer {
-  position: relative;
-  flex: 1;
-}
-
-.expValueContainer {
+/* Positions the floating "+XP" label in the top-right corner of the badge.
+   Relative to .badge, which should have position: relative. */
+.expGainFloatingWrapper {
   position: absolute;
-  bottom: 100%;
-  right: 0;
-  margin-bottom: 2px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.level {
-  font-size: clamp(0.6rem, 1.5vw, 0.75rem);
-  color: var(--color-accent-light);
-  font-weight: 800;
+  top: 0px;
+  right: 40px;
   display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.levelValue {
-  display: inline-block;
-  position: relative;
-  z-index: 1;
-  font-variant-numeric: tabular-nums;
-}
-
-.levelValueWrap {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
   justify-content: center;
-  perspective: 1000px;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-2px); }
-}
-
-.barTrack {
-  position: relative;
-  height: 10px;
-  width: 100%;
-  min-width: clamp(50px, 15vw, 80px);
-  margin-left: 4px;
-  background: var(--color-glass-bg-deep); /* Dark background for track elements */
-  border-radius: var(--radius-full);
-  overflow: hidden;
-  border: 1px solid var(--color-glass-border-subtle);
-  box-shadow: var(--shadow-inner-dark); /* Deeper inner shadow for depth on dark background */
-}
-
-.barFill {
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  background: linear-gradient(
-    90deg, 
-    var(--color-secondary-light), 
-    var(--color-secondary), 
-    var(--color-secondary-light)
-  );
-  background-size: 200% 100%;
-  border-radius: var(--radius-full);
-  transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-  animation: shine 2s linear infinite;
-}
-
-@keyframes shine {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  pointer-events: none;
+  z-index: 10;
 }
 
 .expGainFloating {
-  position: absolute;
-  right: 0;
-  bottom: 100%;
-  font-size: 0.75rem;
+  font-size: 0.80rem;
   font-weight: 800;
   color: var(--color-secondary-light);
-  text-shadow: 
+  text-shadow:
     0 0 10px var(--color-secondary-soft),
     0 0 20px rgba(0, 0, 0, 0.5);
-  pointer-events: none;
   white-space: nowrap;
-  z-index: 10;
 }
+
+/* ── Dropdown menu ───────────────────────────────────────────────────────────── */
 
 .menu {
   position: absolute;
@@ -225,9 +231,8 @@
   border: 1px solid var(--color-glass-border-strong); /* Stronger glass border for overlays */
   box-shadow: var(--shadow-floating-dark); /* Heavy shadow for floating menus */
   width: 280px;
-  /* Align menu to the bottom of the header */
-  /* Formula: (HeaderHeight - BadgeHeight) / 2 */
-  margin-top: calc((var(--header-height) - 54px) / 2 + 1px);
+  /* Align menu to the bottom of the header. Badge height ≈ 56px with the new ring layout. */
+  margin-top: calc((var(--header-height) - 56px) / 2 + 1px);
   z-index: 100;
   overflow: hidden;
   animation: slideDown 0.2s ease-out;
@@ -262,7 +267,7 @@
   padding: 4px;
   background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary));
   border-radius: 50%;
-  box-shadow: 
+  box-shadow:
     0 0 0 2px var(--color-glass-border),
     0 0 20px var(--color-primary-soft);
   flex-shrink: 0;
@@ -305,7 +310,7 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   border: 1.5px solid var(--btn-primary-dark);
-  box-shadow: 
+  box-shadow:
     0 4px 12px var(--color-overlay-dark),
     0 0 10px var(--color-secondary-soft);
   z-index: 2;
@@ -351,11 +356,6 @@
   border-radius: var(--radius-full);
   box-shadow: 0 0 8px var(--color-secondary-soft);
   transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-/* Cleanup old styles */
-.menuProgress {
-  display: none;
 }
 
 .menuContent {
@@ -437,123 +437,7 @@
   background: var(--color-error-glass-hover);
 }
 
-@media (max-width: 720px) {
-  .badge {
-    padding: clamp(3px, 1.2vw, 6px) clamp(3px, 0.8vw, 6px) clamp(3px, 1.2vw, 6px) clamp(8px, 2.5vw, 12px);
-    gap: clamp(6px, 1.5vw, 10px);
-  }
-
-  .meta {
-    gap: 0;
-  }
-
-  .name {
-    font-size: clamp(0.7rem, 1.5vw, 0.8rem);
-  }
-}
-
-/* Intermediate breakpoint for smoother scaling */
-@media (max-width: 600px) {
-  .badge {
-    padding: clamp(3px, 1vw, 5px) clamp(2px, 0.7vw, 4px) clamp(3px, 1vw, 5px) clamp(6px, 2vw, 10px);
-    gap: clamp(5px, 1.2vw, 8px);
-  }
-
-  .barTrack {
-    min-width: clamp(40px, 12vw, 60px);
-  }
-
-  .name {
-    font-size: clamp(0.65rem, 1.2vw, 0.75rem);
-  }
-
-  .level {
-    font-size: clamp(0.55rem, 1.2vw, 0.65rem);
-  }
-}
-
-/* More aggressive scaling for smaller tablets */
-@media (max-width: 540px) {
-  .badge {
-    padding: clamp(2px, 0.8vw, 4px) clamp(2px, 0.5vw, 3px) clamp(2px, 0.8vw, 4px) clamp(4px, 1.5vw, 8px);
-    gap: clamp(4px, 1vw, 6px);
-  }
-
-  .avatar {
-    width: clamp(28px, 6.5vw, 32px);
-    height: clamp(28px, 6.5vw, 32px);
-  }
-
-  .barTrack {
-    min-width: clamp(35px, 10vw, 50px);
-    height: 8px;
-  }
-
-  .name {
-    font-size: clamp(0.6rem, 1vw, 0.7rem);
-  }
-}
-
-@media (max-width: 480px) {
-  .badge {
-    padding: clamp(2px, 0.6vw, 4px) clamp(2px, 0.4vw, 2px) clamp(2px, 0.6vw, 4px) clamp(3px, 1vw, 6px);
-    gap: clamp(3px, 0.8vw, 4px);
-    min-width: 0;
-    /* Ensure badge doesn't exceed viewport on very small devices */
-    max-width: calc(100vw - 24px);
-  }
-
-  .avatar {
-    width: 32px;
-    height: 32px;
-  }
-
-  .meta {
-    display: none; /* Only show avatar on phone-width so header doesn't overflow */
-  }
-
-  .progress {
-    display: grid;
-    grid-template-columns: auto auto;
-    grid-template-rows: auto auto;
-    gap: 4px;
-    min-width: 0;
-    grid-template-areas:
-      "level exp"
-      "bar bar";
-  }
-
-  .level {
-    grid-area: level;
-    font-size: 9px;
-  }
-
-  .barTrack {
-    grid-area: bar;
-    width: 100%;
-    height: 4px;
-    min-width: unset;
-  }
-
-  .expLabel {
-    grid-area: exp;
-    font-size: 9px;
-    margin-left: 12px;
-  }
-}
-
-/* Level Up Animation Styles */
-.levelValueAnimate {
-  display: inline-block;
-  color: var(--color-accent-light);
-  text-shadow: 
-    0 0 10px var(--color-accent-soft),
-    0 0 20px var(--color-accent-soft);
-  font-weight: 900;
-  position: relative;
-  z-index: 11;
-  transform-style: preserve-3d;
-}
+/* ── Level Up Animation Styles ───────────────────────────────────────────────── */
 
 .levelUpContainer {
   position: absolute;
@@ -592,12 +476,12 @@
   border-radius: 50%;
   pointer-events: none;
   z-index: 5;
-  box-shadow: 0 0-6px var(--color-accent);
+  box-shadow: 0 0 6px var(--color-accent);
 }
 
 .badgeLevelUp {
   border-color: var(--color-accent-light) !important;
-  box-shadow: 
+  box-shadow:
     var(--shadow-lg),
     0 0 20px var(--color-accent-soft) !important;
   transform: translateY(-2px) scale(1.02);
@@ -633,4 +517,68 @@
 @keyframes burstFade {
   0% { transform: scale(0.5); opacity: 0.8; }
   100% { transform: scale(2.5); opacity: 0; }
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────────── */
+
+@media (max-width: 720px) {
+  .badge {
+    padding: clamp(3px, 1.2vw, 6px) clamp(3px, 0.8vw, 6px) clamp(3px, 1.2vw, 6px) clamp(8px, 2.5vw, 12px);
+    gap: clamp(6px, 1.5vw, 10px);
+  }
+
+  .meta {
+    gap: 0;
+  }
+
+  .name {
+    font-size: clamp(0.7rem, 1.5vw, 0.8rem);
+  }
+}
+
+@media (max-width: 600px) {
+  .badge {
+    padding: clamp(3px, 1vw, 5px) clamp(2px, 0.7vw, 4px) clamp(3px, 1vw, 5px) clamp(6px, 2vw, 10px);
+    gap: clamp(5px, 1.2vw, 8px);
+  }
+
+  .name {
+    font-size: clamp(0.65rem, 1.2vw, 0.75rem);
+  }
+}
+
+@media (max-width: 540px) {
+  .badge {
+    padding: clamp(2px, 0.8vw, 4px) clamp(2px, 0.5vw, 3px) clamp(2px, 0.8vw, 4px) clamp(4px, 1.5vw, 8px);
+    gap: clamp(4px, 1vw, 6px);
+  }
+
+  .avatar {
+    width: clamp(28px, 6.5vw, 32px);
+    height: clamp(28px, 6.5vw, 32px);
+  }
+
+  .name {
+    font-size: clamp(0.6rem, 1vw, 0.7rem);
+  }
+}
+
+/* At phone width, hiding the name keeps the badge to just the avatar+ring so the
+   header doesn't overflow. The dropdown still shows full profile info on tap. */
+@media (max-width: 480px) {
+  .badge {
+    padding: clamp(2px, 0.6vw, 4px) clamp(2px, 0.4vw, 2px) clamp(2px, 0.6vw, 4px) clamp(3px, 1vw, 6px);
+    gap: clamp(3px, 0.8vw, 4px);
+    min-width: 0;
+    max-width: calc(100vw - 24px);
+  }
+
+  .avatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .meta {
+    display: none;
+  }
 }

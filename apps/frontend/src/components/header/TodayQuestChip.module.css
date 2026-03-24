@@ -1,113 +1,141 @@
 /* TodayQuestChip styles are isolated so Header keeps only shell layout concerns. */
+
+/* Replaced pill/chip container with a transparent interactive zone:
+   visual weight now comes from the bold numeral and icon rather than a bordered capsule */
 .todayChipWrapper {
   position: relative;
 }
 
-.todayChipWrapperGlow .todayChip {
-  box-shadow:
-    var(--shadow-md),
-    inset 0 1px 1px var(--color-glass-border);
-  border-color: var(--color-accent-light);
+/* Resting "button island" — faint fill + border signals a pressable surface without
+   a heavy chip look. The hover state lifts the whole unit via scale so it reads as
+   one tappable object rather than decorative text. */
+.todayChip {
+  display: inline-flex;
+  align-items: center;
+  gap: clamp(5px, 1.2vw, 10px);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-glass-border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--color-accent-light);
+  padding: clamp(5px, 1.5vw, 8px) clamp(6px, 1.5vw, 12px);
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.todayChip:hover {
+  background: var(--color-glass-bg);
+  border-color: var(--color-glass-border);
+  transform: scale(1.03);
+  box-shadow: 0 2px 10px var(--color-overlay-dark);
+  outline: none;
+}
+
+/* Tactile press feedback — quicker than the hover transition so it feels snappy */
+.todayChip:active {
+  transform: scale(0.97);
+  transition-duration: 80ms;
+}
+
+.todayChip:focus-visible {
+  outline: 2px solid var(--color-accent-light);
+  outline-offset: 2px;
+}
+
+/* Active popover state: subtle amber tint instead of a glowing pill */
+.todayChipActive {
+  background: var(--color-accent-soft);
+}
+
+.todayChipIcon {
+  font-size: clamp(0.9rem, 2.2vw, 1.1rem);
+  color: var(--color-accent-light);
+  filter: drop-shadow(0 0 3px var(--color-accent-soft));
+  flex-shrink: 0;
+  transition: filter var(--transition-fast);
+}
+
+/* Bold value + muted eyebrow label stacked — replaces the single-line value-in-a-chip pattern */
+.todayChipContent {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  min-width: 0;
+}
+
+/* Large tabular numeral is the primary visual anchor — makes the stat scannable at a glance */
+.todayChipValue {
+  font-family: var(--font-display);
+  font-size: clamp(0.85rem, 2.2vw, 1.05rem);
+  font-weight: 800;
+  color: var(--color-text-on-dark-vibrant);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.todayChipLabel {
+  font-size: clamp(0.48rem, 1.1vw, 0.56rem);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-on-dark-subtle);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Glow state: text highlight on the value instead of a box-shadow on a pill —
+   draws the eye to the number that changed rather than the container */
+.todayChipWrapperGlow .todayChipValue {
+  color: var(--color-accent-light);
+  text-shadow: 0 0 10px var(--color-accent-soft);
 }
 
 .todayChipWrapperGlow .todayChipIcon {
   color: var(--color-accent-light);
-  filter: drop-shadow(0 0 4px var(--color-accent-soft));
+  filter: drop-shadow(0 0 5px var(--color-accent-soft));
 }
 
-.todayChip {
-  display: inline-flex;
-  align-items: center;
-  gap: clamp(3px, 1vw, 8px);
-  background: var(--color-glass-bg);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--color-glass-border);
-  color: var(--color-accent-light);
-  /* Scale padding smoothly based on viewport */
-  padding: clamp(6px, 1.5vw, 10px) clamp(8px, 2vw, 15px) clamp(6px, 1.5vw, 12px);
-  border-radius: var(--radius-full);
-  font-weight: 700;
-  cursor: pointer;
-  font: inherit;
-  line-height: 1;
-  transition: all var(--transition-base);
-  box-shadow: var(--shadow-sm);
-}
-
-.todayChip:hover {
-  background: var(--color-glass-bg-hover);
-  border-color: var(--color-accent-light);
-  box-shadow:
-    var(--shadow-md),
-    inset 0 1px 1px var(--color-glass-border);
-}
-
-.todayChipActive {
-  background: var(--color-accent-soft);
-  border-color: var(--color-accent-light);
-  box-shadow:
-    0 0 20px var(--color-accent-soft),
-    inset 0 0 5px var(--color-accent-soft);
-}
-
-.todayChipIcon {
-  font-size: clamp(0.8rem, 2vw, 0.95rem);
-  color: var(--color-accent-light);
-  filter: drop-shadow(0 0 2px var(--color-accent-soft));
-  flex-shrink: 0;
-}
-
-.todayChipContent {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  min-width: 0;
-}
-
-.todayChipLabel {
-  font-size: clamp(0.55rem, 1.2vw, 0.6rem);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--color-text-on-dark-soft);
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.todayChipValue {
-  font-size: clamp(0.65rem, 1.5vw, 0.75rem);
-  color: var(--color-text-on-dark-vibrant);
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-/* Tablet: Hide label, keep compact */
+/* Tablet: hide the text label, keep the bold value + icon so the stat still reads quickly */
 @media (max-width: 768px) {
-  .todayChipContent {
-    gap: 0;
-  }
-
   .todayChipLabel {
     display: none;
   }
-}
-
-/* Mobile: Show only icon + count in small format */
-@media (max-width: 540px) {
-  .todayChip {
-    padding: clamp(4px, 1vw, 6px) clamp(6px, 1.5vw, 8px);
-    gap: clamp(2px, 0.8vw, 4px);
-  }
-
-  .todayChipContent {
-    display: flex;
-    align-items: center;
-    flex-direction: row;
-    gap: 2px;
-  }
 
   .todayChipValue {
-    font-size: clamp(0.6rem, 1.2vw, 0.65rem);
+    font-size: clamp(0.75rem, 1.8vw, 0.9rem);
+  }
+}
+
+/* Small mobile: hide text, keep icon + streak chip */
+@media (max-width: 540px) {
+  .todayChipContent {
+    display: none;
+  }
+
+  .todayChip {
+    padding: clamp(4px, 1vw, 6px) clamp(5px, 1.2vw, 8px);
+  }
+}
+
+/* Very small phones: collapse to a circle icon button matching the theme-toggle
+   size/style so the header centre reads as a consistent row of icon affordances */
+@media (max-width: 480px) {
+  .todayChip {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    gap: 0;
+    border-radius: var(--radius-full);
+    justify-content: center;
+    background:
+      linear-gradient(135deg, var(--color-glass-bg), var(--color-primary-soft)),
+      var(--color-overlay-light-hover);
+    border-color: var(--color-glass-border);
   }
 }

@@ -27,20 +27,31 @@ const LEVEL_UP_PARTICLE_OFFSETS = [
   { x: -50, y: -5, delay: 0.14 }
 ];
 
+// SVG ring dimensions — sized so the ring adds 6px visual margin around the avatar on each side
+const RING_RADIUS = 22;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS; // ≈ 138.23px
+
 export default function UserBadge({ user, onLogout }: UserBadgeProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [displayedTotalExp, setDisplayedTotalExp] = useState<number | null>(null);
   const [expGainIndicator, setExpGainIndicator] = useState<number | null>(null);
   const [isLevelingUp, setIsLevelingUp] = useState(false);
   const [isBadgeCrashing, setIsBadgeCrashing] = useState(false);
+  // Ring owns its own percent + transition duration so it can sequence fill→pause→reset→fill
+  // independently of the XP counter animation that drives the displayed numbers.
+  const [ringPercent, setRingPercent] = useState<number | null>(null);
+  const [ringTransitionMs, setRingTransitionMs] = useState(0);
   const prevTargetLevelRef = useRef<number | null>(null);
   const levelingUpTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const crashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const uncrashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const levelingUpRafRef = useRef<number | null>(null);
   const expAnimationFrameRef = useRef<number | null>(null);
   const expGainIndicatorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const displayedTotalExpRef = useRef<number | null>(null);
+  // Ref mirrors ringPercent state so setTimeout callbacks can read the latest commanded value
+  // without capturing stale closure state.
+  const ringPercentRef = useRef<number | null>(null);
+  const ringAnimTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
 
@@ -71,52 +82,115 @@ export default function UserBadge({ user, onLogout }: UserBadgeProps) {
       : null;
 
   useEffect(() => {
-    if (targetTotalExp === null) {
+    if (targetTotalExp === null) return;
+
+    const progress = getProgressWithinLevel(targetTotalExp);
+    const nextLevel = progress.level;
+    // Clamp to avoid floating-point overshoot beyond 100 which would hide the fill start on reset.
+    const targetPercent = Math.min(100, Math.round(progress.progressPercent));
+
+    // First boot: snap ring to current state with no animation.
+    if (prevTargetLevelRef.current === null) {
+      prevTargetLevelRef.current = nextLevel;
+      ringPercentRef.current = targetPercent;
+      setRingPercent(targetPercent);
+      setRingTransitionMs(0);
       return;
     }
 
-    // Drive celebration from canonical account XP snapshots (server/cache target),
-    // not animated in-between values, so regular XP gains inside the same level
-    // cannot accidentally retrigger level-up effects.
-    const nextTargetLevel = getProgressWithinLevel(targetTotalExp).level;
-    if (
-      prevTargetLevelRef.current !== null &&
-      nextTargetLevel > prevTargetLevelRef.current
-    ) {
-        // Clear any previous queued level-up check to avoid duplicate animations.
-        if (levelingUpRafRef.current) cancelAnimationFrame(levelingUpRafRef.current);
+    const levelsGained = nextLevel - prevTargetLevelRef.current;
+    prevTargetLevelRef.current = nextLevel;
 
-        // Deferring state changes to a new frame to avoid synchronous setState inside an effect.
-        levelingUpRafRef.current = requestAnimationFrame(() => {
-          setIsLevelingUp(true);
+    // Cancel any in-flight ring animation and stale level-up cleanup timers so this
+    // invocation owns all ring and celebration state going forward.
+    ringAnimTimersRef.current.forEach(clearTimeout);
+    ringAnimTimersRef.current = [];
+    if (levelingUpTimerRef.current) { clearTimeout(levelingUpTimerRef.current); levelingUpTimerRef.current = null; }
+    if (crashTimerRef.current) { clearTimeout(crashTimerRef.current); crashTimerRef.current = null; }
+    if (uncrashTimerRef.current) { clearTimeout(uncrashTimerRef.current); uncrashTimerRef.current = null; }
 
-          if (levelingUpTimerRef.current) clearTimeout(levelingUpTimerRef.current);
-          if (crashTimerRef.current) clearTimeout(crashTimerRef.current);
-          if (uncrashTimerRef.current) clearTimeout(uncrashTimerRef.current);
-          setIsBadgeCrashing(false);
+    const schedule = (delayMs: number, fn: () => void) => {
+      ringAnimTimersRef.current.push(setTimeout(fn, delayMs));
+    };
 
-          crashTimerRef.current = setTimeout(() => {
-            setIsBadgeCrashing(true);
-            uncrashTimerRef.current = setTimeout(() => {
-              setIsBadgeCrashing(false);
-              uncrashTimerRef.current = null;
-            }, 600);
-            crashTimerRef.current = null;
-          }, 850); // Matches the new faster sequence drop point
-
-          levelingUpTimerRef.current = setTimeout(() => {
-            setIsLevelingUp(false);
-            levelingUpTimerRef.current = null;
-          }, 2400); // Resets sooner now that sequence is snappy
-          
-          levelingUpRafRef.current = null;
-        });
+    if (levelsGained <= 0) {
+      // Normal XP gain within the same level: smoothly update ring.
+      const transitionMs = Math.max(400, Math.min(1200, Math.abs(targetPercent - (ringPercentRef.current ?? 0)) * 12));
+      setRingTransitionMs(transitionMs);
+      setRingPercent(targetPercent);
+      ringPercentRef.current = targetPercent;
+      return;
     }
 
-    prevTargetLevelRef.current = nextTargetLevel;
+    // --- Level-up sequence ---
+    // For N levels gained the ring cycles N times: fill→100% pause→reset→fill→100%…
+    // then a final fill to the actual progress in the new level.
+    const startPercent = ringPercentRef.current ?? 0;
+    let cursor = 0;
+
+    // Phase 1: fill to 100% from wherever the ring currently sits.
+    const fillToDuration = Math.max(300, Math.round((100 - startPercent) * 12));
+    schedule(cursor, () => {
+      setRingTransitionMs(fillToDuration);
+      setRingPercent(100);
+      ringPercentRef.current = 100;
+    });
+    cursor += fillToDuration + 200; // 200ms settling buffer after CSS transition completes
+
+    for (let i = 0; i < levelsGained; i++) {
+      const isLastCycle = i === levelsGained - 1;
+
+      // Phase 2: ring is at 100% — fire level-up celebration during the pause.
+      schedule(cursor, () => {
+        setIsLevelingUp(true);
+        setIsBadgeCrashing(false);
+        crashTimerRef.current = setTimeout(() => {
+          setIsBadgeCrashing(true);
+          uncrashTimerRef.current = setTimeout(() => {
+            setIsBadgeCrashing(false);
+            uncrashTimerRef.current = null;
+          }, 600);
+          crashTimerRef.current = null;
+        }, 850);
+      });
+      cursor += 700; // hold at 100% for 700ms so the celebration reads clearly
+
+      // Phase 3: instantly reset ring to 0.
+      schedule(cursor, () => {
+        setRingTransitionMs(0);
+        setRingPercent(0);
+        ringPercentRef.current = 0;
+      });
+      // 80ms gap ensures the zero state is committed to the DOM before the next fill begins.
+      cursor += 80;
+
+      if (!isLastCycle) {
+        // Fill to 100% again for the next level-up cycle.
+        const cycleDuration = 1100;
+        schedule(cursor, () => {
+          setRingTransitionMs(cycleDuration);
+          setRingPercent(100);
+          ringPercentRef.current = 100;
+        });
+        cursor += cycleDuration + 200;
+      } else {
+        // Final fill: animate from 0 to the actual progress percent in the new level.
+        const finalDuration = Math.max(500, Math.round(targetPercent * 10));
+        schedule(cursor, () => {
+          setRingTransitionMs(finalDuration);
+          setRingPercent(targetPercent);
+          ringPercentRef.current = targetPercent;
+        });
+        cursor += finalDuration + 300;
+        // End level-up state only after the fill is visually complete.
+        schedule(cursor, () => {
+          setIsLevelingUp(false);
+        });
+      }
+    }
+
     return () => {
-      if (levelingUpRafRef.current) cancelAnimationFrame(levelingUpRafRef.current);
-      if (levelingUpTimerRef.current) clearTimeout(levelingUpTimerRef.current);
+      ringAnimTimersRef.current.forEach(clearTimeout);
       if (crashTimerRef.current) clearTimeout(crashTimerRef.current);
       if (uncrashTimerRef.current) clearTimeout(uncrashTimerRef.current);
     };
@@ -130,6 +204,7 @@ export default function UserBadge({ user, onLogout }: UserBadgeProps) {
       if (expGainIndicatorTimeoutRef.current !== null) {
         clearTimeout(expGainIndicatorTimeoutRef.current);
       }
+      ringAnimTimersRef.current.forEach(clearTimeout);
     },
     [],
   );
@@ -198,7 +273,7 @@ export default function UserBadge({ user, onLogout }: UserBadgeProps) {
       const progress = Math.min(1, elapsed / animationDurationMs);
       const easedProgress = easeOutCubic(progress);
       const nextValue = Math.round(animationStart + animationDelta * easedProgress);
-      
+
       displayedTotalExpRef.current = nextValue;
       setDisplayedTotalExp(nextValue);
 
@@ -225,106 +300,27 @@ export default function UserBadge({ user, onLogout }: UserBadgeProps) {
   return (
     <div
       className={`
-        ${styles.badge} 
-        ${isLevelingUp ? styles.badgeLevelUp : ''} 
+        ${styles.badge}
+        ${isLevelingUp ? styles.badgeLevelUp : ''}
         ${isBadgeCrashing ? styles.badgeCrashShake : ''}
       `}
       aria-label={`${formatName(user)} profile`}
       ref={menuRef}
     >
       <div className={styles.shimmerEffect} aria-hidden="true" />
+
+      {/* Name only — level/progress moved to the ring badge overlay so the stat cluster reads left→right */}
       <div className={styles.meta}>
         <div className={styles.name} title={formatName(user) || ''}>
           {formatName(user) || ''}
         </div>
-        {isStudent && animatedProgress ? (
-          <div className={styles.progress}>
-            <div className={styles.barRow}>
-              <span className={styles.level}>
-                Level{' '}
-                <span className={styles.levelValueWrap}>
-                  <AnimatePresence mode="popLayout" initial={false}>
-                    <motion.span
-                      key={animatedProgress.level}
-                      initial={{ y: -14, opacity: 0, rotateY: 1080, scale: 1.1 }}
-                      animate={{ 
-                        y: 0, 
-                        opacity: 1, 
-                        rotateY: 0,
-                        scale: 1,
-                        transition: {
-                          y: { 
-                            type: 'tween', 
-                            duration: 0.12, 
-                            ease: "easeIn", 
-                            delay: 0.8 // Hold during transformation spin, then drop
-                          },
-                          rotateY: { duration: 0.5, delay: 0.3, ease: "easeOut" }, // Spin back faster
-                          opacity: { duration: 0.1, delay: 0.3 },
-                          scale: { duration: 0.15, delay: 0.3 },
-                        }
-                      }}
-                      exit={{ 
-                        y: -14, // No array here, starts from 0 (if reached) and goes to -14
-                        rotateY: 1080, 
-                        opacity: 0,
-                        scale: 1.1,
-                        color: 'var(--color-secondary)',
-                        transition: {
-                          duration: 0.3,
-                          y: { ease: "easeOut" },
-                          rotateY: { ease: "easeInOut" },
-                          opacity: { duration: 0.25 },
-                          scale: { ease: "easeOut" }
-                        }
-                      }}
-                      className={styles.levelValue}
-                      style={{
-                        color: isLevelingUp ? 'var(--color-secondary)' : 'var(--color-accent-light)',
-                        textShadow: isLevelingUp 
-                          ? '0 0 10px var(--color-secondary-soft), 0 0 20px var(--color-secondary-soft)' 
-                          : 'none',
-                        fontWeight: isLevelingUp ? 900 : 800,
-                        transformStyle: 'preserve-3d',
-                        zIndex: isLevelingUp ? 11 : 1,
-                      }}
-                    >
-                      {animatedProgress.level}
-                    </motion.span>
-                  </AnimatePresence>
-                </span>
-              </span>
-              <div className={styles.trackContainer}>
-                <AnimatePresence>
-                  {expGainIndicator ? (
-                    <motion.div
-                      key="exp-gain-indicator"
-                      initial={{ y: 2, opacity: 0, scale: 0.8 }}
-                      animate={{ y: 0, opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 1.1 }}
-                      transition={{ 
-                        duration: 1, 
-                        ease: [0.175, 0.885, 0.32, 1.275] // Custom back-out for a small "pop"
-                      }}
-                      className={styles.expGainFloating}
-                    >
-                      +{expGainIndicator} XP
-                    </motion.div>
-                  ) : null}
-                </AnimatePresence>
-                <div className={styles.barTrack} role="progressbar" aria-valuenow={expPercent} aria-valuemin={0} aria-valuemax={100}>
-                  <div className={styles.barFill} style={{ width: `${expPercent}%` }} />
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : null}
       </div>
 
+      {/* Level-up celebration overlay — positioning and animation logic unchanged */}
       <AnimatePresence>
         {isLevelingUp && (
-          <motion.div 
-            key={`level-up-anim-${animatedProgress?.level}`} 
+          <motion.div
+            key={`level-up-anim-${animatedProgress?.level}`}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -332,13 +328,13 @@ export default function UserBadge({ user, onLogout }: UserBadgeProps) {
           >
             <motion.div
               initial={{ opacity: 0, y: -20, scale: 0.5, x: '-50%' }}
-              animate={{ 
-                opacity: 1, 
-                y: 0, 
+              animate={{
+                opacity: 1,
+                y: 0,
                 scale: 1,
                 x: '-50%',
                 transition: {
-                  delay: 0.4, 
+                  delay: 0.4,
                   duration: 0.3,
                   ease: "backOut"
                 }
@@ -348,23 +344,23 @@ export default function UserBadge({ user, onLogout }: UserBadgeProps) {
             >
               Level Up!
             </motion.div>
-            
+
             {/* Burst effect synced to the faster drop at T=0.85s */}
             <motion.div
               initial={{ scale: 0.5, opacity: 0, x: '-50%', y: '-50%' }}
-              animate={{ 
-                scale: 3, 
+              animate={{
+                scale: 3,
                 opacity: [0, 1, 0],
                 x: '-50%',
                 y: '-50%'
               }}
               transition={{
-                delay: 0.85, 
+                delay: 0.85,
                 duration: 1.0,
                 ease: "easeOut"
               }}
               className={styles.levelValueBurst}
-              style={{ animation: 'none', left: '50%', top: '50%' }} 
+              style={{ animation: 'none', left: '50%', top: '50%' }}
             />
 
             {/* Particles also synced with the crash hit at T=0.85s */}
@@ -372,15 +368,15 @@ export default function UserBadge({ user, onLogout }: UserBadgeProps) {
               <motion.div
                 key={`particle-${i}`}
                 initial={{ opacity: 0, x: 0, y: 0, scale: 0 }}
-                animate={{ 
-                  opacity: [0, 1, 0], 
-                  x: params.x, 
+                animate={{
+                  opacity: [0, 1, 0],
+                  x: params.x,
                   y: params.y,
                   scale: [0, 1.2, 0],
                 }}
-                transition={{ 
-                  delay: 0.85 + params.delay, 
-                  duration: 1.0, 
+                transition={{
+                  delay: 0.85 + params.delay,
+                  duration: 1.0,
                   ease: "easeOut",
                 }}
                 className={styles.particle}
@@ -394,27 +390,142 @@ export default function UserBadge({ user, onLogout }: UserBadgeProps) {
         )}
       </AnimatePresence>
 
-      <button
-        type="button"
-        className={styles.avatarButton}
-        onClick={toggleMenu}
-        aria-expanded={isMenuOpen}
-        aria-haspopup="menu"
-        aria-label="Toggle user menu"
-      >
-        <img
-          src={avatarSrc}
-          alt=""
-          className={styles.avatar}
-          crossOrigin="anonymous"
-          referrerPolicy="no-referrer"
-          // Defensive fallback so any bad/expired remote image swaps to our bundled default.
-          onError={(event) => {
-            event.currentTarget.onerror = null;
-            event.currentTarget.src = defaultAvatar;
-          }}
-        />
-      </button>
+      {/* XP gain floats below the badge; wrapper centres it without transform
+          conflict since Framer Motion will own the inner element's transform */}
+      <div className={styles.expGainFloatingWrapper} aria-hidden="true">
+        <AnimatePresence>
+          {expGainIndicator ? (
+            <motion.div
+              key="exp-gain-indicator"
+              initial={{ y: -4, opacity: 0, scale: 0.8 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.1 }}
+              transition={{
+                duration: 1,
+                ease: [0.175, 0.885, 0.32, 1.275] // Custom back-out for a small "pop"
+              }}
+              className={styles.expGainFloating}
+            >
+              +{expGainIndicator} XP
+            </motion.div>
+          ) : null} {/* Reserve space to prevent layout jump when the indicator appears */}
+        </AnimatePresence>
+      </div>
+
+      {/* Avatar + SVG ring + level badge overlay — the three are grouped as a single
+          cohesive cluster so they animate and clip together naturally */}
+      <div className={styles.avatarRingWrapper}>
+
+        {/* Slim SVG arc — replaces the standalone horizontal progress bar.
+            Starting at 12 o'clock (rotate -90deg on the SVG) keeps the fill
+            reading top→clockwise which feels natural for a progress indicator */}
+        {isStudent && animatedProgress ? (
+          <svg
+            className={styles.progressRing}
+            viewBox="0 0 52 52"
+            role="progressbar"
+            aria-valuenow={expPercent}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label="XP progress to next level"
+          >
+            <circle
+              className={styles.progressRingTrack}
+              cx="26"
+              cy="26"
+              r={RING_RADIUS}
+              fill="none"
+              strokeWidth="3"
+            />
+            <circle
+              className={styles.progressRingFill}
+              cx="26"
+              cy="26"
+              r={RING_RADIUS}
+              fill="none"
+              strokeWidth="3"
+              strokeLinecap="round"
+              style={{
+                strokeDasharray: RING_CIRCUMFERENCE,
+                // Use ringPercent (sequenced state) not expPercent (counter-derived) so the ring
+                // can fill to 100%, pause, and reset independently of the XP number animation.
+                strokeDashoffset: RING_CIRCUMFERENCE * (1 - (ringPercent ?? expPercent) / 100),
+                // Duration is varied per animation phase (fill/pause/reset) by the sequencer.
+                // ease-out (no overshoot) — the spring curve caused the ring to briefly exceed 100%
+                // and visually "pull back", which looks broken on a fill-to-full animation.
+                transition: `stroke-dashoffset ${ringTransitionMs}ms cubic-bezier(0.25, 0.46, 0.45, 0.94), stroke var(--transition-base)`,
+                stroke: isLevelingUp ? 'var(--color-accent-light)' : undefined,
+              }}
+            />
+          </svg>
+        ) : null}
+
+        <button
+          type="button"
+          className={styles.avatarButton}
+          onClick={toggleMenu}
+          aria-expanded={isMenuOpen}
+          aria-haspopup="menu"
+          aria-label="Toggle user menu"
+        >
+          <img
+            src={avatarSrc}
+            alt=""
+            className={styles.avatar}
+            crossOrigin="anonymous"
+            referrerPolicy="no-referrer"
+            // Defensive fallback so any bad/expired remote image swaps to our bundled default.
+            onError={(event) => {
+              event.currentTarget.onerror = null;
+              event.currentTarget.src = defaultAvatar;
+            }}
+          />
+        </button>
+
+        {/* Level badge sits at the bottom of the ring — the number flips in 3D when
+            the level changes, using the same motion props as before, just in a tighter container */}
+        {isStudent && animatedProgress ? (
+          <div
+            className={`${styles.levelBadge} ${isLevelingUp ? styles.levelBadgeLevelUp : ''}`}
+            aria-hidden="true"
+          >
+            <span className={styles.levelValueWrap}>
+              <AnimatePresence mode="popLayout" initial={false}>
+                <motion.span
+                  key={animatedProgress.level}
+                  // Slide up from below + fade in — the badge is only ~20px tall so a 3D spin
+                  // just creates a long invisible gap. A fast slide-swap reads more cleanly.
+                  initial={{ y: 6, opacity: 0, scale: 0.8 }}
+                  animate={{
+                    y: 0,
+                    opacity: 1,
+                    scale: 1,
+                    transition: { duration: 0.2, ease: "easeOut" }
+                  }}
+                  exit={{
+                    y: -6,
+                    opacity: 0,
+                    scale: 0.8,
+                    // No color change on exit — the green flash was the old number turning green
+                    // while fading out, which looked like a glitch rather than a celebration.
+                    transition: { duration: 0.15, ease: "easeIn" }
+                  }}
+                  className={styles.levelValue}
+                  style={{
+                    // Keep the number white at all times — at this small size a colour change
+                    // just looks like a rendering glitch rather than a celebration cue.
+                    // The ring glow, badge background, and overlay particles handle the celebration.
+                    transformStyle: 'preserve-3d',
+                  }}
+                >
+                  {animatedProgress.level}
+                </motion.span>
+              </AnimatePresence>
+            </span>
+          </div>
+        ) : null}
+      </div>
+
       {isMenuOpen ? (
         <div className={styles.menu} role="menu">
           {/* Panel Header with Profile Preview */}

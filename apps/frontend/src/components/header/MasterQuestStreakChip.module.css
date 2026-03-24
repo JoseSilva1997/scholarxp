@@ -232,39 +232,8 @@
 }
 
 @media (max-width: 480px) {
+  /* Quest chip is a single circle at this size — no room for the streak section inside it */
   .chipGroup {
-    gap: clamp(2px, 0.8vw, 4px);
-  }
-
-  .chip {
-    padding: clamp(4px, 1vw, 5px) clamp(6px, 1.5vw, 8px);
-    gap: clamp(4px, 1.2vw, 8px);
-  }
-
-  .chipCollapsed {
-    gap: 0;
-    padding: clamp(4px, 1vw, 5px) clamp(6px, 1.5vw, 8px);
-  }
-
-  .flame {
-    font-size: clamp(0.85rem, 1.5vw, 0.95rem);
-  }
-
-  .count {
-    min-width: 0.9rem;
-    font-size: clamp(0.65rem, 1.3vw, 0.8rem);
-  }
-
-  /* Keep only flame and count visible */
-  .beadsContainer {
     display: none;
-  }
-
-  .infoWrapper {
-    display: none;
-  }
-
-  .infoBubble {
-    right: -28px;
   }
 }

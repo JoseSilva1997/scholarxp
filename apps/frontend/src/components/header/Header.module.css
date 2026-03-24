@@ -1,39 +1,57 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&display=swap');
 
+/* Three-zone flex layout: brand (left) | stats centre (flex:1) | profile (right).
+   The centre uses justify-content:center so stats remain visually anchored even
+   when the left and right zones are different widths. */
 .header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 clamp(12px, 2vw, 24px) 0px clamp(8px, 2vw, 16px);
-  background-color: var(--color-brand-surface-dark);
+  padding: 0 clamp(12px, 2vw, 24px) 0 clamp(8px, 2vw, 16px);
+  /* Subtle vertical gradient adds depth — a flat dark surface looked indistinct from the page content */
+  background: linear-gradient(180deg, #1a2740 0%, var(--color-brand-surface-dark) 100%);
   color: var(--color-surface);
   min-height: var(--header-height);
   box-shadow: var(--shadow-md);
   z-index: 50;
   position: relative;
   border-bottom: 1px solid var(--color-overlay-light-border);
-  gap: clamp(6px, 2vw, 12px);
+  gap: 0;
 }
 
+/* LEFT zone: hamburger + logo, always sized to content */
 .brandWrapper {
   display: flex;
   align-items: center;
   gap: clamp(8px, 2vw, 16px);
   flex-shrink: 0;
+  padding-right: clamp(8px, 2vw, 20px);
 }
 
+/* CENTRE zone: fills remaining space, centres its children.
+   No overflow:hidden here — popovers inside the stat chips are absolutely
+   positioned and must be able to bleed outside this container. */
+.headerCenter {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+
+/* RIGHT zone: theme toggle + profile cluster, always sized to content */
 .headerRight {
   display: flex;
   align-items: center;
   gap: clamp(6px, 1.5vw, 12px);
+  flex-shrink: 0;
+  padding-left: clamp(8px, 2vw, 20px);
   min-width: 0;
-  flex-shrink: 1;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   text-decoration: none;
   transition: transform var(--transition-fast);
 }
@@ -49,16 +67,17 @@
   filter: drop-shadow(0 0 8px var(--color-secondary-glow));
 }
 
+/* Bolder wordmark reinforces brand presence on the dark surface —
+   tighter tracking + slightly larger size versus the previous 1rem minimum */
 .wordmark {
   font-family: var(--font-display);
-  font-size: clamp(1rem, 2.5vw, 1.25rem);
+  font-size: clamp(1.05rem, 2.5vw, 1.3rem);
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
   background: linear-gradient(135deg, var(--color-accent-light) 0%, var(--color-secondary) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  text-transform: none; /* Modern professional look prefers natural case or lowercase logo types */
 }
 
 .actions {
@@ -143,7 +162,6 @@
 @media (max-width: 768px) {
   .header {
     padding: 0 clamp(8px, 1.5vw, 16px);
-    gap: clamp(4px, 1.5vw, 8px);
   }
 
   .wordmark {
@@ -152,6 +170,11 @@
 
   .brandWrapper {
     gap: clamp(8px, 1.5vw, 12px);
+    padding-right: clamp(4px, 1.5vw, 12px);
+  }
+
+  .headerRight {
+    padding-left: clamp(4px, 1.5vw, 12px);
   }
 
   .actions {
@@ -164,7 +187,6 @@
   }
 }
 
-/* Additional responsive breakpoint for tablets */
 @media (max-width: 600px) {
   .header {
     padding: 0 clamp(6px, 1.2vw, 12px);
@@ -176,15 +198,20 @@
   }
 }
 
-/* Small mobile phones */
+/* On very small phones keep the centre zone visible — each chip handles its own
+   icon-only collapse so the user still has one-tap access to quests and XP. */
 @media (max-width: 480px) {
   .header {
     padding: 0 clamp(4px, 1vw, 8px);
-    gap: clamp(2px, 1vw, 4px);
   }
 
   .brandWrapper {
     gap: clamp(4px, 1vw, 8px);
+    padding-right: 0;
+  }
+
+  .headerRight {
+    padding-left: clamp(4px, 1vw, 8px);
   }
 
   .logo {
