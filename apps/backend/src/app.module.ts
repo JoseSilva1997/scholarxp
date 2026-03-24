@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { PrismaModule } from './prisma/prisma.module';
 import { TestController } from './test/test.controller';
 import { InstitutionModule } from './db-entities/institution/institution.module';
@@ -38,6 +39,7 @@ const appControllers =
         '.env.development',
       ],
     }),
+    ScheduleModule.forRoot(),
     PrismaModule,
     InstitutionModule,
     UsersModule,

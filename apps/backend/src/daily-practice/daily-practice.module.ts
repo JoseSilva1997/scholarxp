@@ -8,6 +8,9 @@ import { QuestsModule } from '../quests/quests.module';
 import { DailyPracticeCandidateReadService } from './daily-practice-candidate-read.service';
 import { DailyPracticeController } from './daily-practice.controller';
 import { DailyPracticeEligibilityService } from './daily-practice-eligibility.service';
+import { DailyPracticeGenerationBatchService } from './daily-practice-generation-batch.service';
+import { DailyPracticeGenerationScheduleService } from './daily-practice-generation-schedule.service';
+import { DailyPracticeGenerationService } from './daily-practice-generation.service';
 import { DailyPracticeInterleavingService } from './daily-practice-interleaving.service';
 import { DailyPracticeMapper } from './daily-practice.mapper';
 import { DailyPracticeMasteryExpService } from './daily-practice-mastery-exp.service';
@@ -31,6 +34,9 @@ import { DailyPracticeVariantResolverService } from './daily-practice-variant-re
   providers: [
     DailyPracticeCandidateReadService,
     DailyPracticeEligibilityService,
+    DailyPracticeGenerationBatchService,
+    DailyPracticeGenerationScheduleService,
+    DailyPracticeGenerationService,
     DailyPracticeMapper,
     DailyPracticeInterleavingService,
     DailyPracticeMasteryExpService,
@@ -43,6 +49,8 @@ import { DailyPracticeVariantResolverService } from './daily-practice-variant-re
   exports: [
     DailyPracticeCandidateReadService,
     DailyPracticeEligibilityService,
+    DailyPracticeGenerationBatchService,
+    DailyPracticeGenerationService,
     DailyPracticeMapper,
     DailyPracticeInterleavingService,
     DailyPracticeMasteryExpService,

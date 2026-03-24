@@ -58,7 +58,10 @@ async function assertConfiguration(prisma: PrismaService): Promise<void> {
     );
   }
 
-  if (SET_ACCOUNT_EXP !== null && (!Number.isInteger(SET_ACCOUNT_EXP) || SET_ACCOUNT_EXP < 0)) {
+  if (
+    SET_ACCOUNT_EXP !== null &&
+    (!Number.isInteger(SET_ACCOUNT_EXP) || SET_ACCOUNT_EXP < 0)
+  ) {
     throw new Error('SET_ACCOUNT_EXP must be a non-negative integer or null.');
   }
 
@@ -100,9 +103,7 @@ function printConfiguration(): void {
   console.log(
     `- DELETE_STUDENT_QUESTION_STATE=${DELETE_STUDENT_QUESTION_STATE}`,
   );
-  console.log(
-    `- SET_ACCOUNT_EXP=${SET_ACCOUNT_EXP ?? '(skipped)'}`,
-  );
+  console.log(`- SET_ACCOUNT_EXP=${SET_ACCOUNT_EXP ?? '(skipped)'}`);
 }
 
 async function runDeletes(prisma: PrismaService): Promise<DeleteSummary> {

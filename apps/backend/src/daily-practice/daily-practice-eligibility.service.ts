@@ -36,7 +36,10 @@ export class DailyPracticeEligibilityService {
 
     const { dayStartUtc } = DateHelpers.getUtcDayBounds(now);
     if (earliestCompletion.completedAt.getTime() >= dayStartUtc.getTime()) {
-      return { eligible: false, message: DAILY_PRACTICE_UNLOCKS_TOMORROW_MESSAGE };
+      return {
+        eligible: false,
+        message: DAILY_PRACTICE_UNLOCKS_TOMORROW_MESSAGE,
+      };
     }
 
     return { eligible: true };

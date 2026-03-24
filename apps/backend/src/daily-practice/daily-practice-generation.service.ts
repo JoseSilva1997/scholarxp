@@ -1,0 +1,209 @@
+// Role: generates one stable daily-practice set per student/module/day so reads never depend on request timing.
+import { ForbiddenException, Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { DailyPracticeAlgorithmVersionValues } from '@scholarxp/api-contracts';
+import { DateHelpers } from '../helpers/helpers';
+import { PrismaService } from '../prisma/prisma.service';
+import { DailyPracticeEligibilityService } from './daily-practice-eligibility.service';
+import { DailyPracticeInterleavingService } from './daily-practice-interleaving.service';
+import { DailyPracticeSetReadService } from './daily-practice-set-read.service';
+import { DailyPracticeSetSelectorService } from './daily-practice-set-selector.service';
+import { DailyPracticeVariantResolverService } from './daily-practice-variant-resolver.service';
+import type { OrderedDailyPracticeQuestionRecord } from './daily-practice.types';
+
+export type EnsureDailyPracticeSetGeneratedResult = {
+  status: 'created' | 'already_exists' | 'ineligible' | 'no_set';
+};
+
+@Injectable()
+export class DailyPracticeGenerationService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly dailyPracticeSetReadService: DailyPracticeSetReadService,
+    private readonly dailyPracticeSetSelectorService: DailyPracticeSetSelectorService,
+    private readonly dailyPracticeInterleavingService: DailyPracticeInterleavingService,
+    private readonly dailyPracticeEligibilityService: DailyPracticeEligibilityService,
+    private readonly dailyPracticeVariantResolverService: DailyPracticeVariantResolverService,
+  ) {}
+
+  // Generation returns an explicit outcome so batch jobs can distinguish "nothing to do" from real failures.
+  async ensureSetGenerated(
+    moduleId: number,
+    studentId: number,
+    timestamp: Date,
+  ): Promise<EnsureDailyPracticeSetGeneratedResult> {
+    const existingSet = await this.dailyPracticeSetReadService.findSetForUtcDay(
+      studentId,
+      moduleId,
+      timestamp,
+    );
+    if (existingSet) {
+      return {
+        status: existingSet.items.length === 0 ? 'no_set' : 'already_exists',
+      };
+    }
+
+    try {
+      await this.dailyPracticeEligibilityService.assertEligibleForToday(
+        moduleId,
+        studentId,
+        timestamp,
+      );
+    } catch (error) {
+      if (error instanceof ForbiddenException) {
+        return { status: 'ineligible' };
+      }
+      throw error;
+    }
+
+    const orderedQuestions = await this.buildOrderedSelection(
+      moduleId,
+      studentId,
+      timestamp,
+    );
+    const resolvedQuestions =
+      await this.dailyPracticeVariantResolverService.resolveQuestionContentIds(
+        studentId,
+        orderedQuestions,
+      );
+    const { dayStartUtc } = DateHelpers.getUtcDayBounds(timestamp);
+
+    if (resolvedQuestions.length === 0) {
+      return this.persistEmptySetSentinel(moduleId, studentId, dayStartUtc);
+    }
+
+    return this.persistResolvedSet(
+      moduleId,
+      studentId,
+      timestamp,
+      dayStartUtc,
+      resolvedQuestions,
+    );
+  }
+
+  private async buildOrderedSelection(
+    moduleId: number,
+    studentId: number,
+    timestamp: Date,
+  ): Promise<OrderedDailyPracticeQuestionRecord[]> {
+    const selection =
+      await this.dailyPracticeSetSelectorService.selectQuestions({
+        userId: studentId,
+        moduleId,
+        now: timestamp,
+      });
+
+    return this.dailyPracticeInterleavingService.orderSelectedQuestions(
+      selection.selectedQuestions,
+    );
+  }
+
+  private async persistEmptySetSentinel(
+    moduleId: number,
+    studentId: number,
+    dayStartUtc: Date,
+  ): Promise<EnsureDailyPracticeSetGeneratedResult> {
+    try {
+      await this.prisma.dailyPracticeSet.create({
+        data: {
+          userId: studentId,
+          moduleId,
+          practiceDateUtc: dayStartUtc,
+          algorithmVersion: DailyPracticeAlgorithmVersionValues.fsrsV1,
+        },
+        select: { id: true },
+      });
+      return { status: 'no_set' };
+    } catch (error) {
+      if (this.isUniqueConstraintViolation(error)) {
+        return this.resolveConcurrentGenerationResult(
+          studentId,
+          moduleId,
+          dayStartUtc,
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  private async persistResolvedSet(
+    moduleId: number,
+    studentId: number,
+    timestamp: Date,
+    dayStartUtc: Date,
+    resolvedQuestions: Array<{
+      questionUnitId: number;
+      questionContentId: number;
+      moduleUnitId: number;
+      position: number;
+      selectionReason: string;
+      selectionScore: number;
+      sourceBucket: string;
+    }>,
+  ): Promise<EnsureDailyPracticeSetGeneratedResult> {
+    try {
+      await this.prisma.dailyPracticeSet.create({
+        data: {
+          userId: studentId,
+          moduleId,
+          practiceDateUtc: dayStartUtc,
+          algorithmVersion: DailyPracticeAlgorithmVersionValues.fsrsV1,
+          items: {
+            create: resolvedQuestions.map((question) => ({
+              questionUnitId: question.questionUnitId,
+              questionContentId: question.questionContentId,
+              moduleUnitId: question.moduleUnitId,
+              position: question.position,
+              selectionReason: question.selectionReason,
+              selectionScore: question.selectionScore,
+              sourceBucket: question.sourceBucket,
+            })),
+          },
+        },
+        select: { id: true },
+      });
+
+      return { status: 'created' };
+    } catch (error) {
+      if (this.isUniqueConstraintViolation(error)) {
+        return this.resolveConcurrentGenerationResult(
+          studentId,
+          moduleId,
+          timestamp,
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  private async resolveConcurrentGenerationResult(
+    studentId: number,
+    moduleId: number,
+    timestamp: Date,
+  ): Promise<EnsureDailyPracticeSetGeneratedResult> {
+    const concurrentSet =
+      await this.dailyPracticeSetReadService.findSetForUtcDay(
+        studentId,
+        moduleId,
+        timestamp,
+      );
+    if (concurrentSet) {
+      return {
+        status: concurrentSet.items.length === 0 ? 'no_set' : 'already_exists',
+      };
+    }
+
+    throw new Error(
+      'Daily practice set could not be loaded after creation race.',
+    );
+  }
+
+  private isUniqueConstraintViolation(error: unknown): boolean {
+    return (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    );
+  }
+}
