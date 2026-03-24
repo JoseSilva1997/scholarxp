@@ -176,12 +176,10 @@ export function useRecordDailyRevisionQuestProgressMutation(moduleId: number | n
       return recordDailyRevisionQuestProgress(moduleId);
     },
     onSuccess: async () => {
-      // Quest triggers can award both a daily quest and the master quest, so refresh quest reads and avatar XP together.
+      // The broad quests key already covers master-streak and today-list subscribers,
+      // so one quest invalidation is enough to avoid duplicate refetches.
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.quests.all }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.quests.masterStreakAll,
-        }),
         queryClient.invalidateQueries({ queryKey: queryKeys.auth.me }),
       ]);
     },
@@ -203,12 +201,10 @@ export function useRecordCompletedUnitReviewQuestProgressMutation(
       return recordCompletedUnitReviewQuestProgress(moduleId, moduleUnitId);
     },
     onSuccess: async () => {
-      // Review triggers can complete both the retry quest and the master quest, so stale quest and avatar data must be refreshed.
+      // The broad quests key already covers master-streak and today-list subscribers,
+      // so one quest invalidation is enough to avoid duplicate refetches.
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.quests.all }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.quests.masterStreakAll,
-        }),
         queryClient.invalidateQueries({ queryKey: queryKeys.auth.me }),
       ]);
     },

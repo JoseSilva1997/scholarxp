@@ -196,7 +196,7 @@ describe('useSubmitModuleUnitPracticeAttemptMutation', () => {
       queryKey: queryKeys.modules.moduleUnitPracticeRoomBase(5, 2),
     });
     expect(invalidateQueriesMock).toHaveBeenCalledWith({
-      queryKey: queryKeys.quests.masterStreakAll,
+      queryKey: queryKeys.quests.all,
     });
     expect(invalidateQueriesMock).toHaveBeenCalledWith({
       queryKey: queryKeys.rewards.dailyLessonXpTrackAll,
@@ -204,6 +204,7 @@ describe('useSubmitModuleUnitPracticeAttemptMutation', () => {
     expect(invalidateQueriesMock).toHaveBeenCalledWith({
       queryKey: queryKeys.auth.me,
     });
+    expect(invalidateQueriesMock).toHaveBeenCalledTimes(7);
   });
 
   it('merges updated progress into the module detail cache to preserve fields like dailyPractice', async () => {
