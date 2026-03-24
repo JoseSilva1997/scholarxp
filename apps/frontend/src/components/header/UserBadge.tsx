@@ -90,12 +90,15 @@ export default function UserBadge({ user, onLogout }: UserBadgeProps) {
     const targetPercent = Math.min(100, Math.round(progress.progressPercent));
 
     // First boot: snap ring to current state with no animation.
+    // Deferred via rAF so the setState calls don't fire synchronously inside the effect body.
     if (prevTargetLevelRef.current === null) {
       prevTargetLevelRef.current = nextLevel;
       ringPercentRef.current = targetPercent;
-      setRingPercent(targetPercent);
-      setRingTransitionMs(0);
-      return;
+      const frameId = requestAnimationFrame(() => {
+        setRingPercent(targetPercent);
+        setRingTransitionMs(0);
+      });
+      return () => cancelAnimationFrame(frameId);
     }
 
     const levelsGained = nextLevel - prevTargetLevelRef.current;
@@ -115,11 +118,14 @@ export default function UserBadge({ user, onLogout }: UserBadgeProps) {
 
     if (levelsGained <= 0) {
       // Normal XP gain within the same level: smoothly update ring.
+      // Deferred via rAF to avoid synchronous setState inside the effect body.
       const transitionMs = Math.max(400, Math.min(1200, Math.abs(targetPercent - (ringPercentRef.current ?? 0)) * 12));
-      setRingTransitionMs(transitionMs);
-      setRingPercent(targetPercent);
       ringPercentRef.current = targetPercent;
-      return;
+      const frameId = requestAnimationFrame(() => {
+        setRingTransitionMs(transitionMs);
+        setRingPercent(targetPercent);
+      });
+      return () => cancelAnimationFrame(frameId);
     }
 
     // --- Level-up sequence ---

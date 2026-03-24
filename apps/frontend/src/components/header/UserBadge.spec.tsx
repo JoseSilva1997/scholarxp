@@ -66,7 +66,7 @@ describe('UserBadge', () => {
     // Level label is gone — progress is now conveyed by the SVG arc progressbar.
     expect(screen.getByRole('progressbar', { name: 'XP progress to next level' })).toBeInTheDocument();
     // Level number lives in the aria-hidden ring badge overlay; query with hidden:true to reach it.
-    expect(screen.getByText('5', { hidden: true })).toBeInTheDocument();
+    expect(screen.getByText('5')).toBeInTheDocument();
     expect(screen.getByText('Jane Doe')).toBeInTheDocument();
   });
 
@@ -100,8 +100,9 @@ describe('UserBadge', () => {
     };
     rerender(<UserBadge user={levelThreeUser} />);
     
-    // Advance time for the total exp animation to complete and trigger the check
-    await vi.advanceTimersByTimeAsync(1000); 
+    // totalExp=100 is exactly at level 2 start (progressPercent=0%), so fillToDuration=1200ms
+    // plus the 200ms settling buffer means setIsLevelingUp fires at ~1400ms.
+    await vi.advanceTimersByTimeAsync(1500);
 
     // Verify the user-visible behavior that matters: level-up state is triggered on level increase.
     // We avoid asserting exact teardown timing because animation/rAF scheduling is intentionally implementation-specific.
