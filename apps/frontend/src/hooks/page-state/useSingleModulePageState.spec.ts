@@ -314,6 +314,32 @@ describe('useSingleModulePageState', () => {
     expect(result.current.isDailyPracticeButtonDisabled).toBe(false);
   });
 
+  it('keeps the daily-practice CTA safely disabled when the student payload is missing the status summary', async () => {
+    moduleQueryState = {
+      data: {
+        id: 14,
+        title: 'History',
+      },
+      isPending: false,
+      error: null,
+    };
+
+    const { result } = renderHook(() =>
+      useSingleModulePageState({ moduleIdParam: '14', user: mockUser }),
+    );
+
+    await act(async () => {
+      await result.current.handleDailyPracticeClick();
+    });
+
+    expect(result.current.dailyPracticeButtonLabel).toBe(
+      'Daily Practice Unavailable',
+    );
+    expect(result.current.dailyPracticeStatusText).toBeNull();
+    expect(result.current.isDailyPracticeButtonDisabled).toBe(true);
+    expect(mocks.assign).not.toHaveBeenCalled();
+  });
+
   it('keeps the daily-practice CTA locked when the backend reports the module is not eligible yet', async () => {
     moduleQueryState = {
       data: {

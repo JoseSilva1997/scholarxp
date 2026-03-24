@@ -215,8 +215,9 @@ export function useSingleModulePageState({
 
     if (!dailyPractice) {
       return {
-        buttonLabel: "Start Daily Practice",
-        statusText: "Preparing today's set...",
+        // Student module detail responses should always include dailyPractice; keep this disabled so a partial payload cannot open a broken room.
+        buttonLabel: "Daily Practice Unavailable",
+        statusText: null,
         tooltipText: null,
         isDisabled: true,
       };

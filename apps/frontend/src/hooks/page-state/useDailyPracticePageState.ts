@@ -1,5 +1,5 @@
 // Encapsulates DailyPracticePage orchestration so the route can stay focused on rendering the adaptive set UI.
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type {
   DailyPracticeProgress,
@@ -90,10 +90,13 @@ export function useDailyPracticePageState({
   const requestedSessionId = parsePracticeRoomSessionIdQuery(
     searchParams.get('sessionId'),
   );
+  const [querySessionId, setQuerySessionId] = useState<string | null>(
+    requestedSessionId,
+  );
 
   const dailyPracticeQuery = useTodayDailyPracticeQuery(
     parsedModuleId,
-    requestedSessionId,
+    querySessionId,
   );
   const submitAttemptMutation =
     useSubmitDailyPracticeAttemptMutation(parsedModuleId);
@@ -151,6 +154,8 @@ export function useDailyPracticePageState({
   const latestModuleIdRef = useRef<number | null>(parsedModuleId);
   const closeSessionRef = useRef(closeSessionMutation.mutate);
   const closedSessionIdsRef = useRef<Set<string>>(new Set());
+  const previousModuleIdRef = useRef<number | null>(parsedModuleId);
+  const isSyncingSearchParamsRef = useRef(false);
   const activeSetId = room?.setId ?? null;
   // Seed streak from server on first load for the active set; after that, submit responses drive updates.
   const isStreakInitialized = activeSetId !== null && streakState.setId === activeSetId;
@@ -211,6 +216,31 @@ export function useDailyPracticePageState({
   }, [dailyPracticeQuery.error, parsedModuleId]);
 
   useEffect(() => {
+    if (previousModuleIdRef.current === parsedModuleId) {
+      return;
+    }
+
+    previousModuleIdRef.current = parsedModuleId;
+    // Module changes should bootstrap from whatever session id the new URL carries.
+    isSyncingSearchParamsRef.current = false;
+    startTransition(() => {
+      setQuerySessionId(requestedSessionId);
+    });
+  }, [parsedModuleId, requestedSessionId]);
+
+  useEffect(() => {
+    if (isSyncingSearchParamsRef.current) {
+      isSyncingSearchParamsRef.current = false;
+      return;
+    }
+
+    // Only external URL changes should retarget the room query; our own canonicalization already has the room data.
+    startTransition(() => {
+      setQuerySessionId(requestedSessionId);
+    });
+  }, [requestedSessionId]);
+
+  useEffect(() => {
     latestSessionIdRef.current = room?.sessionId ?? null;
   }, [room?.sessionId]);
 
@@ -233,6 +263,8 @@ export function useDailyPracticePageState({
     }
     const nextSearchParams = new URLSearchParams(searchParamsString);
     nextSearchParams.set('sessionId', room.sessionId);
+    // Track URL writes we initiated so the next effect keeps using the original query identity instead of refetching the same room.
+    isSyncingSearchParamsRef.current = true;
     setSearchParams(nextSearchParams, { replace: true });
   }, [requestedSessionId, room, searchParamsString, setSearchParams]);
 

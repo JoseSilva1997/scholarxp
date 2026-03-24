@@ -222,7 +222,7 @@ describe('useDailyPracticePageState', () => {
     );
   });
 
-  it('syncs the server session id back into the URL when the response differs', async () => {
+  it('syncs the server session id back into the URL without switching the active query session', async () => {
     useTodayDailyPracticeQueryMock.mockReturnValue({
       isPending: false,
       error: null,
@@ -236,6 +236,8 @@ describe('useDailyPracticePageState', () => {
         '?sessionId=11111111-1111-4111-8111-111111111202',
       );
     });
+
+    expect(useTodayDailyPracticeQueryMock).toHaveBeenLastCalledWith(7, null);
   });
 
   it('closes the active session on unmount', async () => {
