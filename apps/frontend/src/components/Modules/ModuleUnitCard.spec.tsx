@@ -1,5 +1,5 @@
-// Verifies module unit card interactions for status publish flow, edit navigation, and group expansion.
-// Tests branch coverage for status buttons, publish flow, edit warnings, and question group display.
+// Verifies module unit card interactions for status dropdown flow, edit navigation, and group expansion.
+// Tests branch coverage for status select, publish-step confirmations, edit warnings, and question group display.
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ModuleUnitCard from './ModuleUnitCard';
@@ -24,11 +24,9 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-// Track all ConfirmPublishModal instances separately by capturing title
 const mockModalInstances: MockConfirmPublishModalProps[] = [];
 vi.mock('../Modals/ConfirmPublishModal', () => ({
   default: (props: MockConfirmPublishModalProps) => {
-    // Store this instance's props indexed by title to differentiate between publish and edit modals
     mockModalInstances.push({ ...props });
     return props.isOpen ? (
       <div data-testid={`modal-${props.title?.slice(0, 10) || 'unknown'}`}>
@@ -43,6 +41,11 @@ vi.mock('../Modals/ConfirmPublishModal', () => ({
     ) : null;
   },
 }));
+
+// Opens the status dropdown for the rendered card.
+function openStatusMenu() {
+  fireEvent.click(screen.getByRole('button', { name: /lesson status:/i }));
+}
 
 describe('ModuleUnitCard', () => {
   const baseUnit = {
@@ -70,33 +73,151 @@ describe('ModuleUnitCard', () => {
   });
 
   // ============================================================================
-  // Status Button: Click behavior based on unit.status
+  // Status dropdown: trigger renders with current status
   // ============================================================================
-  describe('Status button - draft status', () => {
-    it('opens publish modal for draft status when onChangeStatus provided', async () => {
+  describe('Status dropdown trigger', () => {
+    it('shows current status label on the trigger button', () => {
+      render(<ModuleUnitCard unit={baseUnit} />);
+      expect(screen.getByRole('button', { name: 'Lesson status: draft' })).toBeInTheDocument();
+    });
+
+    it('opens the status menu when trigger is clicked', () => {
+      render(<ModuleUnitCard unit={baseUnit} onChangeStatus={vi.fn()} />);
+      openStatusMenu();
+      expect(screen.getByRole('listbox')).toBeInTheDocument();
+    });
+
+    it('disables trigger when onChangeStatus is not provided', () => {
+      render(<ModuleUnitCard unit={baseUnit} />);
+      expect(screen.getByRole('button', { name: /lesson status/i })).toBeDisabled();
+    });
+
+    it('disables trigger for archived status', () => {
+      render(<ModuleUnitCard unit={{ ...baseUnit, status: 'archived' }} onChangeStatus={vi.fn()} />);
+      expect(screen.getByRole('button', { name: /lesson status/i })).toBeDisabled();
+    });
+  });
+
+  // ============================================================================
+  // Status dropdown: draft transitions
+  // ============================================================================
+  describe('Status dropdown - draft transitions', () => {
+    it('opens the Publish to Locked modal when selecting Locked from Draft', async () => {
       const onChangeStatus = vi.fn().mockResolvedValue(undefined);
-      const unit = { ...baseUnit, status: 'draft' as const };
-      render(<ModuleUnitCard unit={unit} onChangeStatus={onChangeStatus} />);
+      render(<ModuleUnitCard unit={{ ...baseUnit, status: 'draft' }} onChangeStatus={onChangeStatus} />);
 
-      fireEvent.click(screen.getByLabelText('Module unit status: draft'));
+      openStatusMenu();
+      fireEvent.click(screen.getByRole('button', { name: /locked/i }));
 
-      // Check that publish modal opened with draft-specific copy
       await waitFor(() => {
         expect(screen.getByText('Ready to publish lesson?')).toBeInTheDocument();
       });
     });
 
-    it('does not open publish modal for draft status when onChangeStatus is undefined', () => {
-      const unit = { ...baseUnit, status: 'draft' as const };
-      render(<ModuleUnitCard unit={unit} />);
+    it('calls onChangeStatus with locked after confirming Publish to Locked', async () => {
+      const onChangeStatus = vi.fn().mockResolvedValue(undefined);
+      render(<ModuleUnitCard unit={{ ...baseUnit, status: 'draft' }} onChangeStatus={onChangeStatus} />);
 
-      fireEvent.click(screen.getByLabelText('Module unit status: draft'));
+      openStatusMenu();
+      fireEvent.click(screen.getByRole('button', { name: /locked/i }));
 
-      // Modal should not open if no onChangeStatus callback
-      expect(screen.queryByText('Ready to publish lesson?')).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('Ready to publish lesson?')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Publish to Locked', { selector: 'button' }));
+
+      await waitFor(() => {
+        expect(onChangeStatus).toHaveBeenCalledWith('12', 'locked');
+      });
+    });
+
+    it('marks Draft as current and disables it in the menu', () => {
+      render(<ModuleUnitCard unit={{ ...baseUnit, status: 'draft' }} onChangeStatus={vi.fn()} />);
+      openStatusMenu();
+      // The Draft option should be the disabled current selection.
+      const draftOption = screen.getByRole('button', { name: /^draft$/i });
+      expect(draftOption).toBeDisabled();
+    });
+
+    it('disables Live option from Draft (skipping Locked is not allowed)', () => {
+      render(<ModuleUnitCard unit={{ ...baseUnit, status: 'draft' }} onChangeStatus={vi.fn()} />);
+      openStatusMenu();
+      const liveOption = screen.getByRole('button', { name: /^live$/i });
+      expect(liveOption).toBeDisabled();
     });
   });
 
+  // ============================================================================
+  // Status dropdown: locked transitions
+  // ============================================================================
+  describe('Status dropdown - locked transitions', () => {
+    it('opens the Go Live modal when selecting Live from Locked', async () => {
+      const onChangeStatus = vi.fn().mockResolvedValue(undefined);
+      render(<ModuleUnitCard unit={{ ...baseUnit, status: 'locked' }} onChangeStatus={onChangeStatus} />);
+
+      openStatusMenu();
+      fireEvent.click(screen.getByRole('button', { name: /^live$/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Go live?')).toBeInTheDocument();
+      });
+    });
+
+    it('calls onChangeStatus with live on Go Live modal confirm', async () => {
+      const onChangeStatus = vi.fn().mockResolvedValue(undefined);
+      render(<ModuleUnitCard unit={{ ...baseUnit, status: 'locked' }} onChangeStatus={onChangeStatus} />);
+
+      openStatusMenu();
+      fireEvent.click(screen.getByRole('button', { name: /^live$/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Go live?')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Go Live', { selector: 'button' }));
+
+      await waitFor(() => {
+        expect(onChangeStatus).toHaveBeenCalledWith('12', 'live');
+      });
+    });
+
+    it('calls onChangeStatus directly when rolling back Locked → Draft', async () => {
+      const onChangeStatus = vi.fn().mockResolvedValue(undefined);
+      render(<ModuleUnitCard unit={{ ...baseUnit, status: 'locked' }} onChangeStatus={onChangeStatus} />);
+
+      openStatusMenu();
+
+      fireEvent.click(screen.getByRole('button', { name: /^draft$/i }));
+
+      await waitFor(() => {
+        expect(onChangeStatus).toHaveBeenCalledWith('12', 'draft');
+      });
+    });
+  });
+
+  // ============================================================================
+  // Status dropdown: live transitions
+  // ============================================================================
+  describe('Status dropdown - live transitions', () => {
+    it('disables Locked from Live for the MVP so published lessons cannot be unpublished', () => {
+      render(<ModuleUnitCard unit={{ ...baseUnit, status: 'live' }} onChangeStatus={vi.fn()} />);
+      openStatusMenu();
+      const lockedOption = screen.getByRole('button', { name: /^locked$/i });
+      expect(lockedOption).toBeDisabled();
+    });
+
+    it('disables Draft option from Live (large rollback not supported)', () => {
+      render(<ModuleUnitCard unit={{ ...baseUnit, status: 'live' }} onChangeStatus={vi.fn()} />);
+      openStatusMenu();
+      const draftOption = screen.getByRole('button', { name: /^draft$/i });
+      expect(draftOption).toBeDisabled();
+    });
+  });
+
+  // ============================================================================
+  // Title editing
+  // ============================================================================
   describe('Title editing', () => {
     it('shows edit icon when onUpdateTitle is provided', () => {
       const onUpdateTitle = vi.fn();
@@ -142,119 +263,8 @@ describe('ModuleUnitCard', () => {
     });
   });
 
-  describe('Status button - draft status', () => {
-    it('publishes draft to locked status on confirm (draft -> locked transition)', async () => {
-      const onChangeStatus = vi.fn().mockResolvedValue(undefined);
-      const unit = { ...baseUnit, status: 'draft' as const };
-      render(<ModuleUnitCard unit={unit} onChangeStatus={onChangeStatus} />);
-
-      fireEvent.click(screen.getByLabelText('Module unit status: draft'));
-      
-      // Wait for modal to appear then click confirm
-      await waitFor(() => {
-        expect(screen.getByText('Ready to publish lesson?')).toBeInTheDocument();
-      });
-      
-      const confirmButton = screen.getByText('Publish to Locked', { selector: 'button' });
-      fireEvent.click(confirmButton);
-
-      await waitFor(() => {
-        expect(onChangeStatus).toHaveBeenCalledWith('12', 'locked');
-      });
-    });
-
-    it('shows draft-specific publish modal copy', async () => {
-      const onChangeStatus = vi.fn().mockResolvedValue(undefined);
-      const unit = { ...baseUnit, status: 'draft' as const };
-      render(<ModuleUnitCard unit={unit} onChangeStatus={onChangeStatus} />);
-
-      fireEvent.click(screen.getByLabelText('Module unit status: draft'));
-
-      await waitFor(() => {
-        expect(screen.getByText('Ready to publish lesson?')).toBeInTheDocument();
-      });
-      
-      // Check for key text fragments that may be split across elements
-      expect(screen.getByText(/locked state/)).toBeInTheDocument();
-      expect(screen.getByText('Publish to Locked')).toBeInTheDocument();
-    });
-  });
-
-  describe('Status button - locked status', () => {
-    it('opens publish modal for locked status when onChangeStatus provided', async () => {
-      const onChangeStatus = vi.fn().mockResolvedValue(undefined);
-      const unit = { ...baseUnit, status: 'locked' as const };
-      render(<ModuleUnitCard unit={unit} onChangeStatus={onChangeStatus} />);
-
-      fireEvent.click(screen.getByLabelText('Module unit status: locked'));
-
-      await waitFor(() => {
-        expect(screen.getByText('Go live?')).toBeInTheDocument();
-      });
-    });
-
-    it('publishes locked to live status on confirm (locked -> live transition)', async () => {
-      const onChangeStatus = vi.fn().mockResolvedValue(undefined);
-      const unit = { ...baseUnit, status: 'locked' as const };
-      render(<ModuleUnitCard unit={unit} onChangeStatus={onChangeStatus} />);
-
-      fireEvent.click(screen.getByLabelText('Module unit status: locked'));
-
-      await waitFor(() => {
-        expect(screen.getByText('Go live?')).toBeInTheDocument();
-      });
-
-      const confirmButton = screen.getByText('Go Live', { selector: 'button' });
-      fireEvent.click(confirmButton);
-
-      await waitFor(() => {
-        expect(onChangeStatus).toHaveBeenCalledWith('12', 'live');
-      });
-    });
-
-    it('shows locked-specific publish modal copy', async () => {
-      const onChangeStatus = vi.fn().mockResolvedValue(undefined);
-      const unit = { ...baseUnit, status: 'locked' as const };
-      render(<ModuleUnitCard unit={unit} onChangeStatus={onChangeStatus} />);
-
-      fireEvent.click(screen.getByLabelText('Module unit status: locked'));
-
-      await waitFor(() => {
-        expect(screen.getByText('Go live?')).toBeInTheDocument();
-      });
-      
-      expect(screen.getByText(/able to practice this lesson/)).toBeInTheDocument();
-      expect(screen.getByText('Go Live')).toBeInTheDocument();
-    });
-  });
-
-  describe('Status button - live and archived statuses', () => {
-    it('does not open publish modal for live status', () => {
-      const onChangeStatus = vi.fn().mockResolvedValue(undefined);
-      const unit = { ...baseUnit, status: 'live' as const };
-      render(<ModuleUnitCard unit={unit} onChangeStatus={onChangeStatus} />);
-
-      fireEvent.click(screen.getByLabelText('Module unit status: live'));
-
-      // Modal should not open for live (not in draft || locked condition)
-      expect(screen.queryByText('Go live?')).not.toBeInTheDocument();
-      expect(screen.queryByText('Ready to publish lesson?')).not.toBeInTheDocument();
-    });
-
-    it('does not open publish modal for archived status', () => {
-      const onChangeStatus = vi.fn().mockResolvedValue(undefined);
-      const unit = { ...baseUnit, status: 'archived' as const };
-      render(<ModuleUnitCard unit={unit} onChangeStatus={onChangeStatus} />);
-
-      fireEvent.click(screen.getByLabelText('Module unit status: archived'));
-
-      expect(screen.queryByText('Go live?')).not.toBeInTheDocument();
-      expect(screen.queryByText('Ready to publish lesson?')).not.toBeInTheDocument();
-    });
-  });
-
   // ============================================================================
-  // Edit Warning Modal: Copy varies by unit.status
+  // Edit Warning Modal
   // ============================================================================
   describe('Edit warning modal - lifecycle-specific copy', () => {
     it('shows live-specific warning when editing live lesson', async () => {
@@ -266,7 +276,7 @@ describe('ModuleUnitCard', () => {
       await waitFor(() => {
         expect(screen.getByText('Edit live lesson?')).toBeInTheDocument();
       });
-      
+
       expect(screen.getByText(/lesson is live/)).toBeInTheDocument();
     });
 
@@ -310,8 +320,7 @@ describe('ModuleUnitCard', () => {
         expect(screen.getByText('Edit live lesson?')).toBeInTheDocument();
       });
 
-      const confirmButton = screen.getByText('Edit live lesson', { selector: 'button' });
-      fireEvent.click(confirmButton);
+      fireEvent.click(screen.getByText('Edit live lesson', { selector: 'button' }));
 
       expect(navigateMock).toHaveBeenCalledWith('/main/modules/9/12/editor');
     });
@@ -349,92 +358,72 @@ describe('ModuleUnitCard', () => {
         expect(screen.getByText('Edit live lesson?')).toBeInTheDocument();
       });
 
-      const cancelButton = screen.getByText('cancel');
-      fireEvent.click(cancelButton);
+      fireEvent.click(screen.getByText('cancel'));
 
-      // Modal should close
       expect(screen.queryByText('Edit live lesson?')).not.toBeInTheDocument();
     });
   });
 
   // ============================================================================
-  // Question Count Display: Singular vs Plural
+  // Question Count Display
   // ============================================================================
   describe('Question count display', () => {
     it('shows singular "Question" when count is 1', () => {
       const unit = { ...baseUnit, questionCount: 1 };
       render(<ModuleUnitCard unit={unit} />);
-
       expect(screen.getByText('1 Question')).toBeInTheDocument();
     });
 
     it('shows plural "Questions" when count is 0', () => {
       const unit = { ...baseUnit, questionCount: 0 };
       render(<ModuleUnitCard unit={unit} />);
-
       expect(screen.getByText('0 Questions')).toBeInTheDocument();
     });
 
     it('shows plural "Questions" when count is 2', () => {
       const unit = { ...baseUnit, questionCount: 2 };
       render(<ModuleUnitCard unit={unit} />);
-
       expect(screen.getByText('2 Questions')).toBeInTheDocument();
     });
 
     it('shows plural "Questions" when count is > 1', () => {
       const unit = { ...baseUnit, questionCount: 100 };
       render(<ModuleUnitCard unit={unit} />);
-
       expect(screen.getByText('100 Questions')).toBeInTheDocument();
     });
   });
 
   // ============================================================================
-  // Question Groups Panel: Expansion and Group Display
+  // Question Groups Panel
   // ============================================================================
   describe('Question groups panel - expansion toggle', () => {
     it('toggles panel visibility (expand)', () => {
-      const unit = baseUnit;
-      render(<ModuleUnitCard unit={unit} />);
+      render(<ModuleUnitCard unit={baseUnit} />);
 
-      // Initially collapsed
       expect(screen.getByRole('button', { name: 'Expand question groups' })).toHaveAttribute('aria-expanded', 'false');
-
-      // Expand
       fireEvent.click(screen.getByRole('button', { name: 'Expand question groups' }));
-
       expect(screen.getByRole('button', { name: 'Collapse question groups' })).toHaveAttribute('aria-expanded', 'true');
     });
 
     it('toggles panel visibility (collapse)', () => {
-      const unit = baseUnit;
-      render(<ModuleUnitCard unit={unit} />);
+      render(<ModuleUnitCard unit={baseUnit} />);
 
-      // Expand
       fireEvent.click(screen.getByRole('button', { name: 'Expand question groups' }));
-
-      // Collapse
       fireEvent.click(screen.getByRole('button', { name: 'Collapse question groups' }));
 
       expect(screen.getByRole('button', { name: 'Expand question groups' })).toHaveAttribute('aria-expanded', 'false');
     });
 
     it('sets aria-hidden=true when panel is collapsed', () => {
-      const unit = baseUnit;
-      const { container } = render(<ModuleUnitCard unit={unit} />);
-
-      const panel = container.querySelector(`[id="unit-panel-${unit.id}"]`);
+      const { container } = render(<ModuleUnitCard unit={baseUnit} />);
+      const panel = container.querySelector(`[id="unit-panel-${baseUnit.id}"]`);
       expect(panel).toHaveAttribute('aria-hidden', 'true');
     });
 
     it('sets aria-hidden=false when panel is expanded', () => {
-      const unit = baseUnit;
-      const { container } = render(<ModuleUnitCard unit={unit} />);
-
+      const { container } = render(<ModuleUnitCard unit={baseUnit} />);
       fireEvent.click(screen.getByRole('button', { name: 'Expand question groups' }));
-
-      const panel = container.querySelector(`[id="unit-panel-${unit.id}"]`);
+      const panel = container.querySelector(`[id="unit-panel-${baseUnit.id}"]`);
       expect(panel).toHaveAttribute('aria-hidden', 'false');
     });
   });
@@ -480,7 +469,7 @@ describe('ModuleUnitCard', () => {
     it('shows "No questions yet" when group has undefined questions', () => {
       const unit = {
         ...baseUnit,
-        questionGroups: [{ id: 'g1', title: 'Group 1' }], // questions undefined
+        questionGroups: [{ id: 'g1', title: 'Group 1' }],
       };
       render(<ModuleUnitCard unit={unit} />);
 
@@ -495,7 +484,7 @@ describe('ModuleUnitCard', () => {
         questionGroups: [
           { id: 'g1', title: 'Group 1', questions: [{ id: '101', title: 'Q1' }] },
           { id: 'g2', title: 'Group 2', questions: [] },
-          { id: 'g3', title: 'Group 3' }, // undefined questions
+          { id: 'g3', title: 'Group 3' },
         ],
       };
       render(<ModuleUnitCard unit={unit} />);
@@ -508,13 +497,12 @@ describe('ModuleUnitCard', () => {
   });
 
   // ============================================================================
-  // Module ID extraction from URL
+  // Module ID extraction
   // ============================================================================
   describe('Module ID extraction', () => {
     it('extracts moduleId from URL path /main/modules/{id}', () => {
       window.history.pushState({}, '', '/main/modules/42');
-      const unit = { ...baseUnit, status: 'draft' as const };
-      render(<ModuleUnitCard unit={unit} />);
+      render(<ModuleUnitCard unit={{ ...baseUnit, status: 'draft' }} />);
 
       fireEvent.click(screen.getByRole('button', { name: 'Edit module unit' }));
 
@@ -523,8 +511,7 @@ describe('ModuleUnitCard', () => {
 
     it('extracts moduleId from nested URL path', () => {
       window.history.pushState({}, '', '/main/modules/999/some/other/path');
-      const unit = { ...baseUnit, status: 'draft' as const };
-      render(<ModuleUnitCard unit={unit} />);
+      render(<ModuleUnitCard unit={{ ...baseUnit, status: 'draft' }} />);
 
       fireEvent.click(screen.getByRole('button', { name: 'Edit module unit' }));
 
@@ -533,7 +520,7 @@ describe('ModuleUnitCard', () => {
   });
 
   // ============================================================================
-  // Edit button always enabled (no conditions)
+  // Edit button
   // ============================================================================
   describe('Edit button', () => {
     it('edit button is always visible and clickable regardless of status', () => {

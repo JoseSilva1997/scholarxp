@@ -1,8 +1,7 @@
 // Displays a module unit with status, title, edit, and dropdown for question groups; keeps interactions local for now.
 import { useMemo, useState, useEffect } from 'react';
-import { RiDraftLine, RiLock2Fill, RiArchiveFill, RiEditLine, RiCheckLine, RiCloseLine } from "react-icons/ri";
+import { RiEditLine, RiCheckLine, RiCloseLine, RiArrowDownSLine } from "react-icons/ri";
 import { FaCheck } from "react-icons/fa6";
-import { IconContext } from 'react-icons';
 import styles from './ModuleUnitCard.module.css';
 import ConfirmPublishModal from '../Modals/ConfirmPublishModal';
 import { useNavigate } from 'react-router-dom';
@@ -38,12 +37,39 @@ type ModuleUnitCardProps = {
   onUpdateTitle?: (unitId: string, title: string) => Promise<void>;
 };
 
+const STATUS_DISPLAY_LABELS: Record<ModuleUnitStatus, string> = {
+  draft: 'Draft',
+  locked: 'Locked',
+  live: 'Live',
+  archived: 'Archived',
+};
+
+// Both publish steps deserve confirmation because each one changes what students can see or do.
+const MODAL_REQUIRED_TRANSITIONS: Partial<Record<ModuleUnitStatus, Set<ModuleUnitStatus>>> = {
+  draft: new Set(['locked']),
+  locked: new Set(['live']),
+};
+
+// Statuses available in the dropdown menu — archived is managed separately (not in-line).
+const MENU_STATUSES: ModuleUnitStatus[] = ['draft', 'locked', 'live'];
+
+// Which target statuses are valid from a given source — keeps the menu honest about supported paths.
+const VALID_TRANSITIONS: Record<ModuleUnitStatus, Set<ModuleUnitStatus>> = {
+  draft: new Set(['locked']),
+  locked: new Set(['draft', 'live']),
+  live: new Set(),
+  archived: new Set(),
+};
+
 export default function ModuleUnitCard({ unit, onChangeStatus, onUpdateTitle }: ModuleUnitCardProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState(unit.title);
   const [isSavingTitle, setIsSavingTitle] = useState(false);
   const [showPublishModal, setShowPublishModal] = useState(false);
+  // Target status held while a confirmation modal is open — applied on confirm.
+  const [pendingTargetStatus, setPendingTargetStatus] = useState<ModuleUnitStatus | null>(null);
 
   useEffect(() => {
     // Sync local draft with server title whenever the unit prop updates and we are not actively editing.
@@ -55,23 +81,16 @@ export default function ModuleUnitCard({ unit, onChangeStatus, onUpdateTitle }: 
   const [showEditWarningModal, setShowEditWarningModal] = useState(false);
   const [pendingQuestionId, setPendingQuestionId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [publishError, setPublishError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const navigate = useNavigate();
   const totalQuestions = unit.questionCount;
-
-  const statusIcon = {
-    draft: <RiDraftLine/>,
-    live: <FaCheck />,
-    locked: <RiLock2Fill/>,
-    archived: <RiArchiveFill />,
-  }[unit.status];
 
   const statusClass = styles[unit.status] || '';
   const isOverlayOpen = showPublishModal || showEditWarningModal;
 
   const navigateToEditor = (questionId: string | null = null) => {
     const moduleId = window.location.pathname.split('/')[3];
-    const path = questionId 
+    const path = questionId
       ? `/main/modules/${moduleId}/${unit.id}/editor?questionId=${encodeURIComponent(questionId)}`
       : `/main/modules/${moduleId}/${unit.id}/editor`;
     navigate(path);
@@ -86,6 +105,22 @@ export default function ModuleUnitCard({ unit, onChangeStatus, onUpdateTitle }: 
     };
   }, []);
 
+  const publishModalCopy = useMemo(() => {
+    if (pendingTargetStatus === 'locked') {
+      return {
+        title: 'Ready to publish lesson?',
+        body: "This moves the lesson to a locked state for final review. Students will be able to see it and its title, but can't see or interact with its contents.",
+        confirmLabel: 'Publish to Locked',
+      };
+    }
+
+    return {
+      title: 'Go live?',
+      body: 'Students will be able to practice this lesson. Only go live when all content is ready.',
+      confirmLabel: 'Go Live',
+    };
+  }, [pendingTargetStatus]);
+
   const onTryEdit = (questionId: string | null = null) => {
     // Skip warning for drafts and locked units; only live content requires confirmation before editing.
     if (unit.status !== 'live') {
@@ -94,6 +129,47 @@ export default function ModuleUnitCard({ unit, onChangeStatus, onUpdateTitle }: 
     }
     setPendingQuestionId(questionId);
     setShowEditWarningModal(true);
+  };
+
+  const handleStatusSelect = async (targetStatus: ModuleUnitStatus) => {
+    setIsStatusMenuOpen(false);
+    if (targetStatus === unit.status || !onChangeStatus) return;
+
+    const needsModal = MODAL_REQUIRED_TRANSITIONS[unit.status]?.has(targetStatus) ?? false;
+
+    if (needsModal) {
+      setPendingTargetStatus(targetStatus);
+      setShowPublishModal(true);
+      return;
+    }
+
+    // Any remaining direct transition is an internal authoring move, so it does not need extra confirmation.
+    setIsSubmitting(true);
+    setActionError(null);
+    try {
+      await onChangeStatus(unit.id, targetStatus);
+    } catch (err) {
+      console.error('Status change failed', err);
+      setActionError('Failed to update status. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleConfirmModalAction = async () => {
+    if (!onChangeStatus || !pendingTargetStatus) return;
+    setIsSubmitting(true);
+    setActionError(null);
+    try {
+      await onChangeStatus(unit.id, pendingTargetStatus);
+      setShowPublishModal(false);
+      setPendingTargetStatus(null);
+    } catch (err) {
+      console.error('Status transition failed', err);
+      setActionError('Failed to update status. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   /**
@@ -112,7 +188,7 @@ export default function ModuleUnitCard({ unit, onChangeStatus, onUpdateTitle }: 
       await onUpdateTitle(unit.id, editedTitle.trim());
       setIsEditingTitle(false);
     } catch (err) {
-      // Re-throw or handle error so UI can reflect failure if needed, 
+      // Re-throw or handle error so UI can reflect failure if needed,
       // though parent mutation handler usually logs this.
       console.error('Failed to update title', err);
     } finally {
@@ -128,32 +204,19 @@ export default function ModuleUnitCard({ unit, onChangeStatus, onUpdateTitle }: 
     setEditedTitle(unit.title);
   };
 
+  const canChangeStatus = !!onChangeStatus && unit.status !== 'archived';
+
   return (
-    <div className={`${styles.wrapper} ${statusClass} ${isOverlayOpen ? styles.modalOpen : ''}`}>
+    <div className={`${styles.wrapper} ${statusClass} ${isOverlayOpen ? styles.modalOpen : ''} ${isStatusMenuOpen ? styles.statusMenuOpen : ''}`}>
       <article className={styles.card}>
         <div className={styles.leftContainer} aria-hidden="true" />
         <div className={styles.content}>
           <div className={styles.header}>
-            <button
-              type="button"
-              className={styles.statusButton}
-              aria-label={`Module unit status: ${unit.status}`}
-              title={`Module unit status: ${unit.status}`}
-              onClick={() => {
-                if ((unit.status === 'draft' || unit.status === 'locked') && onChangeStatus) {
-                  setShowPublishModal(true);
-                }
-              }}
-            >
-              <IconContext.Provider value={{className: styles.statusIcon}}>
-                 {statusIcon}
-              </IconContext.Provider>
-            </button>
             <div className={styles.meta}>
               <div className={styles.topRow}>
-                <span className={styles.categoryLabel}>Unit</span>
-                <span className={styles.statusTag}>{unit.status}</span>
+                <span className={styles.categoryLabel}>Lesson</span>
               </div>
+
               {isEditingTitle ? (
                 <div className={styles.titleContainer}>
                   <input
@@ -202,26 +265,80 @@ export default function ModuleUnitCard({ unit, onChangeStatus, onUpdateTitle }: 
                   )}
                 </div>
               )}
+
               <div className={styles.bottomRow}>
                 <span className={styles.engagementStat}>
                   <FaCheck className={styles.statIcon} />
                   {totalQuestions} {totalQuestions === 1 ? 'Question' : 'Questions'}
                 </span>
-                <span className={styles.lockedText}>Status: {unit.status.charAt(0).toUpperCase() + unit.status.slice(1)}</span>
               </div>
             </div>
+
             <div className={styles.actions}>
-              <button 
-                type="button" 
-                className={styles.editButton} 
+
+              <button
+                type="button"
+                className={styles.editButton}
                 aria-label="Edit module unit"
                 onClick={() => onTryEdit()}
               >
+                <RiEditLine className={styles.editButtonIcon} aria-hidden="true" />
                 Edit
               </button>
+                            {/* Status dropdown — grouped with Edit so all controls are on the right */}
+              <div className={styles.statusDropdown}>
+                {isStatusMenuOpen && (
+                  <div
+                    className={styles.statusMenuBackdrop}
+                    onClick={() => setIsStatusMenuOpen(false)}
+                    aria-hidden="true"
+                  />
+                )}
+                <button
+                  type="button"
+                  className={styles.statusTrigger}
+                  aria-label={`Lesson status: ${unit.status}`}
+                  aria-haspopup="listbox"
+                  aria-expanded={isStatusMenuOpen}
+                  disabled={!canChangeStatus || isSubmitting}
+                  onClick={() => setIsStatusMenuOpen((v) => !v)}
+                >
+                  <span className={styles.statusTriggerDot} aria-hidden="true" />
+                  <span>{STATUS_DISPLAY_LABELS[unit.status]}</span>
+                  <RiArrowDownSLine className={styles.statusTriggerCaret} aria-hidden="true" />
+                </button>
+
+                {isStatusMenuOpen && (
+                  <ul
+                    className={styles.statusMenu}
+                    role="listbox"
+                    aria-label="Choose lesson status"
+                  >
+                    {MENU_STATUSES.map((s) => {
+                      const isCurrent = s === unit.status;
+                      const isValid = VALID_TRANSITIONS[unit.status].has(s);
+                      return (
+                        <li key={s} role="option" aria-selected={isCurrent}>
+                          <button
+                            type="button"
+                            className={`${styles.statusMenuItem} ${isCurrent ? styles.statusMenuItemCurrent : ''} ${!isCurrent && !isValid ? styles.statusMenuItemDisabled : ''}`}
+                            disabled={isCurrent || !isValid}
+                            onClick={() => { void handleStatusSelect(s); }}
+                          >
+                            <span className={`${styles.statusMenuDot} ${styles[`dot_${s}`]}`} aria-hidden="true" />
+                            <span className={styles.statusMenuLabel}>{STATUS_DISPLAY_LABELS[s]}</span>
+                            {isCurrent && <RiCheckLine className={styles.statusMenuCheck} aria-hidden="true" />}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
             </div>
           </div>
         </div>
+
         <div className={styles.rightContainer}>
           <button
             type="button"
@@ -242,58 +359,51 @@ export default function ModuleUnitCard({ unit, onChangeStatus, onUpdateTitle }: 
         aria-hidden={!isOpen}
       >
         {unit.questionGroups.length > 0 ? (
-          unit.questionGroups.map((group) => (
-            <div key={group.id} className={styles.group}>
-              <p className={styles.groupTitle}>{group.title}</p>
-              <div className={styles.questions}>
-                {group.questions && group.questions.length > 0 ? (
-                  group.questions.map((question) => (
-                    <button
-                      key={question.id}
-                      type="button"
-                      className={styles.question}
-                      onClick={() => onTryEdit(question.id)}
-                      aria-label={`Edit ${question.title}`}
-                    >
-                      {question.title}
-                    </button>
-                  ))
-                ) : (
-                  <span className={styles.empty}>No questions yet</span>
-                )}
+          unit.questionGroups.map((group) => {
+            const groupQuestionCount = (group.questions ?? []).length;
+            return (
+              <div key={group.id} className={styles.group}>
+                <p className={styles.groupTitle}>
+                  {group.title}
+                  <span className={styles.groupBadge}>
+                    · {groupQuestionCount} {groupQuestionCount === 1 ? 'question' : 'questions'}
+                  </span>
+                </p>
+                <div className={styles.questions}>
+                  {group.questions && group.questions.length > 0 ? (
+                    group.questions.map((question) => (
+                      <button
+                        key={question.id}
+                        type="button"
+                        className={styles.question}
+                        onClick={() => onTryEdit(question.id)}
+                        aria-label={`Edit ${question.title}`}
+                      >
+                        {question.title}
+                      </button>
+                    ))
+                  ) : (
+                    <span className={styles.empty}>No questions yet</span>
+                  )}
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         ) : (
           <div className={styles.empty}>This unit has no question groups.</div>
         )}
       </div>
 
+      {/* locked → live: immediately affects student access — modal is intentional friction */}
       <ConfirmPublishModal
         isOpen={showPublishModal}
-        onCancel={() => setShowPublishModal(false)}
+        onCancel={() => { setShowPublishModal(false); setPendingTargetStatus(null); }}
         isSubmitting={isSubmitting}
-        onConfirm={async () => {
-          if (!onChangeStatus) return;
-          setIsSubmitting(true);
-          setPublishError(null);
-          try {
-            const targetStatus = unit.status === 'draft' ? 'locked' : 'live';
-            await onChangeStatus(unit.id, targetStatus);
-            setShowPublishModal(false);
-          } catch (err) {
-            console.error('Publish module unit failed', err);
-            setPublishError('Failed to publish. Please try again.');
-          } finally {
-            setIsSubmitting(false);
-          }
-        }}
-        errorMessage={publishError ?? undefined}
-        title={unit.status === 'draft' ? 'Ready to publish lesson?' : 'Go live?'}
-        body={unit.status === 'draft' ? 
-            "This moves the lesson to a locked state for final review. Students will be able to see it and its title, but can't see or interact with its the contents." 
-          : "Students will be able to practice this lesson. Only go live when all content is ready."}
-        confirmLabel={unit.status === 'draft' ? 'Publish to Locked' : 'Go Live'}
+        onConfirm={handleConfirmModalAction}
+        errorMessage={actionError ?? undefined}
+        title={publishModalCopy.title}
+        body={publishModalCopy.body}
+        confirmLabel={publishModalCopy.confirmLabel}
       />
 
       <ConfirmPublishModal

@@ -87,6 +87,15 @@ export default function SingleModulePage() {
                   <p className={styles.subtitle}>
                     {module.description}
                   </p>
+                  {canManageModuleContent && moduleUnits.length > 0 && (
+                    <p className={styles.moduleSummary}>
+                      {moduleUnits.length} {moduleUnits.length === 1 ? 'lesson' : 'lessons'}
+                      {' · '}
+                      {moduleUnits.reduce((sum, u) => sum + u.questionCount, 0)} questions
+                      {' · '}
+                      {moduleUnits.filter((u) => u.status === 'live').length} live
+                    </p>
+                  )}
                 </div>
 
                 {user && (canToggleStudentView || canEditSettings) && (
