@@ -12,6 +12,7 @@ import {
   clearDailyPracticeE2eDatabase,
   createDailyPracticeE2eApp,
   fetchTodayDailyPractice,
+  generateTodayDailyPracticeSets,
   seedStudentModuleScenario,
   setAuthenticatedUserId,
 } from './helpers';
@@ -466,6 +467,8 @@ describe('Daily practice selection rules (e2e)', () => {
     });
     // No started lessons → new-sequence pool is empty.
 
+    await generateTodayDailyPracticeSets(app);
+
     await request(app.getHttpServer())
       .get(`/module/${base.moduleId}/daily-practice/today`)
       .expect(404)
@@ -674,6 +677,8 @@ describe('Daily practice selection rules (e2e)', () => {
       lastCorrectAt: completedAt,
       reviewCount: 1,
     });
+
+    await generateTodayDailyPracticeSets(app);
 
     await request(app.getHttpServer())
       .get(`/module/${base.moduleId}/daily-practice/today`)

@@ -3,6 +3,8 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { DailyPracticeGenerationBatchService } from './daily-practice-generation-batch.service';
 
+export const DAILY_PRACTICE_GENERATION_CRON_NAME = 'daily-practice-generation';
+
 @Injectable()
 export class DailyPracticeGenerationScheduleService implements OnModuleInit {
   private readonly logger = new Logger(
@@ -24,6 +26,7 @@ export class DailyPracticeGenerationScheduleService implements OnModuleInit {
 
   // UTC midnight keeps set creation aligned with the product rule that a new day begins globally, not per server locale.
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, {
+    name: DAILY_PRACTICE_GENERATION_CRON_NAME,
     timeZone: 'UTC',
   })
   async handleUtcMidnightGeneration() {
