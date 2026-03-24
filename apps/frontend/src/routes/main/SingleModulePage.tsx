@@ -1,24 +1,25 @@
 // Screen that shows details and content entry points for a single module using query-backed server state.
 import { Link, useParams } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { IconContext } from 'react-icons';
 import { IoSettingsSharp } from 'react-icons/io5';
 import { BsInfoCircle, BsLightningChargeFill } from 'react-icons/bs';
-import toggleStudentViewIcon from '../../assets/toggle-student-view.svg';
-import toggleStudentViewDarkIcon from '../../assets/toggle-student-view-dark.svg';
-import untoggleStudentViewIcon from '../../assets/untoggle-student-view.svg';
-import untoggleStudentViewDarkIcon from '../../assets/untoggle-student-view-dark.svg';
-import expIcon from '../../assets/exp_icon.svg';
-import MainSection from '../../components/MainSection';
-import ModuleSettingsPanel from '../../components/ModuleSettingsPanel';
-import CreateModuleUnitCard from '../../components/CreateModuleUnitCard';
-import CreateModuleUnitModal from '../../components/Modals/CreateModuleUnitModal';
-import ModuleUnitCard from '../../components/ModuleUnitCard';
-import StudentModuleUnitCard from '../../components/StudentModuleUnitCard';
-import { useSingleModulePageState } from '../../hooks/page-state/useSingleModulePageState';
-import { useTheme } from '../../context/useTheme';
+import toggleStudentViewIcon from '@/assets/toggle-student-view.svg';
+import toggleStudentViewDarkIcon from '@/assets/toggle-student-view-dark.svg';
+import untoggleStudentViewIcon from '@/assets/untoggle-student-view.svg';
+import untoggleStudentViewDarkIcon from '@/assets/untoggle-student-view-dark.svg';
+import expIcon from '@/assets/exp_icon.svg';
+import MainSection from '@/components/MainSection';
+import ModuleSettingsPanel from '@/components/ModuleSettingsPanel';
+import CreateModuleUnitCard from '@/components/CreateModuleUnitCard';
+import CreateModuleUnitModal from '@/components/Modals/CreateModuleUnitModal';
+import ModuleUnitCard from '@/components/ModuleUnitCard';
+import StudentModuleUnitCard from '@/components/StudentModuleUnitCard';
+import { useSingleModulePageState } from '@/hooks/page-state/useSingleModulePageState';
+import { useTheme } from '@/context/useTheme';
 import styles from './SingleModulePage.module.css';
-import { ProficiencyLevelBadge } from '../../components/SingleModulePage/ProficiencyLevelBadge';
+import { ProficiencyLevelBadge } from '@/components/SingleModulePage/ProficiencyLevelBadge';
+import DebugMeta from '@/components/DebugMeta';
 
 export default function SingleModulePage() {
   const { moduleId } = useParams<{ moduleId: string }>();
@@ -134,6 +135,12 @@ export default function SingleModulePage() {
                   </div>
                 )}
               </div>
+              <DebugMeta
+                entries={[
+                    { label: 'moduleId', value: moduleId },
+                    { label: 'userId', value: user?.id ?? 'null' },
+                ]}
+            />
             </header>
 
             <div className={styles.contentWrapper}>

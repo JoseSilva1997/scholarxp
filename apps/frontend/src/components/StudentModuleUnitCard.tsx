@@ -15,6 +15,7 @@ import {
 } from '@scholarxp/constants';
 
 import type { ModuleUnit } from './ModuleUnitCard';
+import DebugMeta from './DebugMeta';
 
 type StudentModuleUnitCardProps = {
   unit: ModuleUnit;
@@ -94,6 +95,11 @@ export default function StudentModuleUnitCard({
                   </span>
                 </div>
                 <h3 className={styles.title}>{unit.title}</h3>
+                <DebugMeta
+                    entries={[
+                        { label: 'unitId', value: unit.id },
+                    ]}
+                />
                 <div className={styles.bottomRow}>
                   {unit.status === 'live' ? (
                      <span className={styles.engagementStat}>
