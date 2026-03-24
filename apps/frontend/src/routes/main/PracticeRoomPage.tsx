@@ -16,6 +16,7 @@ import BaseXpIndicator from '../../components/PracticeRoom/BaseXpIndicator';
 import LessonCompleteModal from '../../components/PracticeRoom/LessonCompleteModal';
 import RewardsGuideTooltip from '../../components/PracticeRoom/RewardsGuideTooltip';
 import { usePracticeRoomPageState } from '../../hooks/page-state/practice-room/usePracticeRoomPageState';
+import { isUiDebugEnabled } from '../../utils/uiDebug';
 import styles from './PracticeRoomPage.module.css';
 import { getQuestionUnitStatusClass } from './practice-room-status';
 import { buildPracticeRoomAnswerFeedback } from './practice-room-answer-feedback';
@@ -78,8 +79,6 @@ export default function PracticeRoomPage() {
       })
     : [];
   const activeQuestionRewardIndicators = rewardIndicators.activeQuestion;
-
-  const DEBUG_MODE = true;
 
   // Resolve base XP status into a two-value signal for the header indicator.
   // The server snapshot is sufficient here: base XP can only move from
@@ -233,13 +232,13 @@ export default function PracticeRoomPage() {
               </div>
             )}
           </div>
-          {DEBUG_MODE ?
+          {isUiDebugEnabled ? (
               <div style={{ fontSize: '0.75rem', color: '#999', marginTop: '0.5rem' }}>
-                Debug: moduleUnitId =
+                Debug: moduleUnitId = {room?.moduleUnitId}, questionId ={' '}
                 {activeQuestionUnit?.coreQuestion.questionId}, questionContentId ={' '}
                 {activeQuestionUnit?.coreQuestion.questionContent.id}
               </div>
-            : null}
+            ) : null}
           {room && (
             <div className={styles.headerBottom}>
               <div className={styles.progressCounter}>
