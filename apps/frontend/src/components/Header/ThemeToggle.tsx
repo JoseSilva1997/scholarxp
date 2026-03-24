@@ -1,4 +1,4 @@
-import { useTheme } from '../context/useTheme';
+import { useTheme } from '../../context/useTheme';
 import { BsSunFill, BsMoonStarsFill } from 'react-icons/bs';
 import styles from './ThemeToggle.module.css';
 

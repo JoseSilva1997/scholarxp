@@ -26,7 +26,7 @@ vi.mock('react-router-dom', async () => {
 
 // Track all ConfirmPublishModal instances separately by capturing title
 const mockModalInstances: MockConfirmPublishModalProps[] = [];
-vi.mock('./Modals/ConfirmPublishModal', () => ({
+vi.mock('../Modals/ConfirmPublishModal', () => ({
   default: (props: MockConfirmPublishModalProps) => {
     // Store this instance's props indexed by title to differentiate between publish and edit modals
     mockModalInstances.push({ ...props });

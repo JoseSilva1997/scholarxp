@@ -182,6 +182,12 @@
   flex-shrink: 0; /* Header must never shrink and must stay visible while scrolling content. */
 }
 
+.sectionHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
 .sectionHeader h2 {
   font-size: 20px;
 }
@@ -300,6 +306,7 @@
 .groupTitleRow {
   display: inline-flex;
   align-items: center;
+  color: var(--color-text-on-primary);
   gap: 8px;
 }
 
@@ -309,7 +316,7 @@
   font-weight: 600;
   border: none;
   background: transparent;
-  color: var(--color-bg);
+  color: var(--color-text-on-primary);
   width: 100%;
   outline: none;
 }
@@ -459,17 +466,70 @@
   gap: 4px;
 }
 
+/* Chip container — now a div so it can hold both the select button and the delete button */
 .variantBlock {
-  padding: 4px 6px;
+  display: inline-flex;
+  align-items: stretch;
+  padding: 0;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
   color: var(--color-text);
   font-size: 11px;
   font-weight: 500;
-  cursor: pointer;
   transition: all 0.2s ease;
   flex: 0 1 auto;
+  overflow: hidden;
+}
+
+/* Clickable label area inside the chip */
+.variantSelectArea {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 4px 4px 6px;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  cursor: pointer;
+}
+
+/* Small trash button nested inside the chip */
+.variantDeleteBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 10px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.variantDeleteBtn:hover {
+  color: var(--color-error);
+  background: var(--color-error-soft);
+}
+
+/* Status dot — signals save state at a glance without requiring a click */
+.variantStatusDot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.variantDotSaved {
+  background: var(--color-success);
+}
+
+.variantDotDraft {
+  background: var(--color-accent);
 }
 
 .variantBlock:hover:not(.selectedVariantFull) {
@@ -521,20 +581,22 @@
   cursor: not-allowed;
 }
 
+
+/* Full-width so it reads as an addable slot scoped to its parent group */
 .addQuestion {
-  align-self: flex-start;
   display: flex;
-  justify-content: start;
+  justify-content: center;
   align-items: center;
   gap: 4px;
-  padding: 4px 8px;
-  border: 1px dashed var(--color-border);
+  padding: 6px 8px;
+  border: 1.5px dashed var(--color-border);
   border-radius: var(--radius-md);
   background: transparent;
-  color: var(--color-text);
+  color: var(--color-text-muted);
   cursor: pointer;
   font-size: 11px;
-  transition: border-color 0.2s, color 0.2s;
+  width: 100%;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
   margin-top: 4px;
 }
 
@@ -551,6 +613,7 @@
   color: var(--color-text-muted);
 }
 
+/* Kept for backward compatibility; no longer rendered — addGroupBottom replaced this */
 .addGroup {
   align-self: center;
   display: flex;
@@ -574,6 +637,39 @@
 }
 
 .addGroup:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  border-color: var(--color-border);
+  color: var(--color-text-muted);
+}
+
+/* Full-width "+ Add Group" anchored at the end of the list for natural discoverability */
+.addGroupBottom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px;
+  border: 1.5px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.addGroupBottom:hover {
+  border-color: var(--color-secondary);
+  color: var(--color-secondary);
+  background: var(--color-bg);
+}
+
+.addGroupBottom:disabled {
   opacity: 0.55;
   cursor: not-allowed;
   border-color: var(--color-border);
@@ -762,6 +858,7 @@
 }
 
 .secondaryButton {
+  visibility: hidden;;
   background: transparent;
   color: var(--color-text);
   border: 1px solid var(--color-border);

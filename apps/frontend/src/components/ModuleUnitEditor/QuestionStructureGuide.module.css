@@ -1,0 +1,139 @@
+.triggerButton {
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  padding: 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s, background 0.2s;
+}
+
+.triggerButton:hover,
+.triggerButtonActive {
+  color: var(--color-secondary);
+  background: var(--color-surface-hover);
+}
+
+.popover {
+  width: 280px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 20;
+  overflow: hidden;
+}
+
+/* Tab bar */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 4px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tab:hover:not(.tabActive) {
+  color: var(--color-text-soft);
+  background: var(--color-surface-hover);
+}
+
+.tabIcon {
+  width: 14px;
+  height: 14px;
+}
+
+/* Active tab inherits its color from the .colorBlue / .colorGreen / .colorAmber modifier. */
+.tabActive {
+  background: var(--color-surface);
+  border-bottom: 2px solid currentColor;
+  /* margin compensates for the tab container's own bottom border so the active border sits flush */
+  margin-bottom: -1px;
+}
+
+/* Body */
+.body {
+  padding: 14px 12px 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.iconBadge {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+}
+
+.bodyText {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.heading {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.text {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}
+
+/* Per-tab accent colours — applied to the active tab button and body heading. */
+.colorBlue {
+  color: var(--color-primary);
+}
+
+.colorGreen {
+  color: var(--color-secondary);
+}
+
+.colorAmber {
+  color: var(--color-accent-dark);
+}
+
+/* Badge backgrounds are separate from the color modifier so they don't conflict
+   with the tab button's own background declarations. */
+.badgeBlue {
+  background-color: var(--color-primary-soft);
+}
+
+.badgeGreen {
+  background-color: var(--color-secondary-soft);
+}
+
+.badgeAmber {
+  background-color: var(--color-accent-soft);
+}

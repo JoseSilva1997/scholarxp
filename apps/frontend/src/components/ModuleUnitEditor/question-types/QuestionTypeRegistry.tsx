@@ -39,6 +39,8 @@ export interface BaseQuestionFormProps {
   onChangeOption: (id: string, value: string) => void;
   onChangeExplanation: (id: string, value: string) => void;
   onSelectCorrect: (id: string) => void;
+  // Optional — MCQ uses this; True/False ignores it since its options are fixed.
+  onDeleteOption?: (id: string) => void;
 }
 
 /**

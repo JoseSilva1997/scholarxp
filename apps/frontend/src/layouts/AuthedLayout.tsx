@@ -1,7 +1,7 @@
 // Authenticated app shell: keeps Header + Sidebar visible while swapping section content via nested routes.
 import { useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
-import Header from '../components/header/Header';
+import Header from '../components/Header/Header';
 import SidebarNav from '../components/SidebarNav';
 import { useAuth } from '../context/AuthContext';
 import { UiLayoutProvider, useUiLayout } from '../context/UiLayoutContext';

@@ -10,7 +10,7 @@ import {
 import type { ModuleSummary } from '../../types/module';
 import { MODULE_UNIT_BASELINE_EXP } from '@scholarxp/constants';
 import { features } from '@scholarxp/permissions';
-import type { ModuleUnit } from '../../components/ModuleUnitCard';
+import type { ModuleUnit } from '../../components/Modules/ModuleUnitCard';
 import {
   getDisplayErrorMessage,
   shouldLogApiError,

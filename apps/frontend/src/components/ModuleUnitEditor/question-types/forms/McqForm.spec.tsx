@@ -23,8 +23,8 @@ describe('McqForm', () => {
       />,
     );
 
-    fireEvent.change(screen.getAllByPlaceholderText('Enter option text...')[0], { target: { value: 'New' } });
-    fireEvent.change(screen.getAllByPlaceholderText('Explain why this option is correct or incorrect...')[0], { target: { value: 'why' } });
+    fireEvent.change(screen.getAllByPlaceholderText(/Option \d+ text\.\.\./)[0], { target: { value: 'New' } });
+    fireEvent.change(screen.getAllByPlaceholderText('Explain why this is correct or incorrect...')[0], { target: { value: 'why' } });
     fireEvent.click(screen.getAllByRole('radio')[0]);
 
     expect(onChangeOption).toHaveBeenCalled();

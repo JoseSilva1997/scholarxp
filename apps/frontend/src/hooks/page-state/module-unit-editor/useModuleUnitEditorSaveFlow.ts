@@ -10,11 +10,11 @@ import type {
 } from '@scholarxp/api-contracts';
 import { SOURCE_HUMAN } from './helpers/source';
 import type { QuestionData } from '@scholarxp/question-type-dtos';
-import { QUESTION_TYPE_CONFIGS } from '../../../components/question-types/QuestionTypeRegistry';
+import { QUESTION_TYPE_CONFIGS } from '../../../components/ModuleUnitEditor/question-types/QuestionTypeRegistry';
 import type {
   QuestionForm,
   QuestionType,
-} from '../../../components/question-types/QuestionTypeRegistry';
+} from '../../../components/ModuleUnitEditor/question-types/QuestionTypeRegistry';
 import type { Question, QuestionGroup, SelectionState } from './helpers/types';
 import {
   replaceDraftGroupId,

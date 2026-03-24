@@ -22,7 +22,7 @@ vi.mock('./context/AuthContext', () => ({
   useAuth: () => mockAuthState,
 }));
 
-vi.mock('./components/header/Header', () => ({
+vi.mock('./components/Header/Header', () => ({
   default: () => <div>header</div>,
 }));
 

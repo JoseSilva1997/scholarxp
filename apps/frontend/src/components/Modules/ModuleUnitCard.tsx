@@ -4,7 +4,7 @@ import { RiDraftLine, RiLock2Fill, RiArchiveFill, RiEditLine, RiCheckLine, RiClo
 import { FaCheck } from "react-icons/fa6";
 import { IconContext } from 'react-icons';
 import styles from './ModuleUnitCard.module.css';
-import ConfirmPublishModal from './Modals/ConfirmPublishModal';
+import ConfirmPublishModal from '../Modals/ConfirmPublishModal';
 import { useNavigate } from 'react-router-dom';
 import type { ModuleUnitStatus, QuestionAttemptResult } from '@scholarxp/api-contracts';
 

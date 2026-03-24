@@ -4,7 +4,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ModuleSettingsPanel from './ModuleSettingsPanel';
-import type { ModuleSummary, ModuleInvite } from '../types/module';
+import type { ModuleSummary, ModuleInvite } from '../../types/module';
 
 // Hoist variables so they're available for vi.mock() calls
 const { mockUseModuleInvitesPanelState, mockUseModuleSettingsForm, mockInvitesPanelStateValue, mockSettingsFormValue } = vi.hoisted(() => ({
@@ -43,11 +43,11 @@ const { mockUseModuleInvitesPanelState, mockUseModuleSettingsForm, mockInvitesPa
   mockUseModuleSettingsForm: vi.fn(),
 }));
 
-vi.mock('../hooks/page-state/useModuleInvitesPanelState', () => ({
+vi.mock('../../hooks/page-state/useModuleInvitesPanelState', () => ({
   useModuleInvitesPanelState: mockUseModuleInvitesPanelState,
 }));
 
-vi.mock('../hooks/page-state/useModuleSettingsForm', () => ({
+vi.mock('../../hooks/page-state/useModuleSettingsForm', () => ({
   useModuleSettingsForm: mockUseModuleSettingsForm,
 }));
 

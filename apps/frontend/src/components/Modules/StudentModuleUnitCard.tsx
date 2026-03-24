@@ -1,7 +1,7 @@
 // Student-facing module unit card; shows neutral badge and start practice CTA without edit or authoring controls.
 import { useState } from 'react';
 import styles from './StudentModuleUnitCard.module.css';
-import completionMedalIcon from '../assets/module-unit/module-unit-completed-medal.png';
+import completionMedalIcon from '@/assets/module-unit/module-unit-completed-medal.png';
 import { FaCheck, FaMinus, FaXmark, FaBolt, FaFire, FaGraduationCap } from 'react-icons/fa6';
 import { TbTargetArrow } from "react-icons/tb";
 import { IoMdLock } from "react-icons/io"
@@ -15,7 +15,7 @@ import {
 } from '@scholarxp/constants';
 
 import type { ModuleUnit } from './ModuleUnitCard';
-import DebugMeta from './DebugMeta';
+import DebugMeta from '../DebugMeta';
 
 type StudentModuleUnitCardProps = {
   unit: ModuleUnit;

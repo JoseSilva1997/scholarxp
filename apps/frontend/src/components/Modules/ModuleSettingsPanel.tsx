@@ -1,11 +1,11 @@
 // Component that renders the collapsible module settings rail so the module page stays lean.
 import { useEffect, useMemo } from 'react';
 import styles from './ModuleSettingsPanel.module.css';
-import type { ModuleInvite, ModuleSummary } from '../types/module';
+import type { ModuleInvite, ModuleSummary } from '../../types/module';
 import { FaRegCopy, FaXmark } from "react-icons/fa6";
 import { IconContext } from 'react-icons';
-import { useModuleInvitesPanelState } from '../hooks/page-state/useModuleInvitesPanelState';
-import { useModuleSettingsForm } from '../hooks/page-state/useModuleSettingsForm';
+import { useModuleInvitesPanelState } from '../../hooks/page-state/useModuleInvitesPanelState';
+import { useModuleSettingsForm } from '../../hooks/page-state/useModuleSettingsForm';
 
 type ModuleSettingsPanelProps = {
   module: ModuleSummary | null;

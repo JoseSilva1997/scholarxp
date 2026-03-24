@@ -1,4 +1,5 @@
 // Module unit authoring workspace UI that renders editor state from the page-state hook.
+import { useState } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import {
   FiArchive,
@@ -19,9 +20,12 @@ import MainSection from '../../components/MainSection';
 import {
   QUESTION_TYPE_CONFIGS,
   type QuestionTypeConfig,
-} from '../../components/question-types/QuestionTypeRegistry';
+  normalizeQuestionType,
+} from '../../components/ModuleUnitEditor/question-types/QuestionTypeRegistry';
 import { useModuleUnitEditorPageState } from '../../hooks/page-state/module-unit-editor/useModuleUnitEditorPageState';
 import ConfirmDeleteModal from '../../components/Modals/ConfirmDeleteModal';
+import VariantSettingsModal from '../../components/Modals/VariantSettingsModal';
+import QuestionStructureGuide from '../../components/ModuleUnitEditor/QuestionStructureGuide';
 import styles from './ModuleUnitEditor.module.css';
 
 export default function ModuleUnitEditor() {
@@ -76,6 +80,7 @@ export default function ModuleUnitEditor() {
     saveEditingGroupTitle,
     handleOptionChange,
     handleExplanationChange,
+    handleDeleteOption,
     setCorrectOption,
     handleTypeChange,
     handleSaveQuestion,
@@ -86,6 +91,9 @@ export default function ModuleUnitEditor() {
     unitIdParam: unitId,
     initialQuestionIdParam,
   });
+
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const activeQuestionType = normalizeQuestionType(form.type);
 
   const handleGenerateVariant = () => {
     // Generation flow is intentionally stubbed while API/UX contracts are finalized.
@@ -126,49 +134,22 @@ export default function ModuleUnitEditor() {
             <aside className={styles.leftColumn}>
               <div className={styles.sectionHeader}>
                 <h2>Questions</h2>
-                <button
-                  type="button"
-                  className={styles.addGroup}
-                  onClick={handleAddGroup}
-                  disabled={isUnitLive}
-                  title="Add new group"
-                >
-                  <IconContext.Provider value={{ className: styles.plusGroupIcon }}>
-                    <FaCirclePlus />
-                  </IconContext.Provider>
-                  Group
-                </button>
-              </div>
-
-              <div className={styles.settingsSection}>
-                <details>
-                  <summary className={styles.settingsToggle}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <FiSettings /> Variant Generation Settings
-                    </div>
-                  </summary>
-                  <div className={styles.settingsContent}>
-                    <textarea
-                      value={variantInstructions}
-                      onChange={(e) => setVariantInstructions(e.target.value)}
-                      placeholder="Define instructions to aid AI variant generation for this specific lesson. (concepts, constraints, etc.)"
-                      rows={10}
-                      maxLength={500}
-                    />
-                    <button
-                      type="button"
-                      className={styles.settingsSaveButton}
-                      onClick={handleSaveVariantInstructions}
-                      disabled={isSavingVariantInstructions}
-                    >
-                      {isSavingVariantInstructions ? 'Saving...' : 'Save Settings'}
-                    </button>
-                  </div>
-                </details>
+                <div className={styles.sectionHeaderActions}>
+                  <QuestionStructureGuide />
+                  <button
+                    type="button"
+                    className={styles.iconButton}
+                    aria-label="Variant generation settings"
+                    onClick={() => setIsSettingsOpen(true)}
+                  >
+                    <FiSettings aria-hidden />
+                  </button>
+                </div>
               </div>
 
               <div className={styles.navigationScrollArea}>
                 {groups.map((group) => (
+
                   <div key={group.id} className={styles.groupCard}>
                     <div className={styles.groupHeader}>
                       <div
@@ -332,8 +313,10 @@ export default function ModuleUnitEditor() {
                                     )}
                                   </span>
                                   <div className={styles.questionMeta}>
-                                    <span className={styles.questionType}>
-                                      {QUESTION_TYPE_CONFIGS[question.type].label}
+                                  <span className={styles.questionType}>
+                                      {QUESTION_TYPE_CONFIGS[
+                                        normalizeQuestionType(question.type)
+                                      ].label}
                                     </span>
                                     <button
                                       type="button"
@@ -365,24 +348,48 @@ export default function ModuleUnitEditor() {
                                     variant.isDraft,
                                   );
                                   return (
-                                    <button
+                                    <div
                                       key={variant.id}
-                                      type="button"
                                       className={`${styles.variantBlock} ${selected?.variantId === variant.id ? styles.selectedVariantFull : styles.selectedVariant}`}
-                                      onClick={() =>
-                                        setSelected({
-                                          groupId: group.id,
-                                          questionId: question.id,
-                                          variantId: variant.id,
-                                        })
-                                      }
-                                      title={variantDisplayLabel}
                                     >
-                                      Var {variantIndex + 1}
-                                      {variant.isDraft && (
-                                        <span className={styles.draftBadge}>(draft)</span>
-                                      )}
-                                    </button>
+                                      <button
+                                        type="button"
+                                        className={styles.variantSelectArea}
+                                        onClick={() =>
+                                          setSelected({
+                                            groupId: group.id,
+                                            questionId: question.id,
+                                            variantId: variant.id,
+                                          })
+                                        }
+                                        title={variantDisplayLabel}
+                                      >
+                                        <span
+                                          className={`${styles.variantStatusDot} ${variant.isDraft ? styles.variantDotDraft : styles.variantDotSaved}`}
+                                          aria-hidden="true"
+                                        />
+                                        Var {variantIndex + 1}
+                                        {variant.isDraft && (
+                                          <span className={styles.draftBadge}>(draft)</span>
+                                        )}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className={styles.variantDeleteBtn}
+                                        aria-label={`${isUnitLive ? 'Archive' : 'Delete'} ${variantDisplayLabel}`}
+                                        onClick={() =>
+                                          setDeleteTarget({
+                                            type: 'variant',
+                                            groupId: group.id,
+                                            questionId: question.id,
+                                            variantId: variant.id,
+                                            label: variantDisplayLabel,
+                                          })
+                                        }
+                                      >
+                                        {isUnitLive ? <FiArchive aria-hidden /> : <FiTrash2 aria-hidden />}
+                                      </button>
+                                    </div>
                                   );
                                 })}
                                 <button
@@ -424,6 +431,17 @@ export default function ModuleUnitEditor() {
                     )}
                   </div>
                 ))}
+                <button
+                  type="button"
+                  className={styles.addGroupBottom}
+                  onClick={handleAddGroup}
+                  disabled={isUnitLive}
+                >
+                  <IconContext.Provider value={{ className: styles.plusGroupIcon }}>
+                    <FaCirclePlus />
+                  </IconContext.Provider>
+                  Add Group
+                </button>
               </div>
             </aside>
 
@@ -470,7 +488,7 @@ export default function ModuleUnitEditor() {
                         <button
                           key={config.type}
                           type="button"
-                          className={`${styles.typeChip} ${form.type === config.type ? styles.typeChipActive : ''}`}
+                          className={`${styles.typeChip} ${activeQuestionType === config.type ? styles.typeChipActive : ''}`}
                           onClick={() => handleTypeChange(config.type)}
                         >
                           {config.label}
@@ -490,7 +508,7 @@ export default function ModuleUnitEditor() {
                   </label>
 
                   {(() => {
-                    const Config = QUESTION_TYPE_CONFIGS[form.type];
+                    const Config = QUESTION_TYPE_CONFIGS[activeQuestionType];
                     const FormComponent = Config.component;
                     return (
                       <FormComponent
@@ -504,6 +522,7 @@ export default function ModuleUnitEditor() {
                           if (idx >= 0) handleExplanationChange(idx, value);
                         }}
                         onSelectCorrect={setCorrectOption}
+                        onDeleteOption={handleDeleteOption}
                       />
                     );
                   })()}
@@ -524,7 +543,7 @@ export default function ModuleUnitEditor() {
                       {saveError}
                     </div>
                   ) : null}
-
+                  {/*TODO: Generate variant button is currently hidden until generate variants is implemented.*/}
                   <div className={styles.formActions}>
                     <button
                       type="button"
@@ -549,6 +568,14 @@ export default function ModuleUnitEditor() {
           </div>
         </>
       )}
+      <VariantSettingsModal
+        isOpen={isSettingsOpen}
+        variantInstructions={variantInstructions}
+        isSaving={isSavingVariantInstructions}
+        onChangeInstructions={setVariantInstructions}
+        onSave={handleSaveVariantInstructions}
+        onClose={() => setIsSettingsOpen(false)}
+      />
       <ConfirmDeleteModal
         isOpen={Boolean(deleteTarget)}
         title={deleteCopy.title}

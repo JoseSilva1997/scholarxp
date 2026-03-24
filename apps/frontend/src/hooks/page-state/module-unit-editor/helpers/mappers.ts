@@ -1,5 +1,5 @@
 // Converts backend module-unit-editor payloads into local editor state with draft-friendly ids.
-import { normalizeQuestionType } from '../../../../components/question-types/QuestionTypeRegistry';
+import { normalizeQuestionType } from '../../../../components/ModuleUnitEditor/question-types/QuestionTypeRegistry';
 import type { ModuleUnitEditorGroup } from '../../../../types/module';
 import type { QuestionGroup } from './types';
 import { normalizeSource } from './source';

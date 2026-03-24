@@ -7,7 +7,7 @@ import ModuleUnitEditor from './ModuleUnitEditor';
 type EditorVariant = { id: number; isDraft: boolean };
 type EditorQuestion = {
   id: number;
-  type: 'mcq' | 'true_false';
+  type: 'mcq' | 'true-false';
   isDraft: boolean;
   variants: EditorVariant[];
 };
@@ -71,7 +71,7 @@ let pageState = {
   selected: { groupId: 1, questionId: 101, variantId: null as number | null },
   selectedQuestion: { id: 101 },
   form: {
-    type: 'mcq' as 'mcq' | 'true_false',
+    type: 'mcq' as 'mcq' | 'true-false',
     stem: 'Question stem',
     options: [
       { id: 'a', text: 'A' },
@@ -158,21 +158,23 @@ vi.mock('../../components/Modals/ConfirmDeleteModal', () => ({
   ),
 }));
 
-vi.mock('../../components/question-types/QuestionTypeRegistry', () => ({
+vi.mock('../../components/ModuleUnitEditor/question-types/QuestionTypeRegistry', () => ({
   QUESTION_TYPE_CONFIGS: {
     mcq: {
       type: 'mcq',
-      label: 'Multiple Choice',
+      label: 'MCQ',
       component: ({ options }: { options: Array<{ id: string; text: string }> }) => (
         <div>question-form-options:{options.length}</div>
       ),
     },
-    true_false: {
-      type: 'true_false',
+    'true-false': {
+      type: 'true-false',
       label: 'True/False',
       component: () => <div>question-form-true-false</div>,
     },
   },
+  normalizeQuestionType: (type: string | undefined | null) =>
+    type === 'true-false' ? 'true-false' : 'mcq',
 }));
 
 describe('ModuleUnitEditor route', () => {
@@ -298,7 +300,7 @@ describe('ModuleUnitEditor route', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Question' }));
     expect(mocks.handleAddQuestion).toHaveBeenCalledWith(1);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Group' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add Group' }));
     expect(mocks.handleAddGroup).toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Previous question or variant' }));
@@ -306,7 +308,7 @@ describe('ModuleUnitEditor route', () => {
     expect(mocks.handleNavigate).toHaveBeenCalledWith(-1);
     expect(mocks.handleNavigate).toHaveBeenCalledWith(1);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Multiple Choice' }));
+    fireEvent.click(screen.getByRole('button', { name: 'MCQ' }));
     expect(mocks.handleTypeChange).toHaveBeenCalledWith('mcq');
 
     fireEvent.change(screen.getByPlaceholderText('Enter the question text here...'), {
@@ -314,9 +316,12 @@ describe('ModuleUnitEditor route', () => {
     });
     expect(mocks.setForm).toHaveBeenCalled();
 
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Variant generation settings' }),
+    );
     fireEvent.change(
       screen.getByPlaceholderText(
-        'Define instructions to aid AI variant generation for this specific lesson. (concepts, constraints, etc.)',
+        'Concepts, constraints, difficulty level, or any context to help the AI generate relevant variants...',
       ),
       { target: { value: 'New instructions' } },
     );
@@ -584,7 +589,7 @@ describe('ModuleUnitEditor route', () => {
       </MemoryRouter>,
     );
 
-    const addGroupButton = screen.getByRole('button', { name: 'Group' });
+    const addGroupButton = screen.getByRole('button', { name: 'Add Group' });
     expect(addGroupButton).toBeDisabled();
   });
 
@@ -602,7 +607,7 @@ describe('ModuleUnitEditor route', () => {
   });
 
   it('renders question type toggle with active state matching form.type', () => {
-    pageState.form.type = 'true_false';
+    pageState.form.type = 'true-false';
 
     render(
       <MemoryRouter>
@@ -614,7 +619,7 @@ describe('ModuleUnitEditor route', () => {
     const trueFalseButton = screen.getByRole('button', { name: 'True/False' });
     expect(trueFalseButton.className).toMatch(/typeChipActive/);
 
-    const mcqButton = screen.getByRole('button', { name: 'Multiple Choice' });
+    const mcqButton = screen.getByRole('button', { name: 'MCQ' });
     expect(mcqButton.className).not.toMatch(/typeChipActive/);
   });
 
@@ -732,9 +737,9 @@ describe('ModuleUnitEditor route', () => {
       </MemoryRouter>,
     );
 
-    const questionBlock = screen
-      .getAllByRole('button', { name: /Multiple Choice/i })[0]
-      .parentElement?.querySelector('[role="button"]') as HTMLDivElement;
+    const questionBlock = screen.getByRole('button', {
+      name: 'Question 1 MCQ',
+    }) as HTMLDivElement;
     if (!questionBlock) throw new Error('Question block not found');
 
     fireEvent.keyDown(questionBlock, { key: 'Enter', code: 'Enter' });

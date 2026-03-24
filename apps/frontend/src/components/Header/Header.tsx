@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { AuthUser } from '@/types/auth';
 import logo from '@/assets/logo.svg';
-import ThemeToggle from '@/components/ThemeToggle';
+import ThemeToggle from '@/components/Header/ThemeToggle';
 import StudentQuestHeaderStatus from './StudentQuestHeaderStatus';
 import UserBadge from './UserBadge';
 import styles from './Header.module.css';
