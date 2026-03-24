@@ -4,6 +4,8 @@ import { config } from 'dotenv';
 import { resolve } from 'path';
 import { PrismaService } from '../prisma/prisma.service';
 
+//pnpm --filter backend cleanup:user-learning-data
+
 const USER_ID = 38;
 
 const DELETE_DAILY_PRACTICE_SETS = true;
@@ -14,6 +16,10 @@ const DELETE_PRACTICE_SESSIONS = true;
 const DELETE_QUESTION_ATTEMPTS = true;
 const DELETE_STUDENT_QUESTION_STATE = true;
 
+// Set to a non-negative integer to overwrite the avatar's totalExp after deletes run.
+// Leave as null to skip — useful when you only want to wipe data without resetting level.
+const SET_ACCOUNT_EXP: number | null = 200;
+
 type DeleteSummary = {
   dailyPracticeSets: number;
   dailyQuests: number;
@@ -22,6 +28,7 @@ type DeleteSummary = {
   practiceSessions: number;
   questionAttempts: number;
   studentQuestionState: number;
+  accountExpSet: number | null;
 };
 
 function loadRuntimeEnvironment(): void {
@@ -49,6 +56,10 @@ async function assertConfiguration(prisma: PrismaService): Promise<void> {
     throw new Error(
       'Set USER_ID to a positive integer before running this script.',
     );
+  }
+
+  if (SET_ACCOUNT_EXP !== null && (!Number.isInteger(SET_ACCOUNT_EXP) || SET_ACCOUNT_EXP < 0)) {
+    throw new Error('SET_ACCOUNT_EXP must be a non-negative integer or null.');
   }
 
   const userExists = await prisma.user.findUnique({
@@ -89,6 +100,9 @@ function printConfiguration(): void {
   console.log(
     `- DELETE_STUDENT_QUESTION_STATE=${DELETE_STUDENT_QUESTION_STATE}`,
   );
+  console.log(
+    `- SET_ACCOUNT_EXP=${SET_ACCOUNT_EXP ?? '(skipped)'}`,
+  );
 }
 
 async function runDeletes(prisma: PrismaService): Promise<DeleteSummary> {
@@ -101,6 +115,7 @@ async function runDeletes(prisma: PrismaService): Promise<DeleteSummary> {
       practiceSessions: 0,
       questionAttempts: 0,
       studentQuestionState: 0,
+      accountExpSet: null,
     };
 
     if (DELETE_QUESTION_ATTEMPTS) {
@@ -159,6 +174,16 @@ async function runDeletes(prisma: PrismaService): Promise<DeleteSummary> {
       ).count;
     }
 
+    if (SET_ACCOUNT_EXP !== null) {
+      // Upsert so the script works whether the avatar row already exists or not.
+      await tx.avatar.upsert({
+        where: { userId: USER_ID },
+        update: { totalExp: SET_ACCOUNT_EXP },
+        create: { userId: USER_ID, totalExp: SET_ACCOUNT_EXP },
+      });
+      summary.accountExpSet = SET_ACCOUNT_EXP;
+    }
+
     return summary;
   });
 }
@@ -172,6 +197,9 @@ function printSummary(summary: DeleteSummary): void {
   console.log(`- practice_sessions=${summary.practiceSessions}`);
   console.log(`- question_attempts=${summary.questionAttempts}`);
   console.log(`- student_question_state=${summary.studentQuestionState}`);
+  if (summary.accountExpSet !== null) {
+    console.log(`- account_exp set to ${summary.accountExpSet}`);
+  }
 }
 
 async function main(): Promise<void> {
