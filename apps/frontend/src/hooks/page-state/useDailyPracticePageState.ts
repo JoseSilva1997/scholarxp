@@ -258,6 +258,13 @@ export function useDailyPracticePageState({
     if (!room) {
       return;
     }
+    if (querySessionId !== room.sessionId) {
+      // Canonicalize the query identity immediately after bootstrap so later invalidations
+      // refetch the same session instead of falling back to the anonymous "new session" entry point.
+      startTransition(() => {
+        setQuerySessionId(room.sessionId);
+      });
+    }
     if (requestedSessionId === room.sessionId) {
       return;
     }
@@ -266,7 +273,7 @@ export function useDailyPracticePageState({
     // Track URL writes we initiated so the next effect keeps using the original query identity instead of refetching the same room.
     isSyncingSearchParamsRef.current = true;
     setSearchParams(nextSearchParams, { replace: true });
-  }, [requestedSessionId, room, searchParamsString, setSearchParams]);
+  }, [querySessionId, requestedSessionId, room, searchParamsString, setSearchParams]);
 
   // Close the active session when the page unmounts or the browser hides the page; the backend close is idempotent.
   useEffect(() => {

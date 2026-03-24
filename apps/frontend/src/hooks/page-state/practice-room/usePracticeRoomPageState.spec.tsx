@@ -223,7 +223,7 @@ describe('usePracticeRoomPageState (composition)', () => {
     );
   });
 
-  it('syncs the server session id back into the URL without switching the active query session', async () => {
+  it('syncs the server session id back into the URL and adopts it as the active query session', async () => {
     useModuleUnitPracticeRoomQueryMock.mockReturnValue({
       isPending: false,
       error: null,
@@ -243,7 +243,76 @@ describe('usePracticeRoomPageState (composition)', () => {
     expect(useModuleUnitPracticeRoomQueryMock).toHaveBeenLastCalledWith(
       1,
       1,
+      '11111111-1111-4111-8111-111111111077',
       null,
+    );
+  });
+
+  it('keeps the active question selected after submit when bootstrap refetches would otherwise create a fresh session', async () => {
+    const canonicalSessionId = '11111111-1111-4111-8111-111111111077';
+    const unexpectedFreshSessionId = '11111111-1111-4111-8111-111111111088';
+    const questions = [
+      buildQuestionUnit({ questionUnitId: 11, contentId: 100 }),
+      buildQuestionUnit({ questionUnitId: 12, contentId: 101 }),
+    ];
+    let shouldReturnFreshBootstrapSession = false;
+
+    useModuleUnitPracticeRoomQueryMock.mockImplementation(
+      (
+        _moduleId: number,
+        _unitId: number,
+        sessionId: string | null,
+      ) => ({
+        isPending: false,
+        error: null,
+        data: buildPracticeRoomResponse({
+          sessionId:
+            sessionId === canonicalSessionId
+              ? canonicalSessionId
+              : shouldReturnFreshBootstrapSession
+                ? unexpectedFreshSessionId
+                : canonicalSessionId,
+          questions,
+        }),
+      }),
+    );
+
+    const mutateAsync = vi.fn().mockImplementation(async () => {
+      shouldReturnFreshBootstrapSession = true;
+      return buildSubmitResponse({ hasCorrectAttempt: true });
+    });
+    useSubmitModuleUnitPracticeAttemptMutationMock.mockReturnValue({
+      isPending: false,
+      mutateAsync,
+      syncAttemptSuccessEffects: syncAttemptSuccessEffectsMock,
+    });
+
+    const rendered = renderHookWithParams('1', '1');
+
+    await waitFor(() => {
+      expect(useModuleUnitPracticeRoomQueryMock).toHaveBeenLastCalledWith(
+        1,
+        1,
+        canonicalSessionId,
+        null,
+      );
+    });
+
+    act(() => {
+      rendered.getState().selectQuestionUnit(1);
+      rendered.getState().selectOption(101, 0);
+    });
+
+    await act(async () => {
+      await rendered.getState().submitActiveQuestionAttempt();
+    });
+
+    expect(rendered.getState().selectedQuestionUnitIndex).toBe(1);
+    expect(rendered.getState().activeQuestion?.question.id).toBe(101);
+    expect(useModuleUnitPracticeRoomQueryMock).toHaveBeenLastCalledWith(
+      1,
+      1,
+      canonicalSessionId,
       null,
     );
   });

@@ -216,6 +216,13 @@ export function usePracticeRoomPageState({
     if (!moduleUnitRoom) {
       return;
     }
+    if (querySessionId !== moduleUnitRoom.sessionId) {
+      // Once the backend assigns a session id, all future refetches must use it
+      // so invalidations keep targeting the active room instead of bootstrapping a new one.
+      startTransition(() => {
+        setQuerySessionId(moduleUnitRoom.sessionId);
+      });
+    }
     if (requestedSessionId === moduleUnitRoom.sessionId) {
       return;
     }
@@ -226,6 +233,7 @@ export function usePracticeRoomPageState({
     setSearchParams(nextSearchParams, { replace: true });
   }, [
     moduleUnitRoom,
+    querySessionId,
     requestedSessionId,
     searchParamsString,
     setSearchParams,
