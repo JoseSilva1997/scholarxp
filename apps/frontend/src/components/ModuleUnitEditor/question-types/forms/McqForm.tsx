@@ -61,7 +61,7 @@ export function McqForm({ options, onChangeOption, onChangeExplanation, onSelect
                   onChange={(e) => onChangeOption(option.id, e.target.value)}
                   placeholder={`Option ${index + 1} text...`}
                   className={styles.compactTextarea}
-                  maxLength={100}
+                  maxLength={200}
                 />
               </div>
               <div className={styles.fieldGroup}>

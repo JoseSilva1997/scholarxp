@@ -426,14 +426,14 @@
 
 .dailyPracticeInfoWrapper {
   position: absolute;
-  top: -12px;
-  right: -12px;
+  top: -10px;
+  right: -10px;
   display: inline-flex;
 }
 
 .dailyPracticeInfoButton {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: none;
+  border: none;
   border-radius: 50%;
   width: 20px;
   height: 20px;
@@ -445,7 +445,6 @@
   align-items: center;
   justify-content: center;
   line-height: 1;
-  box-shadow: var(--shadow-sm);
 }
 
 .dailyPracticeInfoTooltip {

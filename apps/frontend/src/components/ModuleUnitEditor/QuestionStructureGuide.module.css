@@ -137,3 +137,11 @@
 .badgeAmber {
   background-color: var(--color-accent-soft);
 }
+
+.colorRed {
+  color: var(--color-danger);
+}
+
+.badgeRed {
+  background-color: var(--color-danger-soft);
+}

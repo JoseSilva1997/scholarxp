@@ -1,13 +1,13 @@
 // Popover guide that explains the module unit editor's structural concepts (groups, questions, variants) to content authors.
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { FiInfo, FiFolder, FiFileText, FiShuffle } from 'react-icons/fi';
+import { FiInfo, FiFolder, FiFileText, FiShuffle, FiRadio } from 'react-icons/fi';
 import type { IconType } from 'react-icons';
 import styles from './QuestionStructureGuide.module.css';
 
-type Tab = 'groups' | 'questions' | 'variants';
+type Tab = 'groups' | 'questions' | 'variants' | 'live';
 
-const TABS: Tab[] = ['groups', 'questions', 'variants'];
+const TABS: Tab[] = ['groups', 'questions', 'variants', 'live'];
 
 interface TabConfig {
   label: string;
@@ -42,6 +42,14 @@ const TAB_CONFIG: Record<Tab, TabConfig> = {
     badgeClass: styles.badgeAmber,
     heading: 'Variants',
     body: 'Variants are alternative versions of the same question. The algorithm rotates them in daily practice over time to reduce the chance a student answers correctly from memorising the core question option rather than understanding the concept. Variants should test the same knowledge differently - if none are added, the core question is reused.',
+  },
+  live: {
+    label: 'Live',
+    icon: FiRadio,
+    colorClass: styles.colorRed,
+    badgeClass: styles.badgeRed,
+    heading: 'Live Lessons',
+    body: 'Once a lesson goes live and students can practise it, questions and variants can no longer be added — this protects the integrity of the algorithm and each student\'s progress history. You can still delete questions and variants, and edit their content, but be mindful that significantly changing a question after students have already practised it can affect their results negatively.',
   },
 };
 
