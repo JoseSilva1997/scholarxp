@@ -45,12 +45,12 @@
   filter: drop-shadow(0 0 6px var(--color-accent-shadow-hover));
 }
 
-/* The content is rendered with vertical layout (header row above track) on larger screens */
+/* One designed unit — card background + border makes the whole section read as a
+   cohesive HUD panel rather than two loosely related chips sharing a divider. */
 .chipContent {
   display: flex;
   flex-direction: column;
   color: var(--color-text-on-dark);
-  margin-left: 8px;
 }
 
 /* Header row: eyebrow on left, info icon on right above the track */
@@ -77,10 +77,9 @@
 }
 
 .eyebrow {
-  /* Increased slightly since nextReward is removed */
-  font-size: 0.65rem; 
+  font-size: 0.58rem;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   color: var(--color-text-on-dark-subtle);
   font-weight: 700;
   line-height: 1;
@@ -89,60 +88,97 @@
 .track {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
 }
 
+/* Steps are now tight inline stat cells — the icon carries the colour,
+   the bold numeral is the primary visual anchor. No left-border accent. */
 .step {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 8px;
-  border-radius: var(--radius-full);
-  border: 1px solid transparent;
-  transition:
-    border-color var(--transition-fast),
-    background var(--transition-fast),
-    box-shadow var(--transition-fast),
-    color var(--transition-fast);
+  gap: 3px;
+  padding: 1px 4px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  transition: color var(--transition-fast);
 }
 
 .stepIcon {
-  width: 10px;
-  height: 10px;
-  opacity: 0.85;
+  width: 9px;
+  height: 9px;
+  flex-shrink: 0;
 }
-
 
 .stepLabel {
-  font-size: 0.68rem;
-  font-weight: 700;
+  font-size: 0.72rem;
+  font-weight: 900;
   line-height: 1;
+  letter-spacing: -0.01em;
 }
 
+/* Earned: green — locked-in XP, static (no pulse needed, it's already done) */
 .stepEarned {
   color: var(--color-success);
-  background: var(--color-success-light);
-  border-color: var(--color-success-border);
 }
 
+.stepEarned .stepIcon {
+  filter: drop-shadow(0 0 3px var(--color-secondary-soft));
+}
+
+/* Active: amber — the next reward to earn, pulsing glow draws the eye */
 .stepActive {
   color: var(--color-accent-light);
-  background: var(--color-accent-soft);
-  border-color: var(--color-accent-light);
-  box-shadow: 0 0 12px var(--color-accent-shadow);
 }
 
+.stepActive .stepIcon {
+  filter: drop-shadow(0 0 4px var(--color-accent-soft));
+  animation: xpIconPulse 2.4s ease-in-out infinite;
+}
+
+.stepActive .stepLabel {
+  animation: xpLabelGlow 2.4s ease-in-out infinite;
+}
+
+/* Upcoming: very dim — intentionally invisible so active step reads clearly */
 .stepUpcoming {
-  color: var(--color-text-on-dark-subtle);
-  background: var(--color-glass-bg-subtle);
-  border-color: var(--color-glass-border-subtle);
+  color: var(--color-text-on-dark-dim);
+  opacity: 0.4;
 }
 
-.stepPractice.stepActive {
-  color: var(--color-text-on-dark-vibrant);
-  background: var(--color-primary-soft);
-  border-color: var(--color-primary-light);
-  box-shadow: 0 0 12px var(--color-primary-shadow);
+/* Practice tag: rendered without an icon and labelled differently — a small badge
+   communicates "mode" rather than an XP amount, preventing it reading like a value */
+.stepPractice .stepLabel {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 2px 5px;
+  border-radius: var(--radius-full);
+  background: var(--color-glass-border-subtle);
+  color: var(--color-text-on-dark-muted);
+}
+
+.stepPractice.stepActive .stepLabel {
+  background: rgba(59, 130, 246, 0.18);
+  color: var(--color-primary-light);
+  animation: none;
+}
+
+.stepPractice.stepEarned .stepLabel {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--color-success);
+}
+
+/* XP icon pulse: brightens the glow so active step feels live without being distracting */
+@keyframes xpIconPulse {
+  0%, 100% { filter: drop-shadow(0 0 3px var(--color-accent-soft)); opacity: 1; }
+  50%       { filter: drop-shadow(0 0 9px var(--color-accent-soft)); opacity: 0.75; }
+}
+
+/* XP label glow: soft text-shadow pulse synced with the icon animation */
+@keyframes xpLabelGlow {
+  0%, 100% { text-shadow: 0 0 5px var(--color-accent-soft); }
+  50%       { text-shadow: 0 0 12px var(--color-accent), 0 0 22px var(--color-accent-soft); }
 }
 
 .screenReaderLabel {
@@ -243,50 +279,43 @@
   margin-top: 0.5rem;
 }
 
-/* Responsive threshold - make it smaller */
+/* Responsive threshold - tighten the panel slightly but keep all values visible */
 @media (max-width: 900px) {
   .chipContent {
-    gap: 6px;
-  }
-  .headerRow {
-    gap: 6px;
+    padding: 4px 8px 5px;
+    gap: 3px;
   }
   .track {
-    gap: 4px;
+    gap: 1px;
   }
   .step {
-    padding: 4px 6px;
-    gap: 4px;
+    padding: 1px 3px;
+    gap: 2px;
   }
   .stepLabel {
-    font-size: 0.62rem;
+    font-size: 0.65rem;
   }
 }
 
-/* Collapse into a popover */
+/* Collapse into a popover at narrow widths where the track cannot fit inline */
 @media (max-width: 640px) {
   .mobileTrigger {
     display: flex;
   }
 
+  /* In popover mode the panel sits in a floating container, so override the
+     inline card background with the deeper solid one used by all other popovers. */
   .chipContent {
-    display: none; /* hidden when it's just the trigger */
+    display: none;
     position: absolute;
     top: calc(100% + 10px);
     right: 0;
     flex-direction: column;
     gap: 12px;
-    padding: 16px;
-    background: var(--color-glass-bg-deep-solid);
-    border: 1px solid var(--color-glass-border-strong);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-floating-dark);
     z-index: 220;
-    /* Optional backdrop filter */
     backdrop-filter: blur(12px);
   }
 
-  /* Popover pointer arrow */
   .chipContent::before {
     content: '';
     position: absolute;
@@ -300,7 +329,6 @@
     transform: rotate(45deg);
   }
 
-  /* Active popover class */
   .chipContent.popoverOpen {
     display: flex;
     animation: fadeIn var(--transition-fast) ease-out;
@@ -320,6 +348,11 @@
   .track {
     flex-wrap: wrap;
     justify-content: flex-start;
+  }
+
+  /* Restore readable step padding in the expanded popover context */
+  .step {
+    padding: 4px 8px 4px 9px;
   }
 }
 

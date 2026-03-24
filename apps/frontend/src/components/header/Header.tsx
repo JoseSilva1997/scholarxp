@@ -23,6 +23,7 @@ export default function Header({
 
   return (
     <header className={`${styles.header} ${!user ? styles.headerLoggedOut : ''}`}>
+      {/* LEFT: hamburger toggle + brand logo anchored to the edge */}
       <div className={styles.brandWrapper}>
         {showSidebarToggle && (
           <button
@@ -42,9 +43,16 @@ export default function Header({
           <img src={logo} alt="ScholarXP logo" className={styles.logo} />
           <span className={styles.wordmark}>ScholarXP</span>
         </Link>
-        {/* Student-only header widgets stay grouped so Header remains focused on shell layout branches. */}
-        {isStudent && user ? <StudentQuestHeaderStatus userId={user.id} /> : null}
       </div>
+
+      {/* CENTRE: student progress stats, isolated so the outer shell stays layout-only */}
+      {isStudent && user ? (
+        <div className={styles.headerCenter}>
+          <StudentQuestHeaderStatus userId={user.id} />
+        </div>
+      ) : null}
+
+      {/* RIGHT: theme toggle + cohesive profile cluster */}
       <div className={styles.headerRight}>
         <ThemeToggle />
         {user ? (

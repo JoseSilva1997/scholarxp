@@ -123,6 +123,7 @@ export default function TodayQuestChip({ userId }: TodayQuestChipProps) {
         type="button"
         className={`${styles.todayChip} ${isTodayPopoverOpen ? styles.todayChipActive : ''}`}
         aria-label={`Today's quests ${todayQuestLabel}`}
+        title={`Quests ${todayQuestLabel}`}
         aria-expanded={isTodayPopoverOpen}
         aria-controls="today-quest-popover"
         onClick={() => {

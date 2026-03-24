@@ -13,6 +13,8 @@ export default function StudentQuestHeaderStatus({
   return (
     <div className={styles.statusGroup}>
       <TodayQuestChip userId={userId} />
+      {/* Thin vertical rule separates the two distinct stat clusters without adding noise */}
+      <div className={styles.divider} aria-hidden="true" />
       <DailyLessonXpTrackChip userId={userId} />
     </div>
   );

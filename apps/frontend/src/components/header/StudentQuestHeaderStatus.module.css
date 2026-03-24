@@ -2,20 +2,56 @@
 .statusGroup {
   display: flex;
   align-items: center;
-  /* Use clamp for responsive gap that scales smoothly */
-  gap: clamp(4px, 1.5vw, 10px);
+  gap: clamp(4px, 1.5vw, 12px);
   min-width: 0;
   flex-shrink: 1;
 }
 
+/* Subtle vertical separator between quest stat and XP track clusters — keeps
+   the two zones readable without adding pill/chip containers around either */
+.divider {
+  width: 1px;
+  height: 28px;
+  background: var(--color-glass-border);
+  flex-shrink: 0;
+  border-radius: 1px;
+}
+
 @media (max-width: 768px) {
   .statusGroup {
-    gap: clamp(3px, 1vw, 6px);
+    gap: clamp(3px, 1vw, 8px);
+  }
+
+  .divider {
+    height: 22px;
+  }
+}
+
+@media (max-width: 640px) {
+  /* DailyLessonXpTrackChip collapses to icon trigger at 640px; keep the
+     divider proportionally smaller so it does not dominate the icon-only view */
+  .divider {
+    height: 18px;
   }
 }
 
 @media (max-width: 540px) {
   .statusGroup {
-    gap: clamp(2px, 0.8vw, 4px);
+    gap: clamp(2px, 0.8vw, 6px);
+  }
+
+  .divider {
+    height: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Both chips are icon circles at this size — divider between them adds visual noise */
+  .divider {
+    display: none;
+  }
+
+  .statusGroup {
+    gap: 4px;
   }
 }
