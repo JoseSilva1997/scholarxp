@@ -161,7 +161,7 @@ describe('useSubmitDailyPracticeAttemptMutation', () => {
     });
 
     expect(invalidateQueriesMock).toHaveBeenCalledWith({
-      queryKey: queryKeys.modules.dailyPracticeBase(7),
+      queryKey: queryKeys.modules.detail(7),
     });
     expect(invalidateQueriesMock).toHaveBeenCalledWith({
       queryKey: queryKeys.quests.all,

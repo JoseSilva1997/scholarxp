@@ -44,9 +44,10 @@ export function useSubmitDailyPracticeAttemptMutation(moduleId: number | null) {
     void data;
 
     // Daily practice can complete quests and award account-level rewards, so dependent summaries must refresh together.
+    // Invalidate the module detail so the embedded dailyPractice status reflects the latest progress.
     await Promise.all([
       queryClient.invalidateQueries({
-        queryKey: queryKeys.modules.dailyPracticeBase(moduleId),
+        queryKey: queryKeys.modules.detail(moduleId),
       }),
       queryClient.invalidateQueries({
         queryKey: queryKeys.quests.all,

@@ -1,6 +1,7 @@
 // Query hook for loading practice-room data while keeping route components free of fetch orchestration.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
+  ModuleSummaryResponse,
   PracticeSessionType,
   SubmitAttemptPayload,
   SubmitAttemptResponse,
@@ -38,10 +39,11 @@ export function useModuleUnitPracticeRoomQuery(
 
       // Synchronize the module detail cache with the progress returned in the room response.
       // This reduces total network requests by avoiding a separate GET /module/:id call on initial page load.
+      // Merge rather than replace so fields added to the module detail (e.g. dailyPractice) are not lost.
       if (moduleId !== null && response.moduleProgress) {
-        queryClient.setQueryData(
+        queryClient.setQueryData<ModuleSummaryResponse>(
           queryKeys.modules.detail(moduleId),
-          response.moduleProgress,
+          (prev) => prev ? { ...prev, ...response.moduleProgress } : response.moduleProgress,
         );
       }
 
@@ -64,10 +66,11 @@ export function useSubmitModuleUnitPracticeAttemptMutation(
     }
 
     // If the server returned updated progress, we update the cache directly to avoid a redundant GET.
+    // Merge rather than replace so fields added to the module detail (e.g. dailyPractice) are not lost.
     if (data.updatedModuleProgress) {
-      queryClient.setQueryData(
+      queryClient.setQueryData<ModuleSummaryResponse>(
         queryKeys.modules.detail(moduleId),
-        data.updatedModuleProgress,
+        (prev) => prev ? { ...prev, ...data.updatedModuleProgress } : data.updatedModuleProgress,
       );
     }
 
