@@ -223,6 +223,31 @@ describe('usePracticeRoomPageState (composition)', () => {
     );
   });
 
+  it('syncs the server session id back into the URL without switching the active query session', async () => {
+    useModuleUnitPracticeRoomQueryMock.mockReturnValue({
+      isPending: false,
+      error: null,
+      data: buildPracticeRoomResponse({
+        sessionId: '11111111-1111-4111-8111-111111111077',
+      }),
+    });
+
+    const rendered = renderHookWithParams('1', '1');
+
+    await waitFor(() => {
+      expect(rendered.getSearch()).toBe(
+        '?sessionId=11111111-1111-4111-8111-111111111077',
+      );
+    });
+
+    expect(useModuleUnitPracticeRoomQueryMock).toHaveBeenLastCalledWith(
+      1,
+      1,
+      null,
+      null,
+    );
+  });
+
   it('closes the active session on unmount', async () => {
     useModuleUnitPracticeRoomQueryMock.mockReturnValue({
       isPending: false,

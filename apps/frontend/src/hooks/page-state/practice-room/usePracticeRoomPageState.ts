@@ -1,7 +1,7 @@
 // Encapsulates practice-room route orchestration so the page component can stay presentational.
 // Sub-concerns (session lifecycle, XP animation, persistence, attempt submission) are each
 // delegated to a dedicated hook; this file wires them together and owns the final page-state API.
-import { useEffect, useMemo } from 'react';
+import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type {
   PracticeSessionType,
@@ -74,13 +74,20 @@ export function usePracticeRoomPageState({
   const requestedQuestionUnitId = parsePracticeRoomQuestionUnitIdQuery(
     searchParams.get('questionId'),
   );
+  const [querySessionId, setQuerySessionId] = useState<string | null>(
+    requestedSessionId,
+  );
+  const previousRoomScopeRef = useRef(
+    `${parsedModuleId ?? 'null'}:${parsedUnitId ?? 'null'}`,
+  );
+  const isSyncingSearchParamsRef = useRef(false);
 
   // ─── Queries & mutations ───────────────────────────────────────────────────
   // All server I/O is declared up-front so the rest of the hook is purely reactive.
   const practiceRoomQuery = useModuleUnitPracticeRoomQuery(
     parsedModuleId,
     parsedUnitId,
-    requestedSessionId,
+    querySessionId,
     requestedSessionType,
   );
   const submitAttemptMutation = useSubmitModuleUnitPracticeAttemptMutation(
@@ -177,6 +184,32 @@ export function usePracticeRoomPageState({
     }
   }, [moduleDetailQuery.error, parsedModuleId]);
 
+  useEffect(() => {
+    const nextRoomScope = `${parsedModuleId ?? 'null'}:${parsedUnitId ?? 'null'}`;
+    if (previousRoomScopeRef.current === nextRoomScope) {
+      return;
+    }
+
+    previousRoomScopeRef.current = nextRoomScope;
+    // Route changes should bootstrap from whatever session id the new URL carries.
+    isSyncingSearchParamsRef.current = false;
+    startTransition(() => {
+      setQuerySessionId(requestedSessionId);
+    });
+  }, [parsedModuleId, parsedUnitId, requestedSessionId]);
+
+  useEffect(() => {
+    if (isSyncingSearchParamsRef.current) {
+      isSyncingSearchParamsRef.current = false;
+      return;
+    }
+
+    // Only external URL changes should retarget the room query; our own canonicalization already has the room payload.
+    startTransition(() => {
+      setQuerySessionId(requestedSessionId);
+    });
+  }, [requestedSessionId]);
+
   // Keep the ?sessionId= param in sync with the server-assigned session so a
   // hard reload always resumes the same session instead of creating a new one.
   useEffect(() => {
@@ -188,6 +221,8 @@ export function usePracticeRoomPageState({
     }
     const nextSearchParams = new URLSearchParams(searchParamsString);
     nextSearchParams.set('sessionId', String(moduleUnitRoom.sessionId));
+    // Mark URL writes we initiated so they do not immediately retrigger the same room load with a different cache key.
+    isSyncingSearchParamsRef.current = true;
     setSearchParams(nextSearchParams, { replace: true });
   }, [
     moduleUnitRoom,
