@@ -1,14 +1,45 @@
 // Renders an MCQ answer form: options, correctness toggle, and explanations; state is controlled by parent.
+import { useState, useRef, useEffect } from 'react';
 import type { BaseQuestionFormProps } from '../QuestionTypeRegistry';
 import styles from './QuestionTypeForms.module.css';
 import { MdBackspace } from "react-icons/md";
+import { FiInfo } from 'react-icons/fi';
 
 type McqFormProps = BaseQuestionFormProps;
 
 export function McqForm({ options, onChangeOption, onChangeExplanation, onSelectCorrect, onDeleteOption }: McqFormProps) {
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!popoverOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setPopoverOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [popoverOpen]);
+
   return (
     <div className={styles.optionsSection}>
-      <h3>Answer Options</h3>
+      <div className={styles.sectionHeadingRow} ref={popoverRef}>
+        <h3>Answer Options</h3>
+        <button
+          type="button"
+          className={styles.infoBtn}
+          aria-label="Answer options info"
+          onClick={() => setPopoverOpen((prev) => !prev)}
+        >
+          <FiInfo aria-hidden="true" />
+        </button>
+        {popoverOpen && (
+          <div className={styles.infoPopover} role="tooltip">
+            Explanations are optional - shown to students after they answer.
+          </div>
+        )}
+      </div>
       <div className={styles.optionsList}>
         {options.map((option, index) => (
           <div key={option.id} className={styles.optionRow}>

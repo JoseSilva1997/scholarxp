@@ -1,5 +1,7 @@
 // Renders a True/False answer form; uses first two options from parent-controlled state.
+import { useState, useRef, useEffect } from 'react';
 import styles from './QuestionTypeForms.module.css';
+import { FiInfo } from 'react-icons/fi';
 
 type TfOption = {
   id: string;
@@ -20,10 +22,39 @@ export function TrueFalseForm({
   onChangeExplanation,
   onSelectCorrect,
 }: TrueFalseFormProps) {
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!popoverOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setPopoverOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [popoverOpen]);
+
   const limitedOptions = options.slice(0, 2);
   return (
     <div className={styles.optionsSection}>
-      <h3>Answer Options (True / False)</h3>
+      <div className={styles.sectionHeadingRow} ref={popoverRef}>
+        <h3>Answer Options (True / False)</h3>
+        <button
+          type="button"
+          className={styles.infoBtn}
+          aria-label="Answer options info"
+          onClick={() => setPopoverOpen((prev) => !prev)}
+        >
+          <FiInfo aria-hidden="true" />
+        </button>
+        {popoverOpen && (
+          <div className={styles.infoPopover} role="tooltip">
+            Explanations are optional - shown to students after they answer.
+          </div>
+        )}
+      </div>
       <div className={styles.optionsGrid}>
         {limitedOptions.map((option, index) => (
           <div key={option.id} className={styles.optionCard}>

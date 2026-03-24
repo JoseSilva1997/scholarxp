@@ -1,5 +1,5 @@
 // Module unit authoring workspace UI that renders editor state from the page-state hook.
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import {
   FiArchive,
@@ -8,6 +8,7 @@ import {
   FiTrash2,
   FiX,
   FiSettings,
+  FiInfo,
 } from 'react-icons/fi';
 import { VscSparkleFilled } from 'react-icons/vsc';
 import {
@@ -93,6 +94,19 @@ export default function ModuleUnitEditor() {
   });
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [hintPopoverOpen, setHintPopoverOpen] = useState(false);
+  const hintPopoverRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (!hintPopoverOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (hintPopoverRef.current && !hintPopoverRef.current.contains(e.target as Node)) {
+        setHintPopoverOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [hintPopoverOpen]);
   const activeQuestionType = normalizeQuestionType(form.type);
 
   const handleGenerateVariant = () => {
@@ -528,7 +542,24 @@ export default function ModuleUnitEditor() {
                   })()}
 
                   <label className={styles.label}>
-                    💡 Hint (Optional)
+                    <span className={styles.hintLabelRow} ref={hintPopoverRef}>
+                      💡 Hint (Optional)
+                      <button
+                        type="button"
+                        className={styles.hintInfoBtn}
+                        aria-label="Hint info"
+                        onClick={() => setHintPopoverOpen((prev) => !prev)}
+                      >
+                        <FiInfo aria-hidden="true" />
+                      </button>
+                      {hintPopoverOpen && (
+                        <div className={styles.hintPopover} role="tooltip">
+                          Hints are completely optional. Students who use a hint before answering
+                          will not earn the streak bonus for that question, and hint usage is
+                          factored into how daily practice sets are generated.
+                        </div>
+                      )}
+                    </span>
                     <textarea
                       value={form.hint}
                       onChange={(e) => setForm((prev) => ({ ...prev, hint: e.target.value }))}
