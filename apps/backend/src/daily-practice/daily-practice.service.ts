@@ -25,6 +25,7 @@ import { DailyPracticeSetReadService } from './daily-practice-set-read.service';
 import { DailyPracticeSetSelectorService } from './daily-practice-set-selector.service';
 import { DailyPracticeVariantResolverService } from './daily-practice-variant-resolver.service';
 import { SubmitDailyPracticeAttemptDto } from './dto/submit-daily-practice-attempt.dto';
+import type { DailyPracticeStatusSummary } from '@scholarxp/api-contracts';
 import type {
   OrderedDailyPracticeQuestionRecord,
   PersistedDailyPracticeSetRecord,
@@ -103,6 +104,75 @@ export class DailyPracticeService {
       progress: hydratedState.progress,
       questions: hydratedState.questions,
     });
+  }
+
+  // Lightweight read-only status check for embedding into module summary responses.
+  // Does not create a set or session — only reports the current state.
+  async getDailyPracticeStatus(
+    moduleId: number,
+    studentId: number,
+  ): Promise<DailyPracticeStatusSummary> {
+    const now = new Date();
+    const eligibility =
+      await this.dailyPracticeEligibilityService.checkEligibilityForToday(
+        moduleId,
+        studentId,
+        now,
+      );
+
+    if (!eligibility.eligible) {
+      return { status: 'locked', message: eligibility.message };
+    }
+
+    const set = await this.dailyPracticeSetReadService.findSetForUtcDay(
+      studentId,
+      moduleId,
+      now,
+    );
+
+    if (!set || set.items.length === 0) {
+      return {
+        status: 'no_set',
+        message: 'No daily practice questions are available for this module yet.',
+      };
+    }
+
+    if (set.completedAt) {
+      return {
+        status: 'completed',
+        progress: {
+          totalQuestions: set.items.length,
+          answeredQuestions: set.items.length,
+          completedAt: set.completedAt.toISOString(),
+        },
+      };
+    }
+
+    const { dayStartUtc, nextDayStartUtc } = DateHelpers.getUtcDayBounds(now);
+    const answeredAttempts = await this.prisma.questionAttempt.findMany({
+      where: {
+        studentId,
+        questionId: { in: set.items.map((item) => item.questionUnitId) },
+        attemptedAt: { gte: dayStartUtc, lt: nextDayStartUtc },
+        session: {
+          moduleId,
+          userId: studentId,
+          sessionType: PracticeSessionTypeValues.dailyPractice,
+        },
+      },
+      distinct: ['questionId'],
+      select: { questionId: true },
+    });
+    const answeredQuestions = answeredAttempts.length;
+
+    return {
+      status: answeredQuestions > 0 ? 'in_progress' : 'available',
+      progress: {
+        totalQuestions: set.items.length,
+        answeredQuestions,
+        completedAt: null,
+      },
+    };
   }
 
   // Submit flow reuses canonical grading and attempt persistence, while daily practice adds set ownership and one-update-per-day FSRS behavior.

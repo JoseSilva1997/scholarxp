@@ -2,6 +2,18 @@
  * Shared contracts for the module-scoped daily-practice domain.
  * These types keep persisted adaptive-learning state aligned between backend and frontend.
  */
+
+export type DailyPracticeStatus = 'locked' | 'no_set' | 'available' | 'in_progress' | 'completed';
+
+export interface DailyPracticeStatusSummary {
+  status: DailyPracticeStatus;
+  message?: string;
+  progress?: {
+    totalQuestions: number;
+    answeredQuestions: number;
+    completedAt?: string | null;
+  };
+}
 import type {
   PracticeQuestionWithLatestAttempt,
   PracticeSessionType,

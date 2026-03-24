@@ -12,6 +12,36 @@ const DAILY_PRACTICE_UNLOCKS_TOMORROW_MESSAGE =
 export class DailyPracticeEligibilityService {
   constructor(private readonly prisma: PrismaService) {}
 
+  // Non-throwing variant used for embedding status into other responses (e.g. module summary).
+  async checkEligibilityForToday(
+    moduleId: number,
+    studentId: number,
+    now: Date,
+  ): Promise<{ eligible: true } | { eligible: false; message: string }> {
+    const earliestCompletion =
+      await this.prisma.moduleUnitUserProgress.findFirst({
+        where: {
+          studentId,
+          isCompleted: true,
+          completedAt: { not: null },
+          moduleUnit: { moduleId },
+        },
+        orderBy: [{ completedAt: 'asc' }, { moduleUnitId: 'asc' }],
+        select: { completedAt: true },
+      });
+
+    if (!earliestCompletion?.completedAt) {
+      return { eligible: false, message: DAILY_PRACTICE_LOCKED_MESSAGE };
+    }
+
+    const { dayStartUtc } = DateHelpers.getUtcDayBounds(now);
+    if (earliestCompletion.completedAt.getTime() >= dayStartUtc.getTime()) {
+      return { eligible: false, message: DAILY_PRACTICE_UNLOCKS_TOMORROW_MESSAGE };
+    }
+
+    return { eligible: true };
+  }
+
   // The gate is driven by persisted module-unit completion so students see a stable, product-owned unlock rule instead of an implementation detail.
   async assertEligibleForToday(
     moduleId: number,

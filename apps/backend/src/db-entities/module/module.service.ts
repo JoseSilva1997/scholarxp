@@ -9,10 +9,14 @@ import { UpdateModuleDto } from './dto/update-module.dto';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { AuthUser } from '../../types/auth-user.type';
 import { GlobalRole } from '@prisma/client';
+import { DailyPracticeService } from '../../daily-practice/daily-practice.service';
 
 @Injectable()
 export class ModuleService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly dailyPracticeService: DailyPracticeService,
+  ) {}
 
   async create(createModuleDto: CreateModuleDto, user: AuthUser) {
     // Validate institution scoping. Throws if institution_admins try to create
@@ -55,20 +59,24 @@ export class ModuleService {
   async findOne(id: number, user?: AuthUser) {
     const module = await this.getOrThrow(id);
 
-    // When the caller is a student, attach their module-scoped progression so the frontend can show progress.
+    // When the caller is a student, attach their module-scoped progression and daily practice status.
     if (user?.globalRole === GlobalRole.student) {
-      const progress = await this.prisma.userModule.findUnique({
-        where: { moduleId_userId: { moduleId: id, userId: user.id } },
-        select: { userModuleLevel: true, currentExp: true },
-      });
+      const [progress, dailyPractice] = await Promise.all([
+        this.prisma.userModule.findUnique({
+          where: { moduleId_userId: { moduleId: id, userId: user.id } },
+          select: { userModuleLevel: true, currentExp: true },
+        }),
+        this.dailyPracticeService.getDailyPracticeStatus(id, user.id),
+      ]);
 
-      if (progress) {
-        return {
-          ...module,
+      return {
+        ...module,
+        ...(progress && {
           userModuleLevel: progress.userModuleLevel,
           currentExp: progress.currentExp,
-        };
-      }
+        }),
+        dailyPractice,
+      };
     }
 
     return module;

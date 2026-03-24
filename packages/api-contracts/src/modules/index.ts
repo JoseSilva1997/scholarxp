@@ -1,5 +1,6 @@
 import type { QuestionData } from '@scholarxp/question-type-dtos';
 import type { QuestionSource } from '../questions';
+import type { DailyPracticeStatusSummary } from '../daily_practice';
 
 /**
  * Module domain contracts for ScholarXP
@@ -17,6 +18,7 @@ export interface ModuleSummaryResponse {
   userModuleLevel?: number;
   currentExp?: number;
   expMax?: number;
+  dailyPractice?: DailyPracticeStatusSummary;
 }
 
 export type ModuleUnitStatus = 'draft' | 'live' | 'locked' | 'archived';
