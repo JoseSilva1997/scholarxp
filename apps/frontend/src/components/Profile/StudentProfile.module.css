@@ -573,31 +573,264 @@
   backdrop-filter: blur(4px);
 }
 
+/* ── Achievement Detail Modal ── */
+
 .achievementModal {
+  position: relative;
   width: min(100%, 420px);
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding: 20px;
+  /* No top padding — the dark hero panel bleeds to the edges */
+  padding: 0 0 24px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
 }
 
-.achievementModalHeader {
+/* Per-tier outer glow — makes the modal feel anchored to its award level */
+
+.achievementModalOuterTier1 {
+  box-shadow: var(--shadow-xl), 0 0 48px var(--color-tier-bronze-glow);
+}
+
+.achievementModalOuterTier2 {
+  box-shadow: var(--shadow-xl), 0 0 48px var(--color-tier-silver-glow);
+}
+
+.achievementModalOuterTier3 {
+  box-shadow: var(--shadow-xl), 0 0 56px var(--color-tier-gold-glow);
+}
+
+.achievementModalOuterTier4 {
+  box-shadow: var(--shadow-xl), 0 0 64px var(--color-tier-diamond-glow);
+}
+
+/* ── Glass × close button sits over the dark hero ── */
+
+.achievementModalClose {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  width: 30px;
+  height: 30px;
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--color-glass-border-strong);
+  border-radius: var(--radius-full);
+  background: var(--color-glass-bg);
+  color: var(--color-text-on-dark-muted);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.achievementModalClose:hover {
+  background: var(--color-glass-bg-hover);
+  color: var(--color-text-on-dark);
+  border-color: var(--color-glass-border-strong);
+}
+
+.achievementModalClose:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ── Dark hero panel: the award stage ── */
+
+.achievementModalHero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 40px 24px 32px;
+  /* Base dark; tier variants override with a radial glow */
+  background: var(--color-brand-surface-dark);
+  overflow: hidden;
+}
+
+/* Tier-specific radial glow emanating from behind the icon */
+
+.achievementModalHeroTier1 {
+  background: var(--color-brand-surface-dark);
+}
+
+.achievementModalHeroTier2 {
+  background: var(--color-brand-surface-dark);
+}
+
+.achievementModalHeroTier3 {
+  background: var(--color-brand-surface-dark);
+}
+
+.achievementModalHeroTier4 {
+  background: var(--color-brand-surface-dark);
+}
+
+.achievementModalHeroLocked {
+  background: var(--color-brand-surface-dark);
+}
+
+/* ── Spinning conic rays behind the icon — earned only ── */
+/* Lifted from LessonCompleteModal; spin speed is slower for a calmer "display case" feel */
+
+.achievementModalRays {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -60%) rotate(0deg);
+  width: 280px;
+  height: 280px;
+  background: repeating-conic-gradient(
+    rgba(255, 255, 255, 0.045) 0 10deg,
+    transparent 10deg 20deg
+  );
+  border-radius: 50%;
+  mask-image: radial-gradient(circle, #000 15%, transparent 65%);
+  -webkit-mask-image: radial-gradient(circle, #000 15%, transparent 65%);
+  animation: achievementRaysSpin 24s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes achievementRaysSpin {
+  from { transform: translate(-50%, -60%) rotate(0deg); }
+  to   { transform: translate(-50%, -60%) rotate(360deg); }
+}
+
+/* ── Blurred colour blob — soft halo under the icon ── */
+
+.achievementModalGlow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -70%);
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  filter: blur(28px);
+  opacity: 0.55;
+  pointer-events: none;
+  animation: achievementGlowPulse 3s ease-in-out infinite;
+}
+
+@keyframes achievementGlowPulse {
+  0%, 100% { opacity: 0.55; }
+  50%       { opacity: 0.85; }
+}
+
+.achievementModalGlowTier1 { background: var(--color-tier-bronze); }
+.achievementModalGlowTier2 { background: var(--color-tier-silver); }
+.achievementModalGlowTier3 { background: var(--color-tier-gold); }
+.achievementModalGlowTier4 { background: var(--color-tier-diamond); }
+
+/* ── Icon ring ── */
+
+.achievementModalIconRing {
+  position: relative;
+  z-index: 1;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+}
+
+/* Gentle float keeps the icon feeling alive without being distracting */
+
+.achievementModalIconRingFloat {
+  animation: achievementIconFloat 4s ease-in-out infinite;
+}
+
+@keyframes achievementIconFloat {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-5px); }
+}
+
+.achievementModalIconRingTier1 {
+  background: rgba(205, 127, 50, 0.15);
+  border-color: var(--color-tier-bronze);
+  box-shadow: 0 0 24px var(--color-tier-bronze-glow), inset 0 1px 0 rgba(255,255,255,0.12);
+}
+
+.achievementModalIconRingTier2 {
+  background: rgba(138, 155, 181, 0.15);
+  border-color: var(--color-tier-silver);
+  box-shadow: 0 0 24px var(--color-tier-silver-glow), inset 0 1px 0 rgba(255,255,255,0.12);
+}
+
+.achievementModalIconRingTier3 {
+  background: rgba(212, 175, 55, 0.15);
+  border-color: var(--color-tier-gold);
+  box-shadow: 0 0 32px var(--color-tier-gold-glow), inset 0 1px 0 rgba(255,255,255,0.15);
+}
+
+.achievementModalIconRingTier4 {
+  background: rgba(157, 110, 255, 0.15);
+  border-color: var(--color-tier-diamond);
+  box-shadow: 0 0 40px var(--color-tier-diamond-glow), inset 0 1px 0 rgba(255,255,255,0.15);
+}
+
+.achievementModalIconRingLocked {
+  background: rgba(255, 255, 255, 0.04);
+  border: 2px dashed rgba(255, 255, 255, 0.15);
+  opacity: 0.5;
+}
+
+.achievementModalIconSize {
+  font-size: 2.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.achievementModalIconTier1 { color: var(--color-tier-bronze); }
+.achievementModalIconTier2 { color: var(--color-tier-silver); }
+
+.achievementModalIconTier3 {
+  color: var(--color-tier-gold);
+  filter: drop-shadow(0 0 8px var(--color-tier-gold-glow));
+}
+
+.achievementModalIconTier4 {
+  color: var(--color-tier-diamond);
+  filter: drop-shadow(0 0 10px var(--color-tier-diamond-glow));
+}
+
+.achievementModalIconLocked {
+  color: var(--color-text-on-dark-dim);
+}
+
+/* ── Name + badge inside the dark hero ── */
+
+.achievementModalMeta {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
 }
 
 .achievementModalTitle {
-  margin: 0 0 8px;
-  font-size: 1rem;
+  margin: 0;
+  font-size: 1.2rem;
   font-weight: 700;
-  color: var(--color-text);
+  font-family: var(--font-display);
+  /* White on dark hero — readable against all tier glow backgrounds */
+  color: var(--color-text-on-dark);
 }
+
+/* Badge variants for the dark hero background */
 
 .achievementStatusBadge {
   display: inline-flex;
@@ -610,6 +843,7 @@
   text-transform: uppercase;
 }
 
+/* These are used on the light body (kept for potential reuse elsewhere) */
 .achievementStatusBadgeEarned {
   background: var(--color-secondary-soft);
   color: var(--color-secondary-dark);
@@ -620,37 +854,32 @@
   color: var(--color-text-muted);
 }
 
-.achievementModalClose {
-  flex-shrink: 0;
-  padding: 6px 12px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--color-text-soft);
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
+/* Dark-surface variants shown in the hero panel */
+.achievementStatusBadgeEarnedDark {
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--color-secondary-light);
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
-.achievementModalClose:hover {
-  background: var(--color-surface-hover);
+.achievementStatusBadgeLockedDark {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--color-text-on-dark-subtle);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
-.achievementModalClose:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
+/* ── Light content area below the hero ── */
 
 .achievementModalBody {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding: 20px 24px 0;
 }
 
 .achievementModalRequirement {
   margin: 0;
   font-size: 0.9rem;
-  line-height: 1.5;
+  line-height: 1.6;
   color: var(--color-text-soft);
 }
 
@@ -658,9 +887,10 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 14px;
+  padding: 14px 16px;
   background: var(--color-bg);
   border: 1px solid var(--color-border-subtle);
+  border-left: 3px solid var(--color-accent);
   border-radius: var(--radius-md);
 }
 
