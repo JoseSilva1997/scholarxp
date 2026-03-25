@@ -80,7 +80,10 @@ describe('StudentProfileService', () => {
     prisma.dailyQuest.count.mockResolvedValue(8);
     prisma.dailyQuest.groupBy
       .mockResolvedValueOnce([
-        { questDateUtc: new Date('2026-03-24T00:00:00.000Z'), _count: { id: 3 } },
+        {
+          questDateUtc: new Date('2026-03-24T00:00:00.000Z'),
+          _count: { id: 3 },
+        },
       ] as never)
       .mockResolvedValueOnce([] as never);
     questStreakService.getCurrentStreakStatus.mockResolvedValue({

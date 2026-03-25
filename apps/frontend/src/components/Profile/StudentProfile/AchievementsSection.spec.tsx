@@ -1,5 +1,5 @@
 // Verifies achievement cards explain their unlock requirements without forcing the section to render all detail copy inline.
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { StudentProfileResponse } from '@scholarxp/api-contracts';
 import AchievementsSection from './AchievementsSection';
@@ -65,6 +65,8 @@ describe('AchievementsSection', () => {
 
     fireEvent.keyDown(window, { key: 'Escape' });
 
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
   });
 });

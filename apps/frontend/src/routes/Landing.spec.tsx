@@ -1,20 +1,31 @@
 // Verifies landing route content renders key product messaging and feature highlights.
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import { renderWithProviders } from '../test/utils';
 import Landing from './Landing';
 
 describe('Landing route', () => {
   it('renders hero and feature highlight cards', () => {
-    render(<Landing />);
+    renderWithProviders(<Landing />);
 
     expect(
       screen.getByRole('heading', {
-        name: 'Keep students practicing—without piling on more work.',
+        name: /Practice a little every day\.\s*Remember a lot more\./,
       }),
     ).toBeInTheDocument();
 
-    expect(screen.getByText('Daily bite-sized practice')).toBeInTheDocument();
-    expect(screen.getByText('XP without the grind')).toBeInTheDocument();
-    expect(screen.getByText('LTI-native by design')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Get started free/i })).toHaveAttribute(
+      'href',
+      '/register',
+    );
+    expect(
+      screen.getByText('Spaced repetition that adapts to you'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Quests and streaks that reward consistency'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Two XP tracks: proficiency and progression'),
+    ).toBeInTheDocument();
   });
 });
