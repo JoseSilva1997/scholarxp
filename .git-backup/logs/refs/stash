@@ -1,3 +1,0 @@
-0000000000000000000000000000000000000000 52a0af8b88d44b436b89aafb81776bbfa6031165 JoseSilva1997 <carlitoscaba16@gmail.com> 1771786103 +0000	WIP on main: c532a87 Added SessionAuthGuard and RolesGuard to every controller which required it. Not having them was a security vulnerability that allowed data exfiltration or account takovers
-52a0af8b88d44b436b89aafb81776bbfa6031165 65ff72efafb4a3771dd4c23910ea48b55a5ae74a JoseSilva1997 <carlitoscaba16@gmail.com> 1773159289 +0000	WIP on exp-engine: 5db358d Improved Practice Room UI
-65ff72efafb4a3771dd4c23910ea48b55a5ae74a 8a89c1fc9849d0d1e86b118268558d3e1c3b5ecf JoseSilva1997 <carlitoscaba16@gmail.com> 1773424497 +0000	WIP on quests: b731ce6 Implemented the backend quest engine
