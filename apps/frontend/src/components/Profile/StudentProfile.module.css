@@ -354,6 +354,20 @@
   transition: border-color var(--transition-fast);
 }
 
+.achievementCardButton {
+  appearance: none;
+  cursor: pointer;
+}
+
+.achievementCardButton:hover {
+  border-color: var(--color-border-hover);
+}
+
+.achievementCardButton:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .achievementEarned {
   border-color: var(--color-accent-soft);
 }
@@ -384,6 +398,127 @@
 .achievementDate {
   font-size: 0.6rem;
   color: var(--color-text-dim);
+}
+
+.achievementModalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(11, 18, 32, 0.55);
+  backdrop-filter: blur(4px);
+}
+
+.achievementModal {
+  width: min(100%, 420px);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 20px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.achievementModalHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.achievementModalTitle {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.achievementStatusBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.achievementStatusBadgeEarned {
+  background: var(--color-secondary-soft);
+  color: var(--color-secondary-dark);
+}
+
+.achievementStatusBadgeLocked {
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+}
+
+.achievementModalClose {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-soft);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.achievementModalClose:hover {
+  background: var(--color-surface-hover);
+}
+
+.achievementModalClose:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.achievementModalBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.achievementModalRequirement {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--color-text-soft);
+}
+
+.achievementModalProgressCard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.achievementModalLabel {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+}
+
+.achievementModalProgressValue {
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
+.achievementModalStatus {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
 }
 
 /* --- Locker Section --- */
