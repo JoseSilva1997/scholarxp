@@ -215,7 +215,7 @@ export default function SingleModulePage() {
                 </div>
               ) : null}
 
-              {canManageModuleContent &&
+              {canManageModuleContent && !isStudentViewEnabled &&
                 moduleUnits.map((unit) => (
                   <ModuleUnitCard
                     key={unit.id}
@@ -225,7 +225,7 @@ export default function SingleModulePage() {
                   />
                 ))}
 
-              {canManageModuleContent ? (
+              {canManageModuleContent && !isStudentViewEnabled ? (
                 <div className={styles.createUnitCardRow}>
                   <CreateModuleUnitCard
                     onClick={() => setShowCreateUnit(true)}
@@ -234,15 +234,16 @@ export default function SingleModulePage() {
                 </div>
               ) : null}
 
-              {user?.globalRole === 'student' &&
+              {(user?.globalRole === 'student' || isStudentViewEnabled) &&
                 moduleUnits.map((unit) => {
                   const canStudentSee = unit.status === 'live' || unit.status === 'locked';
                   return canStudentSee ? (
                     <StudentModuleUnitCard
                       key={unit.id}
                       unit={unit}
-                      onOpenPracticeRoom={handleOpenStudentPracticeRoom}
-                      onRetryPracticeRoom={handleRetryStudentPracticeRoom}
+                      // Tutors previewing student view must not be able to enter a real practice room.
+                      onOpenPracticeRoom={isStudentViewEnabled ? undefined : handleOpenStudentPracticeRoom}
+                      onRetryPracticeRoom={isStudentViewEnabled ? undefined : handleRetryStudentPracticeRoom}
                     />
                   ) : null;
                 })}

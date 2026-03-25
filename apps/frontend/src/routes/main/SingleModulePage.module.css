@@ -78,6 +78,7 @@
   line-height: 1.1;
   background: linear-gradient(135deg, var(--color-text) 0%, var(--color-text-muted) 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
