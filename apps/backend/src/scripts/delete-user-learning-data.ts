@@ -8,9 +8,9 @@ import { PrismaService } from '../prisma/prisma.service';
 
 /**
  * DELETE EVERYTHING FOR A USER:
- * 
- * pnpm --filter backend cleanup:user-learning-data --all 
- * or simply 
+ *
+ * pnpm --filter backend cleanup:user-learning-data --all
+ * or simply
  * pnpm --filter backend cleanup:user-learning-data
  */
 
@@ -18,7 +18,6 @@ import { PrismaService } from '../prisma/prisma.service';
  * DELETE FOR A USER + MODULE UNIT:
  * pnpm --filter backend cleanup:user-learning-data --user 38 --moduleUnit 5
  */
-
 
 /**
  * Current test user ids:

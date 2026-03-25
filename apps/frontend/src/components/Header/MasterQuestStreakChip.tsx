@@ -1,11 +1,12 @@
 // MasterQuestStreakChip renders the student's global master-quest streak.
-import { FaCircleInfo, FaFire } from 'react-icons/fa6';
+import { FaCircleInfo } from 'react-icons/fa6';
 import {
   MASTER_QUEST_STREAK_MAX,
   MASTER_QUEST_STREAK_PERCENT_PER_STEP,
 } from '@scholarxp/constants';
 import { useMasterQuestStreakQuery } from '@/hooks/queries/useQuestsQueries';
 import styles from './MasterQuestStreakChip.module.css';
+import { BsFire } from 'react-icons/bs';
 
 type MasterQuestStreakChipProps = {
   userId: number;
@@ -62,7 +63,7 @@ export default function MasterQuestStreakChip({
             Master quest streak bonus {streakStatus.bonusPercent} percent
           </span>
           <div className={styles.flameContainer}>
-            <FaFire className={styles.flame} aria-hidden="true" />
+            <BsFire className={styles.flame} aria-hidden="true" />
           </div>
           <span className={styles.count}>{streakStatus.currentStreak}</span>
         </div>

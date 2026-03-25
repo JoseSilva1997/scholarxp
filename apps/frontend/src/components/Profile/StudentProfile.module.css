@@ -1,0 +1,611 @@
+/* Student profile view: overview stats, module cards, achievements, locker scaffold, lifetime stats. */
+
+.studentProfile {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+/* --- Section shared --- */
+
+.sectionTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  color: var(--color-text);
+  margin: 0;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.emptyState {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  padding: 24px 0;
+}
+
+/* --- Overview Strip --- */
+
+.overviewSection {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.overviewGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.statCard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition-fast);
+}
+
+.statCard:hover {
+  border-color: var(--color-border-hover);
+}
+
+.statLabel {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-dim);
+}
+
+.statValue {
+  font-size: 1.3rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.statValueMuted {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.statIconInline {
+  color: var(--color-accent);
+  font-size: 1rem;
+}
+
+.progressRail {
+  height: 5px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: var(--radius-full);
+  transition: width 0.5s ease-out;
+}
+
+.progressFillSecondary {
+  background: var(--color-secondary);
+}
+
+/* Daily lesson track steps */
+
+.trackSteps {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.trackStep {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  border: 2px solid var(--color-border);
+  color: var(--color-text-dim);
+  background: var(--color-surface);
+}
+
+.trackStep_earned {
+  background: var(--color-secondary-soft);
+  border-color: var(--color-secondary);
+  color: var(--color-secondary);
+}
+
+.trackStep_active {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent-soft);
+}
+
+.trackStep_upcoming {
+  opacity: 0.5;
+}
+
+.trackStepXp {
+  font-size: 0.6rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Modules Section --- */
+
+.modulesSection {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sortTabs {
+  display: flex;
+  gap: 4px;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  padding: 3px;
+}
+
+.sortTab {
+  padding: 5px 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.sortTab:hover {
+  color: var(--color-text);
+  background: var(--color-surface-hover);
+}
+
+.sortTabActive {
+  color: var(--color-text);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  font-weight: 600;
+}
+
+.moduleList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.moduleCard {
+  padding: 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.moduleCard:hover {
+  border-color: var(--color-border-hover);
+  box-shadow: var(--shadow-sm);
+}
+
+.moduleCardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.moduleInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.moduleTitle {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 6px;
+}
+
+.moduleMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.proficiencyBadge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+}
+
+.proficiencyBadge[data-level="4"],
+.proficiencyBadge[data-level="5"] {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-dark);
+}
+
+.lessonCount {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.dailyDone {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--color-secondary);
+}
+
+.practiceButton {
+  flex-shrink: 0;
+  padding: 6px 16px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-on-primary);
+  background: var(--color-primary);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.practiceButton:hover {
+  background: var(--color-primary-dark);
+}
+
+.practiceButton:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.moduleProgressBar {
+  height: 4px;
+  background: var(--color-bg);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin: 10px 0 4px;
+}
+
+.moduleProgressFill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: var(--radius-full);
+  transition: width 0.5s ease-out;
+}
+
+.moduleXpLabel {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--color-text-dim);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* --- Achievements Section --- */
+
+.achievementsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.achievementRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.achievementRowTitle {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-soft);
+  margin: 0;
+}
+
+.achievementScroll {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+
+.achievementCard {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100px;
+  padding: 14px 8px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  text-align: center;
+  transition: border-color var(--transition-fast);
+}
+
+.achievementEarned {
+  border-color: var(--color-accent-soft);
+}
+
+.achievementEarned .achievementIcon {
+  color: var(--color-accent);
+}
+
+.achievementLocked {
+  opacity: 0.5;
+}
+
+.achievementLocked .achievementIcon {
+  color: var(--color-text-dim);
+}
+
+.achievementIcon {
+  font-size: 1.2rem;
+}
+
+.achievementName {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-text-soft);
+  line-height: 1.2;
+}
+
+.achievementDate {
+  font-size: 0.6rem;
+  color: var(--color-text-dim);
+}
+
+/* --- Locker Section --- */
+
+.lockerSection {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.lockerEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 40px 20px;
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.lockerEmptyIcon {
+  font-size: 1.8rem;
+  color: var(--color-accent);
+  opacity: 0.6;
+}
+
+.lockerEmptyText {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  max-width: 320px;
+  margin: 0;
+}
+
+.lockerContent {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.lockerGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lockerGroupTitle {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-soft);
+  margin: 0;
+}
+
+.equippedGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.equippedSlot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 56px;
+  padding: 8px 12px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  text-align: center;
+}
+
+.equippedEmpty {
+  font-size: 0.7rem;
+  color: var(--color-text-dim);
+  font-weight: 500;
+}
+
+.equippedItemName {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.ownedGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.ownedCard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.ownedCardLocked {
+  opacity: 0.55;
+  position: relative;
+}
+
+.lockedIcon {
+  font-size: 0.8rem;
+  color: var(--color-text-dim);
+}
+
+.ownedName {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.rarityBadge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  align-self: flex-start;
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+}
+
+.rarity_common { background: var(--color-bg); color: var(--color-text-muted); }
+.rarity_uncommon { background: var(--color-secondary-soft); color: var(--color-secondary-dark); }
+.rarity_rare { background: var(--color-primary-soft); color: var(--color-primary-dark); }
+.rarity_epic { background: rgba(139, 92, 246, 0.1); color: #7c3aed; }
+.rarity_legendary { background: var(--color-accent-soft); color: var(--color-accent-dark); }
+
+.ownedSource {
+  font-size: 0.65rem;
+  color: var(--color-text-dim);
+}
+
+.equipButton {
+  margin-top: 4px;
+  padding: 4px 10px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--color-text-soft);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* --- Stats Section --- */
+
+.statsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.lifetimeStat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.lifetimeStatSoon {
+  opacity: 0.55;
+}
+
+.lifetimeValue {
+  font-size: 1.4rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+.lifetimeLabel {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.comingSoon {
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-dim);
+  margin-top: 2px;
+}
+
+/* --- Responsive --- */
+
+@media (max-width: 600px) {
+  .overviewGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .sectionHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .moduleCardTop {
+    flex-direction: column;
+  }
+
+  .practiceButton {
+    align-self: flex-start;
+  }
+
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

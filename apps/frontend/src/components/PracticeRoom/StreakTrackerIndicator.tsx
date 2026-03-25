@@ -5,7 +5,7 @@
 // bonus animation since daily practice does not award account XP streak bonuses.
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { FaFire } from 'react-icons/fa6';
+import { BsFire } from 'react-icons/bs';
 import styles from './StreakTrackerIndicator.module.css';
 
 // Streak tier mirrors the backend ExpCalculationService.resolveReachedStreakTier thresholds,
@@ -288,7 +288,7 @@ export default function StreakIndicator({
           transition={{ type: 'spring', stiffness: 300, damping: 20 }}
           aria-hidden="true"
         >
-          <FaFire className={styles.icon} />
+          <BsFire className={styles.icon} />
         </motion.span>
 
         {/* Pips arranged horizontally below flame: pip 1 = 30%, pip 2 = 50%, pip 3 = 100% threshold.
