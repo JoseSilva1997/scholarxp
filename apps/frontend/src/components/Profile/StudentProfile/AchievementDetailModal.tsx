@@ -43,13 +43,6 @@ const TIER_HERO_CLASS: Record<number, string> = {
   4: styles.achievementModalHeroTier4,
 };
 
-const TIER_GLOW_CLASS: Record<number, string> = {
-  1: styles.achievementModalGlowTier1,
-  2: styles.achievementModalGlowTier2,
-  3: styles.achievementModalGlowTier3,
-  4: styles.achievementModalGlowTier4,
-};
-
 const TIER_MODAL_CLASS: Record<number, string> = {
   1: styles.achievementModalOuterTier1,
   2: styles.achievementModalOuterTier2,
@@ -81,8 +74,6 @@ function AchievementModalContent({
   const heroClass = achievement.earned
     ? (TIER_HERO_CLASS[achievement.tier] ?? '')
     : styles.achievementModalHeroLocked;
-
-  const glowClass = achievement.earned ? (TIER_GLOW_CLASS[achievement.tier] ?? '') : '';
   const ringClass = achievement.earned
     ? (TIER_RING_CLASS[achievement.tier] ?? '')
     : styles.achievementModalIconRingLocked;

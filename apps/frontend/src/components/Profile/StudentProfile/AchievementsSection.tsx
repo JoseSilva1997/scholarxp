@@ -43,50 +43,54 @@ function buildAchievements(profile: StudentProfileResponse): {
   const perfectDays = profile.questHistorySummary.perfectDays;
   const streak = profile.masterQuestStreak;
 
+  const questMilestoneThresholds = [10, 25, 50, 100];
+  const streakMilestoneThresholds = [3, 5, 7];
+  const masteryMilestoneThresholds = [1, 5, 10];
+
   const questMilestones: AchievementDef[] = [
     {
       id: 'q-10',
       name: 'Quest Rookie',
       icon: <FaMedal />,
       tier: 1,
-      earned: totalCompleted >= 10,
+      earned: totalCompleted >= questMilestoneThresholds[0],
       requirement: 'Complete 10 daily quests.',
       progressDetail: `${totalCompleted.toLocaleString()} of 10 daily quests completed.`,
       statusDetail:
-        totalCompleted >= 10 ? 'Completed.' : `${(10 - totalCompleted).toLocaleString()} more daily quests needed.`,
+        totalCompleted >= questMilestoneThresholds[0] ? 'Completed.' : `${(questMilestoneThresholds[0] - totalCompleted).toLocaleString()} more daily quests needed.`,
     },
     {
       id: 'q-25',
       name: '25 Quests',
       icon: <BsTrophy />,
       tier: 2,
-      earned: totalCompleted >= 25,
+      earned: totalCompleted >= questMilestoneThresholds[1],
       requirement: 'Complete 25 daily quests.',
       progressDetail: `${totalCompleted.toLocaleString()} of 25 daily quests completed.`,
       statusDetail:
-        totalCompleted >= 25 ? 'Completed.' : `${(25 - totalCompleted).toLocaleString()} more daily quests needed.`,
+        totalCompleted >= questMilestoneThresholds[1] ? 'Completed.' : `${(questMilestoneThresholds[1] - totalCompleted).toLocaleString()} more daily quests needed.`,
     },
     {
       id: 'q-50',
       name: 'Quest Veteran',
       icon: <BsTrophyFill />,
       tier: 3,
-      earned: totalCompleted >= 50,
+      earned: totalCompleted >= questMilestoneThresholds[2],
       requirement: 'Complete 50 daily quests.',
       progressDetail: `${totalCompleted.toLocaleString()} of 50 daily quests completed.`,
       statusDetail:
-        totalCompleted >= 50 ? 'Completed.' : `${(50 - totalCompleted).toLocaleString()} more daily quests needed.`,
+        totalCompleted >= questMilestoneThresholds[2] ? 'Completed.' : `${(questMilestoneThresholds[2] - totalCompleted).toLocaleString()} more daily quests needed.`,
     },
     {
       id: 'q-100',
       name: 'Centurion',
       icon: <FaCrown />,
       tier: 4,
-      earned: totalCompleted >= 100,
+      earned: totalCompleted >= questMilestoneThresholds[3],
       requirement: 'Complete 100 daily quests.',
       progressDetail: `${totalCompleted.toLocaleString()} of 100 daily quests completed.`,
       statusDetail:
-        totalCompleted >= 100 ? 'Completed.' : `${(100 - totalCompleted).toLocaleString()} more daily quests needed.`,
+        totalCompleted >= questMilestoneThresholds[3] ? 'Completed.' : `${(questMilestoneThresholds[3] - totalCompleted).toLocaleString()} more daily quests needed.`,
     },
   ];
 
@@ -96,30 +100,30 @@ function buildAchievements(profile: StudentProfileResponse): {
       name: '3-Day Streak',
       icon: <BsFire />,
       tier: 1,
-      earned: streak >= 3,
+      earned: streak >= streakMilestoneThresholds[0],
       requirement: 'Reach a 3-day master quest streak.',
       progressDetail: `Current streak: ${streak.toLocaleString()} ${pluralize(streak, 'day', 'days')}.`,
-      statusDetail: streak >= 3 ? 'Completed.' : `${(3 - streak).toLocaleString()} more ${pluralize(3 - streak, 'day', 'days')} needed.`,
+      statusDetail: streak >= streakMilestoneThresholds[0] ? 'Completed.' : `${(streakMilestoneThresholds[0] - streak).toLocaleString()} more ${pluralize(streakMilestoneThresholds[0] - streak, 'day', 'days')} needed.`,
     },
     {
       id: 's-5',
       name: '5-Day Streak',
       icon: <BsFire />,
       tier: 2,
-      earned: streak >= 5,
+      earned: streak >= streakMilestoneThresholds[1],
       requirement: 'Reach a 5-day master quest streak.',
       progressDetail: `Current streak: ${streak.toLocaleString()} ${pluralize(streak, 'day', 'days')}.`,
-      statusDetail: streak >= 5 ? 'Completed.' : `${(5 - streak).toLocaleString()} more ${pluralize(5 - streak, 'day', 'days')} needed.`,
+      statusDetail: streak >= streakMilestoneThresholds[1] ? 'Completed.' : `${(streakMilestoneThresholds[1] - streak).toLocaleString()} more ${pluralize(streakMilestoneThresholds[1] - streak, 'day', 'days')} needed.`,
     },
     {
       id: 's-7',
       name: 'Week Warrior',
       icon: <BsFire />,
       tier: 3,
-      earned: streak >= 7,
+      earned: streak >= streakMilestoneThresholds[2],
       requirement: 'Reach a 7-day master quest streak.',
       progressDetail: `Current streak: ${streak.toLocaleString()} ${pluralize(streak, 'day', 'days')}.`,
-      statusDetail: streak >= 7 ? 'Completed.' : `${(7 - streak).toLocaleString()} more ${pluralize(7 - streak, 'day', 'days')} needed.`,
+      statusDetail: streak >= streakMilestoneThresholds[2] ? 'Completed.' : `${(streakMilestoneThresholds[2] - streak).toLocaleString()} more ${pluralize(streakMilestoneThresholds[2] - streak, 'day', 'days')} needed.`,
     },
   ];
 
@@ -129,32 +133,32 @@ function buildAchievements(profile: StudentProfileResponse): {
       name: 'Perfect Day',
       icon: <BsStar />,
       tier: 1,
-      earned: perfectDays >= 1,
+      earned: perfectDays >= masteryMilestoneThresholds[0],
       requirement: 'Earn 1 perfect day by completing every daily quest generated for a UTC day.',
       progressDetail: `${perfectDays.toLocaleString()} of 1 perfect day earned.`,
-      statusDetail: perfectDays >= 1 ? 'Completed.' : '1 more perfect day needed.',
+      statusDetail: perfectDays >= masteryMilestoneThresholds[0] ? 'Completed.' : '1 more perfect day needed.',
     },
     {
       id: 'm-perfect-5',
       name: '5 Perfect Days',
       icon: <BsStarFill />,
       tier: 2,
-      earned: perfectDays >= 5,
+      earned: perfectDays >= masteryMilestoneThresholds[1],
       requirement: 'Earn 5 perfect days by completing every daily quest generated for a UTC day.',
       progressDetail: `${perfectDays.toLocaleString()} of 5 perfect days earned.`,
       statusDetail:
-        perfectDays >= 5 ? 'Completed.' : `${(5 - perfectDays).toLocaleString()} more perfect days needed.`,
+        perfectDays >= masteryMilestoneThresholds[1] ? 'Completed.' : `${(masteryMilestoneThresholds[1] - perfectDays).toLocaleString()} more perfect days needed.`,
     },
     {
       id: 'm-perfect-10',
       name: 'Perfection Streak',
       icon: <BsStarFill />,
       tier: 3,
-      earned: perfectDays >= 10,
+      earned: perfectDays >= masteryMilestoneThresholds[2],
       requirement: 'Earn 10 perfect days by completing every daily quest generated for a UTC day.',
       progressDetail: `${perfectDays.toLocaleString()} of 10 perfect days earned.`,
       statusDetail:
-        perfectDays >= 10 ? 'Completed.' : `${(10 - perfectDays).toLocaleString()} more perfect days needed.`,
+        perfectDays >= masteryMilestoneThresholds[2] ? 'Completed.' : `${(masteryMilestoneThresholds[2] - perfectDays).toLocaleString()} more perfect days needed.`,
     },
   ];
 
