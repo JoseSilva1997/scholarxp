@@ -34,7 +34,7 @@ export default function OverviewSection({ profile }: OverviewSectionProps) {
         </div>
 
         <div className={styles.statCard}>
-          <span className={styles.statLabel}>Total XP</span>
+          <span className={styles.statLabel}>Total Mastery XP</span>
           <span className={styles.statValue}>{profile.totalAccountXP.toLocaleString()}</span>
         </div>
 

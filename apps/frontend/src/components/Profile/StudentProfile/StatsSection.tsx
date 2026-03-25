@@ -14,7 +14,6 @@ export default function StatsSection({ profile }: StatsSectionProps) {
       label: 'Lessons Completed',
       value: profile.modules.reduce((sum, module) => sum + module.completedLessons, 0),
     },
-    { label: 'Mastery XP Earned', value: profile.totalAccountXP },
     { label: 'Modules in Progress', value: profile.modules.length },
   ];
 
