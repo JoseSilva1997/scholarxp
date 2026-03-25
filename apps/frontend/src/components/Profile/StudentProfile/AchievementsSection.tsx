@@ -1,7 +1,7 @@
 // Defines achievement presentation separately so milestone rules can evolve without bloating the page shell.
 import { useMemo, useState, type ReactNode } from 'react';
-import { BsFire, BsStar, BsTrophy } from 'react-icons/bs';
-import { FaLock } from 'react-icons/fa6';
+import { BsFire, BsStar, BsStarFill, BsTrophy, BsTrophyFill } from 'react-icons/bs';
+import { FaCrown, FaLock, FaMedal } from 'react-icons/fa6';
 import type { StudentProfileResponse } from '@scholarxp/api-contracts';
 import AchievementDetailModal from './AchievementDetailModal';
 import styles from '../StudentProfile.module.css';
@@ -10,15 +10,24 @@ type AchievementsSectionProps = {
   profile: StudentProfileResponse;
 };
 
+// tier drives icon choice and CSS color treatment (1 = bronze … 4 = diamond)
 type AchievementDef = {
   id: string;
   name: string;
   icon: ReactNode;
+  tier: 1 | 2 | 3 | 4;
   earned: boolean;
   dateEarned?: string;
   requirement: string;
   progressDetail: string;
   statusDetail: string;
+};
+
+const TIER_CLASS: Record<number, string> = {
+  1: styles.achievementTier1,
+  2: styles.achievementTier2,
+  3: styles.achievementTier3,
+  4: styles.achievementTier4,
 };
 
 function pluralize(count: number, singular: string, plural: string): string {
@@ -38,7 +47,8 @@ function buildAchievements(profile: StudentProfileResponse): {
     {
       id: 'q-10',
       name: 'Quest Rookie',
-      icon: <BsTrophy />,
+      icon: <FaMedal />,
+      tier: 1,
       earned: totalCompleted >= 10,
       requirement: 'Complete 10 daily quests.',
       progressDetail: `${totalCompleted.toLocaleString()} of 10 daily quests completed.`,
@@ -49,6 +59,7 @@ function buildAchievements(profile: StudentProfileResponse): {
       id: 'q-25',
       name: '25 Quests',
       icon: <BsTrophy />,
+      tier: 2,
       earned: totalCompleted >= 25,
       requirement: 'Complete 25 daily quests.',
       progressDetail: `${totalCompleted.toLocaleString()} of 25 daily quests completed.`,
@@ -58,7 +69,8 @@ function buildAchievements(profile: StudentProfileResponse): {
     {
       id: 'q-50',
       name: 'Quest Veteran',
-      icon: <BsTrophy />,
+      icon: <BsTrophyFill />,
+      tier: 3,
       earned: totalCompleted >= 50,
       requirement: 'Complete 50 daily quests.',
       progressDetail: `${totalCompleted.toLocaleString()} of 50 daily quests completed.`,
@@ -68,7 +80,8 @@ function buildAchievements(profile: StudentProfileResponse): {
     {
       id: 'q-100',
       name: 'Centurion',
-      icon: <BsTrophy />,
+      icon: <FaCrown />,
+      tier: 4,
       earned: totalCompleted >= 100,
       requirement: 'Complete 100 daily quests.',
       progressDetail: `${totalCompleted.toLocaleString()} of 100 daily quests completed.`,
@@ -82,6 +95,7 @@ function buildAchievements(profile: StudentProfileResponse): {
       id: 's-3',
       name: '3-Day Streak',
       icon: <BsFire />,
+      tier: 1,
       earned: streak >= 3,
       requirement: 'Reach a 3-day master quest streak.',
       progressDetail: `Current streak: ${streak.toLocaleString()} ${pluralize(streak, 'day', 'days')}.`,
@@ -91,6 +105,7 @@ function buildAchievements(profile: StudentProfileResponse): {
       id: 's-5',
       name: '5-Day Streak',
       icon: <BsFire />,
+      tier: 2,
       earned: streak >= 5,
       requirement: 'Reach a 5-day master quest streak.',
       progressDetail: `Current streak: ${streak.toLocaleString()} ${pluralize(streak, 'day', 'days')}.`,
@@ -100,6 +115,7 @@ function buildAchievements(profile: StudentProfileResponse): {
       id: 's-7',
       name: 'Week Warrior',
       icon: <BsFire />,
+      tier: 3,
       earned: streak >= 7,
       requirement: 'Reach a 7-day master quest streak.',
       progressDetail: `Current streak: ${streak.toLocaleString()} ${pluralize(streak, 'day', 'days')}.`,
@@ -112,6 +128,7 @@ function buildAchievements(profile: StudentProfileResponse): {
       id: 'm-perfect-1',
       name: 'Perfect Day',
       icon: <BsStar />,
+      tier: 1,
       earned: perfectDays >= 1,
       requirement: 'Earn 1 perfect day by completing every daily quest generated for a UTC day.',
       progressDetail: `${perfectDays.toLocaleString()} of 1 perfect day earned.`,
@@ -120,7 +137,8 @@ function buildAchievements(profile: StudentProfileResponse): {
     {
       id: 'm-perfect-5',
       name: '5 Perfect Days',
-      icon: <BsStar />,
+      icon: <BsStarFill />,
+      tier: 2,
       earned: perfectDays >= 5,
       requirement: 'Earn 5 perfect days by completing every daily quest generated for a UTC day.',
       progressDetail: `${perfectDays.toLocaleString()} of 5 perfect days earned.`,
@@ -130,7 +148,8 @@ function buildAchievements(profile: StudentProfileResponse): {
     {
       id: 'm-perfect-10',
       name: 'Perfection Streak',
-      icon: <BsStar />,
+      icon: <BsStarFill />,
+      tier: 3,
       earned: perfectDays >= 10,
       requirement: 'Earn 10 perfect days by completing every daily quest generated for a UTC day.',
       progressDetail: `${perfectDays.toLocaleString()} of 10 perfect days earned.`,
@@ -157,12 +176,14 @@ function AchievementRow({ title, achievements, onSelect }: AchievementRowProps) 
           <button
             key={achievement.id}
             type="button"
-            className={`${styles.achievementCard} ${styles.achievementCardButton} ${achievement.earned ? styles.achievementEarned : styles.achievementLocked}`}
+            className={`${styles.achievementCard} ${styles.achievementCardButton} ${achievement.earned ? `${styles.achievementEarned} ${TIER_CLASS[achievement.tier] ?? ''}` : styles.achievementLocked}`}
             onClick={() => onSelect(achievement)}
             aria-label={`View details for ${achievement.name}`}
           >
-            <div className={styles.achievementIcon}>
-              {achievement.earned ? achievement.icon : <FaLock />}
+            <div className={styles.achievementIconRing}>
+              <div className={styles.achievementIcon}>
+                {achievement.earned ? achievement.icon : <FaLock />}
+              </div>
             </div>
             <span className={styles.achievementName}>{achievement.name}</span>
             {achievement.earned && achievement.dateEarned ? (

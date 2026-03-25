@@ -204,6 +204,20 @@
   /* Badge Profile Level Number Shadow */
   --color-badge-number-shadow: rgba(0, 0, 0, 0.7);
 
+  /* Achievement Tier Colors */
+  --color-tier-bronze: #CD7F32;
+  --color-tier-bronze-soft: rgba(205, 127, 50, 0.10);
+  --color-tier-bronze-glow: rgba(205, 127, 50, 0.25);
+  --color-tier-silver: #8A9BB5;
+  --color-tier-silver-soft: rgba(138, 155, 181, 0.10);
+  --color-tier-silver-glow: rgba(138, 155, 181, 0.25);
+  --color-tier-gold: #D4AF37;
+  --color-tier-gold-soft: rgba(212, 175, 55, 0.12);
+  --color-tier-gold-glow: rgba(212, 175, 55, 0.35);
+  --color-tier-diamond: #9D6EFF;
+  --color-tier-diamond-soft: rgba(157, 110, 255, 0.12);
+  --color-tier-diamond-glow: rgba(157, 110, 255, 0.35);
+
   /* Visualization Utilities */
   --color-mask-opaque: #000000;
 
