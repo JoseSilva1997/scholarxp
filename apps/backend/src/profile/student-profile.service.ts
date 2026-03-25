@@ -161,9 +161,13 @@ export class StudentProfileService {
       total: nonMasterQuests.length,
     };
 
-    // Historical quest summary: total completed quests and perfect days (days where all quests were completed).
+    // Historical quest summary should mirror the visible daily quest rows, so master quests stay out of this total.
     const totalCompleted = await this.prisma.dailyQuest.count({
-      where: { userId, isCompleted: true },
+      where: {
+        userId,
+        isCompleted: true,
+        type: { not: 'master_daily_quests' },
+      },
     });
 
     // A "perfect day" is a UTC day where every generated non-master quest was completed.
