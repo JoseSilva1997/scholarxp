@@ -245,12 +245,6 @@
   color: var(--color-primary-dark);
 }
 
-.proficiencyBadge[data-level="4"],
-.proficiencyBadge[data-level="5"] {
-  background: var(--color-accent-soft);
-  color: var(--color-accent-dark);
-}
-
 .lessonCount {
   font-size: 0.75rem;
   color: var(--color-text-muted);

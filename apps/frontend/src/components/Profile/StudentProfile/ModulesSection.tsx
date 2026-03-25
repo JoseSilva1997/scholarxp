@@ -44,14 +44,6 @@ function sortModules(
   }
 }
 
-function proficiencyLabel(level: number): string {
-  if (level >= 5) return 'Master';
-  if (level >= 4) return 'Expert';
-  if (level >= 3) return 'Proficient';
-  if (level >= 2) return 'Developing';
-  return 'Beginner';
-}
-
 export default function ModulesSection({
   modules,
   sortKey,
@@ -95,9 +87,9 @@ export default function ModulesSection({
                     <div className={styles.moduleMeta}>
                       <span
                         className={styles.proficiencyBadge}
-                        data-level={module.proficiencyLevel}
+                        title="Practice level reflects cumulative module XP, not a fixed mastery rating."
                       >
-                        Lv.{module.proficiencyLevel} {proficiencyLabel(module.proficiencyLevel)}
+                        Practice Lv.{module.proficiencyLevel}
                       </span>
                       <span className={styles.lessonCount}>
                         {module.completedLessons}/{module.totalLessons} lessons
