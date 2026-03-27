@@ -10,13 +10,13 @@ describe('QuestGenerationService', () => {
   let service: QuestGenerationService;
   let prisma: PrismaMock;
   let questDailyPracticeAvailabilityService: {
-    findFirstAvailableModuleId: jest.Mock;
+    findAllAvailableModuleIds: jest.Mock;
   };
 
   beforeEach(async () => {
     prisma = createPrismaMock();
     questDailyPracticeAvailabilityService = {
-      findFirstAvailableModuleId: jest.fn().mockResolvedValue(1),
+      findAllAvailableModuleIds: jest.fn().mockResolvedValue([1]),
     };
     prisma.dailyQuest.createMany.mockResolvedValue({ count: 4 } as never);
 
@@ -49,8 +49,8 @@ describe('QuestGenerationService', () => {
     prisma.moduleUnit.findFirst.mockResolvedValue({
       moduleId: 1,
     } as never);
-    questDailyPracticeAvailabilityService.findFirstAvailableModuleId.mockResolvedValue(
-      1,
+    questDailyPracticeAvailabilityService.findAllAvailableModuleIds.mockResolvedValue(
+      [1],
     );
 
     await service.ensureQuestDayGeneratedForUser(
@@ -142,7 +142,7 @@ describe('QuestGenerationService', () => {
     });
   });
 
-  it('falls back to a retry lesson quest when no new lesson remains', async () => {
+  it('falls back to a retry lesson quest only when no daily practice and no new lesson is available', async () => {
     prisma.dailyQuest.findMany.mockResolvedValue([]);
     prisma.userModule.findMany.mockResolvedValue([{ moduleId: 2 }] as never);
     prisma.moduleUnit.findFirst.mockResolvedValue(null);
@@ -157,6 +157,10 @@ describe('QuestGenerationService', () => {
           moduleId: 2,
         },
       } as never);
+    // No daily practice available — retry becomes the only importance-1 fallback.
+    questDailyPracticeAvailabilityService.findAllAvailableModuleIds.mockResolvedValue(
+      [],
+    );
 
     await service.ensureQuestDayGeneratedForUser(
       42,
@@ -201,6 +205,82 @@ describe('QuestGenerationService', () => {
     });
   });
 
+  it('suppresses module_unit_retry when daily practice is available even if no new unit remains', async () => {
+    prisma.dailyQuest.findMany.mockResolvedValue([]);
+    prisma.userModule.findMany.mockResolvedValue([{ moduleId: 1 }] as never);
+    prisma.moduleUnit.findFirst.mockResolvedValue(null);
+    prisma.moduleUnitUserProgress.findFirst.mockResolvedValue({
+      moduleUnit: { moduleId: 1 },
+    } as never);
+    questDailyPracticeAvailabilityService.findAllAvailableModuleIds.mockResolvedValue(
+      [1],
+    );
+
+    await service.ensureQuestDayGeneratedForUser(
+      42,
+      new Date('2026-03-13T12:30:00.000Z'),
+    );
+
+    const createdData = (prisma.dailyQuest.createMany as jest.Mock).mock
+      .calls[0][0].data;
+    const types = createdData.map(
+      (d: { type: string }) => d.type,
+    );
+    expect(types).not.toContain(QuestTypeValues.moduleUnitRetry);
+    expect(types).toContain(QuestTypeValues.completeDailyPractice);
+    expect(types).toContain(QuestTypeValues.dailyPracticeStreak);
+  });
+
+  it('generates one complete_daily_practice per available module when enrolled in multiple', async () => {
+    prisma.dailyQuest.findMany.mockResolvedValue([]);
+    prisma.userModule.findMany.mockResolvedValue([
+      { moduleId: 1 },
+      { moduleId: 2 },
+    ] as never);
+    prisma.moduleUnitUserProgress.findFirst.mockResolvedValue({
+      moduleUnit: { moduleId: 1 },
+    } as never);
+    prisma.moduleUnit.findFirst.mockResolvedValue({ moduleId: 1 } as never);
+    questDailyPracticeAvailabilityService.findAllAvailableModuleIds.mockResolvedValue(
+      [1, 2],
+    );
+
+    await service.ensureQuestDayGeneratedForUser(
+      42,
+      new Date('2026-03-13T12:30:00.000Z'),
+    );
+
+    expect(prisma.dailyQuest.createMany).toHaveBeenCalledWith({
+      data: expect.arrayContaining([
+        expect.objectContaining({
+          type: QuestTypeValues.completeDailyPractice,
+          moduleId: 1,
+        }),
+        expect.objectContaining({
+          type: QuestTypeValues.completeDailyPractice,
+          moduleId: 2,
+        }),
+        // Streak goes to the first available module only.
+        expect.objectContaining({
+          type: QuestTypeValues.dailyPracticeStreak,
+          moduleId: 1,
+        }),
+        expect.objectContaining({
+          type: QuestTypeValues.completeNewUnit,
+          moduleId: 1,
+        }),
+      ]),
+      skipDuplicates: true,
+    });
+
+    const createdData = (prisma.dailyQuest.createMany as jest.Mock).mock
+      .calls[0][0].data;
+    const streakQuests = createdData.filter(
+      (d: { type: string }) => d.type === QuestTypeValues.dailyPracticeStreak,
+    );
+    expect(streakQuests).toHaveLength(1);
+  });
+
   it('anchors all generated daily quests to the eligible lesson module when the first enrolled module has no units', async () => {
     prisma.dailyQuest.findMany.mockResolvedValue([]);
     prisma.userModule.findMany.mockResolvedValue([
@@ -215,8 +295,8 @@ describe('QuestGenerationService', () => {
     prisma.moduleUnit.findFirst.mockResolvedValue({
       moduleId: 2,
     } as never);
-    questDailyPracticeAvailabilityService.findFirstAvailableModuleId.mockResolvedValue(
-      2,
+    questDailyPracticeAvailabilityService.findAllAvailableModuleIds.mockResolvedValue(
+      [2],
     );
 
     await service.ensureQuestDayGeneratedForUser(
@@ -338,7 +418,7 @@ describe('QuestGenerationService', () => {
     expect(prisma.dailyQuest.createMany).toHaveBeenCalled();
   });
 
-  it('falls back to the first module with an available daily-practice set when the lesson quest module has none', async () => {
+  it('generates daily practice quest for the first available module when lesson module has none', async () => {
     prisma.dailyQuest.findMany.mockResolvedValue([]);
     prisma.userModule.findMany.mockResolvedValue([
       { moduleId: 1 },
@@ -352,8 +432,9 @@ describe('QuestGenerationService', () => {
     prisma.moduleUnit.findFirst.mockResolvedValue({
       moduleId: 1,
     } as never);
-    questDailyPracticeAvailabilityService.findFirstAvailableModuleId.mockResolvedValue(
-      2,
+    // Only module 2 has an available daily practice set.
+    questDailyPracticeAvailabilityService.findAllAvailableModuleIds.mockResolvedValue(
+      [2],
     );
 
     await service.ensureQuestDayGeneratedForUser(
@@ -362,7 +443,7 @@ describe('QuestGenerationService', () => {
     );
 
     expect(
-      questDailyPracticeAvailabilityService.findFirstAvailableModuleId,
+      questDailyPracticeAvailabilityService.findAllAvailableModuleIds,
     ).toHaveBeenCalledWith(42, [1, 2], new Date('2026-03-13T12:30:00.000Z'));
     expect(prisma.dailyQuest.createMany).toHaveBeenCalledWith({
       data: expect.arrayContaining([
@@ -394,8 +475,8 @@ describe('QuestGenerationService', () => {
     prisma.moduleUnit.findFirst.mockResolvedValue({
       moduleId: 1,
     } as never);
-    questDailyPracticeAvailabilityService.findFirstAvailableModuleId.mockResolvedValue(
-      null,
+    questDailyPracticeAvailabilityService.findAllAvailableModuleIds.mockResolvedValue(
+      [],
     );
 
     await service.ensureQuestDayGeneratedForUser(
@@ -426,18 +507,21 @@ describe('QuestGenerationService', () => {
     prisma.dailyQuest.findMany.mockResolvedValue([
       {
         id: 1,
+        moduleId: 1,
         type: QuestTypeValues.completeDailyPractice,
         expGranted: 50,
         isCompleted: false,
       },
       {
         id: 2,
+        moduleId: 1,
         type: QuestTypeValues.dailyPracticeStreak,
         expGranted: 50,
         isCompleted: false,
       },
       {
         id: 3,
+        moduleId: null,
         type: QuestTypeValues.masterDailyQuests,
         expGranted: 300,
         isCompleted: false,
@@ -452,8 +536,8 @@ describe('QuestGenerationService', () => {
     prisma.moduleUnit.findFirst.mockResolvedValue({
       moduleId: 1,
     } as never);
-    questDailyPracticeAvailabilityService.findFirstAvailableModuleId.mockResolvedValue(
-      1,
+    questDailyPracticeAvailabilityService.findAllAvailableModuleIds.mockResolvedValue(
+      [1],
     );
 
     await service.ensureQuestDayGeneratedForUser(

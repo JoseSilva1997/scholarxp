@@ -12,6 +12,31 @@ export class QuestDailyPracticeAvailabilityService {
     private readonly dailyPracticeSetSelectorService: DailyPracticeSetSelectorService,
   ) {}
 
+  // Returns all modules with available daily practice — used when multiple complete_daily_practice quests can be generated.
+  async findAllAvailableModuleIds(
+    userId: number,
+    moduleIds: number[],
+    timestamp: Date,
+  ): Promise<number[]> {
+    const result: number[] = [];
+    const seenModuleIds = new Set<number>();
+
+    for (const moduleId of moduleIds) {
+      if (seenModuleIds.has(moduleId)) {
+        continue;
+      }
+      seenModuleIds.add(moduleId);
+
+      if (
+        await this.isDailyPracticeAvailableForModule(userId, moduleId, timestamp)
+      ) {
+        result.push(moduleId);
+      }
+    }
+
+    return result;
+  }
+
   // Quest generation only needs the first viable module, so this helper keeps the ordering and short-circuit rule centralized.
   async findFirstAvailableModuleId(
     userId: number,
