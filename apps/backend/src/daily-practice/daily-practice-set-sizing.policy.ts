@@ -4,9 +4,9 @@ import type {
   DailyPracticeSelectionPlan,
 } from './daily-practice.types';
 
-export const MIN_DAILY_PRACTICE_QUESTION_COUNT = 3;
-export const MAX_DAILY_PRACTICE_QUESTION_COUNT = 6;
-export const DAILY_PRACTICE_REVIEW_RATIO = 0.25;
+export const MIN_DAILY_PRACTICE_QUESTION_COUNT = 3; // Minimum viable set size to maintain the "daily practice" experience.
+export const MAX_DAILY_PRACTICE_QUESTION_COUNT = 6; // Cap on set size to maintain a consistent experience and avoid overwhelming learners.
+export const DAILY_PRACTICE_REVIEW_RATIO = 0.25; // Proportion of review-eligible questions to include in a set (e.g. if 10 question are eligible for review, the set will be 3 questions)
 export const REINFORCEMENT_RATIO = 0.2;
 export const NEW_SEQUENCE_MIN_TARGET = 4;
 
