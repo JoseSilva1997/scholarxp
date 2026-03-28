@@ -6,6 +6,7 @@ import type {
   SortDirection,
 } from '@scholarxp/api-contracts';
 import defaultAvatar from '@/assets/default-profile-pic.png';
+import { ProficiencyLevelBadge } from '@/components/SingleModulePage/ProficiencyLevelBadge';
 import RosterTableToolbar from './RosterTableToolbar';
 import styles from './RosterTable.module.css';
 
@@ -120,9 +121,9 @@ export default function StudentsTab({
           <table className={styles.table}>
             <thead>
               <tr>
-                <th className={styles.th}>Student</th>
-                <th className={styles.th}>Level</th>
-                <th className={styles.th}>XP</th>
+                <th className={`${styles.th} ${styles.tdLeft}`}>Student</th>
+                <th className={`${styles.th} ${styles.thWrap}`}>Proficiency Level</th>
+                <th className={`${styles.th} ${styles.thWrap}`}>Proficiency XP</th>
                 <th className={styles.th}>Lessons</th>
                 <th className={styles.th}>Mastery</th>
                 <th className={styles.th}>Daily Practice</th>
@@ -155,7 +156,7 @@ export default function StudentsTab({
                       }
                     }}
                   >
-                    <td className={styles.td}>
+                    <td className={`${styles.td} ${styles.tdLeft}`}>
                       <div className={styles.studentCell}>
                         <img
                           src={resolveAvatar(student.avatarUrl)}
@@ -168,7 +169,11 @@ export default function StudentsTab({
                         <span className={styles.studentName}>{student.fullName}</span>
                       </div>
                     </td>
-                    <td className={styles.td}>{student.moduleLevel}</td>
+                    <td className={styles.td}>
+                      <div style={{ display: 'flex', justifyContent: 'center' }}>
+                        <ProficiencyLevelBadge level={student.moduleLevel} small />
+                      </div>
+                    </td>
                     <td className={styles.td}>{student.currentXp}</td>
                     <td className={styles.td}>
                       {student.completedLessons}/{student.totalLiveLessons}

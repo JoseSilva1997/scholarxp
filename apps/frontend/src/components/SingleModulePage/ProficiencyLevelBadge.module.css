@@ -67,6 +67,22 @@
   align-items: center;
 }
 
+/* Small variant — ~75% scale for use in dense contexts like tables and stat grids */
+.badge-outer--small {
+  width: 45px;
+  height: 51.3px;
+}
+
+.badge-middle--small {
+  width: 38.7px;
+  height: 45px;
+}
+
+.badge-inner--small {
+  width: 22.5px;
+  height: 26.1px;
+}
+
 /* Number text styling
    The proficiency level number display with deep purple text for contrast
    Text shadow creates a pressed/embossed effect */
@@ -78,4 +94,8 @@
   /* Subtle white text shadow that creates an embossed effect,
      making the text appear to sink into the gold background */
   text-shadow: 0 1px 0 var(--color-highlight-clean);
+}
+
+.badge-number--small {
+  font-size: 0.675rem;
 }

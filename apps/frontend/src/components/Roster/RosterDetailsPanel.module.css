@@ -26,9 +26,11 @@
 }
 
 .tab {
+  display: flex;
   padding: 14px 20px;
   font-size: 0.875rem;
   font-weight: 500;
+  align-items: center;
   font-family: inherit;
   color: var(--color-text-muted);
   background: none;

@@ -107,11 +107,11 @@ export default function StudentDrillDown({
             <span className={styles.statValue}>{student.enrolledVia}</span>
           </div>
           <div className={styles.statItem}>
-            <span className={styles.statLabel}>Module Level</span>
+            <span className={styles.statLabel}>Proficiency Level</span>
             <span className={styles.statValue}>{student.moduleLevel}</span>
           </div>
           <div className={styles.statItem}>
-            <span className={styles.statLabel}>XP</span>
+            <span className={styles.statLabel}>Proficiency XP</span>
             <span className={styles.statValue}>{student.currentXp}</span>
           </div>
           <div className={styles.statItem}>
