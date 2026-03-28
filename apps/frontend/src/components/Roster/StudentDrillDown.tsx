@@ -80,7 +80,13 @@ export default function StudentDrillDown({
     <div className={styles.panel} role="region" aria-label={`Details for ${student.fullName}`}>
       <div className={styles.panelHeader}>
         <div className={styles.studentIdentity}>
-          <img src={resolveAvatar(student.avatarUrl)} alt="" className={styles.avatar} aria-hidden="true" />
+          <img src={resolveAvatar(student.avatarUrl)}
+               alt=""
+               crossOrigin="anonymous"
+               referrerPolicy="no-referrer"
+               className={styles.avatar} 
+               aria-hidden="true" 
+               />
           <span className={styles.panelTitle}>{student.fullName}</span>
         </div>
         <button type="button" className={styles.closeButton} onClick={onClose} aria-label="Close student detail">

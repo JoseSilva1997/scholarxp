@@ -160,6 +160,8 @@ export default function StudentsTab({
                         <img
                           src={resolveAvatar(student.avatarUrl)}
                           alt=""
+                          crossOrigin="anonymous"
+                          referrerPolicy="no-referrer"
                           className={styles.avatar}
                           aria-hidden="true"
                         />
