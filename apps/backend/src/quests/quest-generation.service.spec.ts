@@ -223,9 +223,7 @@ describe('QuestGenerationService', () => {
 
     const createdData = (prisma.dailyQuest.createMany as jest.Mock).mock
       .calls[0][0].data;
-    const types = createdData.map(
-      (d: { type: string }) => d.type,
-    );
+    const types = createdData.map((d: { type: string }) => d.type);
     expect(types).not.toContain(QuestTypeValues.moduleUnitRetry);
     expect(types).toContain(QuestTypeValues.completeDailyPractice);
     expect(types).toContain(QuestTypeValues.dailyPracticeStreak);

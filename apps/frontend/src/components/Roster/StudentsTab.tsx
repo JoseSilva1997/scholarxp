@@ -5,8 +5,14 @@ import type {
   RosterStudentSortBy,
   SortDirection,
 } from '@scholarxp/api-contracts';
+import defaultAvatar from '@/assets/default-profile-pic.png';
 import RosterTableToolbar from './RosterTableToolbar';
 import styles from './RosterTable.module.css';
+
+// Reuse the same URL guard as UserBadge/HeroCard — bare filenames from the DB default are not loadable URLs.
+function resolveAvatar(url: string): string {
+  return url.startsWith('http') ? url : defaultAvatar;
+}
 
 const STUDENT_FILTERS: { value: RosterStudentFilter; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -152,7 +158,7 @@ export default function StudentsTab({
                     <td className={styles.td}>
                       <div className={styles.studentCell}>
                         <img
-                          src={student.avatarUrl}
+                          src={resolveAvatar(student.avatarUrl)}
                           alt=""
                           className={styles.avatar}
                           aria-hidden="true"

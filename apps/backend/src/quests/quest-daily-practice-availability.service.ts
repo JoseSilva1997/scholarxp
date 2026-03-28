@@ -28,7 +28,11 @@ export class QuestDailyPracticeAvailabilityService {
       seenModuleIds.add(moduleId);
 
       if (
-        await this.isDailyPracticeAvailableForModule(userId, moduleId, timestamp)
+        await this.isDailyPracticeAvailableForModule(
+          userId,
+          moduleId,
+          timestamp,
+        )
       ) {
         result.push(moduleId);
       }

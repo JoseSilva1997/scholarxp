@@ -1,6 +1,12 @@
 // Student drill-down panel: shows overview, per-lesson progress, review state, and 7-day performance for a selected student.
 import type { RosterStudentDetailResponse } from '@scholarxp/api-contracts';
+import defaultAvatar from '@/assets/default-profile-pic.png';
 import styles from './StudentDrillDown.module.css';
+
+// Reuse the same URL guard as UserBadge/HeroCard — bare filenames from the DB default are not loadable URLs.
+function resolveAvatar(url: string): string {
+  return url.startsWith('http') ? url : defaultAvatar;
+}
 
 type StudentDrillDownProps = {
   detail: RosterStudentDetailResponse | undefined;
@@ -74,7 +80,7 @@ export default function StudentDrillDown({
     <div className={styles.panel} role="region" aria-label={`Details for ${student.fullName}`}>
       <div className={styles.panelHeader}>
         <div className={styles.studentIdentity}>
-          <img src={student.avatarUrl} alt="" className={styles.avatar} aria-hidden="true" />
+          <img src={resolveAvatar(student.avatarUrl)} alt="" className={styles.avatar} aria-hidden="true" />
           <span className={styles.panelTitle}>{student.fullName}</span>
         </div>
         <button type="button" className={styles.closeButton} onClick={onClose} aria-label="Close student detail">

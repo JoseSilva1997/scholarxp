@@ -4,8 +4,14 @@ import type {
   RosterReviewSortBy,
   SortDirection,
 } from '@scholarxp/api-contracts';
+import defaultAvatar from '@/assets/default-profile-pic.png';
 import RosterTableToolbar from './RosterTableToolbar';
 import styles from './RosterTable.module.css';
+
+// Reuse the same URL guard as UserBadge/HeroCard — bare filenames from the DB default are not loadable URLs.
+function resolveAvatar(url: string): string {
+  return url.startsWith('http') ? url : defaultAvatar;
+}
 
 const REVIEW_SORT_OPTIONS: { value: RosterReviewSortBy; label: string }[] = [
   { value: 'name', label: 'Name' },
@@ -126,7 +132,7 @@ export default function ReviewTab({
                     <td className={styles.td}>
                       <div className={styles.studentCell}>
                         <img
-                          src={row.avatarUrl}
+                          src={resolveAvatar(row.avatarUrl)}
                           alt=""
                           className={styles.avatar}
                           aria-hidden="true"

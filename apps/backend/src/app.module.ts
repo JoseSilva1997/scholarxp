@@ -25,6 +25,7 @@ import { MailerModule } from './mailer/mailer.module';
 import { PracticeRoomModule } from './practice-room/practice-room.module';
 import { ProfileModule } from './profile/profile.module';
 import { QuestsModule } from './quests/quests.module';
+import { RosterModule } from './roster/roster.module';
 
 // Keep internal diagnostics routes out of production to reduce attack surface.
 const appControllers =
@@ -65,6 +66,7 @@ const appControllers =
     PracticeRoomModule,
     QuestsModule,
     ProfileModule,
+    RosterModule,
   ],
   controllers: appControllers,
 })
