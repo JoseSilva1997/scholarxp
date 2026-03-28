@@ -151,9 +151,10 @@ export class RosterService {
       const dailyPracticeStatus =
         dailyPracticeStatuses.get(studentId) ?? 'locked';
 
+      // currentMasteryScore is stored as a 0–1 decimal; contract expects 0–100 integer.
       const averageMastery =
         progress.startedCount > 0
-          ? Math.round(progress.masterySum / progress.startedCount)
+          ? Math.round((progress.masterySum / progress.startedCount) * 100)
           : 0;
 
       const isActive =
@@ -244,8 +245,9 @@ export class RosterService {
         enrolledCount > 0
           ? Math.round((studentsCompleted / enrolledCount) * 100)
           : 0;
+      // Prisma _avg returns the raw 0–1 decimal; contract expects 0–100 integer.
       const averageMastery = Math.round(
-        progress?._avg?.currentMasteryScore ?? 0,
+        (progress?._avg?.currentMasteryScore ?? 0) * 100,
       );
       const lastPracticedAt = progress?._max?.lastPracticedAt ?? null;
 
@@ -423,7 +425,7 @@ export class RosterService {
         moduleUnitId: lesson.id,
         lessonTitle: lesson.title,
         isCompleted: progress?.isCompleted ?? false,
-        currentMasteryScore: progress?.currentMasteryScore ?? 0,
+        currentMasteryScore: Math.round((progress?.currentMasteryScore ?? 0) * 100),
         completedAt: progress?.completedAt?.toISOString() ?? null,
         lastPracticedAt: progress?.lastPracticedAt?.toISOString() ?? null,
       };
@@ -463,11 +465,13 @@ export class RosterService {
       liveLessonIds.includes(p.moduleUnitId),
     );
     const completedLessons = startedLessons.filter((p) => p.isCompleted).length;
+    // currentMasteryScore is stored as a 0–1 decimal; contract expects 0–100 integer.
     const averageMastery =
       startedLessons.length > 0
         ? Math.round(
-            startedLessons.reduce((sum, p) => sum + p.currentMasteryScore, 0) /
-              startedLessons.length,
+            (startedLessons.reduce((sum, p) => sum + p.currentMasteryScore, 0) /
+              startedLessons.length) *
+              100,
           )
         : 0;
 
