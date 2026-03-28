@@ -1,24 +1,25 @@
 // Screen that shows details and content entry points for a single module using query-backed server state.
 import { Link, useParams } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { IconContext } from 'react-icons';
 import { IoSettingsSharp } from 'react-icons/io5';
 import { BsInfoCircle, BsLightningChargeFill } from 'react-icons/bs';
-import toggleStudentViewIcon from '../../assets/toggle-student-view.svg';
-import toggleStudentViewDarkIcon from '../../assets/toggle-student-view-dark.svg';
-import untoggleStudentViewIcon from '../../assets/untoggle-student-view.svg';
-import untoggleStudentViewDarkIcon from '../../assets/untoggle-student-view-dark.svg';
-import expIcon from '../../assets/exp_icon.svg';
-import MainSection from '../../components/MainSection';
-import ModuleSettingsPanel from '../../components/ModuleSettingsPanel';
-import CreateModuleUnitCard from '../../components/CreateModuleUnitCard';
-import CreateModuleUnitModal from '../../components/Modals/CreateModuleUnitModal';
-import ModuleUnitCard from '../../components/ModuleUnitCard';
-import StudentModuleUnitCard from '../../components/StudentModuleUnitCard';
-import { useSingleModulePageState } from '../../hooks/page-state/useSingleModulePageState';
-import { useTheme } from '../../context/useTheme';
+import toggleStudentViewIcon from '@/assets/toggle-student-view.svg';
+import toggleStudentViewDarkIcon from '@/assets/toggle-student-view-dark.svg';
+import untoggleStudentViewIcon from '@/assets/untoggle-student-view.svg';
+import untoggleStudentViewDarkIcon from '@/assets/untoggle-student-view-dark.svg';
+import expIcon from '@/assets/exp_icon.svg';
+import MainSection from '@/components/MainSection';
+import ModuleSettingsPanel from '@/components/Modules/ModuleSettingsPanel';
+import CreateModuleUnitCard from '@/components/CreateModuleUnitCard';
+import CreateModuleUnitModal from '@/components/Modals/CreateModuleUnitModal';
+import ModuleUnitCard from '@/components/Modules/ModuleUnitCard';
+import StudentModuleUnitCard from '@/components/Modules/StudentModuleUnitCard';
+import { useSingleModulePageState } from '@/hooks/page-state/useSingleModulePageState';
+import { useTheme } from '@/context/useTheme';
 import styles from './SingleModulePage.module.css';
-import { ProficiencyLevelBadge } from '../../components/SingleModulePage/ProficiencyLevelBadge';
+import { ProficiencyLevelBadge } from '@/components/SingleModulePage/ProficiencyLevelBadge';
+import DebugMeta from '@/components/DebugMeta';
 
 export default function SingleModulePage() {
   const { moduleId } = useParams<{ moduleId: string }>();
@@ -86,6 +87,15 @@ export default function SingleModulePage() {
                   <p className={styles.subtitle}>
                     {module.description}
                   </p>
+                  {canManageModuleContent && moduleUnits.length > 0 && (
+                    <p className={styles.moduleSummary}>
+                      {moduleUnits.length} {moduleUnits.length === 1 ? 'lesson' : 'lessons'}
+                      {' · '}
+                      {moduleUnits.reduce((sum, u) => sum + u.questionCount, 0)} questions
+                      {' · '}
+                      {moduleUnits.filter((u) => u.status === 'live').length} live
+                    </p>
+                  )}
                 </div>
 
                 {user && (canToggleStudentView || canEditSettings) && (
@@ -134,6 +144,12 @@ export default function SingleModulePage() {
                   </div>
                 )}
               </div>
+              <DebugMeta
+                entries={[
+                    { label: 'moduleId', value: moduleId },
+                    { label: 'userId', value: user?.id ?? 'null' },
+                ]}
+            />
             </header>
 
             <div className={styles.contentWrapper}>
@@ -199,7 +215,7 @@ export default function SingleModulePage() {
                 </div>
               ) : null}
 
-              {canManageModuleContent &&
+              {canManageModuleContent && !isStudentViewEnabled &&
                 moduleUnits.map((unit) => (
                   <ModuleUnitCard
                     key={unit.id}
@@ -209,7 +225,7 @@ export default function SingleModulePage() {
                   />
                 ))}
 
-              {canManageModuleContent ? (
+              {canManageModuleContent && !isStudentViewEnabled ? (
                 <div className={styles.createUnitCardRow}>
                   <CreateModuleUnitCard
                     onClick={() => setShowCreateUnit(true)}
@@ -218,15 +234,16 @@ export default function SingleModulePage() {
                 </div>
               ) : null}
 
-              {user?.globalRole === 'student' &&
+              {(user?.globalRole === 'student' || isStudentViewEnabled) &&
                 moduleUnits.map((unit) => {
                   const canStudentSee = unit.status === 'live' || unit.status === 'locked';
                   return canStudentSee ? (
                     <StudentModuleUnitCard
                       key={unit.id}
                       unit={unit}
-                      onOpenPracticeRoom={handleOpenStudentPracticeRoom}
-                      onRetryPracticeRoom={handleRetryStudentPracticeRoom}
+                      // Tutors previewing student view must not be able to enter a real practice room.
+                      onOpenPracticeRoom={isStudentViewEnabled ? undefined : handleOpenStudentPracticeRoom}
+                      onRetryPracticeRoom={isStudentViewEnabled ? undefined : handleRetryStudentPracticeRoom}
                     />
                   ) : null;
                 })}

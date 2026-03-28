@@ -1,11 +1,7 @@
 // Tests single-module page-state orchestration for routing params, capability gating, and action side effects.
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  PracticeSessionTypeValues,
-  type AuthUser,
-} from '@scholarxp/api-contracts';
-import { ApiError } from '../../api/client';
+import { PracticeSessionTypeValues, type AuthUser } from '@scholarxp/api-contracts';
 import { useSingleModulePageState } from './useSingleModulePageState';
 import { features } from '@scholarxp/permissions';
 
@@ -20,7 +16,6 @@ const mocks = vi.hoisted(() => ({
   updateStatusMutateAsync: vi.fn(),
   setQueryData: vi.fn(),
   assign: vi.fn(),
-  useTodayDailyPracticeQuery: vi.fn(),
 }));
 
 let moduleQueryState: {
@@ -39,16 +34,6 @@ let moduleUnitsQueryState: {
   error: unknown;
 } = {
   data: [],
-  isPending: false,
-  error: null,
-};
-
-let todayDailyPracticeQueryState: {
-  data: unknown;
-  isPending: boolean;
-  error: unknown;
-} = {
-  data: null,
   isPending: false,
   error: null,
 };
@@ -112,18 +97,10 @@ vi.mock('../queries/useModulesQueries', () => ({
   }),
 }));
 
-vi.mock('../queries/useDailyPracticeQueries', () => ({
-  useTodayDailyPracticeQuery: (...args: unknown[]) => {
-    mocks.useTodayDailyPracticeQuery(...args);
-    return todayDailyPracticeQueryState;
-  },
-}));
-
 describe('useSingleModulePageState', () => {
   beforeEach(() => {
     moduleQueryState = { data: null, isPending: false, error: null };
     moduleUnitsQueryState = { data: [], isPending: false, error: null };
-    todayDailyPracticeQueryState = { data: null, isPending: false, error: null };
     permissionByKey = {
       [features.modules.settings]: true,
       [features.modules.toggleStudentView]: true,
@@ -141,7 +118,6 @@ describe('useSingleModulePageState', () => {
     mocks.updateStatusMutateAsync.mockReset();
     mocks.setQueryData.mockReset();
     mocks.assign.mockReset();
-    mocks.useTodayDailyPracticeQuery.mockReset();
 
     mocks.canUserAccess.mockImplementation((permission: string) => permissionByKey[permission]);
     mocks.shouldLogApiError.mockReturnValue(true);
@@ -306,26 +282,22 @@ describe('useSingleModulePageState', () => {
     });
   });
 
-  it('opens daily practice using the loaded session id when today set summary is available', async () => {
+  it('opens daily practice and shows resume state when set is in progress', async () => {
     moduleQueryState = {
       data: {
         id: 14,
         title: 'History',
-      },
-      isPending: false,
-      error: null,
-    };
-    todayDailyPracticeQueryState = {
-      isPending: false,
-      error: null,
-      data: {
-        sessionId: '11111111-1111-4111-8111-111111111115',
-        progress: {
-          totalQuestions: 5,
-          answeredQuestions: 2,
-          completedAt: null,
+        dailyPractice: {
+          status: 'in_progress',
+          progress: {
+            totalQuestions: 5,
+            answeredQuestions: 2,
+            completedAt: null,
+          },
         },
       },
+      isPending: false,
+      error: null,
     };
 
     const { result } = renderHook(() =>
@@ -336,15 +308,13 @@ describe('useSingleModulePageState', () => {
       await result.current.handleDailyPracticeClick();
     });
 
-    expect(mocks.assign).toHaveBeenCalledWith(
-      '/main/modules/14/daily-practice?sessionId=11111111-1111-4111-8111-111111111115',
-    );
+    expect(mocks.assign).toHaveBeenCalledWith('/main/modules/14/daily-practice');
     expect(result.current.dailyPracticeButtonLabel).toBe('Resume Daily Practice');
     expect(result.current.dailyPracticeStatusText).toBe('2/5 answered');
     expect(result.current.isDailyPracticeButtonDisabled).toBe(false);
   });
 
-  it('keeps the daily-practice CTA locked when the backend reports the module is not eligible yet', async () => {
+  it('keeps the daily-practice CTA safely disabled when the student payload is missing the status summary', async () => {
     moduleQueryState = {
       data: {
         id: 14,
@@ -352,17 +322,6 @@ describe('useSingleModulePageState', () => {
       },
       isPending: false,
       error: null,
-    };
-    todayDailyPracticeQueryState = {
-      isPending: false,
-      error: new ApiError({
-        message:
-          'Daily practice unlocks tomorrow after you complete your first lesson in this module.',
-        status: 403,
-        code: 'FORBIDDEN',
-        data: null,
-      }),
-      data: null,
     };
 
     const { result } = renderHook(() =>
@@ -374,8 +333,36 @@ describe('useSingleModulePageState', () => {
     });
 
     expect(result.current.dailyPracticeButtonLabel).toBe(
-      'No Daily Practice Yet',
+      'Daily Practice Unavailable',
     );
+    expect(result.current.dailyPracticeStatusText).toBeNull();
+    expect(result.current.isDailyPracticeButtonDisabled).toBe(true);
+    expect(mocks.assign).not.toHaveBeenCalled();
+  });
+
+  it('keeps the daily-practice CTA locked when the backend reports the module is not eligible yet', async () => {
+    moduleQueryState = {
+      data: {
+        id: 14,
+        title: 'History',
+        dailyPractice: {
+          status: 'locked',
+          message: 'Daily practice unlocks tomorrow after you complete your first lesson in this module.',
+        },
+      },
+      isPending: false,
+      error: null,
+    };
+
+    const { result } = renderHook(() =>
+      useSingleModulePageState({ moduleIdParam: '14', user: mockUser }),
+    );
+
+    await act(async () => {
+      await result.current.handleDailyPracticeClick();
+    });
+
+    expect(result.current.dailyPracticeButtonLabel).toBe('No Daily Practice Yet');
     expect(result.current.dailyPracticeStatusText).toBeNull();
     expect(result.current.dailyPracticeTooltip).toBe(
       'Daily practice unlocks tomorrow after you complete your first lesson in this module.',
@@ -389,19 +376,13 @@ describe('useSingleModulePageState', () => {
       data: {
         id: 14,
         title: 'History',
+        dailyPractice: {
+          status: 'no_set',
+          message: 'No daily practice questions are available for this module yet.',
+        },
       },
       isPending: false,
       error: null,
-    };
-    todayDailyPracticeQueryState = {
-      isPending: false,
-      error: new ApiError({
-        message: 'No daily practice questions are available for this module yet.',
-        status: 404,
-        code: 'NOT_FOUND',
-        data: null,
-      }),
-      data: null,
     };
 
     const { result } = renderHook(() =>
@@ -412,9 +393,7 @@ describe('useSingleModulePageState', () => {
       await result.current.handleDailyPracticeClick();
     });
 
-    expect(result.current.dailyPracticeButtonLabel).toBe(
-      'All Caught Up',
-    );
+    expect(result.current.dailyPracticeButtonLabel).toBe('All Caught Up');
     expect(result.current.dailyPracticeStatusText).toBeNull();
     expect(result.current.dailyPracticeTooltip).toBe(
       'No daily practice questions are available for this module yet.',

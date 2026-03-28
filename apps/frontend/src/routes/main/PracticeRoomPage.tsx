@@ -10,6 +10,7 @@ import {
 } from 'react-icons/fa6';
 import expIcon from '../../assets/exp_icon.svg';
 import MainSection from '../../components/MainSection';
+import DebugMeta from '../../components/DebugMeta';
 import StreakIndicator from '../../components/PracticeRoom/StreakTrackerIndicator';
 import FirstTryAccuracyIndicator from '../../components/PracticeRoom/FirstTryAccuracyIndicator';
 import BaseXpIndicator from '../../components/PracticeRoom/BaseXpIndicator';
@@ -78,8 +79,6 @@ export default function PracticeRoomPage() {
       })
     : [];
   const activeQuestionRewardIndicators = rewardIndicators.activeQuestion;
-
-  const DEBUG_MODE = true;
 
   // Resolve base XP status into a two-value signal for the header indicator.
   // The server snapshot is sufficient here: base XP can only move from
@@ -233,13 +232,19 @@ export default function PracticeRoomPage() {
               </div>
             )}
           </div>
-          {DEBUG_MODE ?
-              <div style={{ fontSize: '0.75rem', color: '#999', marginTop: '0.5rem' }}>
-                Debug: moduleUnitId =
-                {activeQuestionUnit?.coreQuestion.questionId}, questionContentId ={' '}
-                {activeQuestionUnit?.coreQuestion.questionContent.id}
-              </div>
-            : null}
+          <DebugMeta
+            entries={[
+              { label: 'moduleUnitId =', value: room?.moduleUnitId ?? 'n/a' },
+              {
+                label: 'questionId =',
+                value: activeQuestionUnit?.coreQuestion.questionId ?? 'n/a',
+              },
+              {
+                label: 'questionContentId =',
+                value: activeQuestionUnit?.coreQuestion.questionContent.id ?? 'n/a',
+              },
+            ]}
+          />
           {room && (
             <div className={styles.headerBottom}>
               <div className={styles.progressCounter}>

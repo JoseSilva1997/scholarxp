@@ -130,6 +130,122 @@ describe('DailyPracticeFsrsStateService', () => {
     expect(result.lastCorrectAt).toEqual(reviewedAt);
   });
 
+  it('graduates a learning-state card with correct stability when graded good', async () => {
+    // A card with fsrsState="learning" and low stability from a prior "again" grade
+    // must be reconstructed as State.Review so the elapsed-time-aware recall formula is used.
+    // Previously, learning_steps=0 caused ts-fsrs to use next_short_term_stability,
+    // which gave ~0.246 stability regardless of how many days had elapsed since the last review.
+    const reviewedAt = new Date('2026-03-17T10:00:00.000Z');
+    const existingState: StudentQuestionStateRecord = {
+      id: 'a1b2c3d4-0000-0000-0000-000000000001',
+      userId: 42,
+      moduleId: 7,
+      moduleUnitId: 15,
+      questionUnitId: 91,
+      fsrsState: 'learning',
+      fsrsDifficulty: 6.4,
+      fsrsStability: 0.21,
+      fsrsDueAt: new Date('2026-03-16T10:00:00.000Z'),
+      fsrsLastReviewedAt: new Date('2026-03-16T10:00:00.000Z'),
+      reviewCount: 1,
+      lapseCount: 0,
+      lastGrade: FsrsReviewGradeValues.again,
+      lastSeenAt: new Date('2026-03-16T10:00:00.000Z'),
+      lastCorrectAt: null,
+      recentAvgTimeMs: null,
+      firstSeenAt: new Date('2026-03-16T10:00:00.000Z'),
+      algorithmVersion: DailyPracticeAlgorithmVersionValues.fsrsV1,
+    };
+
+    questionStateReadService.findStateForQuestion.mockResolvedValue(
+      existingState,
+    );
+    fsrsGradeService.mapEncounterToGrade.mockReturnValue(
+      FsrsReviewGradeValues.good,
+    );
+    fsrsGradeService.toFsrsRating.mockReturnValue(3);
+    prisma.studentQuestionState.upsert.mockResolvedValue({
+      ...existingState,
+      fsrsState: 'review',
+      lastGrade: FsrsReviewGradeValues.good,
+    } as never);
+
+    await service.applyEncounter({
+      userId: 42,
+      moduleId: 7,
+      moduleUnitId: 15,
+      questionUnitId: 91,
+      reviewedAt,
+      firstAttemptCorrect: true,
+      hintUnlocked: false,
+      timeTakenMs: 5000,
+    });
+
+    const upsertArgs = prisma.studentQuestionState.upsert.mock.calls[0][0];
+    // Graduated to review, not stuck in learning.
+    expect(upsertArgs.update.fsrsState).toBe('review');
+    // Stability must exceed the 0.246 value produced by the short-term formula —
+    // the recall formula uses elapsed days and gives a meaningfully higher result.
+    expect(upsertArgs.update.fsrsStability).toBeGreaterThan(0.246);
+  });
+
+  it('moves a learning-state card to relearning and increments lapse count when graded again', async () => {
+    // Under the old path, "again" on a learning card stayed in Learning with no lapse recorded.
+    // Reconstructing as Review means reviewState("again") fires, which correctly moves the
+    // card to Relearning and increments lapses — consistent with any other failed review.
+    const reviewedAt = new Date('2026-03-17T10:00:00.000Z');
+    const existingState: StudentQuestionStateRecord = {
+      id: 'a1b2c3d4-0000-0000-0000-000000000002',
+      userId: 42,
+      moduleId: 7,
+      moduleUnitId: 15,
+      questionUnitId: 91,
+      fsrsState: 'learning',
+      fsrsDifficulty: 2.5,
+      fsrsStability: 2.3,
+      fsrsDueAt: new Date('2026-03-16T10:00:00.000Z'),
+      fsrsLastReviewedAt: new Date('2026-03-16T10:00:00.000Z'),
+      reviewCount: 1,
+      lapseCount: 0,
+      lastGrade: FsrsReviewGradeValues.good,
+      lastSeenAt: new Date('2026-03-16T10:00:00.000Z'),
+      lastCorrectAt: new Date('2026-03-16T10:00:00.000Z'),
+      recentAvgTimeMs: 4000,
+      firstSeenAt: new Date('2026-03-16T10:00:00.000Z'),
+      algorithmVersion: DailyPracticeAlgorithmVersionValues.fsrsV1,
+    };
+
+    questionStateReadService.findStateForQuestion.mockResolvedValue(
+      existingState,
+    );
+    fsrsGradeService.mapEncounterToGrade.mockReturnValue(
+      FsrsReviewGradeValues.again,
+    );
+    fsrsGradeService.toFsrsRating.mockReturnValue(1);
+    prisma.studentQuestionState.upsert.mockResolvedValue({
+      ...existingState,
+      fsrsState: 'relearning',
+      lapseCount: 1,
+      lastGrade: FsrsReviewGradeValues.again,
+    } as never);
+
+    await service.applyEncounter({
+      userId: 42,
+      moduleId: 7,
+      moduleUnitId: 15,
+      questionUnitId: 91,
+      reviewedAt,
+      firstAttemptCorrect: false,
+      hintUnlocked: false,
+      timeTakenMs: 8000,
+    });
+
+    const upsertArgs = prisma.studentQuestionState.upsert.mock.calls[0][0];
+    // Failure on a learning card now records a proper lapse.
+    expect(upsertArgs.update.fsrsState).toBe('relearning');
+    expect(upsertArgs.update.lapseCount).toBe(1);
+  });
+
   it('preserves first seen and last correct timestamps on incorrect later reviews', async () => {
     const firstSeenAt = new Date('2026-03-10T08:00:00.000Z');
     const lastCorrectAt = new Date('2026-03-15T12:00:00.000Z');

@@ -21,11 +21,11 @@ import {
   QUESTION_TYPE_CONFIGS,
   makeId,
   normalizeQuestionType,
-} from '../../../components/question-types/QuestionTypeRegistry';
+} from '../../../components/ModuleUnitEditor/question-types/QuestionTypeRegistry';
 import type {
   QuestionType,
   QuestionForm,
-} from '../../../components/question-types/QuestionTypeRegistry';
+} from '../../../components/ModuleUnitEditor/question-types/QuestionTypeRegistry';
 import {
   useCreateQuestionGroupMutation,
   useCreateQuestionMutation,
@@ -654,6 +654,25 @@ export function useModuleUnitEditorPageState({
 
   // --- Form Handlers: update form state in response to user actions ---
   // These handlers keep the form state in sync with user input.
+
+  // Clears one MCQ option slot without removing it — the backend schema requires exactly 4 options,
+  // so a "delete" here means clearing text/correct state rather than removing the slot.
+  const handleDeleteOption = (id: string) => {
+    setForm((prev) => {
+      const idx = prev.options.findIndex((opt) => opt.id === id);
+      if (idx < 0) return prev;
+      const nextExplanations = [...prev.explanations];
+      nextExplanations[idx] = '';
+      return {
+        ...prev,
+        options: prev.options.map((opt, i) =>
+          i === idx ? { ...opt, value: '', isCorrect: false } : opt,
+        ),
+        explanations: nextExplanations,
+      };
+    });
+  };
+
   const setCorrectOption = (id: string) => {
     setForm((prev) => ({
       ...prev,
@@ -888,6 +907,7 @@ export function useModuleUnitEditorPageState({
     saveEditingGroupTitle,
     handleOptionChange,
     handleExplanationChange,
+    handleDeleteOption,
     setCorrectOption,
     handleTypeChange,
     handleSaveQuestion,

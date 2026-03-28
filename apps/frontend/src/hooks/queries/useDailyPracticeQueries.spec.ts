@@ -161,13 +161,10 @@ describe('useSubmitDailyPracticeAttemptMutation', () => {
     });
 
     expect(invalidateQueriesMock).toHaveBeenCalledWith({
-      queryKey: queryKeys.modules.dailyPracticeBase(7),
+      queryKey: queryKeys.modules.detail(7),
     });
     expect(invalidateQueriesMock).toHaveBeenCalledWith({
       queryKey: queryKeys.quests.all,
-    });
-    expect(invalidateQueriesMock).toHaveBeenCalledWith({
-      queryKey: queryKeys.quests.masterStreakAll,
     });
     expect(invalidateQueriesMock).toHaveBeenCalledWith({
       queryKey: queryKeys.rewards.dailyLessonXpTrackAll,
@@ -175,6 +172,7 @@ describe('useSubmitDailyPracticeAttemptMutation', () => {
     expect(invalidateQueriesMock).toHaveBeenCalledWith({
       queryKey: queryKeys.auth.me,
     });
+    expect(invalidateQueriesMock).toHaveBeenCalledTimes(4);
   });
 });
 

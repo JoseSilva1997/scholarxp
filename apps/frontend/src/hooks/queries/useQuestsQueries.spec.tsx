@@ -248,9 +248,12 @@ describe('useQuestsQueries', () => {
       await result.current.mutateAsync();
 
       expect(apiMocks.recordDailyRevisionQuestProgress).toHaveBeenCalledWith(12);
-      expect(invalidateQueries).toHaveBeenCalledTimes(3);
+      expect(invalidateQueries).toHaveBeenCalledTimes(2);
       expect(invalidateQueries).toHaveBeenCalledWith({
-        queryKey: queryKeys.quests.masterStreakAll,
+        queryKey: queryKeys.quests.all,
+      });
+      expect(invalidateQueries).toHaveBeenCalledWith({
+        queryKey: queryKeys.auth.me,
       });
     });
 
@@ -275,9 +278,12 @@ describe('useQuestsQueries', () => {
         12,
         44,
       );
-      expect(invalidateQueries).toHaveBeenCalledTimes(3);
+      expect(invalidateQueries).toHaveBeenCalledTimes(2);
       expect(invalidateQueries).toHaveBeenCalledWith({
-        queryKey: queryKeys.quests.masterStreakAll,
+        queryKey: queryKeys.quests.all,
+      });
+      expect(invalidateQueries).toHaveBeenCalledWith({
+        queryKey: queryKeys.auth.me,
       });
     });
   });

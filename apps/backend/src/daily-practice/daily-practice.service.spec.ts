@@ -1,4 +1,4 @@
-// Role: verifies the daily-practice facade coordinates set creation, session reuse, and first-attempt FSRS updates without duplicating lower-level policies.
+// Role: verifies the daily-practice facade loads generated sets, reuses sessions, and coordinates first-attempt FSRS updates.
 import { Test, type TestingModule } from '@nestjs/testing';
 import {
   DailyPracticeSelectionBucketValues,
@@ -13,32 +13,18 @@ import { createPrismaMock, type PrismaMock } from '../test/test-helpers';
 import { DailyPracticeEligibilityService } from './daily-practice-eligibility.service';
 import { DailyPracticeFsrsGradeService } from './daily-practice-fsrs-grade.service';
 import { DailyPracticeFsrsStateService } from './daily-practice-fsrs-state.service';
-import { DailyPracticeInterleavingService } from './daily-practice-interleaving.service';
 import { DailyPracticeMasteryExpService } from './daily-practice-mastery-exp.service';
 import { DailyPracticeMapper } from './daily-practice.mapper';
 import { DailyPracticeService } from './daily-practice.service';
 import { DailyPracticeSetReadService } from './daily-practice-set-read.service';
-import { DailyPracticeSetSelectorService } from './daily-practice-set-selector.service';
-import { DailyPracticeVariantResolverService } from './daily-practice-variant-resolver.service';
-import type {
-  OrderedDailyPracticeQuestionRecord,
-  PersistedDailyPracticeSetRecord,
-  ResolvedDailyPracticeQuestionRecord,
-} from './daily-practice.types';
+import type { PersistedDailyPracticeSetRecord } from './daily-practice.types';
 
 describe('DailyPracticeService', () => {
   let service: DailyPracticeService;
   let prisma: PrismaMock;
   let dailyPracticeSetReadService: {
     findSetForUtcDay: jest.Mock;
-    findSetById: jest.Mock;
     findOwnedSetById: jest.Mock;
-  };
-  let dailyPracticeSetSelectorService: {
-    selectQuestions: jest.Mock;
-  };
-  let dailyPracticeInterleavingService: {
-    orderSelectedQuestions: jest.Mock;
   };
   let dailyPracticeFsrsGradeService: {
     mapEncounterToGrade: jest.Mock;
@@ -56,9 +42,6 @@ describe('DailyPracticeService', () => {
     buildTodayResponse: jest.Mock;
     buildSubmitResponse: jest.Mock;
     buildCloseResponse: jest.Mock;
-  };
-  let dailyPracticeVariantResolverService: {
-    resolveQuestionContentIds: jest.Mock;
   };
   let practiceRoomAttemptService: {
     computeIsCorrectForPayload: jest.Mock;
@@ -79,14 +62,7 @@ describe('DailyPracticeService', () => {
     prisma = createPrismaMock();
     dailyPracticeSetReadService = {
       findSetForUtcDay: jest.fn(),
-      findSetById: jest.fn(),
       findOwnedSetById: jest.fn(),
-    };
-    dailyPracticeSetSelectorService = {
-      selectQuestions: jest.fn(),
-    };
-    dailyPracticeInterleavingService = {
-      orderSelectedQuestions: jest.fn(),
     };
     dailyPracticeFsrsGradeService = {
       mapEncounterToGrade: jest.fn(),
@@ -124,9 +100,6 @@ describe('DailyPracticeService', () => {
       buildSubmitResponse: jest.fn(),
       buildCloseResponse: jest.fn(),
     };
-    dailyPracticeVariantResolverService = {
-      resolveQuestionContentIds: jest.fn(),
-    };
     practiceRoomAttemptService = {
       computeIsCorrectForPayload: jest.fn(),
       createAttemptRecord: jest.fn(),
@@ -152,14 +125,6 @@ describe('DailyPracticeService', () => {
           useValue: dailyPracticeSetReadService,
         },
         {
-          provide: DailyPracticeSetSelectorService,
-          useValue: dailyPracticeSetSelectorService,
-        },
-        {
-          provide: DailyPracticeInterleavingService,
-          useValue: dailyPracticeInterleavingService,
-        },
-        {
           provide: DailyPracticeFsrsGradeService,
           useValue: dailyPracticeFsrsGradeService,
         },
@@ -176,10 +141,6 @@ describe('DailyPracticeService', () => {
           useValue: dailyPracticeEligibilityService,
         },
         { provide: DailyPracticeMapper, useValue: dailyPracticeMapper },
-        {
-          provide: DailyPracticeVariantResolverService,
-          useValue: dailyPracticeVariantResolverService,
-        },
         {
           provide: PracticeRoomAttemptService,
           useValue: practiceRoomAttemptService,
@@ -202,32 +163,13 @@ describe('DailyPracticeService', () => {
     jest.resetAllMocks();
   });
 
-  it('creates today set on first load and returns the mapped response', async () => {
+  it('loads today set when one was already generated and returns the mapped response', async () => {
     const persistedSet = buildPersistedSet();
-    const orderedQuestions = [buildOrderedQuestion()];
-    const resolvedQuestions = [buildResolvedQuestion()];
     const mappedResponse = { setId: persistedSet.id };
 
-    dailyPracticeSetReadService.findSetForUtcDay.mockResolvedValueOnce(null);
-    dailyPracticeSetSelectorService.selectQuestions.mockResolvedValue({
-      plan: {
-        targetQuestionCount: 3,
-        dueReviewQuota: 2,
-        newSequenceQuota: 0,
-        reinforcementQuota: 1,
-      },
-      selectedQuestions: orderedQuestions,
-    });
-    dailyPracticeInterleavingService.orderSelectedQuestions.mockReturnValue(
-      orderedQuestions,
+    dailyPracticeSetReadService.findSetForUtcDay.mockResolvedValue(
+      persistedSet,
     );
-    dailyPracticeVariantResolverService.resolveQuestionContentIds.mockResolvedValue(
-      resolvedQuestions,
-    );
-    prisma.dailyPracticeSet.create.mockResolvedValue({
-      id: persistedSet.id,
-    } as never);
-    dailyPracticeSetReadService.findSetById.mockResolvedValue(persistedSet);
     practiceRoomSessionService.resolveOwnedSessionByType.mockResolvedValue({
       id: 'session-1',
       sessionType: PracticeSessionTypeValues.dailyPractice,
@@ -259,31 +201,10 @@ describe('DailyPracticeService', () => {
     expect(
       dailyPracticeEligibilityService.assertEligibleForToday,
     ).toHaveBeenCalledWith(7, 42, expect.any(Date));
-    expect(
-      dailyPracticeSetSelectorService.selectQuestions,
-    ).toHaveBeenCalledWith(
-      expect.objectContaining({
-        userId: 42,
-        moduleId: 7,
-      }),
-    );
-    expect(prisma.dailyPracticeSet.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          userId: 42,
-          moduleId: 7,
-          items: {
-            create: [
-              expect.objectContaining({
-                questionUnitId: 101,
-                questionContentId: 601,
-                moduleUnitId: 11,
-                position: 0,
-              }),
-            ],
-          },
-        }),
-      }),
+    expect(dailyPracticeSetReadService.findSetForUtcDay).toHaveBeenCalledWith(
+      42,
+      7,
+      expect.any(Date),
     );
     expect(
       practiceRoomSessionService.resolveOwnedSessionByType,
@@ -294,6 +215,34 @@ describe('DailyPracticeService', () => {
       undefined,
     );
     expect(result).toBe(mappedResponse);
+  });
+
+  it('returns no-set when today has not been generated yet', async () => {
+    dailyPracticeSetReadService.findSetForUtcDay.mockResolvedValue(null);
+
+    await expect(service.getTodayDailyPractice(7, 42)).rejects.toThrow(
+      'No daily practice questions are available for this module yet.',
+    );
+
+    expect(
+      practiceRoomSessionService.resolveOwnedSessionByType,
+    ).not.toHaveBeenCalled();
+    expect(prisma.dailyPracticeSet.create).not.toHaveBeenCalled();
+  });
+
+  it('returns no-set when today only has the empty sentinel row', async () => {
+    dailyPracticeSetReadService.findSetForUtcDay.mockResolvedValue({
+      ...buildPersistedSet(),
+      items: [],
+    });
+
+    await expect(service.getTodayDailyPractice(7, 42)).rejects.toThrow(
+      'No daily practice questions are available for this module yet.',
+    );
+
+    expect(
+      practiceRoomSessionService.resolveOwnedSessionByType,
+    ).not.toHaveBeenCalled();
   });
 
   it('blocks today-set access until the module is eligible for daily practice', async () => {
@@ -466,32 +415,5 @@ function buildPersistedSet(): PersistedDailyPracticeSetRecord {
         sourceBucket: DailyPracticeSelectionBucketValues.dueReview,
       },
     ],
-  };
-}
-
-function buildOrderedQuestion(): OrderedDailyPracticeQuestionRecord {
-  return {
-    moduleUnitId: 11,
-    moduleUnitTitle: 'Lesson 1',
-    moduleUnitSortOrder: 1,
-    questionUnitId: 101,
-    questionUnitTitle: 'Question 101',
-    questionGroupId: 1,
-    questionGroupSortOrder: 1,
-    coreContentId: 501,
-    questionType: 'multiple_choice',
-    questionDifficultyScore: 0.5,
-    sourceBucket: DailyPracticeSelectionBucketValues.dueReview,
-    selectionScore: 10,
-    selectionReason: 'Overdue review item.',
-    studentQuestionState: null,
-    position: 0,
-  };
-}
-
-function buildResolvedQuestion(): ResolvedDailyPracticeQuestionRecord {
-  return {
-    ...buildOrderedQuestion(),
-    questionContentId: 601,
   };
 }

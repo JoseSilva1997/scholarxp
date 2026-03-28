@@ -26,7 +26,7 @@ import { SubmitDailyPracticeAttemptDto } from './dto/submit-daily-practice-attem
 export class DailyPracticeController {
   constructor(private readonly dailyPracticeService: DailyPracticeService) {}
 
-  // Loading "today" either resumes or creates the stable module-scoped set for the authenticated student.
+  // Loading "today" only resumes the already-generated module snapshot so request timing never changes the day's set.
   @Get('today')
   @Authorize({ capability: features.navigation.modules, scope: 'module' })
   getToday(

@@ -407,11 +407,13 @@ export class DailyPracticeSetSelectorService {
       now.getTime() - lastSeenAt.getTime() <=
       RECENT_STRUGGLE_WINDOW_DAYS * 24 * 60 * 60 * 1000;
 
+    // Lapse history is intentionally excluded — FSRS already schedules lapsed questions
+    // more aggressively via shorter intervals. Reinforcement should only boost questions
+    // that are currently struggling, not ones that have since recovered.
     return (
       isWithinRecentWindow &&
       (studentQuestionState.lastGrade === FsrsReviewGradeValues.again ||
-        studentQuestionState.lastGrade === FsrsReviewGradeValues.hard ||
-        studentQuestionState.lapseCount > 0)
+        studentQuestionState.lastGrade === FsrsReviewGradeValues.hard)
     );
   }
 

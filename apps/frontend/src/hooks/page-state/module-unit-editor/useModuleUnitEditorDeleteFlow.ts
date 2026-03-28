@@ -2,7 +2,7 @@
 // This hook manages all the logic for deleting groups, questions, and variants in the Module Unit Editor.
 // It keeps the parent hook focused on composition and UI, while all delete-related logic lives here for clarity and maintainability.
 import { useMemo, type Dispatch, type RefObject, type SetStateAction } from 'react';
-import type { QuestionForm } from '../../../components/question-types/QuestionTypeRegistry';
+import type { QuestionForm } from '../../../components/ModuleUnitEditor/question-types/QuestionTypeRegistry';
 import type { DeleteCopy, DeleteTarget, Question, QuestionGroup, SelectionState } from './helpers/types';
 import {
   computeFallbackSelection,

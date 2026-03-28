@@ -1,18 +1,64 @@
-// Deletes selected learner-owned practice data so manual cleanup stays aligned with app-owned Prisma relations.
+// Deletes selected learner-owned practice data so manual cleanup stays aligned
+// with app-owned Prisma relations.
 import { Prisma } from '@prisma/client';
 import { config } from 'dotenv';
 import { resolve } from 'path';
+import { parseArgs } from 'util';
 import { PrismaService } from '../prisma/prisma.service';
 
-const USER_ID = 38;
+/**
+ * DELETE EVERYTHING FOR A USER:
+ *
+ * pnpm --filter backend cleanup:user-learning-data --all
+ * or simply
+ * pnpm --filter backend cleanup:user-learning-data
+ */
 
-const DELETE_DAILY_PRACTICE_SETS = true;
-const DELETE_DAILY_QUESTS = true;
-const DELETE_EXP_LEDGER = true;
-const DELETE_MODULE_UNIT_USER_PROGRESS = true;
-const DELETE_PRACTICE_SESSIONS = true;
-const DELETE_QUESTION_ATTEMPTS = true;
-const DELETE_STUDENT_QUESTION_STATE = true;
+/**
+ * DELETE FOR A USER + MODULE UNIT:
+ * pnpm --filter backend cleanup:user-learning-data --user 38 --moduleUnit 5
+ */
+
+/**
+ * Current test user ids:
+ * (38) joc0869@my.londonmet.ac.uk
+ * (35) carlitoscaba
+ * (36) scholarxp
+ */
+
+function parseConfig() {
+  const { values } = parseArgs({
+    options: {
+      user: { type: 'string' },
+      all: { type: 'boolean' },
+      moduleUnit: { type: 'string' },
+      setAccountExp: { type: 'string' },
+    },
+    args: process.argv.slice(2),
+  });
+
+  const isAll = values.all || (!values.moduleUnit && !values.all) || false;
+
+  return {
+    USER_ID: values.user ? parseInt(values.user, 10) : 38,
+    SET_ACCOUNT_EXP: values.setAccountExp
+      ? parseInt(values.setAccountExp, 10)
+      : isAll
+        ? 200
+        : null,
+    MODULE_UNIT_ID: values.moduleUnit ? parseInt(values.moduleUnit, 10) : null,
+    IS_ALL: isAll,
+    DELETE_DAILY_PRACTICE_SETS: isAll,
+    DELETE_DAILY_QUESTS: isAll,
+    DELETE_EXP_LEDGER: isAll || !!values.moduleUnit,
+    DELETE_MODULE_UNIT_USER_PROGRESS: isAll || !!values.moduleUnit,
+    DELETE_PRACTICE_SESSIONS: isAll || !!values.moduleUnit,
+    DELETE_QUESTION_ATTEMPTS: isAll || !!values.moduleUnit,
+    DELETE_STUDENT_QUESTION_STATE: isAll || !!values.moduleUnit,
+  };
+}
+
+const CONFIG = parseConfig();
 
 type DeleteSummary = {
   dailyPracticeSets: number;
@@ -22,13 +68,13 @@ type DeleteSummary = {
   practiceSessions: number;
   questionAttempts: number;
   studentQuestionState: number;
+  accountExpSet: number | null;
 };
 
 function loadRuntimeEnvironment(): void {
   const runtimeEnvironment = process.env.NODE_ENV ?? 'development';
   const backendRoot = process.cwd();
 
-  // Mirror the app's env fallback so the cleanup script does not surprise local workflows.
   config({
     path: resolve(backendRoot, `.env.${runtimeEnvironment}`),
   });
@@ -39,56 +85,79 @@ function loadRuntimeEnvironment(): void {
 }
 
 function buildQuestionAttemptWhere(): Prisma.QuestionAttemptWhereInput {
-  return {
-    OR: [{ studentId: USER_ID }, { session: { userId: USER_ID } }],
+  const base: Prisma.QuestionAttemptWhereInput = {
+    OR: [
+      { studentId: CONFIG.USER_ID },
+      { session: { userId: CONFIG.USER_ID } },
+    ],
   };
+
+  if (CONFIG.MODULE_UNIT_ID !== null) {
+    return {
+      AND: [base, { moduleUnitId: CONFIG.MODULE_UNIT_ID }],
+    };
+  }
+
+  return base;
 }
 
 async function assertConfiguration(prisma: PrismaService): Promise<void> {
-  if (!Number.isInteger(USER_ID) || USER_ID <= 0) {
+  if (!Number.isInteger(CONFIG.USER_ID) || CONFIG.USER_ID <= 0) {
     throw new Error(
       'Set USER_ID to a positive integer before running this script.',
     );
   }
 
+  if (
+    CONFIG.SET_ACCOUNT_EXP !== null &&
+    (!Number.isInteger(CONFIG.SET_ACCOUNT_EXP) || CONFIG.SET_ACCOUNT_EXP < 0)
+  ) {
+    throw new Error('SET_ACCOUNT_EXP must be a non-negative integer or null.');
+  }
+
   const userExists = await prisma.user.findUnique({
-    where: { id: USER_ID },
+    where: { id: CONFIG.USER_ID },
     select: { id: true },
   });
 
   if (!userExists) {
-    throw new Error(`User ${USER_ID} does not exist.`);
+    throw new Error(`User ${CONFIG.USER_ID} does not exist.`);
   }
 
-  if (!DELETE_PRACTICE_SESSIONS || DELETE_QUESTION_ATTEMPTS) {
+  if (!CONFIG.DELETE_PRACTICE_SESSIONS || CONFIG.DELETE_QUESTION_ATTEMPTS) {
     return;
   }
 
-  // Practice sessions cannot be removed while attempts still reference them through a restrictive FK.
   const blockingAttemptCount = await prisma.questionAttempt.count({
-    where: { session: { userId: USER_ID } },
+    where: { session: { userId: CONFIG.USER_ID } },
   });
 
   if (blockingAttemptCount > 0) {
     throw new Error(
-      `DELETE_PRACTICE_SESSIONS requires DELETE_QUESTION_ATTEMPTS for user ${USER_ID} because ${blockingAttemptCount} attempt(s) still reference those sessions.`,
+      `DELETE_PRACTICE_SESSIONS requires DELETE_QUESTION_ATTEMPTS for user ${CONFIG.USER_ID} because ${blockingAttemptCount} attempt(s) still reference those sessions.`,
     );
   }
 }
 
 function printConfiguration(): void {
-  console.log(`Deleting data for user ${USER_ID} with this configuration:`);
-  console.log(`- DELETE_DAILY_PRACTICE_SETS=${DELETE_DAILY_PRACTICE_SETS}`);
-  console.log(`- DELETE_DAILY_QUESTS=${DELETE_DAILY_QUESTS}`);
-  console.log(`- DELETE_EXP_LEDGER=${DELETE_EXP_LEDGER}`);
   console.log(
-    `- DELETE_MODULE_UNIT_USER_PROGRESS=${DELETE_MODULE_UNIT_USER_PROGRESS}`,
+    `Deleting data for user ${CONFIG.USER_ID} with this configuration:`,
   );
-  console.log(`- DELETE_PRACTICE_SESSIONS=${DELETE_PRACTICE_SESSIONS}`);
-  console.log(`- DELETE_QUESTION_ATTEMPTS=${DELETE_QUESTION_ATTEMPTS}`);
+  console.log(`- MODULE_UNIT_ID=${CONFIG.MODULE_UNIT_ID}`);
   console.log(
-    `- DELETE_STUDENT_QUESTION_STATE=${DELETE_STUDENT_QUESTION_STATE}`,
+    `- DELETE_DAILY_PRACTICE_SETS=${CONFIG.DELETE_DAILY_PRACTICE_SETS}`,
   );
+  console.log(`- DELETE_DAILY_QUESTS=${CONFIG.DELETE_DAILY_QUESTS}`);
+  console.log(`- DELETE_EXP_LEDGER=${CONFIG.DELETE_EXP_LEDGER}`);
+  console.log(
+    `- DELETE_MODULE_UNIT_USER_PROGRESS=${CONFIG.DELETE_MODULE_UNIT_USER_PROGRESS}`,
+  );
+  console.log(`- DELETE_PRACTICE_SESSIONS=${CONFIG.DELETE_PRACTICE_SESSIONS}`);
+  console.log(`- DELETE_QUESTION_ATTEMPTS=${CONFIG.DELETE_QUESTION_ATTEMPTS}`);
+  console.log(
+    `- DELETE_STUDENT_QUESTION_STATE=${CONFIG.DELETE_STUDENT_QUESTION_STATE}`,
+  );
+  console.log(`- SET_ACCOUNT_EXP=${CONFIG.SET_ACCOUNT_EXP ?? '(skipped)'}`);
 }
 
 async function runDeletes(prisma: PrismaService): Promise<DeleteSummary> {
@@ -101,9 +170,23 @@ async function runDeletes(prisma: PrismaService): Promise<DeleteSummary> {
       practiceSessions: 0,
       questionAttempts: 0,
       studentQuestionState: 0,
+      accountExpSet: null,
     };
 
-    if (DELETE_QUESTION_ATTEMPTS) {
+    // Deleting practice sessions for a specific module unit requires getting their IDs first,
+    // since session itself doesn't have moduleUnitId but QuestionAttempts do.
+    let practiceSessionIdsToDelete: string[] = [];
+    if (CONFIG.DELETE_PRACTICE_SESSIONS && CONFIG.MODULE_UNIT_ID !== null) {
+      const attempts = await tx.questionAttempt.findMany({
+        where: buildQuestionAttemptWhere(),
+        select: { sessionId: true },
+      });
+      practiceSessionIdsToDelete = Array.from(
+        new Set(attempts.map((a) => a.sessionId)),
+      );
+    }
+
+    if (CONFIG.DELETE_QUESTION_ATTEMPTS) {
       summary.questionAttempts = (
         await tx.questionAttempt.deleteMany({
           where: buildQuestionAttemptWhere(),
@@ -111,52 +194,80 @@ async function runDeletes(prisma: PrismaService): Promise<DeleteSummary> {
       ).count;
     }
 
-    if (DELETE_EXP_LEDGER) {
-      summary.expLedger = (
-        await tx.expLedger.deleteMany({
-          where: { userId: USER_ID },
-        })
-      ).count;
+    if (CONFIG.DELETE_EXP_LEDGER) {
+      const where: Prisma.ExpLedgerWhereInput = { userId: CONFIG.USER_ID };
+      if (CONFIG.MODULE_UNIT_ID !== null) {
+        where.moduleUnitId = CONFIG.MODULE_UNIT_ID;
+      }
+      summary.expLedger = (await tx.expLedger.deleteMany({ where })).count;
     }
 
-    if (DELETE_MODULE_UNIT_USER_PROGRESS) {
+    if (CONFIG.DELETE_MODULE_UNIT_USER_PROGRESS) {
+      const where: Prisma.ModuleUnitUserProgressWhereInput = {
+        studentId: CONFIG.USER_ID,
+      };
+      if (CONFIG.MODULE_UNIT_ID !== null) {
+        where.moduleUnitId = CONFIG.MODULE_UNIT_ID;
+      }
       summary.moduleUnitUserProgress = (
-        await tx.moduleUnitUserProgress.deleteMany({
-          where: { studentId: USER_ID },
-        })
+        await tx.moduleUnitUserProgress.deleteMany({ where })
       ).count;
     }
 
-    if (DELETE_STUDENT_QUESTION_STATE) {
+    if (CONFIG.DELETE_STUDENT_QUESTION_STATE) {
+      const where: Prisma.StudentQuestionStateWhereInput = {
+        userId: CONFIG.USER_ID,
+      };
+      if (CONFIG.MODULE_UNIT_ID !== null) {
+        where.moduleUnitId = CONFIG.MODULE_UNIT_ID;
+      }
       summary.studentQuestionState = (
-        await tx.studentQuestionState.deleteMany({
-          where: { userId: USER_ID },
-        })
+        await tx.studentQuestionState.deleteMany({ where })
       ).count;
     }
 
-    if (DELETE_DAILY_PRACTICE_SETS) {
+    if (CONFIG.DELETE_DAILY_PRACTICE_SETS) {
       summary.dailyPracticeSets = (
         await tx.dailyPracticeSet.deleteMany({
-          where: { userId: USER_ID },
+          where: { userId: CONFIG.USER_ID },
         })
       ).count;
     }
 
-    if (DELETE_DAILY_QUESTS) {
+    if (CONFIG.DELETE_DAILY_QUESTS) {
       summary.dailyQuests = (
         await tx.dailyQuest.deleteMany({
-          where: { userId: USER_ID },
+          where: { userId: CONFIG.USER_ID },
         })
       ).count;
     }
 
-    if (DELETE_PRACTICE_SESSIONS) {
-      summary.practiceSessions = (
-        await tx.practiceSession.deleteMany({
-          where: { userId: USER_ID },
-        })
-      ).count;
+    if (CONFIG.DELETE_PRACTICE_SESSIONS) {
+      const where: Prisma.PracticeSessionWhereInput = {
+        userId: CONFIG.USER_ID,
+      };
+      if (CONFIG.MODULE_UNIT_ID !== null) {
+        where.id = { in: practiceSessionIdsToDelete };
+      }
+
+      if (
+        CONFIG.IS_ALL ||
+        (CONFIG.MODULE_UNIT_ID !== null &&
+          practiceSessionIdsToDelete.length > 0)
+      ) {
+        summary.practiceSessions = (
+          await tx.practiceSession.deleteMany({ where })
+        ).count;
+      }
+    }
+
+    if (CONFIG.SET_ACCOUNT_EXP !== null) {
+      await tx.avatar.upsert({
+        where: { userId: CONFIG.USER_ID },
+        update: { totalExp: CONFIG.SET_ACCOUNT_EXP },
+        create: { userId: CONFIG.USER_ID, totalExp: CONFIG.SET_ACCOUNT_EXP },
+      });
+      summary.accountExpSet = CONFIG.SET_ACCOUNT_EXP;
     }
 
     return summary;
@@ -172,6 +283,9 @@ function printSummary(summary: DeleteSummary): void {
   console.log(`- practice_sessions=${summary.practiceSessions}`);
   console.log(`- question_attempts=${summary.questionAttempts}`);
   console.log(`- student_question_state=${summary.studentQuestionState}`);
+  if (summary.accountExpSet !== null) {
+    console.log(`- account_exp set to ${summary.accountExpSet}`);
+  }
 }
 
 async function main(): Promise<void> {

@@ -1,6 +1,6 @@
 // Shared module-unit-editor state types so route-level hooks can compose without type duplication.
 import type { ModuleUnitEditorContent, ModuleUnitEditorGroup, ModuleUnitEditorQuestion } from '../../../../types/module';
-import type { QuestionType } from '../../../../components/question-types/QuestionTypeRegistry';
+import type { QuestionType } from '../../../../components/ModuleUnitEditor/question-types/QuestionTypeRegistry';
 
 // Local editor content uses string ids so drafts and persisted records can share one state model.
 export type QuestionContent = Omit<

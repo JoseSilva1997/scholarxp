@@ -13,7 +13,7 @@ export const MASTERY_EXP_CONFIG = {
 
   // Minimum FSRS stability (in days) required for the "retained" stage.
   // A stability of 7 means ~90% recall probability after 7 days.
-  RETAINED_STABILITY_THRESHOLD: 7.0,
+  RETAINED_STABILITY_THRESHOLD: 6.0,
 } as const;
 
 export type MasteryStage = keyof typeof MASTERY_EXP_CONFIG.STAGE_POOLS;

@@ -157,13 +157,18 @@ export class DailyPracticeFsrsStateService {
       due: state.fsrsDueAt,
       stability: state.fsrsStability,
       difficulty: state.fsrsDifficulty,
-      // The persisted state intentionally stores long-lived FSRS fields only; daily practice does not yet rely on replaying same-day micro steps.
       elapsed_days: 0,
       scheduled_days: this.calculateScheduledDays(state),
       learning_steps: 0,
       reps: state.reviewCount,
       lapses: state.lapseCount,
-      state: this.toRuntimeState(state.fsrsState),
+      // Always reconstruct as Review so ts-fsrs uses the elapsed-time-aware recall stability
+      // formula (next_recall_stability). The learningState path uses next_short_term_stability,
+      // which is designed for same-session Anki micro-reviews — not daily practice where
+      // encounters are always at least a day apart. Cards graded "again" during learning
+      // were graduating to Review with near-zero stability under the old path.
+      state:
+        state.fsrsState === FsrsCardStateValues.new ? State.New : State.Review,
       last_review: state.fsrsLastReviewedAt ?? undefined,
     };
   }
@@ -194,22 +199,6 @@ export class DailyPracticeFsrsStateService {
     }
 
     return FsrsCardStateValues.new;
-  }
-
-  private toRuntimeState(state: string): State {
-    if (state === FsrsCardStateValues.learning) {
-      return State.Learning;
-    }
-
-    if (state === FsrsCardStateValues.review) {
-      return State.Review;
-    }
-
-    if (state === FsrsCardStateValues.relearning) {
-      return State.Relearning;
-    }
-
-    return State.New;
   }
 
   private updateRecentAverageTimeMs(

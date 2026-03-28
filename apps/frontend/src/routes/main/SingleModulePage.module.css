@@ -78,6 +78,7 @@
   line-height: 1.1;
   background: linear-gradient(135deg, var(--color-text) 0%, var(--color-text-muted) 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -88,6 +89,15 @@
   font-weight: 500;
   max-width: 600px;
   line-height: 1.6;
+}
+
+/* Compact at-a-glance summary for educators: lesson count, question total, live count */
+.moduleSummary {
+  margin: 10px 0 0;
+  font-size: 0.875rem;
+  color: var(--color-text-dim);
+  font-weight: 500;
+  letter-spacing: 0.01em;
 }
 
 .contentWrapper {
@@ -417,14 +427,14 @@
 
 .dailyPracticeInfoWrapper {
   position: absolute;
-  top: -12px;
-  right: -12px;
+  top: -10px;
+  right: -10px;
   display: inline-flex;
 }
 
 .dailyPracticeInfoButton {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: none;
+  border: none;
   border-radius: 50%;
   width: 20px;
   height: 20px;
@@ -436,7 +446,6 @@
   align-items: center;
   justify-content: center;
   line-height: 1;
-  box-shadow: var(--shadow-sm);
 }
 
 .dailyPracticeInfoTooltip {

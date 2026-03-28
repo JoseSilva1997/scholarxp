@@ -3,6 +3,7 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { GlobalRole } from '@prisma/client';
 import { ModuleService } from './module.service';
 import { createPrismaMock, type PrismaMock } from '../../test/test-helpers';
+import { DailyPracticeService } from '../../daily-practice/daily-practice.service';
 
 const teacher = {
   id: 10,
@@ -22,10 +23,20 @@ const teacherWithInstitution = { ...teacher, hasInstitutionMembership: true };
 describe('ModuleService', () => {
   let prisma: PrismaMock;
   let service: ModuleService;
+  let dailyPracticeService: Pick<
+    DailyPracticeService,
+    'getDailyPracticeStatus'
+  >;
 
   beforeEach(() => {
     prisma = createPrismaMock();
-    service = new ModuleService(prisma);
+    dailyPracticeService = {
+      getDailyPracticeStatus: jest.fn(),
+    };
+    service = new ModuleService(
+      prisma,
+      dailyPracticeService as DailyPracticeService,
+    );
   });
 
   afterEach(() => jest.resetAllMocks());
@@ -138,6 +149,16 @@ describe('ModuleService', () => {
       userModuleLevel: 3,
       currentExp: 120,
     } as any);
+    (
+      dailyPracticeService.getDailyPracticeStatus as jest.Mock
+    ).mockResolvedValue({
+      status: 'available',
+      progress: {
+        totalQuestions: 4,
+        answeredQuestions: 0,
+        completedAt: null,
+      },
+    });
 
     const result = await service.findOne(7, student as any);
 
@@ -145,7 +166,23 @@ describe('ModuleService', () => {
       where: { moduleId_userId: { moduleId: 7, userId: student.id } },
       select: { userModuleLevel: true, currentExp: true },
     });
-    expect(result).toEqual({ id: 7, userModuleLevel: 3, currentExp: 120 });
+    expect(dailyPracticeService.getDailyPracticeStatus).toHaveBeenCalledWith(
+      7,
+      student.id,
+    );
+    expect(result).toEqual({
+      id: 7,
+      userModuleLevel: 3,
+      currentExp: 120,
+      dailyPractice: {
+        status: 'available',
+        progress: {
+          totalQuestions: 4,
+          answeredQuestions: 0,
+          completedAt: null,
+        },
+      },
+    });
   });
 
   it('findOne skips progress lookup for non-students', async () => {

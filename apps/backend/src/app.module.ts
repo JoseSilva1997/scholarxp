@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { PrismaModule } from './prisma/prisma.module';
 import { TestController } from './test/test.controller';
 import { InstitutionModule } from './db-entities/institution/institution.module';
@@ -22,6 +23,7 @@ import { AuthModule } from './auth/auth.module';
 import { EmailVerificationTokenModule } from './db-entities/email-verification-token/email-verification-token.module';
 import { MailerModule } from './mailer/mailer.module';
 import { PracticeRoomModule } from './practice-room/practice-room.module';
+import { ProfileModule } from './profile/profile.module';
 import { QuestsModule } from './quests/quests.module';
 
 // Keep internal diagnostics routes out of production to reduce attack surface.
@@ -38,6 +40,7 @@ const appControllers =
         '.env.development',
       ],
     }),
+    ScheduleModule.forRoot(),
     PrismaModule,
     InstitutionModule,
     UsersModule,
@@ -61,6 +64,7 @@ const appControllers =
     MailerModule,
     PracticeRoomModule,
     QuestsModule,
+    ProfileModule,
   ],
   controllers: appControllers,
 })

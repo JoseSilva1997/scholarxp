@@ -1,13 +1,12 @@
-// Role: orchestrates module-scoped daily-practice set creation, hydration, submit flows, and session lifecycle behind one backend facade.
+// Role: orchestrates module-scoped daily-practice set reads, hydration, submit flows, and session lifecycle behind one backend facade.
 import {
   BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, type QuestionAttempt } from '@prisma/client';
+import { type Prisma, type QuestionAttempt } from '@prisma/client';
 import {
   type DailyPracticeSelectionBucket,
-  DailyPracticeAlgorithmVersionValues,
   PracticeSessionTypeValues,
 } from '@scholarxp/api-contracts';
 import { DateHelpers } from '../helpers/helpers';
@@ -19,16 +18,11 @@ import { DailyPracticeFsrsGradeService } from './daily-practice-fsrs-grade.servi
 import { DailyPracticeFsrsStateService } from './daily-practice-fsrs-state.service';
 import { DailyPracticeMasteryExpService } from './daily-practice-mastery-exp.service';
 import { DailyPracticeEligibilityService } from './daily-practice-eligibility.service';
-import { DailyPracticeInterleavingService } from './daily-practice-interleaving.service';
 import { DailyPracticeMapper } from './daily-practice.mapper';
 import { DailyPracticeSetReadService } from './daily-practice-set-read.service';
-import { DailyPracticeSetSelectorService } from './daily-practice-set-selector.service';
-import { DailyPracticeVariantResolverService } from './daily-practice-variant-resolver.service';
 import { SubmitDailyPracticeAttemptDto } from './dto/submit-daily-practice-attempt.dto';
-import type {
-  OrderedDailyPracticeQuestionRecord,
-  PersistedDailyPracticeSetRecord,
-} from './daily-practice.types';
+import type { DailyPracticeStatusSummary } from '@scholarxp/api-contracts';
+import type { PersistedDailyPracticeSetRecord } from './daily-practice.types';
 
 const ZERO_AWARDS = {
   baseQuestionExp: 0,
@@ -48,20 +42,17 @@ export class DailyPracticeService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly dailyPracticeSetReadService: DailyPracticeSetReadService,
-    private readonly dailyPracticeSetSelectorService: DailyPracticeSetSelectorService,
-    private readonly dailyPracticeInterleavingService: DailyPracticeInterleavingService,
     private readonly dailyPracticeFsrsGradeService: DailyPracticeFsrsGradeService,
     private readonly dailyPracticeFsrsStateService: DailyPracticeFsrsStateService,
     private readonly dailyPracticeMasteryExpService: DailyPracticeMasteryExpService,
     private readonly dailyPracticeEligibilityService: DailyPracticeEligibilityService,
     private readonly dailyPracticeMapper: DailyPracticeMapper,
-    private readonly dailyPracticeVariantResolverService: DailyPracticeVariantResolverService,
     private readonly practiceRoomAttemptService: PracticeRoomAttemptService,
     private readonly practiceRoomSessionService: PracticeRoomSessionService,
     private readonly questProgressService: QuestProgressService,
   ) {}
 
-  // "Today" either loads the stable persisted snapshot or creates it once, then hydrates the set with the active daily-practice session.
+  // Request reads stay load-only so scheduled generation, not student traffic, defines the day's module snapshot.
   async getTodayDailyPractice(
     moduleId: number,
     studentId: number,
@@ -73,7 +64,7 @@ export class DailyPracticeService {
       studentId,
       now,
     );
-    const dailyPracticeSet = await this.getOrCreateTodaySet(
+    const dailyPracticeSet = await this.getTodaySetOrThrow(
       moduleId,
       studentId,
       now,
@@ -103,6 +94,76 @@ export class DailyPracticeService {
       progress: hydratedState.progress,
       questions: hydratedState.questions,
     });
+  }
+
+  // Lightweight read-only status check for embedding into module summary responses.
+  // Does not create a set or session — only reports the current state.
+  async getDailyPracticeStatus(
+    moduleId: number,
+    studentId: number,
+  ): Promise<DailyPracticeStatusSummary> {
+    const now = new Date();
+    const eligibility =
+      await this.dailyPracticeEligibilityService.checkEligibilityForToday(
+        moduleId,
+        studentId,
+        now,
+      );
+
+    if (!eligibility.eligible) {
+      return { status: 'locked', message: eligibility.message };
+    }
+
+    const set = await this.dailyPracticeSetReadService.findSetForUtcDay(
+      studentId,
+      moduleId,
+      now,
+    );
+
+    if (!set || set.items.length === 0) {
+      return {
+        status: 'no_set',
+        message:
+          'No daily practice questions are available for this module yet.',
+      };
+    }
+
+    if (set.completedAt) {
+      return {
+        status: 'completed',
+        progress: {
+          totalQuestions: set.items.length,
+          answeredQuestions: set.items.length,
+          completedAt: set.completedAt.toISOString(),
+        },
+      };
+    }
+
+    const { dayStartUtc, nextDayStartUtc } = DateHelpers.getUtcDayBounds(now);
+    const answeredAttempts = await this.prisma.questionAttempt.findMany({
+      where: {
+        studentId,
+        questionId: { in: set.items.map((item) => item.questionUnitId) },
+        attemptedAt: { gte: dayStartUtc, lt: nextDayStartUtc },
+        session: {
+          moduleId,
+          userId: studentId,
+          sessionType: PracticeSessionTypeValues.dailyPractice,
+        },
+      },
+      distinct: ['questionId'],
+      select: { questionId: true },
+    });
+    const answeredQuestions = answeredAttempts.length;
+
+    return {
+      status: answeredQuestions > 0 ? 'in_progress' : 'available',
+      progress: {
+        totalQuestions: set.items.length,
+        answeredQuestions,
+        completedAt: null,
+      },
+    };
   }
 
   // Submit flow reuses canonical grading and attempt persistence, while daily practice adds set ownership and one-update-per-day FSRS behavior.
@@ -345,7 +406,7 @@ export class DailyPracticeService {
     });
   }
 
-  private async getOrCreateTodaySet(
+  private async getTodaySetOrThrow(
     moduleId: number,
     studentId: number,
     timestamp: Date,
@@ -355,129 +416,16 @@ export class DailyPracticeService {
       moduleId,
       timestamp,
     );
-    if (existingSet) {
-      // An empty set is a sentinel created when no questions were available on the day it was first checked.
-      // Re-throwing here keeps today's "no set" state stable even if questions become eligible later in the day.
-      if (existingSet.items.length === 0) {
-        throw new NotFoundException(
-          'No daily practice questions are available for this module yet.',
-        );
-      }
-      return existingSet;
-    }
 
-    const orderedQuestions = await this.buildOrderedSelection(
-      moduleId,
-      studentId,
-      timestamp,
-    );
-    const resolvedQuestions =
-      await this.dailyPracticeVariantResolverService.resolveQuestionContentIds(
-        studentId,
-        orderedQuestions,
-      );
-    const { dayStartUtc } = DateHelpers.getUtcDayBounds(timestamp);
-
-    if (resolvedQuestions.length === 0) {
-      // Persist an empty sentinel row so the unique constraint prevents re-generation later today.
-      // P2002 means a concurrent request already wrote the sentinel; either way we throw 404.
-      try {
-        await this.prisma.dailyPracticeSet.create({
-          data: {
-            userId: studentId,
-            moduleId,
-            practiceDateUtc: dayStartUtc,
-            algorithmVersion: DailyPracticeAlgorithmVersionValues.fsrsV1,
-          },
-          select: { id: true },
-        });
-      } catch (error) {
-        if (
-          !(
-            error instanceof Prisma.PrismaClientKnownRequestError &&
-            error.code === 'P2002'
-          )
-        ) {
-          throw error;
-        }
-      }
+    // The read API intentionally hides whether today's absence came from no generation run yet
+    // or from an empty sentinel because both mean the learner has no set to load right now.
+    if (!existingSet || existingSet.items.length === 0) {
       throw new NotFoundException(
         'No daily practice questions are available for this module yet.',
       );
     }
 
-    try {
-      const createdSet = await this.prisma.dailyPracticeSet.create({
-        data: {
-          userId: studentId,
-          moduleId,
-          practiceDateUtc: dayStartUtc,
-          algorithmVersion: DailyPracticeAlgorithmVersionValues.fsrsV1,
-          items: {
-            create: resolvedQuestions.map((question) => ({
-              questionUnitId: question.questionUnitId,
-              questionContentId: question.questionContentId,
-              moduleUnitId: question.moduleUnitId,
-              position: question.position,
-              selectionReason: question.selectionReason,
-              selectionScore: question.selectionScore,
-              sourceBucket: question.sourceBucket,
-            })),
-          },
-        },
-        select: { id: true },
-      });
-
-      const persistedSet = await this.dailyPracticeSetReadService.findSetById(
-        createdSet.id,
-      );
-      if (persistedSet) {
-        return persistedSet;
-      }
-    } catch (error) {
-      // P2002 means a concurrent request already created the set for this day; return that row instead of failing.
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
-        const concurrentSet =
-          await this.dailyPracticeSetReadService.findSetForUtcDay(
-            studentId,
-            moduleId,
-            timestamp,
-          );
-        if (concurrentSet) {
-          // Edge case: concurrent request may have written an empty sentinel instead of a real set.
-          if (concurrentSet.items.length === 0) {
-            throw new NotFoundException(
-              'No daily practice questions are available for this module yet.',
-            );
-          }
-          return concurrentSet;
-        }
-      }
-
-      throw error;
-    }
-
-    throw new NotFoundException('Daily practice set could not be loaded.');
-  }
-
-  private async buildOrderedSelection(
-    moduleId: number,
-    studentId: number,
-    timestamp: Date,
-  ): Promise<OrderedDailyPracticeQuestionRecord[]> {
-    const selection =
-      await this.dailyPracticeSetSelectorService.selectQuestions({
-        userId: studentId,
-        moduleId,
-        now: timestamp,
-      });
-
-    return this.dailyPracticeInterleavingService.orderSelectedQuestions(
-      selection.selectedQuestions,
-    );
+    return existingSet;
   }
 
   private async loadHydratedSetState(

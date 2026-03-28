@@ -196,7 +196,7 @@ describe('useSubmitModuleUnitPracticeAttemptMutation', () => {
       queryKey: queryKeys.modules.moduleUnitPracticeRoomBase(5, 2),
     });
     expect(invalidateQueriesMock).toHaveBeenCalledWith({
-      queryKey: queryKeys.quests.masterStreakAll,
+      queryKey: queryKeys.quests.all,
     });
     expect(invalidateQueriesMock).toHaveBeenCalledWith({
       queryKey: queryKeys.rewards.dailyLessonXpTrackAll,
@@ -204,9 +204,10 @@ describe('useSubmitModuleUnitPracticeAttemptMutation', () => {
     expect(invalidateQueriesMock).toHaveBeenCalledWith({
       queryKey: queryKeys.auth.me,
     });
+    expect(invalidateQueriesMock).toHaveBeenCalledTimes(7);
   });
 
-  it('updates module detail cache directly when the submit response includes refreshed progress', async () => {
+  it('merges updated progress into the module detail cache to preserve fields like dailyPractice', async () => {
     const result = useSubmitModuleUnitPracticeAttemptMutation(5, 2);
     const updatedModuleProgress = {
       id: 5,
@@ -225,8 +226,14 @@ describe('useSubmitModuleUnitPracticeAttemptMutation', () => {
 
     expect(setQueryDataMock).toHaveBeenCalledWith(
       queryKeys.modules.detail(5),
-      updatedModuleProgress,
+      expect.any(Function),
     );
+
+    // Verify the merge callback preserves existing fields and applies the new progress.
+    const mergeFn = setQueryDataMock.mock.calls[0][1];
+    const existing = { id: 5, title: 'Algebra', dailyPractice: { status: 'available' } };
+    expect(mergeFn(existing)).toEqual({ ...existing, ...updatedModuleProgress });
+    expect(mergeFn(undefined)).toEqual(updatedModuleProgress);
   });
 });
 

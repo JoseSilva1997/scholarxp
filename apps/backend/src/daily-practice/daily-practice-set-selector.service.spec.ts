@@ -260,14 +260,16 @@ describe('DailyPracticeSetSelectorService', () => {
     expect(reinforcementSelections[0].questionUnitId).toBe(103);
   });
 
-  it('classifies a not-yet-due question as reinforcement when lapse count is positive regardless of grade', async () => {
-    // Q103: future due, 'good' grade, lapseCount=1 → reinforcement via the lapse-count branch.
-    // This verifies the third condition in isRecentStruggleCandidate is exercised independently.
+  it('excludes a not-yet-due question from reinforcement when last grade was good even if lapse count is positive', async () => {
+    // Q103: future due, 'good' grade, lapseCount=1 → NOT reinforcement.
+    // Lapse history alone no longer qualifies — FSRS already schedules the recovery via due-review.
+    // Q104: unseen → new-sequence candidate to keep total inventory at the minimum of 3.
     const now = new Date('2026-03-17T12:00:00.000Z');
     candidateReadService.listModuleCandidateQuestions.mockResolvedValue([
       buildCandidate(101, 1, 1),
       buildCandidate(102, 1, 2),
       buildCandidate(103, 1, 3),
+      buildCandidate(104, 1, 4),
     ] satisfies DailyPracticeCandidateQuestionRecord[]);
     moduleProgressReadService.listModuleUnitProgress.mockResolvedValue(
       [] satisfies ModuleUnitProgressRecord[],
@@ -275,7 +277,7 @@ describe('DailyPracticeSetSelectorService', () => {
     questionStateReadService.listStatesForModule.mockResolvedValue([
       buildState(101, 1, { fsrsDueAt: new Date('2026-03-16T10:00:00.000Z') }),
       buildState(102, 1, { fsrsDueAt: new Date('2026-03-16T11:00:00.000Z') }),
-      // Good grade but lapse count of 1 → still a struggle candidate.
+      // Good grade + positive lapse count → recovered, no longer a reinforcement candidate.
       buildState(103, 1, { lapseCount: 1 }),
     ] satisfies StudentQuestionStateRecord[]);
 
@@ -285,13 +287,13 @@ describe('DailyPracticeSetSelectorService', () => {
       now,
     });
 
-    const reinforcementSelections = result.selectedQuestions.filter(
-      (question) =>
-        question.sourceBucket ===
-        DailyPracticeSelectionBucketValues.reinforcement,
-    );
-    expect(reinforcementSelections).toHaveLength(1);
-    expect(reinforcementSelections[0].questionUnitId).toBe(103);
+    expect(
+      result.selectedQuestions.filter(
+        (question) =>
+          question.sourceBucket ===
+          DailyPracticeSelectionBucketValues.reinforcement,
+      ),
+    ).toHaveLength(0);
   });
 
   it('excludes a not-yet-due question from reinforcement when last grade was good and lapse count is zero', async () => {

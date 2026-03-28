@@ -81,11 +81,11 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-vi.mock('../../context/AuthContext', () => ({
+vi.mock('@/context/AuthContext', () => ({
   useAuth: () => authState,
 }));
 
-vi.mock('../../hooks/page-state/useSingleModulePageState', () => ({
+vi.mock('@/hooks/page-state/useSingleModulePageState', () => ({
   useSingleModulePageState: () => ({
     ...pageState,
     setIsStudentViewEnabled: mocks.setIsStudentViewEnabled,
@@ -99,11 +99,11 @@ vi.mock('../../hooks/page-state/useSingleModulePageState', () => ({
   }),
 }));
 
-vi.mock('../../components/MainSection', () => ({
+vi.mock('@/components/MainSection', () => ({
   default: ({ children }: { children: React.ReactNode }) => <section>{children}</section>,
 }));
 
-vi.mock('../../components/ModuleSettingsPanel', () => ({
+vi.mock('@/components/Modules/ModuleSettingsPanel', () => ({
   default: ({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => void }) => (
     <div>
       <span>settings-open:{String(isOpen)}</span>
@@ -112,13 +112,13 @@ vi.mock('../../components/ModuleSettingsPanel', () => ({
   ),
 }));
 
-vi.mock('../../components/CreateModuleUnitCard', () => ({
+vi.mock('@/components/CreateModuleUnitCard', () => ({
   default: ({ onClick }: { onClick: () => void }) => (
     <button onClick={onClick}>open-create-unit</button>
   ),
 }));
 
-vi.mock('../../components/Modals/CreateModuleUnitModal', () => ({
+vi.mock('@/components/Modals/CreateModuleUnitModal', () => ({
   default: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => (
     <div>
       <span>create-unit-open:{String(isOpen)}</span>
@@ -127,13 +127,13 @@ vi.mock('../../components/Modals/CreateModuleUnitModal', () => ({
   ),
 }));
 
-vi.mock('../../components/ModuleUnitCard', () => ({
+vi.mock('@/components/Modules/ModuleUnitCard', () => ({
   default: ({ unit, onChangeStatus }: { unit: MockUnit; onChangeStatus: (id: number, status: MockUnit['status']) => void }) => (
     <button onClick={() => onChangeStatus(unit.id, 'archived')}>module-unit-{unit.id}</button>
   ),
 }));
 
-vi.mock('../../components/StudentModuleUnitCard', () => ({
+vi.mock('@/components/Modules/StudentModuleUnitCard', () => ({
   default: ({ unit }: { unit: MockUnit }) => <div>student-unit-{unit.id}</div>,
 }));
 

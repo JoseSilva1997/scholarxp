@@ -1,0 +1,1137 @@
+/* Student profile view: overview stats, module cards, achievements, locker scaffold, lifetime stats. */
+
+.studentProfile {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+/* --- Section shared --- */
+
+.sectionTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  color: var(--color-text);
+  margin: 0;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.emptyState {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  padding: 24px 0;
+}
+
+/* --- Overview Strip --- */
+
+.overviewSection {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.overviewGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.statCard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition-fast);
+}
+
+.statCard:hover {
+  border-color: var(--color-border-hover);
+}
+
+.statLabel {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-dim);
+}
+
+.statValue {
+  font-size: 1.3rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.statValueMuted {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.statIconInline {
+  color: var(--color-accent);
+  font-size: 1rem;
+}
+
+.progressRail {
+  height: 5px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: var(--radius-full);
+  transition: width 0.5s ease-out;
+}
+
+.progressFillSecondary {
+  background: var(--color-secondary);
+}
+
+/* Daily lesson track steps */
+
+.trackSteps {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.trackStep {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  border: 2px solid var(--color-border);
+  color: var(--color-text-dim);
+  background: var(--color-surface);
+}
+
+.trackStep_earned {
+  background: var(--color-secondary-soft);
+  border-color: var(--color-secondary);
+  color: var(--color-secondary);
+}
+
+.trackStep_active {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent-soft);
+}
+
+.trackStep_upcoming {
+  opacity: 0.5;
+}
+
+.trackStepXp {
+  font-size: 0.6rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Modules Section --- */
+
+.modulesSection {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sortTabs {
+  display: flex;
+  gap: 4px;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  padding: 3px;
+}
+
+.sortTab {
+  padding: 5px 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.sortTab:hover {
+  color: var(--color-text);
+  background: var(--color-surface-hover);
+}
+
+.sortTabActive {
+  color: var(--color-text);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  font-weight: 600;
+}
+
+.moduleList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.moduleCard {
+  padding: 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.moduleCard:hover {
+  border-color: var(--color-border-hover);
+  box-shadow: var(--shadow-sm);
+}
+
+.moduleCardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.moduleInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.moduleTitle {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 6px;
+}
+
+.moduleMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.proficiencyBadge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+}
+
+.lessonCount {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.dailyDone {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--color-secondary);
+}
+
+.practiceButton {
+  flex-shrink: 0;
+  padding: 6px 16px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-on-primary);
+  background: var(--color-primary);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.practiceButton:hover {
+  background: var(--color-primary-dark);
+}
+
+.practiceButton:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.moduleProgressBar {
+  height: 4px;
+  background: var(--color-bg);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin: 10px 0 4px;
+}
+
+.moduleProgressFill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: var(--radius-full);
+  transition: width 0.5s ease-out;
+}
+
+.moduleXpLabel {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--color-text-dim);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* --- Achievements Section --- */
+
+.achievementsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.achievementRow {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.achievementRowTitle {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0;
+}
+
+.achievementScroll {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding: 6px;
+  scrollbar-width: thin;
+}
+
+/* ── Base card: the display-case shell ── */
+
+.achievementCard {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 116px;
+  padding: 18px 10px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  text-align: center;
+  transition:
+    transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+    border-color var(--transition-fast),
+    box-shadow 0.3s ease,
+    background var(--transition-fast);
+}
+
+.achievementCardButton {
+  appearance: none;
+  cursor: pointer;
+}
+
+.achievementCardButton:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ── Icon ring: circular container like QuestsPage indicator pattern ── */
+
+.achievementIconRing {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.3s ease,
+    box-shadow 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.achievementIcon {
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease, filter 0.3s ease;
+}
+
+/* ── Locked slot: empty display case ── */
+
+.achievementLocked {
+  border-style: dashed;
+  border-color: var(--color-border);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-inner);
+}
+
+.achievementLocked .achievementIconRing {
+  background: var(--color-border-subtle);
+  border: 2px dashed var(--color-border);
+}
+
+.achievementLocked .achievementIcon {
+  color: var(--color-text-dim);
+  opacity: 0.35;
+  font-size: 1rem;
+}
+
+.achievementLocked .achievementName {
+  color: var(--color-text-dim);
+}
+
+.achievementLocked:hover {
+  border-color: var(--color-border-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.achievementLocked:hover .achievementIconRing {
+  border-color: var(--color-border-hover);
+}
+
+/* ── Unlocked base: filled display case ── */
+
+.achievementEarned {
+  border-style: solid;
+  box-shadow: var(--shadow-sm);
+}
+
+.achievementEarned:hover {
+  transform: translateY(-3px);
+}
+
+/* ── Tier 1 — Bronze ── */
+
+.achievementTier1.achievementEarned {
+  border-color: var(--color-tier-bronze-soft);
+  background: radial-gradient(circle at 50% 0%, var(--color-tier-bronze-soft) 0%, var(--color-surface) 70%);
+}
+
+.achievementTier1.achievementEarned .achievementIconRing {
+  background: var(--color-tier-bronze-soft);
+  box-shadow: inset 0 0 0 1px var(--color-tier-bronze-glow);
+}
+
+.achievementTier1.achievementEarned .achievementIcon {
+  color: var(--color-tier-bronze);
+}
+
+.achievementTier1.achievementEarned:hover {
+  box-shadow:
+    0 2px 8px var(--color-tier-bronze-glow),
+    0 4px 12px var(--color-shadow-soft);
+}
+
+.achievementTier1.achievementEarned:hover .achievementIcon {
+  transform: scale(1.1);
+}
+
+/* ── Tier 2 — Silver ── */
+
+.achievementTier2.achievementEarned {
+  border-color: var(--color-tier-silver-soft);
+  background: radial-gradient(circle at 50% 0%, var(--color-tier-silver-soft) 0%, var(--color-surface) 70%);
+}
+
+.achievementTier2.achievementEarned .achievementIconRing {
+  background: var(--color-tier-silver-soft);
+  box-shadow: inset 0 0 0 1px var(--color-tier-silver-glow);
+}
+
+.achievementTier2.achievementEarned .achievementIcon {
+  color: var(--color-tier-silver);
+}
+
+.achievementTier2.achievementEarned:hover {
+  box-shadow:
+    0 2px 8px var(--color-tier-silver-glow),
+    0 4px 12px var(--color-shadow-soft);
+}
+
+.achievementTier2.achievementEarned:hover .achievementIcon {
+  transform: scale(1.15);
+}
+
+/* ── Tier 3 — Gold ── */
+
+.achievementTier3.achievementEarned {
+  border-color: var(--color-tier-gold-soft);
+  background: radial-gradient(circle at 50% 0%, var(--color-tier-gold-soft) 0%, var(--color-surface) 65%);
+}
+
+.achievementTier3.achievementEarned .achievementIconRing {
+  background: var(--color-tier-gold-soft);
+  box-shadow:
+    inset 0 0 0 1px var(--color-tier-gold-glow),
+    0 0 12px var(--color-tier-gold-glow);
+}
+
+.achievementTier3.achievementEarned .achievementIcon {
+  color: var(--color-tier-gold);
+  filter: drop-shadow(0 0 6px var(--color-tier-gold-glow));
+  font-size: 1.35rem;
+}
+
+.achievementTier3.achievementEarned:hover {
+  box-shadow:
+    0 2px 10px var(--color-tier-gold-glow),
+    0 4px 14px var(--color-shadow-soft);
+}
+
+.achievementTier3.achievementEarned:hover .achievementIcon {
+  transform: scale(1.2);
+  filter: drop-shadow(0 0 10px var(--color-tier-gold-glow));
+}
+
+/* ── Tier 4 — Diamond (quest milestones only) ── */
+
+.achievementTier4.achievementEarned {
+  border-color: var(--color-tier-diamond-soft);
+  background: radial-gradient(circle at 50% 0%, var(--color-tier-diamond-soft) 0%, var(--color-surface) 60%);
+}
+
+.achievementTier4.achievementEarned .achievementIconRing {
+  background: var(--color-tier-diamond-soft);
+  box-shadow:
+    inset 0 0 0 1px var(--color-tier-diamond-glow),
+    0 0 16px var(--color-tier-diamond-glow);
+}
+
+.achievementTier4.achievementEarned .achievementIcon {
+  color: var(--color-tier-diamond);
+  filter: drop-shadow(0 0 8px var(--color-tier-diamond-glow));
+  font-size: 1.45rem;
+}
+
+.achievementTier4.achievementEarned:hover {
+  box-shadow:
+    0 3px 12px var(--color-tier-diamond-glow),
+    0 6px 16px var(--color-shadow-soft);
+}
+
+.achievementTier4.achievementEarned:hover .achievementIcon {
+  transform: scale(1.25);
+  filter: drop-shadow(0 0 14px var(--color-tier-diamond-glow));
+}
+
+.achievementName {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-text-soft);
+  line-height: 1.2;
+}
+
+.achievementDate {
+  font-size: 0.6rem;
+  color: var(--color-text-dim);
+  font-weight: 600;
+}
+
+.achievementModalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(11, 18, 32, 0.55);
+  backdrop-filter: blur(4px);
+}
+
+/* ── Achievement Detail Modal ── */
+
+.achievementModal {
+  position: relative;
+  width: min(100%, 420px);
+  display: flex;
+  flex-direction: column;
+  /* No top padding — the dark hero panel bleeds to the edges */
+  padding: 0 0 24px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+}
+
+/* Per-tier outer glow — makes the modal feel anchored to its award level */
+
+.achievementModalOuterTier1 {
+  box-shadow: var(--shadow-xl), 0 0 48px var(--color-tier-bronze-glow);
+}
+
+.achievementModalOuterTier2 {
+  box-shadow: var(--shadow-xl), 0 0 48px var(--color-tier-silver-glow);
+}
+
+.achievementModalOuterTier3 {
+  box-shadow: var(--shadow-xl), 0 0 56px var(--color-tier-gold-glow);
+}
+
+.achievementModalOuterTier4 {
+  box-shadow: var(--shadow-xl), 0 0 64px var(--color-tier-diamond-glow);
+}
+
+/* ── Glass × close button sits over the dark hero ── */
+
+.achievementModalClose {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--color-glass-border-strong);
+  border-radius: var(--radius-full);
+  background: var(--color-glass-bg);
+  color: var(--color-text-on-dark-muted);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.achievementModalClose:hover {
+  background: var(--color-glass-bg-hover);
+  color: var(--color-text-on-dark);
+  border-color: var(--color-glass-border-strong);
+}
+
+.achievementModalClose:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ── Dark hero panel: the award stage ── */
+
+.achievementModalHero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 40px 24px 32px;
+  /* Base dark; tier variants override with a radial glow */
+  background: var(--color-brand-surface-dark);
+  overflow: hidden;
+}
+
+/* Tier-specific radial glow emanating from behind the icon */
+
+.achievementModalHeroTier1 {
+  background: var(--color-brand-surface-dark);
+}
+
+.achievementModalHeroTier2 {
+  background: var(--color-brand-surface-dark);
+}
+
+.achievementModalHeroTier3 {
+  background: var(--color-brand-surface-dark);
+}
+
+.achievementModalHeroTier4 {
+  background: var(--color-brand-surface-dark);
+}
+
+.achievementModalHeroLocked {
+  background: var(--color-brand-surface-dark);
+}
+
+/* ── Spinning conic rays behind the icon — earned only ── */
+/* Lifted from LessonCompleteModal; spin speed is slower for a calmer "display case" feel */
+
+.achievementModalRays {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -60%) rotate(0deg);
+  width: 280px;
+  height: 280px;
+  background: repeating-conic-gradient(
+    rgba(255, 255, 255, 0.045) 0 10deg,
+    transparent 10deg 20deg
+  );
+  border-radius: 50%;
+  mask-image: radial-gradient(circle, #000 15%, transparent 65%);
+  -webkit-mask-image: radial-gradient(circle, #000 15%, transparent 65%);
+  animation: achievementRaysSpin 24s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes achievementRaysSpin {
+  from { transform: translate(-50%, -60%) rotate(0deg); }
+  to   { transform: translate(-50%, -60%) rotate(360deg); }
+}
+
+/* ── Blurred colour blob — soft halo under the icon ── */
+
+.achievementModalGlow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -70%);
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  filter: blur(28px);
+  opacity: 0.55;
+  pointer-events: none;
+  animation: achievementGlowPulse 3s ease-in-out infinite;
+}
+
+@keyframes achievementGlowPulse {
+  0%, 100% { opacity: 0.55; }
+  50%       { opacity: 0.85; }
+}
+
+.achievementModalGlowTier1 { background: var(--color-tier-bronze); }
+.achievementModalGlowTier2 { background: var(--color-tier-silver); }
+.achievementModalGlowTier3 { background: var(--color-tier-gold); }
+.achievementModalGlowTier4 { background: var(--color-tier-diamond); }
+
+/* ── Icon ring ── */
+
+.achievementModalIconRing {
+  position: relative;
+  z-index: 1;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+}
+
+/* Gentle float keeps the icon feeling alive without being distracting */
+
+.achievementModalIconRingFloat {
+  animation: achievementIconFloat 4s ease-in-out infinite;
+}
+
+@keyframes achievementIconFloat {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-5px); }
+}
+
+.achievementModalIconRingTier1 {
+  background: rgba(205, 127, 50, 0.15);
+  border-color: var(--color-tier-bronze);
+  box-shadow: 0 0 24px var(--color-tier-bronze-glow), inset 0 1px 0 rgba(255,255,255,0.12);
+}
+
+.achievementModalIconRingTier2 {
+  background: rgba(138, 155, 181, 0.15);
+  border-color: var(--color-tier-silver);
+  box-shadow: 0 0 24px var(--color-tier-silver-glow), inset 0 1px 0 rgba(255,255,255,0.12);
+}
+
+.achievementModalIconRingTier3 {
+  background: rgba(212, 175, 55, 0.15);
+  border-color: var(--color-tier-gold);
+  box-shadow: 0 0 32px var(--color-tier-gold-glow), inset 0 1px 0 rgba(255,255,255,0.15);
+}
+
+.achievementModalIconRingTier4 {
+  background: rgba(157, 110, 255, 0.15);
+  border-color: var(--color-tier-diamond);
+  box-shadow: 0 0 40px var(--color-tier-diamond-glow), inset 0 1px 0 rgba(255,255,255,0.15);
+}
+
+.achievementModalIconRingLocked {
+  background: rgba(255, 255, 255, 0.04);
+  border: 2px dashed rgba(255, 255, 255, 0.15);
+  opacity: 0.5;
+}
+
+.achievementModalIconSize {
+  font-size: 2.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.achievementModalIconTier1 { color: var(--color-tier-bronze); }
+.achievementModalIconTier2 { color: var(--color-tier-silver); }
+
+.achievementModalIconTier3 {
+  color: var(--color-tier-gold);
+  filter: drop-shadow(0 0 8px var(--color-tier-gold-glow));
+}
+
+.achievementModalIconTier4 {
+  color: var(--color-tier-diamond);
+  filter: drop-shadow(0 0 10px var(--color-tier-diamond-glow));
+}
+
+.achievementModalIconLocked {
+  color: var(--color-text-on-dark-dim);
+}
+
+/* ── Name + badge inside the dark hero ── */
+
+.achievementModalMeta {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.achievementModalTitle {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  /* White on dark hero — readable against all tier glow backgrounds */
+  color: var(--color-text-on-dark);
+}
+
+/* Badge variants for the dark hero background */
+
+.achievementStatusBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* These are used on the light body (kept for potential reuse elsewhere) */
+.achievementStatusBadgeEarned {
+  background: var(--color-secondary-soft);
+  color: var(--color-secondary-dark);
+}
+
+.achievementStatusBadgeLocked {
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+}
+
+/* Dark-surface variants shown in the hero panel */
+.achievementStatusBadgeEarnedDark {
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--color-secondary-light);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.achievementStatusBadgeLockedDark {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--color-text-on-dark-subtle);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* ── Light content area below the hero ── */
+
+.achievementModalBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px 24px 0;
+}
+
+.achievementModalRequirement {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--color-text-soft);
+}
+
+.achievementModalProgressCard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-subtle);
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius-md);
+}
+
+.achievementModalLabel {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+}
+
+.achievementModalProgressValue {
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
+.achievementModalStatus {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+/* --- Locker Section --- */
+
+.lockerSection {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.lockerEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 40px 20px;
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.lockerEmptyIcon {
+  font-size: 1.8rem;
+  color: var(--color-accent);
+  opacity: 0.6;
+}
+
+.lockerEmptyText {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  max-width: 320px;
+  margin: 0;
+}
+
+.lockerContent {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.lockerGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lockerGroupTitle {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-soft);
+  margin: 0;
+}
+
+.equippedGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.equippedSlot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 56px;
+  padding: 8px 12px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  text-align: center;
+}
+
+.equippedEmpty {
+  font-size: 0.7rem;
+  color: var(--color-text-dim);
+  font-weight: 500;
+}
+
+.equippedItemName {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.ownedGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.ownedCard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.ownedCardLocked {
+  opacity: 0.55;
+  position: relative;
+}
+
+.lockedIcon {
+  font-size: 0.8rem;
+  color: var(--color-text-dim);
+}
+
+.ownedName {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.rarityBadge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  align-self: flex-start;
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+}
+
+.rarity_common { background: var(--color-bg); color: var(--color-text-muted); }
+.rarity_uncommon { background: var(--color-secondary-soft); color: var(--color-secondary-dark); }
+.rarity_rare { background: var(--color-primary-soft); color: var(--color-primary-dark); }
+.rarity_epic { background: rgba(139, 92, 246, 0.1); color: #7c3aed; }
+.rarity_legendary { background: var(--color-accent-soft); color: var(--color-accent-dark); }
+
+.ownedSource {
+  font-size: 0.65rem;
+  color: var(--color-text-dim);
+}
+
+.equipButton {
+  margin-top: 4px;
+  padding: 4px 10px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--color-text-soft);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* --- Stats Section --- */
+
+.statsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.lifetimeStat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.lifetimeStatSoon {
+  opacity: 0.55;
+}
+
+.lifetimeValue {
+  font-size: 1.4rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+.lifetimeLabel {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.comingSoon {
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-dim);
+  margin-top: 2px;
+}
+
+/* --- Responsive --- */
+
+@media (max-width: 600px) {
+  .overviewGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .sectionHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .moduleCardTop {
+    flex-direction: column;
+  }
+
+  .practiceButton {
+    align-self: flex-start;
+  }
+
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

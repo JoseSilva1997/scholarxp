@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import type { Location } from 'react-router-dom';
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import './App.css';
-import Header from './components/header/Header';
+import Header from './components/Header/Header';
 import Footer from './components/Footer';
 import Landing from './routes/Landing';
 import Login from './routes/Login';
@@ -31,6 +31,8 @@ function AppLayout() {
   const isShellRoute = location.pathname.startsWith('/main');
 
   const { user, isLoading, logout, setUser } = useAuth();
+  // Public landing at '/' needs full-width, no padding — its own sections manage layout.
+  const isLandingRoute = location.pathname === '/' && !user && !isLoading;
   const shouldShowRoleSelector =
     !isAuthRoute && !isLoading && user?.isVerified && user.globalRole === 'pending';
   // Shell renders its own header; we skip the global one to avoid double bars.
@@ -62,7 +64,9 @@ function AppLayout() {
           onToggleSidebar={() => navigate('/main/modules')}
         />
       ) : null}
-      <main className={`App__content ${usesFullWidth ? 'App__content--auth' : ''}`}>
+      <main
+        className={`App__content ${usesFullWidth ? 'App__content--auth' : isLandingRoute ? 'App__content--landing' : ''}`}
+      >
         {shouldShowRoleSelector ? (
           <RoleSelectorOverlay user={user} onRoleSelected={setUser} />
         ) : (

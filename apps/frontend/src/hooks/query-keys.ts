@@ -49,4 +49,8 @@ export const queryKeys = {
     dailyLessonXpTrack: (userId: number | null) =>
       ['rewards', 'daily-lesson-xp-track', userId] as const,
   },
+  profile: {
+    student: (userId: number | null) => ['profile', 'student', userId] as const,
+    tutor: (userId: number | null) => ['profile', 'tutor', userId] as const,
+  },
 };

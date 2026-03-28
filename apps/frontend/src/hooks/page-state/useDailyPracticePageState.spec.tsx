@@ -222,7 +222,7 @@ describe('useDailyPracticePageState', () => {
     );
   });
 
-  it('syncs the server session id back into the URL when the response differs', async () => {
+  it('syncs the server session id back into the URL and adopts it as the active query session', async () => {
     useTodayDailyPracticeQueryMock.mockReturnValue({
       isPending: false,
       error: null,
@@ -236,6 +236,11 @@ describe('useDailyPracticePageState', () => {
         '?sessionId=11111111-1111-4111-8111-111111111202',
       );
     });
+
+    expect(useTodayDailyPracticeQueryMock).toHaveBeenLastCalledWith(
+      7,
+      '11111111-1111-4111-8111-111111111202',
+    );
   });
 
   it('closes the active session on unmount', async () => {
@@ -312,6 +317,64 @@ describe('useDailyPracticePageState', () => {
       expect.objectContaining({
         hasCorrectAttempt: true,
       }),
+    );
+  });
+
+  it('keeps the active question selected after submit when bootstrap refetches would otherwise create a fresh session', async () => {
+    const canonicalSessionId = '11111111-1111-4111-8111-111111111202';
+    const unexpectedFreshSessionId = '11111111-1111-4111-8111-111111111299';
+    const canonicalSetId = '11111111-1111-4111-8111-111111111201';
+    const unexpectedFreshSetId = '11111111-1111-4111-8111-111111111298';
+    let shouldReturnFreshBootstrapSession = false;
+
+    useTodayDailyPracticeQueryMock.mockImplementation(
+      (_moduleId: number, sessionId: string | null) => ({
+        isPending: false,
+        error: null,
+        data: buildDailyPracticeResponse({
+          sessionId:
+            sessionId === canonicalSessionId
+              ? canonicalSessionId
+              : shouldReturnFreshBootstrapSession
+                ? unexpectedFreshSessionId
+                : canonicalSessionId,
+          setId:
+            sessionId === canonicalSessionId
+              ? canonicalSetId
+              : shouldReturnFreshBootstrapSession
+                ? unexpectedFreshSetId
+                : canonicalSetId,
+        }),
+      }),
+    );
+    submitMutateAsyncMock.mockImplementation(async () => {
+      shouldReturnFreshBootstrapSession = true;
+      return buildSubmitResponse();
+    });
+
+    const rendered = renderHookWithParams('7');
+
+    await waitFor(() => {
+      expect(useTodayDailyPracticeQueryMock).toHaveBeenLastCalledWith(
+        7,
+        canonicalSessionId,
+      );
+    });
+
+    act(() => {
+      rendered.getState().selectQuestion(1);
+      rendered.getState().selectOption(502, 1);
+    });
+
+    await act(async () => {
+      await rendered.getState().submitActiveQuestionAttempt();
+    });
+
+    expect(rendered.getState().selectedQuestionIndex).toBe(1);
+    expect(rendered.getState().activeQuestion?.question.id).toBe(502);
+    expect(useTodayDailyPracticeQueryMock).toHaveBeenLastCalledWith(
+      7,
+      canonicalSessionId,
     );
   });
 

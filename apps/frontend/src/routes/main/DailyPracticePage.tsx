@@ -8,6 +8,7 @@ import {
   FaCircleChevronRight,
   FaLightbulb,
 } from 'react-icons/fa6';
+import DebugMeta from '../../components/DebugMeta';
 import MainSection from '../../components/MainSection';
 import StreakIndicator from '../../components/PracticeRoom/StreakTrackerIndicator';
 import expIcon from '../../assets/exp_icon.svg';
@@ -37,8 +38,6 @@ function getDailyPracticeQuestionStatusClass(
 
   return isCurrent ? `${styles.navBarCurrent} ${statusClass}` : statusClass;
 }
-
-const DEBUG_MODE = true;
 
 export default function DailyPracticePage() {
   const { moduleId } = useParams<{ moduleId: string }>();
@@ -210,13 +209,23 @@ export default function DailyPracticePage() {
               <h2 className={styles.questionStem}>
                 {activeQuestion.question.questionStem}
               </h2>
-              {DEBUG_MODE ?
-              <div style={{ fontSize: '0.75rem', color: '#999', marginTop: '0.5rem' }}>
-                Debug: moduleUnitId = {activeQuestionItem.moduleUnitId}, questionId ={' '}
-                {activeQuestionItem.coreQuestion.questionId}, questionContentId ={' '}
-                {activeQuestion.question.id}, module unit title = {activeQuestionItem.moduleUnitTitle}
-              </div>
-            : null}
+              <DebugMeta
+                entries={[
+                  {
+                    label: 'moduleUnitId =',
+                    value: activeQuestionItem.moduleUnitId,
+                  },
+                  {
+                    label: 'questionId =',
+                    value: activeQuestionItem.coreQuestion.questionId,
+                  },
+                  { label: 'questionContentId =', value: activeQuestion.question.id },
+                  {
+                    label: 'module unit title =',
+                    value: activeQuestionItem.moduleUnitTitle,
+                  },
+                ]}
+              />
             </div>
             <div className={styles.questionContent}>
               <div

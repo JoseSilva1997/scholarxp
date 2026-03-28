@@ -5,6 +5,7 @@ import {
   INestApplication,
   ValidationPipe,
 } from '@nestjs/common';
+import { SchedulerRegistry } from '@nestjs/schedule';
 import { Test, TestingModule } from '@nestjs/testing';
 import { GlobalRole } from '@prisma/client';
 import type {
@@ -15,6 +16,8 @@ import request from 'supertest';
 import { AppModule } from '../../src/app.module';
 import { AuthorizationGuard } from '../../src/auth/guards/authorization.guard';
 import { SessionAuthGuard } from '../../src/auth/guards/session-auth.guard';
+import { DailyPracticeGenerationBatchService } from '../../src/daily-practice/daily-practice-generation-batch.service';
+import { DAILY_PRACTICE_GENERATION_CRON_NAME } from '../../src/daily-practice/daily-practice-generation-schedule.service';
 import { PrismaService } from '../../src/prisma/prisma.service';
 import { QuestGenerationStartupService } from '../../src/quests/quest-generation-startup.service';
 
@@ -99,11 +102,34 @@ export async function fetchTodayDailyPractice(
   app: INestApplication,
   moduleId: number,
 ) {
+  // Daily-practice e2e scenarios seed data after app boot, so the batch generator must be kicked once before load-only reads.
+  await generateTodayDailyPracticeSets(app);
+
   const response = await request(app.getHttpServer())
     .get(`/module/${moduleId}/daily-practice/today`)
     .expect(200);
 
   return response.body as DailyPracticeTodayResponse;
+}
+
+export async function generateTodayDailyPracticeSets(app: INestApplication) {
+  const generationBatchService = app.get(DailyPracticeGenerationBatchService);
+
+  await generationBatchService.generateDailyPracticeSetsForAllStudents(
+    new Date(),
+  );
+}
+
+export async function fireDailyPracticeGenerationCronJob(
+  app: INestApplication,
+) {
+  const schedulerRegistry = app.get(SchedulerRegistry);
+  const cronJob = schedulerRegistry.getCronJob(
+    DAILY_PRACTICE_GENERATION_CRON_NAME,
+  );
+
+  await Promise.resolve(cronJob.fireOnTick());
+  await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
 // Submits a correct MCQ answer for one question in an active daily-practice session.

@@ -19,6 +19,30 @@ Object.defineProperty(window, 'matchMedia', {
   }),
 });
 
+class MockIntersectionObserver {
+  observe() {
+    return undefined;
+  }
+
+  unobserve() {
+    return undefined;
+  }
+
+  disconnect() {
+    return undefined;
+  }
+
+  takeRecords() {
+    return [];
+  }
+}
+
+// Route tests only need the observer contract to exist; visibility-driven animation timing is not the unit under test.
+Object.defineProperty(globalThis, 'IntersectionObserver', {
+  writable: true,
+  value: MockIntersectionObserver,
+});
+
 // Start once so tests can opt into request mocks while still failing fast on unhandled calls.
 beforeAll(() => {
   server.listen({ onUnhandledRequest: 'error' });

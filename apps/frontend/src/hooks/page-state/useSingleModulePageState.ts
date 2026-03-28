@@ -10,12 +10,11 @@ import {
 import type { ModuleSummary } from '../../types/module';
 import { MODULE_UNIT_BASELINE_EXP } from '@scholarxp/constants';
 import { features } from '@scholarxp/permissions';
-import type { ModuleUnit } from '../../components/ModuleUnitCard';
+import type { ModuleUnit } from '../../components/Modules/ModuleUnitCard';
 import {
   getDisplayErrorMessage,
   shouldLogApiError,
 } from '../../api/get-display-error';
-import { ApiError } from '../../api/client';
 import { logError } from '../../utils/logger';
 import { canUserAccess } from '../../permissions/permission';
 import {
@@ -25,7 +24,6 @@ import {
   useUpdateModuleUnitMutation,
   useUpdateModuleUnitStatusMutation,
 } from '../queries/useModulesQueries';
-import { useTodayDailyPracticeQuery } from '../queries/useDailyPracticeQueries';
 import { queryKeys } from '../query-keys';
 
 type UseSingleModulePageStateParams = {
@@ -89,10 +87,6 @@ export function useSingleModulePageState({
   const createModuleUnitMutation = useCreateModuleUnitMutation(parsedId);
   const updateModuleUnitMutation = useUpdateModuleUnitMutation(parsedId);
   const updateModuleUnitStatusMutation = useUpdateModuleUnitStatusMutation(parsedId);
-  const todayDailyPracticeQuery = useTodayDailyPracticeQuery(
-    parsedId,
-    null,
-  );
 
   // permission checks are memoized to avoid re-evaluating the
   // shared matrix on every render. user object is primary dependency.
@@ -122,18 +116,6 @@ export function useSingleModulePageState({
       logError(moduleUnitsQuery.error, { feature: 'module-unit', action: 'list', moduleId: parsedId });
     }
   }, [moduleUnitsQuery.error, parsedId]);
-
-  // Daily-practice summary errors should not block the page; they only affect CTA copy and are logged for monitoring.
-  useEffect(() => {
-    if (!todayDailyPracticeQuery.error) return;
-    if (shouldLogApiError(todayDailyPracticeQuery.error)) {
-      logError(todayDailyPracticeQuery.error, {
-        feature: 'daily-practice',
-        action: 'module-summary',
-        moduleId: parsedId,
-      });
-    }
-  }, [parsedId, todayDailyPracticeQuery.error]);
 
   const module = moduleQuery.data ?? null;
 
@@ -229,51 +211,37 @@ export function useSingleModulePageState({
   };
 
   const dailyPracticeEntry = useMemo(() => {
-    const progress = todayDailyPracticeQuery.data?.progress ?? null;
-    const isLockedDailyPractice =
-      todayDailyPracticeQuery.error instanceof ApiError &&
-      todayDailyPracticeQuery.error.status === 403;
-    const hasNoDailyPracticeSet =
-      todayDailyPracticeQuery.error instanceof ApiError &&
-      todayDailyPracticeQuery.error.status === 404;
+    const dailyPractice = moduleQuery.data?.dailyPractice ?? null;
 
-    if (todayDailyPracticeQuery.isPending) {
+    if (!dailyPractice) {
       return {
-        buttonLabel: "Start Daily Practice",
-        statusText: "Preparing today's set...",
+        // Student module detail responses should always include dailyPractice; keep this disabled so a partial payload cannot open a broken room.
+        buttonLabel: "Daily Practice Unavailable",
+        statusText: null,
         tooltipText: null,
         isDisabled: true,
       };
     }
 
-    if (isLockedDailyPractice) {
+    if (dailyPractice.status === 'locked') {
       return {
         buttonLabel: "No Daily Practice Yet",
         statusText: null,
-        tooltipText: todayDailyPracticeQuery.error!.message,
+        tooltipText: dailyPractice.message ?? null,
         isDisabled: true,
       };
     }
 
-    if (hasNoDailyPracticeSet) {
+    if (dailyPractice.status === 'no_set') {
       return {
         buttonLabel: "All Caught Up",
         statusText: null,
-        tooltipText: todayDailyPracticeQuery.error!.message,
+        tooltipText: dailyPractice.message ?? null,
         isDisabled: true,
       };
     }
 
-    if (!progress) {
-      return {
-        buttonLabel: "Start Daily Practice",
-        statusText: null,
-        tooltipText: null,
-        isDisabled: false,
-      };
-    }
-
-    if (progress.completedAt) {
+    if (dailyPractice.status === 'completed') {
       return {
         buttonLabel: "Review Daily Practice",
         statusText: "Completed today",
@@ -282,26 +250,24 @@ export function useSingleModulePageState({
       };
     }
 
-    if (progress.answeredQuestions > 0) {
+    if (dailyPractice.status === 'in_progress' && dailyPractice.progress) {
       return {
         buttonLabel: "Resume Daily Practice",
-        statusText: `${progress.answeredQuestions}/${progress.totalQuestions} answered`,
+        statusText: `${dailyPractice.progress.answeredQuestions}/${dailyPractice.progress.totalQuestions} answered`,
         tooltipText: null,
         isDisabled: false,
       };
     }
 
+    // 'available' — set exists, no attempts yet
+    const totalQuestions = dailyPractice.progress?.totalQuestions;
     return {
       buttonLabel: "Start Daily Practice",
-      statusText: `${progress.totalQuestions} questions ready`,
+      statusText: totalQuestions ? `${totalQuestions} questions ready` : null,
       tooltipText: null,
       isDisabled: false,
     };
-  }, [
-    todayDailyPracticeQuery.data?.progress,
-    todayDailyPracticeQuery.error,
-    todayDailyPracticeQuery.isPending,
-  ]);
+  }, [moduleQuery.data?.dailyPractice]);
 
   const handleDailyPracticeClick = async () => {
     if (parsedId === null) {
@@ -311,17 +277,7 @@ export function useSingleModulePageState({
       return;
     }
 
-    const searchParams = new URLSearchParams();
-    const sessionId = todayDailyPracticeQuery.data?.sessionId;
-    if (sessionId) {
-      // Reusing the session id keeps refresh and explicit resume aligned with the backend-owned session lifecycle.
-      searchParams.set('sessionId', sessionId);
-    }
-    const dailyPracticePath = `/main/modules/${parsedId}/daily-practice${
-      searchParams.size > 0 ? `?${searchParams.toString()}` : ''
-    }`;
-
-    window.location.assign(dailyPracticePath);
+    window.location.assign(`/main/modules/${parsedId}/daily-practice`);
   };
 
   const openStudentPracticeRoom = async (input: {

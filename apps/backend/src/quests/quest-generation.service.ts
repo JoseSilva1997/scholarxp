@@ -28,6 +28,7 @@ type GeneratedQuestDraft = {
 
 type ExistingQuestRecord = {
   id: number;
+  moduleId: number | null;
   type: QuestType;
   expGranted: number;
   isCompleted: boolean;
@@ -59,6 +60,7 @@ export class QuestGenerationService {
       },
       select: {
         id: true,
+        moduleId: true,
         type: true,
         expGranted: true,
         isCompleted: true,
@@ -70,10 +72,15 @@ export class QuestGenerationService {
     const normalizedExistingQuests = existingQuests.map(
       (quest): ExistingQuestRecord => ({
         id: quest.id,
+        moduleId: quest.moduleId,
         type: quest.type as QuestType,
         expGranted: quest.expGranted,
         isCompleted: quest.isCompleted,
       }),
+    );
+    // Keyed by `type:moduleId` so complete_daily_practice deduplication is per-module.
+    const existingQuestKeySet = new Set(
+      normalizedExistingQuests.map((q) => `${q.type}:${q.moduleId ?? 'null'}`),
     );
     const hasLessonQuest =
       existingTypes.has(QuestTypeValues.completeNewUnit) ||
@@ -100,47 +107,59 @@ export class QuestGenerationService {
       return;
     }
 
+    // All modules with available daily practice — each earns its own complete_daily_practice quest.
+    const availableDailyPracticeModuleIds =
+      await this.selectAllAvailableDailyPracticeModuleIds({
+        userId,
+        enrolledModuleIds,
+        timestamp,
+      });
+
+    // module_unit_retry (importance 1) is suppressed when any importance-5 daily practice quests
+    // exist, since the student has higher-value actions available.
+    const hasDailyPractice = availableDailyPracticeModuleIds.length > 0;
     const lessonQuestTarget = hasLessonQuest
       ? null
       : await this.selectLessonQuestTarget(
           userId,
           enrolledModuleIds,
           prismaClient,
+          hasDailyPractice,
         );
-    const dailyPracticeTargetModuleId =
-      await this.selectDailyPracticeTargetModuleId({
-        userId,
-        enrolledModuleIds,
-        preferredModuleIds: [
-          lessonQuestTarget?.moduleId ?? null,
-          completedUnitTarget.moduleId,
-        ],
-        timestamp,
-      });
 
     const drafts: GeneratedQuestDraft[] = [];
-    if (
-      dailyPracticeTargetModuleId !== null &&
-      !existingTypes.has(QuestTypeValues.completeDailyPractice)
-    ) {
-      drafts.push(
-        this.buildQuestDraft({
-          userId,
-          moduleId: dailyPracticeTargetModuleId,
-          moduleUnitId: null,
-          type: QuestTypeValues.completeDailyPractice,
-          questDateUtc: dayStartUtc,
-        }),
-      );
+
+    // complete_daily_practice (importance 5): one quest per module with an available set.
+    for (const moduleId of availableDailyPracticeModuleIds) {
+      if (
+        !existingQuestKeySet.has(
+          `${QuestTypeValues.completeDailyPractice}:${moduleId}`,
+        )
+      ) {
+        drafts.push(
+          this.buildQuestDraft({
+            userId,
+            moduleId,
+            moduleUnitId: null,
+            type: QuestTypeValues.completeDailyPractice,
+            questDateUtc: dayStartUtc,
+          }),
+        );
+      }
     }
+
+    // daily_practice_streak (importance 3): one per day for the first available module.
+    const streakModuleId = availableDailyPracticeModuleIds[0] ?? null;
     if (
-      dailyPracticeTargetModuleId !== null &&
-      !existingTypes.has(QuestTypeValues.dailyPracticeStreak)
+      streakModuleId !== null &&
+      !existingQuestKeySet.has(
+        `${QuestTypeValues.dailyPracticeStreak}:${streakModuleId}`,
+      )
     ) {
       drafts.push(
         this.buildQuestDraft({
           userId,
-          moduleId: dailyPracticeTargetModuleId,
+          moduleId: streakModuleId,
           moduleUnitId: null,
           type: QuestTypeValues.dailyPracticeStreak,
           questDateUtc: dayStartUtc,
@@ -239,28 +258,14 @@ export class QuestGenerationService {
     };
   }
 
-  private async selectDailyPracticeTargetModuleId(input: {
+  private async selectAllAvailableDailyPracticeModuleIds(input: {
     userId: number;
     enrolledModuleIds: number[];
-    preferredModuleIds: Array<number | null>;
     timestamp: Date;
-  }): Promise<number | null> {
-    const seenModuleIds = new Set<number>();
-    const orderedCandidateModuleIds = [
-      ...input.preferredModuleIds,
-      ...input.enrolledModuleIds,
-    ].filter((moduleId): moduleId is number => {
-      if (moduleId === null || seenModuleIds.has(moduleId)) {
-        return false;
-      }
-
-      seenModuleIds.add(moduleId);
-      return true;
-    });
-
-    return this.questDailyPracticeAvailabilityService.findFirstAvailableModuleId(
+  }): Promise<number[]> {
+    return this.questDailyPracticeAvailabilityService.findAllAvailableModuleIds(
       input.userId,
-      orderedCandidateModuleIds,
+      input.enrolledModuleIds,
       input.timestamp,
     );
   }
@@ -340,6 +345,7 @@ export class QuestGenerationService {
     userId: number,
     moduleIds: number[],
     prismaClient: PrismaClientLike,
+    suppressRetry: boolean = false,
   ): Promise<(ModuleQuestTarget & { type: QuestType }) | null> {
     const newUnitTarget = await prismaClient.moduleUnit.findFirst({
       where: {
@@ -371,6 +377,11 @@ export class QuestGenerationService {
         type: QuestTypeValues.completeNewUnit,
         moduleId: newUnitTarget.moduleId as number,
       };
+    }
+
+    // module_unit_retry has lower importance — skip it when daily practice (highest importance) is available.
+    if (suppressRetry) {
+      return null;
     }
 
     const retryTarget = await prismaClient.moduleUnitUserProgress.findFirst({

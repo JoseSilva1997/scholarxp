@@ -1,6 +1,7 @@
 // Verifies authenticated layout wiring so header/sidebar actions trigger expected auth and navigation behavior.
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import AuthedLayout from './AuthedLayout';
 
 const mocks = vi.hoisted(() => ({
@@ -39,7 +40,7 @@ vi.mock('../context/UiLayoutContext', () => ({
   useUiLayout: () => uiState,
 }));
 
-vi.mock('../components/header/Header', () => ({
+vi.mock('../components/Header/Header', () => ({
   default: ({
     onLogout,
     onToggleSidebar,
@@ -63,6 +64,14 @@ vi.mock('../components/SidebarNav', () => ({
 }));
 
 describe('AuthedLayout', () => {
+  function renderLayout() {
+    return render(
+      <MemoryRouter>
+        <AuthedLayout />
+      </MemoryRouter>,
+    );
+  }
+
   beforeEach(() => {
     authState = {
       user: { id: 1, globalRole: 'admin' },
@@ -87,7 +96,7 @@ describe('AuthedLayout', () => {
   });
 
   it('runs logout flow and redirects to login', async () => {
-    render(<AuthedLayout />);
+    renderLayout();
 
     fireEvent.click(screen.getByText('header-logout'));
 
@@ -102,7 +111,7 @@ describe('AuthedLayout', () => {
       value: 700,
     });
 
-    render(<AuthedLayout />);
+    renderLayout();
 
     fireEvent.click(screen.getAllByText('sidebar-navigate')[0]);
 
@@ -110,7 +119,7 @@ describe('AuthedLayout', () => {
   });
 
   it('overlay click closes sidebar', () => {
-    const { container } = render(<AuthedLayout />);
+    const { container } = renderLayout();
 
     const overlay = container.querySelector('[aria-hidden="true"]');
     expect(overlay).not.toBeNull();
@@ -121,7 +130,7 @@ describe('AuthedLayout', () => {
   });
 
   it('toggles sidebar state', () => {
-    render(<AuthedLayout />);
+    renderLayout();
 
     fireEvent.click(screen.getByText('header-toggle'));
 
@@ -130,7 +139,7 @@ describe('AuthedLayout', () => {
 
   it('starts with sidebar collapsed', () => {
     uiState.isSidebarOpen = false;
-    render(<AuthedLayout />);
+    renderLayout();
 
     const sidebar = screen.getByTestId('sidebar');
 
@@ -143,7 +152,7 @@ describe('AuthedLayout', () => {
       value: 1200,
     });
 
-    render(<AuthedLayout />);
+    renderLayout();
 
     fireEvent.click(screen.getAllByText('sidebar-navigate')[0]);
 
@@ -156,7 +165,7 @@ describe('AuthedLayout', () => {
       value: 700,
     });
 
-    render(<AuthedLayout />);
+    renderLayout();
 
     expect(document.body.style.overflow).toBe('hidden');
     expect(document.documentElement.style.overflow).toBe('hidden');
@@ -164,7 +173,7 @@ describe('AuthedLayout', () => {
 
   it('unlocks body scroll when sidebar is closed', () => {
     uiState.isSidebarOpen = false;
-    render(<AuthedLayout />);
+    renderLayout();
 
     expect(document.body.style.overflow).toBe('');
     expect(document.documentElement.style.overflow).toBe('');
@@ -176,7 +185,7 @@ describe('AuthedLayout', () => {
       value: 1200,
     });
 
-    render(<AuthedLayout />);
+    renderLayout();
 
     expect(document.body.style.overflow).toBe('');
     expect(document.documentElement.style.overflow).toBe('');

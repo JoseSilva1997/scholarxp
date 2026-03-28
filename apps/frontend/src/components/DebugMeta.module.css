@@ -1,0 +1,25 @@
+/* Styles the shared debug metadata block so opt-in diagnostics stay visually consistent across routes. */
+.debugMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.875rem;
+  margin-top: 0.5rem;
+  color: #999;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.prefix {
+  font-weight: 600;
+  color: #777;
+}
+
+.entry {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.label {
+  font-weight: 600;
+}

@@ -6,3 +6,4 @@ export * from './invites';
 export * from './practice_room';
 export * from './quests';
 export * from './rewards';
+export * from './profile';

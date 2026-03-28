@@ -46,6 +46,17 @@
   -webkit-mask-image: none;
 }
 
+/* Landing page gets full-width, zero-padding treatment so the hero and sections can bleed edge-to-edge.
+   overflow-y stays auto (from base class) so scrolling still works inside App's overflow:hidden shell. */
+.App__content--landing {
+  max-width: none;
+  width: 100%;
+  padding: 0;
+  gap: 0;
+  mask-image: none;
+  -webkit-mask-image: none;
+}
+
 @media (max-width: 768px) {
   .App__content {
     gap: 32px;
