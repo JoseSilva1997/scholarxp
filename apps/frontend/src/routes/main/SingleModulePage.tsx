@@ -17,6 +17,9 @@ import ModuleUnitCard from '@/components/Modules/ModuleUnitCard';
 import StudentModuleUnitCard from '@/components/Modules/StudentModuleUnitCard';
 import { useSingleModulePageState } from '@/hooks/page-state/useSingleModulePageState';
 import { useTheme } from '@/context/useTheme';
+import { useMemo } from 'react';
+import { features } from '@scholarxp/permissions';
+import { canUserAccess } from '@/permissions/permission';
 import styles from './SingleModulePage.module.css';
 import { ProficiencyLevelBadge } from '@/components/SingleModulePage/ProficiencyLevelBadge';
 import DebugMeta from '@/components/DebugMeta';
@@ -55,6 +58,8 @@ export default function SingleModulePage() {
     handleUpdateUnitTitle,
     handleModuleSaved,
   } = useSingleModulePageState({ moduleIdParam: moduleId, user });
+
+  const canViewRoster = useMemo(() => canUserAccess(features.modules.roster, user), [user]);
 
   return (
     <>
@@ -98,8 +103,16 @@ export default function SingleModulePage() {
                   )}
                 </div>
 
-                {user && (canToggleStudentView || canEditSettings) && (
+                {user && (canToggleStudentView || canEditSettings || canViewRoster) && (
                   <div className={styles.actions}>
+                    {canViewRoster && moduleId && (
+                      <Link
+                        to={`/main/modules/${moduleId}/roster`}
+                        className={styles.rosterLink}
+                      >
+                        Manage Roster
+                      </Link>
+                    )}
                     {canToggleStudentView ? (
                       <button
                         className={styles.toggleButton}

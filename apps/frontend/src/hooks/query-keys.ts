@@ -49,6 +49,14 @@ export const queryKeys = {
     dailyLessonXpTrack: (userId: number | null) =>
       ['rewards', 'daily-lesson-xp-track', userId] as const,
   },
+  roster: {
+    summary: (moduleId: number) => ['roster', 'summary', moduleId] as const,
+    students: (moduleId: number) => ['roster', 'students', moduleId] as const,
+    lessons: (moduleId: number) => ['roster', 'lessons', moduleId] as const,
+    review: (moduleId: number) => ['roster', 'review', moduleId] as const,
+    studentDetail: (moduleId: number, studentId: number) =>
+      ['roster', 'student-detail', moduleId, studentId] as const,
+  },
   profile: {
     student: (userId: number | null) => ['profile', 'student', userId] as const,
     tutor: (userId: number | null) => ['profile', 'tutor', userId] as const,

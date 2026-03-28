@@ -1,0 +1,57 @@
+.topBar {
+  display: flex;
+  align-items: center;
+}
+
+.backLink {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.backLink:hover {
+  color: var(--color-primary);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.subtitle {
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.loadingPanel {
+  padding: 40px 0;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.errorPanel {
+  padding: 20px;
+  background: var(--color-error-light);
+  border: 1px solid var(--color-error-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-error-dark);
+  font-size: 0.9375rem;
+}
+
+.accessDenied {
+  padding: 40px 0;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+}

@@ -72,8 +72,14 @@ export const permissionMatrix: PermissionMatrix = {
     'teacher.independent'
   ],
   [features.modules.invitationsRedemption]: [
-    'admin', 
+    'admin',
     'student.independent'
+  ],
+  [features.modules.roster]: [
+    'admin',
+    'institution_admin',
+    'teacher.independent',
+    'teacher.institutional',
   ],
 
   // ====NAVIGATION====
