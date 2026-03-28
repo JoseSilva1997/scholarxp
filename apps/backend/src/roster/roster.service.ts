@@ -14,6 +14,13 @@ import type {
   RosterSummaryResponse,
   SortDirection,
 } from '@scholarxp/api-contracts';
+import {
+  ExpLedgerEventTypes,
+  MASTERY_TOTAL_EXP,
+  MODULE_UNIT_BASELINE_EXP,
+  ROSTER_MASTERY_COMPLETION_WEIGHT,
+  ROSTER_MASTERY_EXP_WEIGHT,
+} from '@scholarxp/constants';
 import { PrismaService } from '../prisma/prisma.service';
 import { DailyPracticeService } from '../daily-practice/daily-practice.service';
 import { DateHelpers } from '../helpers/helpers';
@@ -140,8 +147,7 @@ export class RosterService {
       const studentId = enrollment.userId;
       const progress = progressByStudent.get(studentId) ?? {
         completed: 0,
-        masterySum: 0,
-        startedCount: 0,
+        averageMastery: 0,
       };
       const reviews = reviewsByStudent.get(studentId) ?? {
         due: 0,
@@ -151,11 +157,7 @@ export class RosterService {
       const dailyPracticeStatus =
         dailyPracticeStatuses.get(studentId) ?? 'locked';
 
-      // currentMasteryScore is stored as a 0–1 decimal; contract expects 0–100 integer.
-      const averageMastery =
-        progress.startedCount > 0
-          ? Math.round((progress.masterySum / progress.startedCount) * 100)
-          : 0;
+      const averageMastery = progress.averageMastery;
 
       const isActive =
         lastActivityAt !== null &&
@@ -371,12 +373,19 @@ export class RosterService {
 
     const liveLessonIds = liveLessons.map((l) => l.id);
 
+    const masteryEventTypes = [
+      ExpLedgerEventTypes.DAILY_PRACTICE_MASTERY_ENCOUNTERED,
+      ExpLedgerEventTypes.DAILY_PRACTICE_MASTERY_GRADUATED,
+      ExpLedgerEventTypes.DAILY_PRACTICE_MASTERY_RETAINED,
+    ] as const;
+
     const [
       progressRecords,
       reviewStates,
       recentAttempts,
       dailyPracticeStatus,
       lastActivity,
+      ledgerAggregates,
     ] = await Promise.all([
       this.prisma.moduleUnitUserProgress.findMany({
         where: { studentId, moduleUnitId: { in: liveLessonIds } },
@@ -406,6 +415,20 @@ export class RosterService {
         orderBy: { attemptedAt: 'desc' },
         select: { attemptedAt: true },
       }),
+      this.prisma.expLedger.groupBy({
+        by: ['moduleUnitId', 'eventType'],
+        where: {
+          userId: studentId,
+          moduleUnitId: { in: liveLessonIds },
+          eventType: {
+            in: [
+              ExpLedgerEventTypes.CORRECT_PRACTICE_ROOM_ANSWER,
+              ...masteryEventTypes,
+            ],
+          },
+        },
+        _sum: { awardedExp: true },
+      }),
     ]);
 
     const lastDpCompletion = await this.prisma.dailyPracticeSet.findFirst({
@@ -414,6 +437,21 @@ export class RosterService {
       select: { completedAt: true },
     });
 
+    // Build: moduleUnitId → { completionExp, masteryExp } from the ledger aggregates
+    type LessonExp = { completionExp: number; masteryExp: number };
+    const lessonExpMap = new Map<number, LessonExp>();
+    for (const entry of ledgerAggregates) {
+      if (entry.moduleUnitId === null) continue;
+      const existing = lessonExpMap.get(entry.moduleUnitId) ?? { completionExp: 0, masteryExp: 0 };
+      const exp = entry._sum.awardedExp ?? 0;
+      if (entry.eventType === ExpLedgerEventTypes.CORRECT_PRACTICE_ROOM_ANSWER) {
+        existing.completionExp += exp;
+      } else {
+        existing.masteryExp += exp;
+      }
+      lessonExpMap.set(entry.moduleUnitId, existing);
+    }
+
     // Build per-lesson progress
     const progressMap = new Map(
       progressRecords.map((p) => [p.moduleUnitId, p]),
@@ -421,11 +459,12 @@ export class RosterService {
 
     const lessonProgress = liveLessons.map((lesson) => {
       const progress = progressMap.get(lesson.id);
+      const exp = lessonExpMap.get(lesson.id) ?? { completionExp: 0, masteryExp: 0 };
       return {
         moduleUnitId: lesson.id,
         lessonTitle: lesson.title,
         isCompleted: progress?.isCompleted ?? false,
-        currentMasteryScore: Math.round((progress?.currentMasteryScore ?? 0) * 100),
+        currentMasteryScore: Math.round(this.computeLessonMasteryScore(exp.completionExp, exp.masteryExp) * 100),
         completedAt: progress?.completedAt?.toISOString() ?? null,
         lastPracticedAt: progress?.lastPracticedAt?.toISOString() ?? null,
       };
@@ -461,16 +500,18 @@ export class RosterService {
     }
 
     // Compute overview aggregates
-    const startedLessons = progressRecords.filter((p) =>
-      liveLessonIds.includes(p.moduleUnitId),
-    );
-    const completedLessons = startedLessons.filter((p) => p.isCompleted).length;
-    // currentMasteryScore is stored as a 0–1 decimal; contract expects 0–100 integer.
+    const completedLessons = progressRecords.filter(
+      (p) => liveLessonIds.includes(p.moduleUnitId) && p.isCompleted,
+    ).length;
+    // Average mastery over ALL live lessons so unstarted lessons reduce the score
     const averageMastery =
-      startedLessons.length > 0
+      liveLessonIds.length > 0
         ? Math.round(
-            (startedLessons.reduce((sum, p) => sum + p.currentMasteryScore, 0) /
-              startedLessons.length) *
+            (liveLessonIds.reduce((sum, id) => {
+              const exp = lessonExpMap.get(id) ?? { completionExp: 0, masteryExp: 0 };
+              return sum + this.computeLessonMasteryScore(exp.completionExp, exp.masteryExp);
+            }, 0) /
+              liveLessonIds.length) *
               100,
           )
         : 0;
@@ -638,45 +679,94 @@ export class RosterService {
     return results.map((r) => r.userId);
   }
 
-  // Batch-fetches lesson progress aggregates (completed count, mastery sum, started count) per student.
+  // Batch-fetches lesson progress per student: completed count and mastery score averaged over
+  // ALL live lessons (unstarted lessons count as 0 — excluding them would overstate mastery).
   private async batchLessonProgress(
     studentIds: number[],
     liveLessonIds: number[],
-  ): Promise<
-    Map<number, { completed: number; masterySum: number; startedCount: number }>
-  > {
-    const result = new Map<
-      number,
-      { completed: number; masterySum: number; startedCount: number }
-    >();
+  ): Promise<Map<number, { completed: number; averageMastery: number }>> {
+    const result = new Map<number, { completed: number; averageMastery: number }>();
     if (liveLessonIds.length === 0) return result;
 
-    const records = await this.prisma.moduleUnitUserProgress.findMany({
-      where: {
-        studentId: { in: studentIds },
-        moduleUnitId: { in: liveLessonIds },
-      },
-      select: {
-        studentId: true,
-        isCompleted: true,
-        currentMasteryScore: true,
-      },
-    });
+    const masteryEventTypes = [
+      ExpLedgerEventTypes.DAILY_PRACTICE_MASTERY_ENCOUNTERED,
+      ExpLedgerEventTypes.DAILY_PRACTICE_MASTERY_GRADUATED,
+      ExpLedgerEventTypes.DAILY_PRACTICE_MASTERY_RETAINED,
+    ] as const;
 
-    for (const record of records) {
+    const [progressRecords, ledgerAggregates] = await Promise.all([
+      this.prisma.moduleUnitUserProgress.findMany({
+        where: {
+          studentId: { in: studentIds },
+          moduleUnitId: { in: liveLessonIds },
+        },
+        select: { studentId: true, moduleUnitId: true, isCompleted: true },
+      }),
+      this.prisma.expLedger.groupBy({
+        by: ['userId', 'moduleUnitId', 'eventType'],
+        where: {
+          userId: { in: studentIds },
+          moduleUnitId: { in: liveLessonIds },
+          eventType: {
+            in: [
+              ExpLedgerEventTypes.CORRECT_PRACTICE_ROOM_ANSWER,
+              ...masteryEventTypes,
+            ],
+          },
+        },
+        _sum: { awardedExp: true },
+      }),
+    ]);
+
+    // Build: studentId → moduleUnitId → { completionExp, masteryExp }
+    type LessonExp = { completionExp: number; masteryExp: number };
+    const ledgerMap = new Map<number, Map<number, LessonExp>>();
+    for (const entry of ledgerAggregates) {
+      if (entry.moduleUnitId === null) continue;
+      const byLesson = ledgerMap.get(entry.userId) ?? new Map<number, LessonExp>();
+      const lessonExp = byLesson.get(entry.moduleUnitId) ?? { completionExp: 0, masteryExp: 0 };
+      const exp = entry._sum.awardedExp ?? 0;
+      if (entry.eventType === ExpLedgerEventTypes.CORRECT_PRACTICE_ROOM_ANSWER) {
+        lessonExp.completionExp += exp;
+      } else {
+        lessonExp.masteryExp += exp;
+      }
+      byLesson.set(entry.moduleUnitId, lessonExp);
+      ledgerMap.set(entry.userId, byLesson);
+    }
+
+    // Build: studentId → completed lesson count
+    const completedByStudent = new Map<number, number>();
+    for (const record of progressRecords) {
       if (record.studentId === null) continue;
-      const existing = result.get(record.studentId) ?? {
-        completed: 0,
-        masterySum: 0,
-        startedCount: 0,
-      };
-      existing.startedCount++;
-      existing.masterySum += record.currentMasteryScore;
-      if (record.isCompleted) existing.completed++;
-      result.set(record.studentId, existing);
+      if (record.isCompleted) {
+        completedByStudent.set(record.studentId, (completedByStudent.get(record.studentId) ?? 0) + 1);
+      }
+    }
+
+    // Average mastery over ALL live lessons so unstarted lessons reduce the score
+    for (const studentId of studentIds) {
+      const byLesson = ledgerMap.get(studentId);
+      let masterySum = 0;
+      for (const lessonId of liveLessonIds) {
+        const exp = byLesson?.get(lessonId) ?? { completionExp: 0, masteryExp: 0 };
+        masterySum += this.computeLessonMasteryScore(exp.completionExp, exp.masteryExp);
+      }
+      result.set(studentId, {
+        completed: completedByStudent.get(studentId) ?? 0,
+        averageMastery: Math.round((masterySum / liveLessonIds.length) * 100),
+      });
     }
 
     return result;
+  }
+
+  // Blends completion rate (20%) and mastery XP rate (80%) into a 0–1 lesson mastery score.
+  // Caps each component at its known maximum so over-earning doesn't push past 100%.
+  private computeLessonMasteryScore(completionExp: number, masteryExp: number): number {
+    const completionRate = Math.min(completionExp, MODULE_UNIT_BASELINE_EXP) / MODULE_UNIT_BASELINE_EXP;
+    const masteryRate = Math.min(masteryExp, MASTERY_TOTAL_EXP) / MASTERY_TOTAL_EXP;
+    return completionRate * ROSTER_MASTERY_COMPLETION_WEIGHT + masteryRate * ROSTER_MASTERY_EXP_WEIGHT;
   }
 
   // Batch-fetches due and overdue review counts per student.

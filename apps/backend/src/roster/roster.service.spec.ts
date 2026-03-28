@@ -181,17 +181,17 @@ describe('RosterService', () => {
       );
       prisma.userModule.findMany.mockResolvedValue([makeEnrollment(1)] as any);
 
-      // Lesson progress: 1 completed with mastery 0.8 (stored as 0–1 decimal)
+      // Lesson progress: lesson 10 completed, lesson 11 not started
       prisma.moduleUnitUserProgress.findMany.mockResolvedValue(
-        [
-          {
-            studentId: 1,
-            moduleUnitId: 10,
-            isCompleted: true,
-            currentMasteryScore: 0.8,
-          },
-        ] as any,
+        [{ studentId: 1, moduleUnitId: 10, isCompleted: true }] as any,
       );
+
+      // Ledger: lesson 10 has full baseline exp + full mastery exp → lessonMastery = 1.0
+      // Lesson 11 has no entries → 0. averageMastery = (1.0 + 0) / 2 * 100 = 50
+      prisma.expLedger.groupBy.mockResolvedValue([
+        { userId: 1, moduleUnitId: 10, eventType: 'practice_room_answer_correct', _sum: { awardedExp: 1000 } },
+        { userId: 1, moduleUnitId: 10, eventType: 'daily_practice_mastery_retained', _sum: { awardedExp: 700 } },
+      ] as any);
 
       // Review counts: 2 due, 1 overdue
       prisma.studentQuestionState.findMany.mockResolvedValue(
@@ -221,7 +221,7 @@ describe('RosterService', () => {
       expect(row.fullName).toBe('First1 Last1');
       expect(row.completedLessons).toBe(1);
       expect(row.totalLiveLessons).toBe(2);
-      expect(row.averageMastery).toBe(80);
+      expect(row.averageMastery).toBe(50);
       expect(row.dailyPracticeStatus).toBe('available');
       expect(row.dueReviewCount).toBe(2);
       // Both dates are before DAY_START (2026-03-28 00:00), so both overdue
@@ -233,6 +233,7 @@ describe('RosterService', () => {
       prisma.moduleUnit.findMany.mockResolvedValue([{ id: 10 }] as any);
       prisma.userModule.findMany.mockResolvedValue([makeEnrollment(1)] as any);
       prisma.moduleUnitUserProgress.findMany.mockResolvedValue([] as any);
+      prisma.expLedger.groupBy.mockResolvedValue([] as any);
       prisma.studentQuestionState.findMany.mockResolvedValue([] as any);
       // No activity at all
       prisma.questionAttempt.groupBy.mockResolvedValue([] as any);
@@ -247,6 +248,7 @@ describe('RosterService', () => {
       prisma.moduleUnit.findMany.mockResolvedValue([{ id: 10 }] as any);
       prisma.userModule.findMany.mockResolvedValue([makeEnrollment(1)] as any);
       prisma.moduleUnitUserProgress.findMany.mockResolvedValue([] as any);
+      prisma.expLedger.groupBy.mockResolvedValue([] as any);
       // Overdue review
       prisma.studentQuestionState.findMany.mockResolvedValue(
         [{ userId: 1, fsrsDueAt: EIGHT_DAYS_AGO }] as any,
@@ -267,6 +269,7 @@ describe('RosterService', () => {
         [makeEnrollment(1), makeEnrollment(2)] as any,
       );
       prisma.moduleUnitUserProgress.findMany.mockResolvedValue([] as any);
+      prisma.expLedger.groupBy.mockResolvedValue([] as any);
       prisma.studentQuestionState.findMany.mockResolvedValue([] as any);
       // Student 1 active, student 2 inactive
       prisma.questionAttempt.groupBy.mockResolvedValue(
@@ -288,6 +291,7 @@ describe('RosterService', () => {
         [makeEnrollment(1), makeEnrollment(2)] as any,
       );
       prisma.moduleUnitUserProgress.findMany.mockResolvedValue([] as any);
+      prisma.expLedger.groupBy.mockResolvedValue([] as any);
       prisma.studentQuestionState.findMany.mockResolvedValue([] as any);
       prisma.questionAttempt.groupBy.mockResolvedValue([] as any);
 
@@ -305,6 +309,7 @@ describe('RosterService', () => {
 
     it('sorts by name ascending', async () => {
       prisma.moduleUnit.findMany.mockResolvedValue([{ id: 10 }] as any);
+      prisma.expLedger.groupBy.mockResolvedValue([] as any);
       prisma.userModule.findMany.mockResolvedValue([
         makeEnrollment(2, {
           user: {
@@ -338,6 +343,7 @@ describe('RosterService', () => {
 
     it('searches by name (case-insensitive)', async () => {
       prisma.moduleUnit.findMany.mockResolvedValue([{ id: 10 }] as any);
+      prisma.expLedger.groupBy.mockResolvedValue([] as any);
       prisma.userModule.findMany.mockResolvedValue([
         makeEnrollment(1, {
           user: {
@@ -372,6 +378,7 @@ describe('RosterService', () => {
       prisma.moduleUnit.findMany.mockResolvedValue([{ id: 10 }] as any);
       prisma.userModule.findMany.mockResolvedValue([makeEnrollment(1)] as any);
       prisma.moduleUnitUserProgress.findMany.mockResolvedValue([] as any);
+      prisma.expLedger.groupBy.mockResolvedValue([] as any);
       prisma.studentQuestionState.findMany.mockResolvedValue([] as any);
       prisma.questionAttempt.groupBy.mockResolvedValue([] as any);
 
@@ -622,6 +629,14 @@ describe('RosterService', () => {
         ] as any,
       );
 
+      // Ledger: lesson 10 has 600 baseline exp + 420 mastery exp
+      // completionRate = 0.6, masteryRate = 0.6 → lessonMastery = 0.6*0.20 + 0.6*0.80 = 0.60
+      // Lesson 11 has no entries → 0. averageMastery = (0.60 + 0) / 2 * 100 = 30
+      prisma.expLedger.groupBy.mockResolvedValue([
+        { moduleUnitId: 10, eventType: 'practice_room_answer_correct', _sum: { awardedExp: 600 } },
+        { moduleUnitId: 10, eventType: 'daily_practice_mastery_encountered', _sum: { awardedExp: 420 } },
+      ] as any);
+
       // FSRS review states
       prisma.studentQuestionState.findMany.mockResolvedValue(
         [
@@ -660,14 +675,14 @@ describe('RosterService', () => {
       expect(result.student.fullName).toBe('First1 Last1');
       expect(result.student.completedLessons).toBe(1);
       expect(result.student.totalLiveLessons).toBe(2);
-      expect(result.student.averageMastery).toBe(85); // only 1 started, score 85
+      expect(result.student.averageMastery).toBe(30); // (0.60 + 0) / 2 lessons * 100
       expect(result.student.dailyPracticeStatus).toBe('available');
       expect(result.student.lastActivityAt).toBe(THREE_DAYS_AGO.toISOString());
 
       // Lesson progress
       expect(result.lessonProgress).toHaveLength(2);
       expect(result.lessonProgress[0].isCompleted).toBe(true);
-      expect(result.lessonProgress[0].currentMasteryScore).toBe(85);
+      expect(result.lessonProgress[0].currentMasteryScore).toBe(60); // 0.6*0.20 + 0.6*0.80 = 0.60
       expect(result.lessonProgress[1].isCompleted).toBe(false);
       expect(result.lessonProgress[1].currentMasteryScore).toBe(0);
 
@@ -689,6 +704,7 @@ describe('RosterService', () => {
       prisma.userModule.findUnique.mockResolvedValue(makeEnrollment(1));
       prisma.moduleUnit.findMany.mockResolvedValue([] as any);
       prisma.moduleUnitUserProgress.findMany.mockResolvedValue([] as any);
+      prisma.expLedger.groupBy.mockResolvedValue([] as any);
       prisma.studentQuestionState.findMany.mockResolvedValue([] as any);
       prisma.questionAttempt.findMany.mockResolvedValue([] as any);
       prisma.questionAttempt.findFirst.mockResolvedValue(null);
