@@ -1,4 +1,4 @@
-// Expandable details panel beneath summary cards; contains Students, Lessons, and Review tabs.
+// Expandable details panel beneath summary cards; contains Students and Lessons tabs.
 import type { RosterTab } from '../../hooks/page-state/useModuleRosterPageState';
 import type {
   RosterStudentRow,
@@ -6,14 +6,11 @@ import type {
   RosterStudentSortBy,
   RosterLessonRow,
   RosterLessonSortBy,
-  RosterReviewRow,
-  RosterReviewSortBy,
   SortDirection,
   RosterStudentDetailResponse,
 } from '@scholarxp/api-contracts';
 import StudentsTab from './StudentsTab';
 import LessonsTab from './LessonsTab';
-import ReviewTab from './ReviewTab';
 import StudentDrillDown from './StudentDrillDown';
 import styles from './RosterDetailsPanel.module.css';
 
@@ -45,15 +42,6 @@ type RosterDetailsPanelProps = {
   lessonSortDirection: SortDirection;
   onLessonSortDirectionChange: (d: SortDirection) => void;
 
-  // Review
-  reviewRows: RosterReviewRow[];
-  isReviewLoading: boolean;
-  reviewError: string | null;
-  reviewSortBy: RosterReviewSortBy;
-  onReviewSortByChange: (s: RosterReviewSortBy) => void;
-  reviewSortDirection: SortDirection;
-  onReviewSortDirectionChange: (d: SortDirection) => void;
-
   // Student drill-down
   selectedStudentId: number | null;
   onSelectStudent: (id: number) => void;
@@ -66,7 +54,6 @@ type RosterDetailsPanelProps = {
 const TAB_LABELS: { key: RosterTab; label: string }[] = [
   { key: 'students', label: 'Students' },
   { key: 'lessons', label: 'Lessons' },
-  { key: 'review', label: 'Review' },
 ];
 
 export default function RosterDetailsPanel({
@@ -92,13 +79,6 @@ export default function RosterDetailsPanel({
   onLessonSortByChange,
   lessonSortDirection,
   onLessonSortDirectionChange,
-  reviewRows,
-  isReviewLoading,
-  reviewError,
-  reviewSortBy,
-  onReviewSortByChange,
-  reviewSortDirection,
-  onReviewSortDirectionChange,
   selectedStudentId,
   onSelectStudent,
   onClearSelectedStudent,
@@ -108,9 +88,7 @@ export default function RosterDetailsPanel({
 }: RosterDetailsPanelProps) {
   if (!isOpen) return null;
 
-  // Show drill-down below the table when viewing students or review tab
-  const showDrillDown =
-    selectedStudentId !== null && (activeTab === 'students' || activeTab === 'review');
+  const showDrillDown = selectedStudentId !== null && activeTab === 'students';
 
   return (
     <div className={styles.panel} role="region" aria-label="Roster details">
@@ -166,19 +144,6 @@ export default function RosterDetailsPanel({
             onSortByChange={onLessonSortByChange}
             sortDirection={lessonSortDirection}
             onSortDirectionChange={onLessonSortDirectionChange}
-          />
-        )}
-        {activeTab === 'review' && (
-          <ReviewTab
-            rows={reviewRows}
-            isLoading={isReviewLoading}
-            error={reviewError}
-            sortBy={reviewSortBy}
-            onSortByChange={onReviewSortByChange}
-            sortDirection={reviewSortDirection}
-            onSortDirectionChange={onReviewSortDirectionChange}
-            onSelectStudent={onSelectStudent}
-            selectedStudentId={selectedStudentId}
           />
         )}
       </div>

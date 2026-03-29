@@ -2,12 +2,10 @@
 import { IsIn, IsOptional, IsString } from 'class-validator';
 import type {
   RosterLessonsQuery,
-  RosterReviewQuery,
   RosterStudentsQuery,
   RosterStudentFilter,
   RosterStudentSortBy,
   RosterLessonSortBy,
-  RosterReviewSortBy,
   SortDirection,
 } from '@scholarxp/api-contracts';
 
@@ -24,7 +22,6 @@ const STUDENT_SORTS: RosterStudentSortBy[] = [
   'name',
   'last_activity',
   'completed_lessons',
-  'due_review_count',
 ];
 
 const LESSON_SORTS: RosterLessonSortBy[] = [
@@ -32,13 +29,6 @@ const LESSON_SORTS: RosterLessonSortBy[] = [
   'completion_rate',
   'average_mastery',
   'last_practiced',
-];
-
-const REVIEW_SORTS: RosterReviewSortBy[] = [
-  'name',
-  'due_review_count',
-  'overdue_review_count',
-  'lapse_count',
 ];
 
 const SORT_DIRECTIONS: SortDirection[] = ['asc', 'desc'];
@@ -65,16 +55,6 @@ export class RosterLessonsQueryDto implements RosterLessonsQuery {
   @IsOptional()
   @IsIn(LESSON_SORTS)
   sortBy?: RosterLessonSortBy;
-
-  @IsOptional()
-  @IsIn(SORT_DIRECTIONS)
-  sortDirection?: SortDirection;
-}
-
-export class RosterReviewQueryDto implements RosterReviewQuery {
-  @IsOptional()
-  @IsIn(REVIEW_SORTS)
-  sortBy?: RosterReviewSortBy;
 
   @IsOptional()
   @IsIn(SORT_DIRECTIONS)

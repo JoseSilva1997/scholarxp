@@ -1,4 +1,4 @@
-// Student drill-down panel: shows overview, per-lesson progress, review state, and 7-day performance for a selected student.
+// Student drill-down panel: shows overview, per-lesson progress, and 7-day performance for a selected student.
 import type { RosterStudentDetailResponse } from '@scholarxp/api-contracts';
 import defaultAvatar from '@/assets/default-profile-pic.png';
 import styles from './StudentDrillDown.module.css';
@@ -74,7 +74,7 @@ export default function StudentDrillDown({
     );
   }
 
-  const { student, lessonProgress, reviewState, recentPerformance } = detail;
+  const { student, lessonProgress, recentPerformance } = detail;
 
   return (
     <div className={styles.panel} role="region" aria-label={`Details for ${student.fullName}`}>
@@ -96,7 +96,7 @@ export default function StudentDrillDown({
 
       {/* Overview */}
       <section className={styles.section}>
-        <h4 className={styles.sectionTitle}>Overview</h4>
+        <h3 className={styles.sectionTitle}>Overview</h3>
         <div className={styles.statGrid}>
           <div className={styles.statItem}>
             <span className={styles.statLabel}>Enrolled</span>
@@ -158,33 +158,8 @@ export default function StudentDrillDown({
         )}
       </section>
 
-      {/* Review State */}
-      <section className={styles.section}>
-        <h4 className={styles.sectionTitle}>Review State</h4>
-        <div className={styles.statGrid}>
-          <div className={styles.statItem}>
-            <span className={styles.statLabel}>Due Reviews</span>
-            <span className={styles.statValue}>{reviewState.dueReviewCount}</span>
-          </div>
-          <div className={styles.statItem}>
-            <span className={styles.statLabel}>Overdue</span>
-            <span className={`${styles.statValue} ${reviewState.overdueReviewCount > 0 ? styles.warningValue : ''}`}>
-              {reviewState.overdueReviewCount}
-            </span>
-          </div>
-          <div className={styles.statItem}>
-            <span className={styles.statLabel}>Lapses</span>
-            <span className={styles.statValue}>{reviewState.lapseCount}</span>
-          </div>
-          <div className={styles.statItem}>
-            <span className={styles.statLabel}>Last DP Completed</span>
-            <span className={styles.statValue}>{formatDate(reviewState.lastDailyPracticeCompletedAt)}</span>
-          </div>
-        </div>
-      </section>
-
       {/* Recent Performance */}
-      <section className={styles.section}>
+      <section className={styles.bottomSection}>
         <h4 className={styles.sectionTitle}>Recent Performance (7 days)</h4>
         <div className={styles.statGrid}>
           <div className={styles.statItem}>

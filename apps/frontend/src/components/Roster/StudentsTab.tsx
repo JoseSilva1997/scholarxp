@@ -28,7 +28,6 @@ const STUDENT_SORT_OPTIONS: { value: RosterStudentSortBy; label: string }[] = [
   { value: 'name', label: 'Name' },
   { value: 'last_activity', label: 'Recent Activity' },
   { value: 'completed_lessons', label: 'Completed Lessons' },
-  { value: 'due_review_count', label: 'Due Reviews' },
 ];
 
 type StudentsTabProps = {
@@ -127,7 +126,7 @@ export default function StudentsTab({
                 <th className={styles.th}>Lessons</th>
                 <th className={styles.th}>Mastery</th>
                 <th className={styles.th}>Daily Practice</th>
-                <th className={styles.th}>Due Reviews</th>
+                <th className={styles.th}>Last DP Completed</th>
                 <th className={styles.th}>Last Activity</th>
               </tr>
             </thead>
@@ -182,14 +181,7 @@ export default function StudentsTab({
                     <td className={styles.td}>
                       {formatDailyPracticeStatus(student.dailyPracticeStatus)}
                     </td>
-                    <td className={styles.td}>
-                      <span className={student.overdueReviewCount > 0 ? styles.warningText : ''}>
-                        {student.dueReviewCount}
-                        {student.overdueReviewCount > 0 && (
-                          <span className={styles.overdueTag}> ({student.overdueReviewCount} overdue)</span>
-                        )}
-                      </span>
-                    </td>
+                    <td className={styles.td}>{formatDate(student.lastDailyPracticeCompletedAt)}</td>
                     <td className={styles.td}>{formatDate(student.lastActivityAt)}</td>
                   </tr>
                 ))

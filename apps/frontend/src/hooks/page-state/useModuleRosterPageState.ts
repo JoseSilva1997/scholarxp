@@ -5,12 +5,10 @@ import type {
   RosterStudentFilter,
   RosterStudentSortBy,
   RosterLessonSortBy,
-  RosterReviewSortBy,
   SortDirection,
   RosterSummaryResponse,
   RosterStudentRow,
   RosterLessonRow,
-  RosterReviewRow,
 } from '@scholarxp/api-contracts';
 import { features } from '@scholarxp/permissions';
 import { canUserAccess } from '../../permissions/permission';
@@ -18,7 +16,6 @@ import {
   useRosterSummaryQuery,
   useRosterStudentsQuery,
   useRosterLessonsQuery,
-  useRosterReviewQuery,
   useRosterStudentDetailQuery,
 } from '../queries/useRosterQueries';
 import {
@@ -27,7 +24,7 @@ import {
 } from '../../api/get-display-error';
 import { logError } from '../../utils/logger';
 
-export type RosterTab = 'students' | 'lessons' | 'review';
+export type RosterTab = 'students' | 'lessons';
 
 type UseModuleRosterPageStateParams = {
   moduleIdParam: string | undefined;
@@ -56,7 +53,6 @@ type UseModuleRosterPageStateResult = {
   handleActiveLast7DaysClick: () => void;
   handleAtRiskClick: () => void;
   handleLessonCoverageClick: () => void;
-  handleReviewBacklogClick: () => void;
 
   // Students tab state
   studentFilter: RosterStudentFilter;
@@ -79,15 +75,6 @@ type UseModuleRosterPageStateResult = {
   lessonRows: RosterLessonRow[];
   isLessonsLoading: boolean;
   lessonsError: string | null;
-
-  // Review tab state
-  reviewSortBy: RosterReviewSortBy;
-  setReviewSortBy: (sortBy: RosterReviewSortBy) => void;
-  reviewSortDirection: SortDirection;
-  setReviewSortDirection: (dir: SortDirection) => void;
-  reviewRows: RosterReviewRow[];
-  isReviewLoading: boolean;
-  reviewError: string | null;
 
   // Student drill-down
   selectedStudentId: number | null;
@@ -127,10 +114,6 @@ export function useModuleRosterPageState({
   const [lessonSortBy, setLessonSortBy] = useState<RosterLessonSortBy>('title');
   const [lessonSortDirection, setLessonSortDirection] = useState<SortDirection>('asc');
 
-  // Review tab local state
-  const [reviewSortBy, setReviewSortBy] = useState<RosterReviewSortBy>('name');
-  const [reviewSortDirection, setReviewSortDirection] = useState<SortDirection>('asc');
-
   // Student drill-down
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
 
@@ -145,10 +128,6 @@ export function useModuleRosterPageState({
   const lessonsQuery = useRosterLessonsQuery(parsedId, {
     sortBy: lessonSortBy,
     sortDirection: lessonSortDirection,
-  });
-  const reviewQuery = useRosterReviewQuery(parsedId, {
-    sortBy: reviewSortBy,
-    sortDirection: reviewSortDirection,
   });
   const studentDetailQuery = useRosterStudentDetailQuery(parsedId, selectedStudentId);
 
@@ -170,12 +149,6 @@ export function useModuleRosterPageState({
       logError(lessonsQuery.error, { feature: 'roster', action: 'lessons', moduleId: parsedId });
     }
   }, [lessonsQuery.error, parsedId]);
-
-  useEffect(() => {
-    if (reviewQuery.error && shouldLogApiError(reviewQuery.error)) {
-      logError(reviewQuery.error, { feature: 'roster', action: 'review', moduleId: parsedId });
-    }
-  }, [reviewQuery.error, parsedId]);
 
   useEffect(() => {
     if (studentDetailQuery.error && shouldLogApiError(studentDetailQuery.error)) {
@@ -216,9 +189,8 @@ export function useModuleRosterPageState({
 
   const handleAtRiskClick = useCallback(() => {
     setStudentFilter('at_risk');
-    // "Highest risk first" — backend defines the at-risk heuristic; sort by due reviews as a proxy.
-    setStudentSortBy('due_review_count');
-    setStudentSortDirection('desc');
+    setStudentSortBy('last_activity');
+    setStudentSortDirection('asc');
     openDetail('students');
   }, [openDetail]);
 
@@ -226,12 +198,6 @@ export function useModuleRosterPageState({
     setLessonSortBy('completion_rate');
     setLessonSortDirection('asc');
     openDetail('lessons');
-  }, [openDetail]);
-
-  const handleReviewBacklogClick = useCallback(() => {
-    setReviewSortBy('overdue_review_count');
-    setReviewSortDirection('desc');
-    openDetail('review');
   }, [openDetail]);
 
   const selectStudent = useCallback((studentId: number) => {
@@ -274,7 +240,6 @@ export function useModuleRosterPageState({
     handleActiveLast7DaysClick,
     handleAtRiskClick,
     handleLessonCoverageClick,
-    handleReviewBacklogClick,
 
     studentFilter,
     setStudentFilter,
@@ -301,18 +266,6 @@ export function useModuleRosterPageState({
     lessonsError: lessonsQuery.error
       ? getDisplayErrorMessage(lessonsQuery.error, {
           fallbackMessage: 'Could not load lesson data.',
-        })
-      : null,
-
-    reviewSortBy,
-    setReviewSortBy,
-    reviewSortDirection,
-    setReviewSortDirection,
-    reviewRows: reviewQuery.data?.rows ?? [],
-    isReviewLoading: parsedId !== null && reviewQuery.isPending,
-    reviewError: reviewQuery.error
-      ? getDisplayErrorMessage(reviewQuery.error, {
-          fallbackMessage: 'Could not load review data.',
         })
       : null,
 

@@ -1,4 +1,4 @@
-// Unit tests for RosterService: covers all five public methods plus edge cases for empty modules, missing progress, and at-risk derivation.
+// Unit tests for RosterService: covers all public methods plus edge cases for empty modules, missing progress, and at-risk derivation.
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { createPrismaMock, PrismaMock } from '../test/test-helpers';
@@ -8,7 +8,6 @@ import { RosterService } from './roster.service';
 
 // Stable "now" so assertions are deterministic
 const NOW = new Date('2026-03-28T12:00:00.000Z');
-const _DAY_START = new Date('2026-03-28T00:00:00.000Z');
 const THREE_DAYS_AGO = new Date('2026-03-25T12:00:00.000Z');
 const EIGHT_DAYS_AGO = new Date('2026-03-20T12:00:00.000Z');
 
@@ -110,7 +109,7 @@ describe('RosterService', () => {
       await expect(service.getSummary(999)).rejects.toThrow(NotFoundException);
     });
 
-    it('computes active, at-risk, and backlog for a populated module', async () => {
+    it('computes active and at-risk counts for a populated module', async () => {
       prisma.module.findUnique.mockResolvedValue({
         id: MODULE_ID,
         title: 'Algebra',
@@ -138,32 +137,17 @@ describe('RosterService', () => {
         ] as any) // started
         .mockResolvedValueOnce([{ moduleUnitId: 11 }] as any); // completed
 
-      // Review backlog: 3 overdue items for student 2
-      prisma.studentQuestionState.findMany
-        .mockResolvedValueOnce([
-          { userId: 2 },
-          { userId: 2 },
-          { userId: 2 },
-        ] as any) // backlog
-        .mockResolvedValueOnce([{ userId: 2 }] as any); // overdue student ids (distinct)
-
       const result = await service.getSummary(MODULE_ID);
 
       expect(result.moduleTitle).toBe('Algebra');
       expect(result.studentsEnrolled).toBe(2);
       expect(result.activeLast7Days).toBe(1);
-      // Student 2 is inactive + has overdue reviews = at risk
-      // Student 1 is active and no overdue reviews = not at risk
-      // But: inactive student count is 1 (student 2), overdue count is 1 (student 2), union = 1
+      // Student 2 is inactive → at risk; student 1 is active → not at risk
       expect(result.atRiskCount).toBe(1);
       expect(result.lessonCoverage).toEqual({
         totalLiveLessons: 2,
         lessonsStartedByAtLeastOneStudent: 2,
         lessonsCompletedByAtLeastOneStudent: 1,
-      });
-      expect(result.reviewBacklog).toEqual({
-        studentsWithOverdueReviews: 1,
-        totalOverdueReviews: 3,
       });
     });
   });
@@ -209,15 +193,6 @@ describe('RosterService', () => {
         },
       ] as any);
 
-      // Review counts: 2 due, 1 overdue
-      prisma.studentQuestionState.findMany.mockResolvedValue([
-        { userId: 1, fsrsDueAt: EIGHT_DAYS_AGO }, // overdue
-        {
-          userId: 1,
-          fsrsDueAt: THREE_DAYS_AGO, // due but not overdue (within today's boundary — actually this is before DAY_START so it IS overdue)
-        },
-      ] as any);
-
       // Last activity: 3 days ago (active)
       prisma.questionAttempt.groupBy.mockResolvedValue([
         { studentId: 1, _max: { attemptedAt: THREE_DAYS_AGO } },
@@ -226,6 +201,11 @@ describe('RosterService', () => {
       dailyPracticeService.getDailyPracticeStatus.mockResolvedValue({
         status: 'available',
       });
+
+      // Last DP completion
+      prisma.dailyPracticeSet.findMany.mockResolvedValue([
+        { userId: 1, completedAt: THREE_DAYS_AGO },
+      ] as any);
 
       const result = await service.getStudents(MODULE_ID, {});
 
@@ -237,9 +217,9 @@ describe('RosterService', () => {
       expect(row.totalLiveLessons).toBe(2);
       expect(row.averageMastery).toBe(50);
       expect(row.dailyPracticeStatus).toBe('available');
-      expect(row.dueReviewCount).toBe(2);
-      // Both dates are before DAY_START (2026-03-28 00:00), so both overdue
-      expect(row.overdueReviewCount).toBe(2);
+      expect(row.lastDailyPracticeCompletedAt).toBe(
+        THREE_DAYS_AGO.toISOString(),
+      );
       expect(row.enrolledVia).toBe('invite');
     });
 
@@ -248,9 +228,9 @@ describe('RosterService', () => {
       prisma.userModule.findMany.mockResolvedValue([makeEnrollment(1)] as any);
       prisma.moduleUnitUserProgress.findMany.mockResolvedValue([] as any);
       prisma.expLedger.groupBy.mockResolvedValue([] as any);
-      prisma.studentQuestionState.findMany.mockResolvedValue([] as any);
       // No activity at all
       prisma.questionAttempt.groupBy.mockResolvedValue([] as any);
+      prisma.dailyPracticeSet.findMany.mockResolvedValue([] as any);
 
       const result = await service.getStudents(MODULE_ID, {});
 
@@ -258,23 +238,19 @@ describe('RosterService', () => {
       expect(result.rows[0].lastActivityAt).toBeNull();
     });
 
-    it('marks student as at-risk when they have overdue reviews even if active', async () => {
+    it('does not mark student as at-risk when active within 7 days', async () => {
       prisma.moduleUnit.findMany.mockResolvedValue([{ id: 10 }] as any);
       prisma.userModule.findMany.mockResolvedValue([makeEnrollment(1)] as any);
       prisma.moduleUnitUserProgress.findMany.mockResolvedValue([] as any);
       prisma.expLedger.groupBy.mockResolvedValue([] as any);
-      // Overdue review
-      prisma.studentQuestionState.findMany.mockResolvedValue([
-        { userId: 1, fsrsDueAt: EIGHT_DAYS_AGO },
-      ] as any);
-      // Active recently
       prisma.questionAttempt.groupBy.mockResolvedValue([
         { studentId: 1, _max: { attemptedAt: THREE_DAYS_AGO } },
       ] as any);
+      prisma.dailyPracticeSet.findMany.mockResolvedValue([] as any);
 
       const result = await service.getStudents(MODULE_ID, {});
 
-      expect(result.rows[0].isAtRisk).toBe(true);
+      expect(result.rows[0].isAtRisk).toBe(false);
     });
 
     it('filters by at_risk', async () => {
@@ -285,17 +261,17 @@ describe('RosterService', () => {
       ] as any);
       prisma.moduleUnitUserProgress.findMany.mockResolvedValue([] as any);
       prisma.expLedger.groupBy.mockResolvedValue([] as any);
-      prisma.studentQuestionState.findMany.mockResolvedValue([] as any);
       // Student 1 active, student 2 inactive
       prisma.questionAttempt.groupBy.mockResolvedValue([
         { studentId: 1, _max: { attemptedAt: THREE_DAYS_AGO } },
       ] as any);
+      prisma.dailyPracticeSet.findMany.mockResolvedValue([] as any);
 
       const result = await service.getStudents(MODULE_ID, {
         filter: 'at_risk',
       });
 
-      // Student 2 has no activity → at risk; Student 1 is active with no overdue → not at risk
+      // Student 2 has no activity → at risk; student 1 is active → not at risk
       expect(result.rows).toHaveLength(1);
       expect(result.rows[0].studentId).toBe(2);
     });
@@ -308,8 +284,8 @@ describe('RosterService', () => {
       ] as any);
       prisma.moduleUnitUserProgress.findMany.mockResolvedValue([] as any);
       prisma.expLedger.groupBy.mockResolvedValue([] as any);
-      prisma.studentQuestionState.findMany.mockResolvedValue([] as any);
       prisma.questionAttempt.groupBy.mockResolvedValue([] as any);
+      prisma.dailyPracticeSet.findMany.mockResolvedValue([] as any);
 
       dailyPracticeService.getDailyPracticeStatus
         .mockResolvedValueOnce({ status: 'locked' })
@@ -345,8 +321,8 @@ describe('RosterService', () => {
         }),
       ] as any);
       prisma.moduleUnitUserProgress.findMany.mockResolvedValue([] as any);
-      prisma.studentQuestionState.findMany.mockResolvedValue([] as any);
       prisma.questionAttempt.groupBy.mockResolvedValue([] as any);
+      prisma.dailyPracticeSet.findMany.mockResolvedValue([] as any);
 
       const result = await service.getStudents(MODULE_ID, {
         sortBy: 'name',
@@ -379,8 +355,8 @@ describe('RosterService', () => {
         }),
       ] as any);
       prisma.moduleUnitUserProgress.findMany.mockResolvedValue([] as any);
-      prisma.studentQuestionState.findMany.mockResolvedValue([] as any);
       prisma.questionAttempt.groupBy.mockResolvedValue([] as any);
+      prisma.dailyPracticeSet.findMany.mockResolvedValue([] as any);
 
       const result = await service.getStudents(MODULE_ID, {
         search: 'alice',
@@ -395,8 +371,8 @@ describe('RosterService', () => {
       prisma.userModule.findMany.mockResolvedValue([makeEnrollment(1)] as any);
       prisma.moduleUnitUserProgress.findMany.mockResolvedValue([] as any);
       prisma.expLedger.groupBy.mockResolvedValue([] as any);
-      prisma.studentQuestionState.findMany.mockResolvedValue([] as any);
       prisma.questionAttempt.groupBy.mockResolvedValue([] as any);
+      prisma.dailyPracticeSet.findMany.mockResolvedValue([] as any);
 
       const result = await service.getStudents(MODULE_ID, {});
 
@@ -511,80 +487,6 @@ describe('RosterService', () => {
     });
   });
 
-  // ───── getReview ─────
-
-  describe('getReview', () => {
-    it('returns empty rows when no students enrolled', async () => {
-      prisma.userModule.findMany.mockResolvedValue([] as any);
-
-      const result = await service.getReview(MODULE_ID, {});
-
-      expect(result.rows).toEqual([]);
-    });
-
-    it('computes review counts and lapse totals correctly', async () => {
-      prisma.userModule.findMany.mockResolvedValue([makeEnrollment(1)] as any);
-
-      // Due states: 2 due (1 overdue + 1 due-today)
-      prisma.studentQuestionState.findMany.mockResolvedValue([
-        { userId: 1, fsrsDueAt: EIGHT_DAYS_AGO },
-        { userId: 1, fsrsDueAt: NOW },
-      ] as any);
-
-      // Lapse aggregates
-      prisma.studentQuestionState.groupBy.mockResolvedValue([
-        { userId: 1, _sum: { lapseCount: 5 } },
-      ] as any);
-
-      dailyPracticeService.getDailyPracticeStatus.mockResolvedValue({
-        status: 'completed',
-      });
-
-      prisma.dailyPracticeSet.findMany.mockResolvedValue([
-        { userId: 1, completedAt: THREE_DAYS_AGO },
-      ] as any);
-
-      const result = await service.getReview(MODULE_ID, {});
-
-      expect(result.rows).toHaveLength(1);
-      const row = result.rows[0];
-      expect(row.dueReviewCount).toBe(2);
-      expect(row.overdueReviewCount).toBe(1); // only the 8-days-ago one
-      expect(row.lapseCount).toBe(5);
-      expect(row.dailyPracticeStatus).toBe('completed');
-      expect(row.lastDailyPracticeCompletedAt).toBe(
-        THREE_DAYS_AGO.toISOString(),
-      );
-    });
-
-    it('sorts by overdue_review_count descending', async () => {
-      prisma.userModule.findMany.mockResolvedValue([
-        makeEnrollment(1),
-        makeEnrollment(2),
-      ] as any);
-
-      prisma.studentQuestionState.findMany.mockResolvedValue([
-        { userId: 2, fsrsDueAt: EIGHT_DAYS_AGO },
-        { userId: 2, fsrsDueAt: EIGHT_DAYS_AGO },
-      ] as any);
-      prisma.studentQuestionState.groupBy.mockResolvedValue([
-        { userId: 1, _sum: { lapseCount: 0 } },
-        { userId: 2, _sum: { lapseCount: 1 } },
-      ] as any);
-      prisma.dailyPracticeSet.findMany.mockResolvedValue([] as any);
-
-      const result = await service.getReview(MODULE_ID, {
-        sortBy: 'overdue_review_count',
-        sortDirection: 'desc',
-      });
-
-      expect(result.rows[0].studentId).toBe(2);
-      expect(result.rows[0].overdueReviewCount).toBe(2);
-      expect(result.rows[1].studentId).toBe(1);
-      expect(result.rows[1].overdueReviewCount).toBe(0);
-    });
-  });
-
   // ───── getStudentDetail ─────
 
   describe('getStudentDetail', () => {
@@ -642,12 +544,6 @@ describe('RosterService', () => {
         },
       ] as any);
 
-      // FSRS review states
-      prisma.studentQuestionState.findMany.mockResolvedValue([
-        { fsrsDueAt: EIGHT_DAYS_AGO, lapseCount: 2 },
-        { fsrsDueAt: NOW, lapseCount: 1 },
-      ] as any);
-
       // Recent attempts (7 days)
       prisma.questionAttempt.findMany.mockResolvedValue([
         { isCorrect: true, timeTakenMs: 5000, hintsUsed: 0 },
@@ -662,11 +558,6 @@ describe('RosterService', () => {
       // Last activity
       prisma.questionAttempt.findFirst.mockResolvedValue({
         attemptedAt: THREE_DAYS_AGO,
-      } as any);
-
-      // Last daily practice completion
-      prisma.dailyPracticeSet.findFirst.mockResolvedValue({
-        completedAt: THREE_DAYS_AGO,
       } as any);
 
       const result = await service.getStudentDetail(MODULE_ID, 1);
@@ -687,14 +578,6 @@ describe('RosterService', () => {
       expect(result.lessonProgress[1].isCompleted).toBe(false);
       expect(result.lessonProgress[1].currentMasteryScore).toBe(0);
 
-      // Review state
-      expect(result.reviewState.dueReviewCount).toBe(2);
-      expect(result.reviewState.overdueReviewCount).toBe(1);
-      expect(result.reviewState.lapseCount).toBe(3); // 2 + 1
-      expect(result.reviewState.lastDailyPracticeCompletedAt).toBe(
-        THREE_DAYS_AGO.toISOString(),
-      );
-
       // Recent performance
       expect(result.recentPerformance.accuracyLast7Days).toBe(67); // 2/3 rounded
       expect(result.recentPerformance.averageTimeMsLast7Days).toBe(5333); // (5000+8000+3000)/3 rounded
@@ -706,10 +589,8 @@ describe('RosterService', () => {
       prisma.moduleUnit.findMany.mockResolvedValue([] as any);
       prisma.moduleUnitUserProgress.findMany.mockResolvedValue([] as any);
       prisma.expLedger.groupBy.mockResolvedValue([] as any);
-      prisma.studentQuestionState.findMany.mockResolvedValue([] as any);
       prisma.questionAttempt.findMany.mockResolvedValue([] as any);
       prisma.questionAttempt.findFirst.mockResolvedValue(null);
-      prisma.dailyPracticeSet.findFirst.mockResolvedValue(null);
       dailyPracticeService.getDailyPracticeStatus.mockResolvedValue({
         status: 'locked',
       });
@@ -720,7 +601,6 @@ describe('RosterService', () => {
       expect(result.recentPerformance.averageTimeMsLast7Days).toBeNull();
       expect(result.recentPerformance.hintsUsedLast7Days).toBeNull();
       expect(result.student.lastActivityAt).toBeNull();
-      expect(result.reviewState.lastDailyPracticeCompletedAt).toBeNull();
     });
   });
 });

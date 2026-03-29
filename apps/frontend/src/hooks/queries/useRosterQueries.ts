@@ -1,15 +1,13 @@
-// Query hooks for module-scoped roster data: summary cards, student/lesson/review lists, and student drill-down.
+// Query hooks for module-scoped roster data: summary cards, student/lesson lists, and student drill-down.
 import { useQuery } from '@tanstack/react-query';
 import type {
   RosterStudentsQuery,
   RosterLessonsQuery,
-  RosterReviewQuery,
 } from '@scholarxp/api-contracts';
 import {
   getRosterSummary,
   getRosterStudents,
   getRosterLessons,
-  getRosterReview,
   getRosterStudentDetail,
 } from '../../api/roster';
 import { queryKeys } from '../query-keys';
@@ -42,18 +40,6 @@ export function useRosterLessonsQuery(
   return useQuery({
     queryKey: moduleId ? queryKeys.roster.lessons(moduleId) : queryKeys.roster.lessons(0),
     queryFn: () => getRosterLessons(moduleId!, query),
-    enabled: moduleId !== null,
-    staleTime: 30_000,
-  });
-}
-
-export function useRosterReviewQuery(
-  moduleId: number | null,
-  query: RosterReviewQuery = {},
-) {
-  return useQuery({
-    queryKey: moduleId ? queryKeys.roster.review(moduleId) : queryKeys.roster.review(0),
-    queryFn: () => getRosterReview(moduleId!, query),
     enabled: moduleId !== null,
     staleTime: 30_000,
   });

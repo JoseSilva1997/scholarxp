@@ -53,7 +53,6 @@ export const queryKeys = {
     summary: (moduleId: number) => ['roster', 'summary', moduleId] as const,
     students: (moduleId: number) => ['roster', 'students', moduleId] as const,
     lessons: (moduleId: number) => ['roster', 'lessons', moduleId] as const,
-    review: (moduleId: number) => ['roster', 'review', moduleId] as const,
     studentDetail: (moduleId: number, studentId: number) =>
       ['roster', 'student-detail', moduleId, studentId] as const,
   },

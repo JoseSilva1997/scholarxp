@@ -11,7 +11,6 @@ import {
 import {
   RosterStudentsQueryDto,
   RosterLessonsQueryDto,
-  RosterReviewQueryDto,
 } from './dto/roster-query.dto';
 import { RosterService } from './roster.service';
 
@@ -42,15 +41,6 @@ export class RosterController {
     @Query() query: RosterLessonsQueryDto,
   ) {
     return this.rosterService.getLessons(params.moduleId, query);
-  }
-
-  @Get('review')
-  @Authorize({ capability: features.modules.roster, scope: 'module' })
-  getReview(
-    @Param() params: RosterModuleParamsDto,
-    @Query() query: RosterReviewQueryDto,
-  ) {
-    return this.rosterService.getReview(params.moduleId, query);
   }
 
   @Get('students/:studentId')

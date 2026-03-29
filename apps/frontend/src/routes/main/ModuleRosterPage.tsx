@@ -59,7 +59,6 @@ export default function ModuleRosterPage() {
             onActiveLast7DaysClick={state.handleActiveLast7DaysClick}
             onAtRiskClick={state.handleAtRiskClick}
             onLessonCoverageClick={state.handleLessonCoverageClick}
-            onReviewBacklogClick={state.handleReviewBacklogClick}
           />
 
           <RosterDetailsPanel
@@ -87,14 +86,6 @@ export default function ModuleRosterPage() {
             onLessonSortByChange={state.setLessonSortBy}
             lessonSortDirection={state.lessonSortDirection}
             onLessonSortDirectionChange={state.setLessonSortDirection}
-            // Review
-            reviewRows={state.reviewRows}
-            isReviewLoading={state.isReviewLoading}
-            reviewError={state.reviewError}
-            reviewSortBy={state.reviewSortBy}
-            onReviewSortByChange={state.setReviewSortBy}
-            reviewSortDirection={state.reviewSortDirection}
-            onReviewSortDirectionChange={state.setReviewSortDirection}
             // Student drill-down
             selectedStudentId={state.selectedStudentId}
             onSelectStudent={state.selectStudent}

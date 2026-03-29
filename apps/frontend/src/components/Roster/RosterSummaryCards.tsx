@@ -9,7 +9,6 @@ type RosterSummaryCardsProps = {
   onActiveLast7DaysClick: () => void;
   onAtRiskClick: () => void;
   onLessonCoverageClick: () => void;
-  onReviewBacklogClick: () => void;
 };
 
 function SkeletonCard() {
@@ -28,12 +27,11 @@ export default function RosterSummaryCards({
   onActiveLast7DaysClick,
   onAtRiskClick,
   onLessonCoverageClick,
-  onReviewBacklogClick,
 }: RosterSummaryCardsProps) {
   if (isLoading) {
     return (
       <div className={styles.grid} aria-label="Loading roster summary">
-        {Array.from({ length: 5 }, (_, i) => (
+        {Array.from({ length: 4 }, (_, i) => (
           <SkeletonCard key={i} />
         ))}
       </div>
@@ -87,19 +85,6 @@ export default function RosterSummaryCards({
         <span className={styles.label}>Lesson Coverage</span>
         <span className={styles.value}>{coverageLabel}</span>
         <span className={styles.subtitle}>completed by at least 1 student</span>
-      </button>
-
-      <button
-        type="button"
-        className={`${styles.card} ${summary.reviewBacklog.totalOverdueReviews > 0 ? styles.cardWarning : ''}`}
-        onClick={onReviewBacklogClick}
-        aria-label={`${summary.reviewBacklog.totalOverdueReviews} overdue reviews across ${summary.reviewBacklog.studentsWithOverdueReviews} students. View review backlog.`}
-      >
-        <span className={styles.label}>Review Backlog</span>
-        <span className={styles.value}>{summary.reviewBacklog.totalOverdueReviews}</span>
-        <span className={styles.subtitle}>
-          {summary.reviewBacklog.studentsWithOverdueReviews} student{summary.reviewBacklog.studentsWithOverdueReviews !== 1 ? 's' : ''}
-        </span>
       </button>
     </div>
   );

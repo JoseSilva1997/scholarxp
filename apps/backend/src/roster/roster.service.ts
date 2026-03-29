@@ -1,12 +1,9 @@
-// Aggregates module-scoped roster analytics for tutors: enrollment, lesson coverage, review health, and per-student metrics.
+// Aggregates module-scoped roster analytics for tutors: enrollment, lesson coverage, and per-student metrics.
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type {
   DailyPracticeStatus,
   RosterLessonsQuery,
   RosterLessonsResponse,
-  RosterReviewQuery,
-  RosterReviewResponse,
-  RosterReviewRow,
   RosterStudentDetailResponse,
   RosterStudentRow,
   RosterStudentsQuery,
@@ -23,10 +20,9 @@ import {
 } from '@scholarxp/constants';
 import { PrismaService } from '../prisma/prisma.service';
 import { DailyPracticeService } from '../daily-practice/daily-practice.service';
-import { DateHelpers } from '../helpers/helpers';
 
-// At-risk definition: no activity in last 7 days OR any overdue review items.
-// Transparent and simple so tutors can act on it without guessing at the heuristic.
+// At-risk definition: no activity in last 7 days. Overdue FSRS items are excluded because
+// the daily-practice algorithm intentionally caps reviews per day, so backlog is normal.
 const ACTIVITY_WINDOW_DAYS = 7;
 
 @Injectable()
@@ -57,44 +53,26 @@ export class RosterService {
           lessonsStartedByAtLeastOneStudent: 0,
           lessonsCompletedByAtLeastOneStudent: 0,
         },
-        reviewBacklog: {
-          studentsWithOverdueReviews: 0,
-          totalOverdueReviews: 0,
-        },
       };
     }
 
-    const [activeStudentIds, lessonCoverage, reviewBacklog] = await Promise.all(
-      [
-        this.getActiveStudentIds(
-          enrolledStudentIds,
-          liveLessonIds,
-          sevenDaysAgo,
-        ),
-        this.getLessonCoverage(liveLessonIds, enrolledStudentIds),
-        this.getReviewBacklog(moduleId, enrolledStudentIds, now),
-      ],
-    );
+    const [activeStudentIds, lessonCoverage] = await Promise.all([
+      this.getActiveStudentIds(enrolledStudentIds, liveLessonIds, sevenDaysAgo),
+      this.getLessonCoverage(liveLessonIds, enrolledStudentIds),
+    ]);
 
-    // At-risk = inactive (no attempts in 7 days) OR has overdue reviews
-    const overdueStudentIds = await this.getStudentIdsWithOverdueReviews(
-      moduleId,
-      enrolledStudentIds,
-      now,
-    );
-    const inactiveStudentIds = enrolledStudentIds.filter(
+    // At-risk = inactive (no attempts in 7 days)
+    const atRiskCount = enrolledStudentIds.filter(
       (id) => !activeStudentIds.has(id),
-    );
-    const atRiskSet = new Set([...inactiveStudentIds, ...overdueStudentIds]);
+    ).length;
 
     return {
       moduleId,
       moduleTitle,
       studentsEnrolled: studentCount,
       activeLast7Days: activeStudentIds.size,
-      atRiskCount: atRiskSet.size,
+      atRiskCount,
       lessonCoverage,
-      reviewBacklog,
     };
   }
 
@@ -104,7 +82,6 @@ export class RosterService {
   ): Promise<RosterStudentsResponse> {
     const now = new Date();
     const sevenDaysAgo = this.daysAgo(now, ACTIVITY_WINDOW_DAYS);
-    const { dayStartUtc } = DateHelpers.getUtcDayBounds(now);
 
     const liveLessons = await this.getLiveLessonIds(moduleId);
     const totalLiveLessons = liveLessons.length;
@@ -133,14 +110,14 @@ export class RosterService {
     // Batch queries for all students at once to avoid N+1
     const [
       progressByStudent,
-      reviewsByStudent,
       lastActivityByStudent,
       dailyPracticeStatuses,
+      lastDpCompletionByStudent,
     ] = await Promise.all([
       this.batchLessonProgress(studentIds, liveLessons),
-      this.batchReviewCounts(moduleId, studentIds, now, dayStartUtc),
       this.batchLastActivity(studentIds, liveLessons),
       this.batchDailyPracticeStatus(moduleId, studentIds),
+      this.batchLastDailyPracticeCompletion(moduleId, studentIds),
     ]);
 
     let rows: RosterStudentRow[] = enrollments.map((enrollment) => {
@@ -149,20 +126,17 @@ export class RosterService {
         completed: 0,
         averageMastery: 0,
       };
-      const reviews = reviewsByStudent.get(studentId) ?? {
-        due: 0,
-        overdue: 0,
-      };
       const lastActivityAt = lastActivityByStudent.get(studentId) ?? null;
       const dailyPracticeStatus =
         dailyPracticeStatuses.get(studentId) ?? 'locked';
+      const lastDpCompletion = lastDpCompletionByStudent.get(studentId) ?? null;
 
       const averageMastery = progress.averageMastery;
 
       const isActive =
         lastActivityAt !== null &&
         new Date(lastActivityAt).getTime() >= sevenDaysAgo.getTime();
-      const isAtRisk = !isActive || reviews.overdue > 0;
+      const isAtRisk = !isActive;
 
       return {
         studentId,
@@ -174,8 +148,9 @@ export class RosterService {
         totalLiveLessons,
         averageMastery,
         dailyPracticeStatus,
-        dueReviewCount: reviews.due,
-        overdueReviewCount: reviews.overdue,
+        lastDailyPracticeCompletedAt: lastDpCompletion
+          ? lastDpCompletion.toISOString()
+          : null,
         lastActivityAt: lastActivityAt
           ? new Date(lastActivityAt).toISOString()
           : null,
@@ -270,82 +245,12 @@ export class RosterService {
     return { rows };
   }
 
-  async getReview(
-    moduleId: number,
-    query: RosterReviewQuery,
-  ): Promise<RosterReviewResponse> {
-    const now = new Date();
-    const { dayStartUtc } = DateHelpers.getUtcDayBounds(now);
-
-    const enrollments = await this.prisma.userModule.findMany({
-      where: { moduleId, roleInModule: 'student' },
-      include: {
-        user: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            profilePictureUrl: true,
-          },
-        },
-      },
-    });
-
-    if (enrollments.length === 0) {
-      return { rows: [] };
-    }
-
-    const studentIds = enrollments.map((e) => e.userId);
-
-    const [reviewsByStudent, dailyPracticeStatuses, lastDpCompletionByStudent] =
-      await Promise.all([
-        this.batchReviewCountsWithLapses(
-          moduleId,
-          studentIds,
-          now,
-          dayStartUtc,
-        ),
-        this.batchDailyPracticeStatus(moduleId, studentIds),
-        this.batchLastDailyPracticeCompletion(moduleId, studentIds),
-      ]);
-
-    let rows: RosterReviewRow[] = enrollments.map((enrollment) => {
-      const studentId = enrollment.userId;
-      const reviews = reviewsByStudent.get(studentId) ?? {
-        due: 0,
-        overdue: 0,
-        lapses: 0,
-      };
-      const dailyPracticeStatus =
-        dailyPracticeStatuses.get(studentId) ?? 'locked';
-      const lastDpCompletion = lastDpCompletionByStudent.get(studentId) ?? null;
-
-      return {
-        studentId,
-        fullName: `${enrollment.user.firstName} ${enrollment.user.lastName}`,
-        avatarUrl: enrollment.user.profilePictureUrl,
-        dueReviewCount: reviews.due,
-        overdueReviewCount: reviews.overdue,
-        lapseCount: reviews.lapses,
-        dailyPracticeStatus,
-        lastDailyPracticeCompletedAt: lastDpCompletion
-          ? lastDpCompletion.toISOString()
-          : null,
-      };
-    });
-
-    rows = this.applyReviewSort(rows, query.sortBy, query.sortDirection);
-
-    return { rows };
-  }
-
   async getStudentDetail(
     moduleId: number,
     studentId: number,
   ): Promise<RosterStudentDetailResponse> {
     const now = new Date();
     const sevenDaysAgo = this.daysAgo(now, ACTIVITY_WINDOW_DAYS);
-    const { dayStartUtc } = DateHelpers.getUtcDayBounds(now);
 
     const enrollment = await this.prisma.userModule.findUnique({
       where: { moduleId_userId: { moduleId, userId: studentId } },
@@ -381,7 +286,6 @@ export class RosterService {
 
     const [
       progressRecords,
-      reviewStates,
       recentAttempts,
       dailyPracticeStatus,
       lastActivity,
@@ -389,13 +293,6 @@ export class RosterService {
     ] = await Promise.all([
       this.prisma.moduleUnitUserProgress.findMany({
         where: { studentId, moduleUnitId: { in: liveLessonIds } },
-      }),
-      this.prisma.studentQuestionState.findMany({
-        where: { userId: studentId, moduleId },
-        select: {
-          fsrsDueAt: true,
-          lapseCount: true,
-        },
       }),
       this.prisma.questionAttempt.findMany({
         where: {
@@ -430,12 +327,6 @@ export class RosterService {
         _sum: { awardedExp: true },
       }),
     ]);
-
-    const lastDpCompletion = await this.prisma.dailyPracticeSet.findFirst({
-      where: { userId: studentId, moduleId, completedAt: { not: null } },
-      orderBy: { completedAt: 'desc' },
-      select: { completedAt: true },
-    });
 
     // Build: moduleUnitId → { completionExp, masteryExp } from the ledger aggregates
     type LessonExp = { completionExp: number; masteryExp: number };
@@ -480,16 +371,6 @@ export class RosterService {
         lastPracticedAt: progress?.lastPracticedAt?.toISOString() ?? null,
       };
     });
-
-    // Compute review state
-    let dueReviewCount = 0;
-    let overdueReviewCount = 0;
-    let totalLapses = 0;
-    for (const state of reviewStates) {
-      if (state.fsrsDueAt <= now) dueReviewCount++;
-      if (state.fsrsDueAt < dayStartUtc) overdueReviewCount++;
-      totalLapses += state.lapseCount;
-    }
 
     // Compute recent performance
     const totalAttempts = recentAttempts.length;
@@ -552,13 +433,6 @@ export class RosterService {
         lastActivityAt: lastActivity?.attemptedAt?.toISOString() ?? null,
       },
       lessonProgress,
-      reviewState: {
-        dueReviewCount,
-        overdueReviewCount,
-        lapseCount: totalLapses,
-        lastDailyPracticeCompletedAt:
-          lastDpCompletion?.completedAt?.toISOString() ?? null,
-      },
       recentPerformance: {
         accuracyLast7Days,
         averageTimeMsLast7Days,
@@ -653,50 +527,6 @@ export class RosterService {
       lessonsStartedByAtLeastOneStudent: startedLessons.length,
       lessonsCompletedByAtLeastOneStudent: completedLessons.length,
     };
-  }
-
-  private async getReviewBacklog(
-    moduleId: number,
-    enrolledStudentIds: number[],
-    now: Date,
-  ) {
-    const { dayStartUtc } = DateHelpers.getUtcDayBounds(now);
-
-    const overdueStates = await this.prisma.studentQuestionState.findMany({
-      where: {
-        moduleId,
-        userId: { in: enrolledStudentIds },
-        fsrsDueAt: { lt: dayStartUtc },
-      },
-      select: { userId: true },
-    });
-
-    const studentsWithOverdue = new Set(overdueStates.map((s) => s.userId));
-
-    return {
-      studentsWithOverdueReviews: studentsWithOverdue.size,
-      totalOverdueReviews: overdueStates.length,
-    };
-  }
-
-  private async getStudentIdsWithOverdueReviews(
-    moduleId: number,
-    enrolledStudentIds: number[],
-    now: Date,
-  ): Promise<number[]> {
-    const { dayStartUtc } = DateHelpers.getUtcDayBounds(now);
-
-    const results = await this.prisma.studentQuestionState.findMany({
-      where: {
-        moduleId,
-        userId: { in: enrolledStudentIds },
-        fsrsDueAt: { lt: dayStartUtc },
-      },
-      distinct: ['userId'],
-      select: { userId: true },
-    });
-
-    return results.map((r) => r.userId);
   }
 
   // Batch-fetches lesson progress per student: completed count and mastery score averaged over
@@ -814,84 +644,6 @@ export class RosterService {
       completionRate * ROSTER_MASTERY_COMPLETION_WEIGHT +
       masteryRate * ROSTER_MASTERY_EXP_WEIGHT
     );
-  }
-
-  // Batch-fetches due and overdue review counts per student.
-  private async batchReviewCounts(
-    moduleId: number,
-    studentIds: number[],
-    now: Date,
-    dayStartUtc: Date,
-  ): Promise<Map<number, { due: number; overdue: number }>> {
-    const result = new Map<number, { due: number; overdue: number }>();
-
-    const states = await this.prisma.studentQuestionState.findMany({
-      where: {
-        moduleId,
-        userId: { in: studentIds },
-        fsrsDueAt: { lte: now },
-      },
-      select: { userId: true, fsrsDueAt: true },
-    });
-
-    for (const state of states) {
-      const existing = result.get(state.userId) ?? { due: 0, overdue: 0 };
-      existing.due++;
-      if (state.fsrsDueAt < dayStartUtc) existing.overdue++;
-      result.set(state.userId, existing);
-    }
-
-    return result;
-  }
-
-  // Extended version that also counts lapses, used by the review tab.
-  private async batchReviewCountsWithLapses(
-    moduleId: number,
-    studentIds: number[],
-    now: Date,
-    dayStartUtc: Date,
-  ): Promise<Map<number, { due: number; overdue: number; lapses: number }>> {
-    const result = new Map<
-      number,
-      { due: number; overdue: number; lapses: number }
-    >();
-
-    // Two queries: one for due items (includes lapse counts), one for total lapses
-    const [dueStates, lapseAggregates] = await Promise.all([
-      this.prisma.studentQuestionState.findMany({
-        where: {
-          moduleId,
-          userId: { in: studentIds },
-          fsrsDueAt: { lte: now },
-        },
-        select: { userId: true, fsrsDueAt: true },
-      }),
-      this.prisma.studentQuestionState.groupBy({
-        by: ['userId'],
-        where: {
-          moduleId,
-          userId: { in: studentIds },
-        },
-        _sum: { lapseCount: true },
-      }),
-    ]);
-
-    const lapseMap = new Map(
-      lapseAggregates.map((a) => [a.userId, a._sum.lapseCount ?? 0]),
-    );
-
-    // Initialize all students with zero counts so the lapse-only students appear
-    for (const id of studentIds) {
-      result.set(id, { due: 0, overdue: 0, lapses: lapseMap.get(id) ?? 0 });
-    }
-
-    for (const state of dueStates) {
-      const existing = result.get(state.userId)!;
-      existing.due++;
-      if (state.fsrsDueAt < dayStartUtc) existing.overdue++;
-    }
-
-    return result;
   }
 
   // Returns last activity timestamp per student, defined as most recent question attempt in the module's live units.
@@ -1042,9 +794,6 @@ export class RosterService {
       case 'completed_lessons':
         sorted.sort((a, b) => dir * (a.completedLessons - b.completedLessons));
         break;
-      case 'due_review_count':
-        sorted.sort((a, b) => dir * (a.dueReviewCount - b.dueReviewCount));
-        break;
       default:
         // Default: sort by name ascending for stable output
         sorted.sort((a, b) => a.fullName.localeCompare(b.fullName));
@@ -1084,37 +833,6 @@ export class RosterService {
         });
         break;
       default:
-        break;
-    }
-
-    return sorted;
-  }
-
-  private applyReviewSort(
-    rows: RosterReviewRow[],
-    sortBy?: string,
-    direction?: SortDirection,
-  ): RosterReviewRow[] {
-    const dir = direction === 'desc' ? -1 : 1;
-    const sorted = [...rows];
-
-    switch (sortBy) {
-      case 'name':
-        sorted.sort((a, b) => dir * a.fullName.localeCompare(b.fullName));
-        break;
-      case 'due_review_count':
-        sorted.sort((a, b) => dir * (a.dueReviewCount - b.dueReviewCount));
-        break;
-      case 'overdue_review_count':
-        sorted.sort(
-          (a, b) => dir * (a.overdueReviewCount - b.overdueReviewCount),
-        );
-        break;
-      case 'lapse_count':
-        sorted.sort((a, b) => dir * (a.lapseCount - b.lapseCount));
-        break;
-      default:
-        sorted.sort((a, b) => a.fullName.localeCompare(b.fullName));
         break;
     }
 
