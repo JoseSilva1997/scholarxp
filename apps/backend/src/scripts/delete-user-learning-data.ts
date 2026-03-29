@@ -7,7 +7,7 @@ import { parseArgs } from 'util';
 import { PrismaService } from '../prisma/prisma.service';
 
 /**
- * DELETE EVERYTHING FOR A USER:
+ * DELETE ALL LEARNING DATA FOR A USER:
  *
  * pnpm --filter backend cleanup:user-learning-data --all
  * or simply
@@ -26,6 +26,20 @@ import { PrismaService } from '../prisma/prisma.service';
  * (36) scholarxp
  */
 
+// Edit these instead of passing CLI args. null = fall back to CLI arg / default.
+const MANUAL_CONFIG = {
+  USER_ID: 38 as number | null,
+  MODULE_UNIT_ID: null as number | null,
+  SET_ACCOUNT_EXP: 0 as number | null,
+  DELETE_DAILY_PRACTICE_SETS: null as boolean | null,
+  DELETE_DAILY_QUESTS: null as boolean | null,
+  DELETE_EXP_LEDGER: null as boolean | null,
+  DELETE_MODULE_UNIT_USER_PROGRESS: null as boolean | null,
+  DELETE_PRACTICE_SESSIONS: null as boolean | null,
+  DELETE_QUESTION_ATTEMPTS: null as boolean | null,
+  DELETE_STUDENT_QUESTION_STATE: null as boolean | null,
+};
+
 function parseConfig() {
   const { values } = parseArgs({
     options: {
@@ -37,24 +51,26 @@ function parseConfig() {
     args: process.argv.slice(2),
   });
 
-  const isAll = values.all || (!values.moduleUnit && !values.all) || false;
+  const moduleUnitId =
+    MANUAL_CONFIG.MODULE_UNIT_ID ??
+    (values.moduleUnit ? parseInt(values.moduleUnit, 10) : null);
+
+  const isAll = values.all || (!moduleUnitId && !values.all) || false;
 
   return {
-    USER_ID: values.user ? parseInt(values.user, 10) : 38,
-    SET_ACCOUNT_EXP: values.setAccountExp
-      ? parseInt(values.setAccountExp, 10)
-      : isAll
-        ? 200
-        : null,
-    MODULE_UNIT_ID: values.moduleUnit ? parseInt(values.moduleUnit, 10) : null,
+    USER_ID: MANUAL_CONFIG.USER_ID ?? (values.user ? parseInt(values.user, 10) : 38),
+    SET_ACCOUNT_EXP:
+      MANUAL_CONFIG.SET_ACCOUNT_EXP ??
+      (values.setAccountExp ? parseInt(values.setAccountExp, 10) : isAll ? 200 : null),
+    MODULE_UNIT_ID: moduleUnitId,
     IS_ALL: isAll,
-    DELETE_DAILY_PRACTICE_SETS: isAll,
-    DELETE_DAILY_QUESTS: isAll,
-    DELETE_EXP_LEDGER: isAll || !!values.moduleUnit,
-    DELETE_MODULE_UNIT_USER_PROGRESS: isAll || !!values.moduleUnit,
-    DELETE_PRACTICE_SESSIONS: isAll || !!values.moduleUnit,
-    DELETE_QUESTION_ATTEMPTS: isAll || !!values.moduleUnit,
-    DELETE_STUDENT_QUESTION_STATE: isAll || !!values.moduleUnit,
+    DELETE_DAILY_PRACTICE_SETS: MANUAL_CONFIG.DELETE_DAILY_PRACTICE_SETS ?? isAll,
+    DELETE_DAILY_QUESTS: MANUAL_CONFIG.DELETE_DAILY_QUESTS ?? isAll,
+    DELETE_EXP_LEDGER: MANUAL_CONFIG.DELETE_EXP_LEDGER ?? (isAll || !!moduleUnitId),
+    DELETE_MODULE_UNIT_USER_PROGRESS: MANUAL_CONFIG.DELETE_MODULE_UNIT_USER_PROGRESS ?? (isAll || !!moduleUnitId),
+    DELETE_PRACTICE_SESSIONS: MANUAL_CONFIG.DELETE_PRACTICE_SESSIONS ?? (isAll || !!moduleUnitId),
+    DELETE_QUESTION_ATTEMPTS: MANUAL_CONFIG.DELETE_QUESTION_ATTEMPTS ?? (isAll || !!moduleUnitId),
+    DELETE_STUDENT_QUESTION_STATE: MANUAL_CONFIG.DELETE_STUDENT_QUESTION_STATE ?? (isAll || !!moduleUnitId),
   };
 }
 

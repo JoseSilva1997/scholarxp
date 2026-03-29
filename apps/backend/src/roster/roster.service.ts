@@ -761,7 +761,7 @@ export class RosterService {
     return result;
   }
 
-  // Blends completion rate (20%) and mastery XP rate (80%) into a 0–1 lesson mastery score.
+  // Blends completion rate and mastery XP rate into a 0–1 lesson mastery score.
   // Caps each component at its known maximum so over-earning doesn't push past 100%.
   private computeLessonMasteryScore(completionExp: number, masteryExp: number): number {
     const completionRate = Math.min(completionExp, MODULE_UNIT_BASELINE_EXP) / MODULE_UNIT_BASELINE_EXP;
