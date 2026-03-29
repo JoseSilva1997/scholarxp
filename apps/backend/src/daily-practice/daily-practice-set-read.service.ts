@@ -11,22 +11,25 @@ import type {
 export class DailyPracticeSetReadService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // One stable set per UTC day is a core product rule, so "find today's set" lives here instead of being reimplemented in callers.
+  // One stable set per local calendar day is a core product rule, so "find today's set" lives here instead of being reimplemented in callers.
   findSetForUtcDay(
     userId: number,
     moduleId: number,
     timestamp: Date,
+    timezone: string = 'UTC',
     tx?: PrismaClientLike,
   ): Promise<PersistedDailyPracticeSetRecord | null> {
     const prismaClient = tx ?? this.prisma;
-    const { dayStartUtc } = DateHelpers.getUtcDayBounds(timestamp);
+    // The DB column is @db.Date, which stores the local calendar date — derive it from the user's timezone.
+    const localDateKey = DateHelpers.getLocalDateKey(timestamp, timezone);
+    const practiceDateUtc = new Date(`${localDateKey}T00:00:00.000Z`);
 
     return prismaClient.dailyPracticeSet.findUnique({
       where: {
         userId_moduleId_practiceDateUtc: {
           userId,
           moduleId,
-          practiceDateUtc: dayStartUtc,
+          practiceDateUtc,
         },
       },
       select: {

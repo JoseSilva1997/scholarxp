@@ -17,6 +17,7 @@ export class DailyPracticeEligibilityService {
     moduleId: number,
     studentId: number,
     now: Date,
+    timezone: string = 'UTC',
   ): Promise<{ eligible: true } | { eligible: false; message: string }> {
     const earliestCompletion =
       await this.prisma.moduleUnitUserProgress.findFirst({
@@ -34,7 +35,7 @@ export class DailyPracticeEligibilityService {
       return { eligible: false, message: DAILY_PRACTICE_LOCKED_MESSAGE };
     }
 
-    const { dayStartUtc } = DateHelpers.getUtcDayBounds(now);
+    const { dayStartUtc } = DateHelpers.getLocalDayBounds(now, timezone);
     if (earliestCompletion.completedAt.getTime() >= dayStartUtc.getTime()) {
       return {
         eligible: false,
@@ -50,6 +51,7 @@ export class DailyPracticeEligibilityService {
     moduleId: number,
     studentId: number,
     now: Date,
+    timezone: string = 'UTC',
   ): Promise<void> {
     const earliestCompletion =
       await this.prisma.moduleUnitUserProgress.findFirst({
@@ -73,7 +75,7 @@ export class DailyPracticeEligibilityService {
       throw new ForbiddenException(DAILY_PRACTICE_LOCKED_MESSAGE);
     }
 
-    const { dayStartUtc } = DateHelpers.getUtcDayBounds(now);
+    const { dayStartUtc } = DateHelpers.getLocalDayBounds(now, timezone);
     if (earliestCompletion.completedAt.getTime() >= dayStartUtc.getTime()) {
       throw new ForbiddenException(DAILY_PRACTICE_UNLOCKS_TOMORROW_MESSAGE);
     }

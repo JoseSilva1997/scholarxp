@@ -94,7 +94,7 @@ describe('DailyPracticeSetReadService', () => {
         dailyPracticeSet: { findUnique: jest.fn().mockResolvedValue(null) },
       };
 
-      await service.findSetForUtcDay(42, 7, NOW, txClient as any);
+      await service.findSetForUtcDay(42, 7, NOW, 'UTC', txClient as any);
 
       expect(txClient.dailyPracticeSet.findUnique).toHaveBeenCalledTimes(1);
       expect(prisma.dailyPracticeSet.findUnique).not.toHaveBeenCalled();

@@ -32,10 +32,17 @@ export class DailyPracticeGenerationService {
     studentId: number,
     timestamp: Date,
   ): Promise<EnsureDailyPracticeSetGeneratedResult> {
+    const userRecord = await this.prisma.user.findUnique({
+      where: { id: studentId },
+      select: { timezone: true },
+    });
+    const timezone = userRecord?.timezone ?? 'UTC';
+
     const existingSet = await this.dailyPracticeSetReadService.findSetForUtcDay(
       studentId,
       moduleId,
       timestamp,
+      timezone,
     );
     if (existingSet) {
       return {
@@ -48,6 +55,7 @@ export class DailyPracticeGenerationService {
         moduleId,
         studentId,
         timestamp,
+        timezone,
       );
     } catch (error) {
       if (error instanceof ForbiddenException) {
@@ -66,17 +74,21 @@ export class DailyPracticeGenerationService {
         studentId,
         orderedQuestions,
       );
-    const { dayStartUtc } = DateHelpers.getUtcDayBounds(timestamp);
+
+    // Store the local calendar date as the practice date — same convention as questDateUtc on DailyQuest.
+    const localDateKey = DateHelpers.getLocalDateKey(timestamp, timezone);
+    const dayStartDb = new Date(`${localDateKey}T00:00:00.000Z`);
 
     if (resolvedQuestions.length === 0) {
-      return this.persistEmptySetSentinel(moduleId, studentId, dayStartUtc);
+      return this.persistEmptySetSentinel(moduleId, studentId, dayStartDb, timezone);
     }
 
     return this.persistResolvedSet(
       moduleId,
       studentId,
       timestamp,
-      dayStartUtc,
+      dayStartDb,
+      timezone,
       resolvedQuestions,
     );
   }
@@ -101,14 +113,15 @@ export class DailyPracticeGenerationService {
   private async persistEmptySetSentinel(
     moduleId: number,
     studentId: number,
-    dayStartUtc: Date,
+    dayStartDb: Date,
+    timezone: string,
   ): Promise<EnsureDailyPracticeSetGeneratedResult> {
     try {
       await this.prisma.dailyPracticeSet.create({
         data: {
           userId: studentId,
           moduleId,
-          practiceDateUtc: dayStartUtc,
+          practiceDateUtc: dayStartDb,
           algorithmVersion: DailyPracticeAlgorithmVersionValues.fsrsV1,
         },
         select: { id: true },
@@ -119,7 +132,8 @@ export class DailyPracticeGenerationService {
         return this.resolveConcurrentGenerationResult(
           studentId,
           moduleId,
-          dayStartUtc,
+          dayStartDb,
+          timezone,
         );
       }
 
@@ -131,7 +145,8 @@ export class DailyPracticeGenerationService {
     moduleId: number,
     studentId: number,
     timestamp: Date,
-    dayStartUtc: Date,
+    dayStartDb: Date,
+    timezone: string,
     resolvedQuestions: Array<{
       questionUnitId: number;
       questionContentId: number;
@@ -147,7 +162,7 @@ export class DailyPracticeGenerationService {
         data: {
           userId: studentId,
           moduleId,
-          practiceDateUtc: dayStartUtc,
+          practiceDateUtc: dayStartDb,
           algorithmVersion: DailyPracticeAlgorithmVersionValues.fsrsV1,
           items: {
             create: resolvedQuestions.map((question) => ({
@@ -171,6 +186,7 @@ export class DailyPracticeGenerationService {
           studentId,
           moduleId,
           timestamp,
+          timezone,
         );
       }
 
@@ -182,12 +198,14 @@ export class DailyPracticeGenerationService {
     studentId: number,
     moduleId: number,
     timestamp: Date,
+    timezone: string,
   ): Promise<EnsureDailyPracticeSetGeneratedResult> {
     const concurrentSet =
       await this.dailyPracticeSetReadService.findSetForUtcDay(
         studentId,
         moduleId,
         timestamp,
+        timezone,
       );
     if (concurrentSet) {
       return {

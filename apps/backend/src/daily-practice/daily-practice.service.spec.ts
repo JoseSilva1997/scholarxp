@@ -60,6 +60,7 @@ describe('DailyPracticeService', () => {
 
   beforeEach(async () => {
     prisma = createPrismaMock();
+    prisma.user.findUnique.mockResolvedValue({ timezone: 'UTC' } as never);
     dailyPracticeSetReadService = {
       findSetForUtcDay: jest.fn(),
       findOwnedSetById: jest.fn(),
@@ -200,11 +201,12 @@ describe('DailyPracticeService', () => {
 
     expect(
       dailyPracticeEligibilityService.assertEligibleForToday,
-    ).toHaveBeenCalledWith(7, 42, expect.any(Date));
+    ).toHaveBeenCalledWith(7, 42, expect.any(Date), 'UTC');
     expect(dailyPracticeSetReadService.findSetForUtcDay).toHaveBeenCalledWith(
       42,
       7,
       expect.any(Date),
+      'UTC',
     );
     expect(
       practiceRoomSessionService.resolveOwnedSessionByType,

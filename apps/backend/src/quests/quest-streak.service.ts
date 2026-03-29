@@ -25,46 +25,63 @@ const UTC_DAY_IN_MS = 24 * 60 * 60 * 1000;
 export class QuestStreakService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // Header reads should reflect the effective streak as of "now", including reset-to-zero after a missed UTC day.
+  // Header reads should reflect the effective streak as of "now", including reset-to-zero after a missed local day.
   async getCurrentStreakStatus(
     userId: number,
     timestamp: Date = new Date(),
     tx?: PrismaClientLike,
   ): Promise<MasterQuestStreakResponse> {
     const prismaClient = tx ?? this.prisma;
-    const { dayStartUtc, nextDayStartUtc } =
-      DateHelpers.getUtcDayBounds(timestamp);
+
+    const userRecord = await prismaClient.user.findUnique({
+      where: { id: userId },
+      select: { timezone: true },
+    });
+    const timezone = userRecord?.timezone ?? 'UTC';
+
+    // The @db.Date column stores the local calendar date (YYYY-MM-DD) — compare against that key, not the UTC instant.
+    const todayLocalKey = DateHelpers.getLocalDateKey(timestamp, timezone);
+    const { dayStartUtc, nextDayStartUtc } = DateHelpers.getLocalDayBounds(
+      timestamp,
+      timezone,
+    );
+    // 1 ms before local midnight = end of the previous local day, giving us yesterday's date key.
+    const yesterdayLocalKey = DateHelpers.getLocalDateKey(
+      new Date(dayStartUtc.getTime() - 1),
+      timezone,
+    );
+
     const recentQuestDays = await this.loadRecentCompletedMasterQuestDays(
       userId,
       nextDayStartUtc,
       prismaClient,
     );
     const lastCompletedQuestDay = recentQuestDays[0] ?? null;
-    const lastCompletedQuestDateUtc = lastCompletedQuestDay
-      ? this.toUtcDayKey(lastCompletedQuestDay)
-      : null;
     if (!lastCompletedQuestDay) {
       return this.buildStatus(0, null);
     }
 
-    const yesterdayStartUtc = new Date(dayStartUtc.getTime() - UTC_DAY_IN_MS);
-    const anchorDayUtc =
-      this.toUtcDayKey(lastCompletedQuestDay) === this.toUtcDayKey(dayStartUtc)
-        ? dayStartUtc
-        : this.toUtcDayKey(lastCompletedQuestDay) ===
-            this.toUtcDayKey(yesterdayStartUtc)
-          ? yesterdayStartUtc
+    // DB dates are local calendar dates stored at UTC midnight — slice(0,10) gives the YYYY-MM-DD key.
+    const lastKey = lastCompletedQuestDay.toISOString().slice(0, 10);
+
+    // anchorDayDbDate is the DB-comparable midnight date for the streak anchor (today or yesterday).
+    const anchorDayDbDate =
+      lastKey === todayLocalKey
+        ? new Date(`${todayLocalKey}T00:00:00.000Z`)
+        : lastKey === yesterdayLocalKey
+          ? new Date(`${yesterdayLocalKey}T00:00:00.000Z`)
           : null;
-    if (!anchorDayUtc) {
-      return this.buildStatus(0, lastCompletedQuestDateUtc);
+
+    if (!anchorDayDbDate) {
+      return this.buildStatus(0, lastKey);
     }
 
     const currentStreak = this.countConsecutiveQuestDays(
       recentQuestDays,
-      anchorDayUtc,
+      anchorDayDbDate,
     );
 
-    return this.buildStatus(currentStreak, lastCompletedQuestDateUtc);
+    return this.buildStatus(currentStreak, lastKey);
   }
 
   // Reward calculation is backend-owned so the awarded EXP stays consistent across retries and future clients.

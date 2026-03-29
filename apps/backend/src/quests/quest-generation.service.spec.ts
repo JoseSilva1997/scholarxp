@@ -18,6 +18,7 @@ describe('QuestGenerationService', () => {
     questDailyPracticeAvailabilityService = {
       findAllAvailableModuleIds: jest.fn().mockResolvedValue([1]),
     };
+    prisma.user.findUnique.mockResolvedValue({ timezone: 'UTC' } as never);
     prisma.dailyQuest.createMany.mockResolvedValue({ count: 4 } as never);
 
     const moduleRef: TestingModule = await Test.createTestingModule({

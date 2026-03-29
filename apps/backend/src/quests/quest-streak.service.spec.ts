@@ -14,6 +14,7 @@ describe('QuestStreakService', () => {
 
   beforeEach(async () => {
     prisma = createPrismaMock();
+    prisma.user.findUnique.mockResolvedValue({ timezone: 'UTC' } as never);
 
     const moduleRef: TestingModule = await Test.createTestingModule({
       providers: [

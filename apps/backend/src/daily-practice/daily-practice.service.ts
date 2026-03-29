@@ -59,15 +59,18 @@ export class DailyPracticeService {
     existingSessionId?: string,
   ) {
     const now = new Date();
+    const timezone = await this.loadTimezone(studentId);
     await this.dailyPracticeEligibilityService.assertEligibleForToday(
       moduleId,
       studentId,
       now,
+      timezone,
     );
     const dailyPracticeSet = await this.getTodaySetOrThrow(
       moduleId,
       studentId,
       now,
+      timezone,
     );
     const session =
       await this.practiceRoomSessionService.resolveOwnedSessionByType(
@@ -80,6 +83,7 @@ export class DailyPracticeService {
       dailyPracticeSet,
       studentId,
       moduleId,
+      timezone,
     );
 
     return this.dailyPracticeMapper.buildTodayResponse({
@@ -103,11 +107,13 @@ export class DailyPracticeService {
     studentId: number,
   ): Promise<DailyPracticeStatusSummary> {
     const now = new Date();
+    const timezone = await this.loadTimezone(studentId);
     const eligibility =
       await this.dailyPracticeEligibilityService.checkEligibilityForToday(
         moduleId,
         studentId,
         now,
+        timezone,
       );
 
     if (!eligibility.eligible) {
@@ -118,6 +124,7 @@ export class DailyPracticeService {
       studentId,
       moduleId,
       now,
+      timezone,
     );
 
     if (!set || set.items.length === 0) {
@@ -139,7 +146,10 @@ export class DailyPracticeService {
       };
     }
 
-    const { dayStartUtc, nextDayStartUtc } = DateHelpers.getUtcDayBounds(now);
+    const { dayStartUtc, nextDayStartUtc } = DateHelpers.getLocalDayBounds(
+      now,
+      timezone,
+    );
     const answeredAttempts = await this.prisma.questionAttempt.findMany({
       where: {
         studentId,
@@ -215,8 +225,11 @@ export class DailyPracticeService {
       session.sessionType,
     );
 
-    const { dayStartUtc, nextDayStartUtc } = DateHelpers.getUtcDayBounds(
+    const timezone = await this.loadTimezone(studentId);
+    // practiceDateUtc stores the local calendar date at UTC midnight; getLocalDayBounds converts it to the actual UTC window.
+    const { dayStartUtc, nextDayStartUtc } = DateHelpers.getLocalDayBounds(
       dailyPracticeSet.practiceDateUtc,
+      timezone,
     );
     const isCorrect =
       await this.practiceRoomAttemptService.computeIsCorrectForPayload(
@@ -337,6 +350,7 @@ export class DailyPracticeService {
         studentId,
         moduleId,
         attemptedAt,
+        timezone,
         tx,
       )
         .then((progressSnapshot) => ({
@@ -381,11 +395,13 @@ export class DailyPracticeService {
       studentId,
       sessionId,
     );
+    const timezone = await this.loadTimezone(studentId);
     const dailyPracticeSet =
       await this.dailyPracticeSetReadService.findSetForUtcDay(
         studentId,
         moduleId,
         new Date(),
+        timezone,
       );
     if (!dailyPracticeSet) {
       throw new NotFoundException(
@@ -397,6 +413,7 @@ export class DailyPracticeService {
       dailyPracticeSet,
       studentId,
       moduleId,
+      timezone,
     );
 
     return this.dailyPracticeMapper.buildCloseResponse({
@@ -410,11 +427,13 @@ export class DailyPracticeService {
     moduleId: number,
     studentId: number,
     timestamp: Date,
+    timezone: string,
   ): Promise<PersistedDailyPracticeSetRecord> {
     const existingSet = await this.dailyPracticeSetReadService.findSetForUtcDay(
       studentId,
       moduleId,
       timestamp,
+      timezone,
     );
 
     // The read API intentionally hides whether today's absence came from no generation run yet
@@ -432,9 +451,11 @@ export class DailyPracticeService {
     dailyPracticeSet: PersistedDailyPracticeSetRecord,
     studentId: number,
     moduleId: number,
+    timezone: string,
   ) {
-    const { dayStartUtc, nextDayStartUtc } = DateHelpers.getUtcDayBounds(
+    const { dayStartUtc, nextDayStartUtc } = DateHelpers.getLocalDayBounds(
       dailyPracticeSet.practiceDateUtc,
+      timezone,
     );
     const questionUnitIds = dailyPracticeSet.items.map(
       (item) => item.questionUnitId,
@@ -580,6 +601,15 @@ export class DailyPracticeService {
     };
   }
 
+  // Loaded once per public method so all subordinate calls share one consistent timezone value.
+  private async loadTimezone(studentId: number): Promise<string> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: studentId },
+      select: { timezone: true },
+    });
+    return user?.timezone ?? 'UTC';
+  }
+
   // Mirrors the quest system's streak logic: first attempt per question, correct and no hints used.
   // Returns both the live count and the session high so the client can drive the streak indicator.
   private computeDailyPracticeStreak(
@@ -615,10 +645,12 @@ export class DailyPracticeService {
     studentId: number,
     moduleId: number,
     attemptedAt: Date,
+    timezone: string,
     tx: Prisma.TransactionClient,
   ) {
-    const { dayStartUtc, nextDayStartUtc } = DateHelpers.getUtcDayBounds(
+    const { dayStartUtc, nextDayStartUtc } = DateHelpers.getLocalDayBounds(
       dailyPracticeSet.practiceDateUtc,
+      timezone,
     );
     const answeredAttempts = await tx.questionAttempt.findMany({
       where: {
