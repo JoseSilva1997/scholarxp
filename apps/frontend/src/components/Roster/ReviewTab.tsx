@@ -133,6 +133,8 @@ export default function ReviewTab({
                       <div className={styles.studentCell}>
                         <img
                           src={resolveAvatar(row.avatarUrl)}
+                          crossOrigin="anonymous"
+                          referrerPolicy="no-referrer"
                           alt=""
                           className={styles.avatar}
                           aria-hidden="true"
