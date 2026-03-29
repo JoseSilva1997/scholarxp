@@ -38,6 +38,8 @@ const MANUAL_CONFIG = {
   DELETE_PRACTICE_SESSIONS: null as boolean | null,
   DELETE_QUESTION_ATTEMPTS: null as boolean | null,
   DELETE_STUDENT_QUESTION_STATE: null as boolean | null,
+  // Resets currentExp → 0 and userModuleLevel → 1 on matching UserModule rows.
+  RESET_USER_MODULE_PROGRESS: null as boolean | null,
 };
 
 function parseConfig() {
@@ -71,6 +73,7 @@ function parseConfig() {
     DELETE_PRACTICE_SESSIONS: MANUAL_CONFIG.DELETE_PRACTICE_SESSIONS ?? (isAll || !!moduleUnitId),
     DELETE_QUESTION_ATTEMPTS: MANUAL_CONFIG.DELETE_QUESTION_ATTEMPTS ?? (isAll || !!moduleUnitId),
     DELETE_STUDENT_QUESTION_STATE: MANUAL_CONFIG.DELETE_STUDENT_QUESTION_STATE ?? (isAll || !!moduleUnitId),
+    RESET_USER_MODULE_PROGRESS: MANUAL_CONFIG.RESET_USER_MODULE_PROGRESS ?? (isAll || !!moduleUnitId),
   };
 }
 
@@ -84,6 +87,7 @@ type DeleteSummary = {
   practiceSessions: number;
   questionAttempts: number;
   studentQuestionState: number;
+  userModuleReset: number;
   accountExpSet: number | null;
 };
 
@@ -173,6 +177,9 @@ function printConfiguration(): void {
   console.log(
     `- DELETE_STUDENT_QUESTION_STATE=${CONFIG.DELETE_STUDENT_QUESTION_STATE}`,
   );
+  console.log(
+    `- RESET_USER_MODULE_PROGRESS=${CONFIG.RESET_USER_MODULE_PROGRESS}`,
+  );
   console.log(`- SET_ACCOUNT_EXP=${CONFIG.SET_ACCOUNT_EXP ?? '(skipped)'}`);
 }
 
@@ -186,6 +193,7 @@ async function runDeletes(prisma: PrismaService): Promise<DeleteSummary> {
       practiceSessions: 0,
       questionAttempts: 0,
       studentQuestionState: 0,
+      userModuleReset: 0,
       accountExpSet: null,
     };
 
@@ -277,6 +285,30 @@ async function runDeletes(prisma: PrismaService): Promise<DeleteSummary> {
       }
     }
 
+    if (CONFIG.RESET_USER_MODULE_PROGRESS) {
+      // When scoped to a module unit, resolve its parent moduleId so we can target the right UserModule row.
+      let moduleIdFilter: number | undefined;
+      if (CONFIG.MODULE_UNIT_ID !== null) {
+        const unit = await tx.moduleUnit.findUnique({
+          where: { id: CONFIG.MODULE_UNIT_ID },
+          select: { moduleId: true },
+        });
+        moduleIdFilter = unit?.moduleId ?? undefined;
+      }
+
+      const where: Prisma.UserModuleWhereInput = { userId: CONFIG.USER_ID };
+      if (moduleIdFilter !== undefined) {
+        where.moduleId = moduleIdFilter;
+      }
+
+      summary.userModuleReset = (
+        await tx.userModule.updateMany({
+          where,
+          data: { currentExp: 0, userModuleLevel: 1 },
+        })
+      ).count;
+    }
+
     if (CONFIG.SET_ACCOUNT_EXP !== null) {
       await tx.avatar.upsert({
         where: { userId: CONFIG.USER_ID },
@@ -299,6 +331,7 @@ function printSummary(summary: DeleteSummary): void {
   console.log(`- practice_sessions=${summary.practiceSessions}`);
   console.log(`- question_attempts=${summary.questionAttempts}`);
   console.log(`- student_question_state=${summary.studentQuestionState}`);
+  console.log(`- user_modules reset=${summary.userModuleReset}`);
   if (summary.accountExpSet !== null) {
     console.log(`- account_exp set to ${summary.accountExpSet}`);
   }
