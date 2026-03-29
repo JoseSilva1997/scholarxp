@@ -45,10 +45,12 @@ describe('DailyPracticeGenerationBatchService', () => {
 
     prisma.userModule.findMany
       .mockResolvedValueOnce([
-        { id: 4, userId: 10, moduleId: 7 },
-        { id: 8, userId: 10, moduleId: 9 },
+        { id: 4, userId: 10, moduleId: 7, user: { timezone: 'UTC' } },
+        { id: 8, userId: 10, moduleId: 9, user: { timezone: 'UTC' } },
       ] as never)
-      .mockResolvedValueOnce([{ id: 12, userId: 14, moduleId: 5 }] as never)
+      .mockResolvedValueOnce([
+        { id: 12, userId: 14, moduleId: 5, user: { timezone: 'UTC' } },
+      ] as never)
       .mockResolvedValueOnce([] as never);
     dailyPracticeGenerationService.ensureSetGenerated
       .mockResolvedValueOnce({ status: 'created' })
@@ -68,6 +70,11 @@ describe('DailyPracticeGenerationBatchService', () => {
         id: true,
         userId: true,
         moduleId: true,
+        user: {
+          select: {
+            timezone: true,
+          },
+        },
       },
       orderBy: {
         id: 'asc',
@@ -85,6 +92,33 @@ describe('DailyPracticeGenerationBatchService', () => {
         id: true,
         userId: true,
         moduleId: true,
+        user: {
+          select: {
+            timezone: true,
+          },
+        },
+      },
+      orderBy: {
+        id: 'asc',
+      },
+      take: 2,
+    });
+    expect(prisma.userModule.findMany).toHaveBeenNthCalledWith(3, {
+      where: {
+        roleInModule: 'student',
+        id: {
+          gt: 12,
+        },
+      },
+      select: {
+        id: true,
+        userId: true,
+        moduleId: true,
+        user: {
+          select: {
+            timezone: true,
+          },
+        },
       },
       orderBy: {
         id: 'asc',
@@ -114,8 +148,8 @@ describe('DailyPracticeGenerationBatchService', () => {
 
     prisma.userModule.findMany
       .mockResolvedValueOnce([
-        { id: 4, userId: 10, moduleId: 7 },
-        { id: 8, userId: 10, moduleId: 9 },
+        { id: 4, userId: 10, moduleId: 7, user: { timezone: 'UTC' } },
+        { id: 8, userId: 10, moduleId: 9, user: { timezone: 'UTC' } },
       ] as never)
       .mockResolvedValueOnce([] as never);
     dailyPracticeGenerationService.ensureSetGenerated
@@ -140,7 +174,9 @@ describe('DailyPracticeGenerationBatchService', () => {
 
   it('normalizes invalid batch sizes so the job still progresses', async () => {
     prisma.userModule.findMany
-      .mockResolvedValueOnce([{ id: 4, userId: 10, moduleId: 7 }] as never)
+      .mockResolvedValueOnce([
+        { id: 4, userId: 10, moduleId: 7, user: { timezone: 'UTC' } },
+      ] as never)
       .mockResolvedValueOnce([] as never);
 
     await service.generateDailyPracticeSetsForAllStudents(
@@ -156,11 +192,59 @@ describe('DailyPracticeGenerationBatchService', () => {
         id: true,
         userId: true,
         moduleId: true,
+        user: {
+          select: {
+            timezone: true,
+          },
+        },
       },
       orderBy: {
         id: 'asc',
       },
       take: 1,
+    });
+  });
+
+  it('filters scheduled generation to memberships that are near local midnight', async () => {
+    const timestamp = new Date('2026-03-23T18:15:00.000Z');
+
+    prisma.userModule.findMany
+      .mockResolvedValueOnce([
+        {
+          id: 4,
+          userId: 10,
+          moduleId: 7,
+          user: { timezone: 'Asia/Kathmandu' },
+        },
+        {
+          id: 8,
+          userId: 12,
+          moduleId: 9,
+          user: { timezone: 'America/New_York' },
+        },
+        { id: 12, userId: 14, moduleId: 5, user: { timezone: 'UTC' } },
+      ] as never)
+      .mockResolvedValueOnce([] as never);
+    dailyPracticeGenerationService.ensureSetGenerated.mockResolvedValueOnce({
+      status: 'created',
+    });
+
+    const result = await service.generateDailyPracticeSetsForAllStudents(
+      timestamp,
+      50,
+      { onlyLocalMidnightWindow: true },
+    );
+
+    expect(
+      dailyPracticeGenerationService.ensureSetGenerated,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      dailyPracticeGenerationService.ensureSetGenerated,
+    ).toHaveBeenNthCalledWith(1, 7, 10, timestamp);
+    expect(result).toEqual({
+      processedMembershipCount: 1,
+      createdSetCount: 1,
+      failedMembershipCount: 0,
     });
   });
 });
