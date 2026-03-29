@@ -43,6 +43,7 @@ model User {
   profilePictureUrl       String                   @default("default-profile-pic.png") @map("profile_picture_url")
   globalRole              GlobalRole               @default(pending) @map("global_role")
   isVerified              Boolean                  @default(false)
+  timezone                String                   @default("UTC")
   createdAt               DateTime                 @default(now()) @map("created_at")
   authIdentities          AuthIdentity[]
   password                UserPassword?
