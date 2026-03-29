@@ -90,6 +90,14 @@ export class UsersService {
     });
   }
 
+  async updateTimezone(id: number, timezone: string) {
+    await this.getUserOrThrow(id);
+    return this.prisma.user.update({
+      where: { id },
+      data: { timezone },
+    });
+  }
+
   async remove(id: number) {
     await this.getUserOrThrow(id);
     return this.prisma.user.delete({ where: { id } });

@@ -80,7 +80,12 @@ export class DailyPracticeGenerationService {
     const dayStartDb = new Date(`${localDateKey}T00:00:00.000Z`);
 
     if (resolvedQuestions.length === 0) {
-      return this.persistEmptySetSentinel(moduleId, studentId, dayStartDb, timezone);
+      return this.persistEmptySetSentinel(
+        moduleId,
+        studentId,
+        dayStartDb,
+        timezone,
+      );
     }
 
     return this.persistResolvedSet(

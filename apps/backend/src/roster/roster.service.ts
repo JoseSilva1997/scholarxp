@@ -442,9 +442,14 @@ export class RosterService {
     const lessonExpMap = new Map<number, LessonExp>();
     for (const entry of ledgerAggregates) {
       if (entry.moduleUnitId === null) continue;
-      const existing = lessonExpMap.get(entry.moduleUnitId) ?? { completionExp: 0, masteryExp: 0 };
+      const existing = lessonExpMap.get(entry.moduleUnitId) ?? {
+        completionExp: 0,
+        masteryExp: 0,
+      };
       const exp = entry._sum.awardedExp ?? 0;
-      if (entry.eventType === ExpLedgerEventTypes.CORRECT_PRACTICE_ROOM_ANSWER) {
+      if (
+        entry.eventType === ExpLedgerEventTypes.CORRECT_PRACTICE_ROOM_ANSWER
+      ) {
         existing.completionExp += exp;
       } else {
         existing.masteryExp += exp;
@@ -459,12 +464,18 @@ export class RosterService {
 
     const lessonProgress = liveLessons.map((lesson) => {
       const progress = progressMap.get(lesson.id);
-      const exp = lessonExpMap.get(lesson.id) ?? { completionExp: 0, masteryExp: 0 };
+      const exp = lessonExpMap.get(lesson.id) ?? {
+        completionExp: 0,
+        masteryExp: 0,
+      };
       return {
         moduleUnitId: lesson.id,
         lessonTitle: lesson.title,
         isCompleted: progress?.isCompleted ?? false,
-        currentMasteryScore: Math.round(this.computeLessonMasteryScore(exp.completionExp, exp.masteryExp) * 100),
+        currentMasteryScore: Math.round(
+          this.computeLessonMasteryScore(exp.completionExp, exp.masteryExp) *
+            100,
+        ),
         completedAt: progress?.completedAt?.toISOString() ?? null,
         lastPracticedAt: progress?.lastPracticedAt?.toISOString() ?? null,
       };
@@ -508,8 +519,17 @@ export class RosterService {
       liveLessonIds.length > 0
         ? Math.round(
             (liveLessonIds.reduce((sum, id) => {
-              const exp = lessonExpMap.get(id) ?? { completionExp: 0, masteryExp: 0 };
-              return sum + this.computeLessonMasteryScore(exp.completionExp, exp.masteryExp);
+              const exp = lessonExpMap.get(id) ?? {
+                completionExp: 0,
+                masteryExp: 0,
+              };
+              return (
+                sum +
+                this.computeLessonMasteryScore(
+                  exp.completionExp,
+                  exp.masteryExp,
+                )
+              );
             }, 0) /
               liveLessonIds.length) *
               100,
@@ -685,7 +705,10 @@ export class RosterService {
     studentIds: number[],
     liveLessonIds: number[],
   ): Promise<Map<number, { completed: number; averageMastery: number }>> {
-    const result = new Map<number, { completed: number; averageMastery: number }>();
+    const result = new Map<
+      number,
+      { completed: number; averageMastery: number }
+    >();
     if (liveLessonIds.length === 0) return result;
 
     const masteryEventTypes = [
@@ -723,10 +746,16 @@ export class RosterService {
     const ledgerMap = new Map<number, Map<number, LessonExp>>();
     for (const entry of ledgerAggregates) {
       if (entry.moduleUnitId === null) continue;
-      const byLesson = ledgerMap.get(entry.userId) ?? new Map<number, LessonExp>();
-      const lessonExp = byLesson.get(entry.moduleUnitId) ?? { completionExp: 0, masteryExp: 0 };
+      const byLesson =
+        ledgerMap.get(entry.userId) ?? new Map<number, LessonExp>();
+      const lessonExp = byLesson.get(entry.moduleUnitId) ?? {
+        completionExp: 0,
+        masteryExp: 0,
+      };
       const exp = entry._sum.awardedExp ?? 0;
-      if (entry.eventType === ExpLedgerEventTypes.CORRECT_PRACTICE_ROOM_ANSWER) {
+      if (
+        entry.eventType === ExpLedgerEventTypes.CORRECT_PRACTICE_ROOM_ANSWER
+      ) {
         lessonExp.completionExp += exp;
       } else {
         lessonExp.masteryExp += exp;
@@ -740,7 +769,10 @@ export class RosterService {
     for (const record of progressRecords) {
       if (record.studentId === null) continue;
       if (record.isCompleted) {
-        completedByStudent.set(record.studentId, (completedByStudent.get(record.studentId) ?? 0) + 1);
+        completedByStudent.set(
+          record.studentId,
+          (completedByStudent.get(record.studentId) ?? 0) + 1,
+        );
       }
     }
 
@@ -749,8 +781,14 @@ export class RosterService {
       const byLesson = ledgerMap.get(studentId);
       let masterySum = 0;
       for (const lessonId of liveLessonIds) {
-        const exp = byLesson?.get(lessonId) ?? { completionExp: 0, masteryExp: 0 };
-        masterySum += this.computeLessonMasteryScore(exp.completionExp, exp.masteryExp);
+        const exp = byLesson?.get(lessonId) ?? {
+          completionExp: 0,
+          masteryExp: 0,
+        };
+        masterySum += this.computeLessonMasteryScore(
+          exp.completionExp,
+          exp.masteryExp,
+        );
       }
       result.set(studentId, {
         completed: completedByStudent.get(studentId) ?? 0,
@@ -763,10 +801,19 @@ export class RosterService {
 
   // Blends completion rate and mastery XP rate into a 0–1 lesson mastery score.
   // Caps each component at its known maximum so over-earning doesn't push past 100%.
-  private computeLessonMasteryScore(completionExp: number, masteryExp: number): number {
-    const completionRate = Math.min(completionExp, MODULE_UNIT_BASELINE_EXP) / MODULE_UNIT_BASELINE_EXP;
-    const masteryRate = Math.min(masteryExp, MASTERY_TOTAL_EXP) / MASTERY_TOTAL_EXP;
-    return completionRate * ROSTER_MASTERY_COMPLETION_WEIGHT + masteryRate * ROSTER_MASTERY_EXP_WEIGHT;
+  private computeLessonMasteryScore(
+    completionExp: number,
+    masteryExp: number,
+  ): number {
+    const completionRate =
+      Math.min(completionExp, MODULE_UNIT_BASELINE_EXP) /
+      MODULE_UNIT_BASELINE_EXP;
+    const masteryRate =
+      Math.min(masteryExp, MASTERY_TOTAL_EXP) / MASTERY_TOTAL_EXP;
+    return (
+      completionRate * ROSTER_MASTERY_COMPLETION_WEIGHT +
+      masteryRate * ROSTER_MASTERY_EXP_WEIGHT
+    );
   }
 
   // Batch-fetches due and overdue review counts per student.

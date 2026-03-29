@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
+import { UpdateTimezoneDto } from './dto/update-timezone.dto';
 import { AuthService } from '../../auth/auth.service';
 import { SessionAuthGuard } from '../../auth/guards/session-auth.guard';
 import { AuthorizationGuard } from '../../auth/guards/authorization.guard';
@@ -34,6 +35,21 @@ export class UsersController {
   ) {
     return this.usersService
       .updateRole(id, updateUserRoleDto.globalRole)
+      .then(() => this.authService.getUserById(id));
+  }
+
+  @Patch(':id/timezone')
+  @Authorize({
+    capability: features.users.updateOwnTimezone,
+    scope: 'self',
+    selfUserIdParam: 'id',
+  })
+  updateTimezone(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateTimezoneDto,
+  ) {
+    return this.usersService
+      .updateTimezone(id, dto.timezone)
       .then(() => this.authService.getUserById(id));
   }
 }

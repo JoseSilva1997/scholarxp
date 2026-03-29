@@ -75,9 +75,9 @@ describe('RosterService', () => {
         id: MODULE_ID,
         title: 'Test Module',
       } as any);
-      prisma.moduleUnit.findMany.mockResolvedValue(
-        [{ id: 10, moduleId: MODULE_ID, status: 'live' }] as any,
-      );
+      prisma.moduleUnit.findMany.mockResolvedValue([
+        { id: 10, moduleId: MODULE_ID, status: 'live' },
+      ] as any);
       prisma.userModule.findMany.mockResolvedValue([] as any);
 
       const result = await service.getSummary(MODULE_ID);
@@ -115,31 +115,36 @@ describe('RosterService', () => {
         id: MODULE_ID,
         title: 'Algebra',
       } as any);
-      prisma.moduleUnit.findMany.mockResolvedValue(
-        [{ id: 10 }, { id: 11 }] as any,
-      );
+      prisma.moduleUnit.findMany.mockResolvedValue([
+        { id: 10 },
+        { id: 11 },
+      ] as any);
       // Two enrolled students
-      prisma.userModule.findMany.mockResolvedValue(
-        [{ userId: 1 }, { userId: 2 }] as any,
-      );
+      prisma.userModule.findMany.mockResolvedValue([
+        { userId: 1 },
+        { userId: 2 },
+      ] as any);
 
       // Student 1 active in last 7 days, student 2 not
-      prisma.questionAttempt.findMany.mockResolvedValue(
-        [{ studentId: 1 }] as any,
-      );
+      prisma.questionAttempt.findMany.mockResolvedValue([
+        { studentId: 1 },
+      ] as any);
 
       // Lesson coverage: lesson 10 started, lesson 11 started and completed
       prisma.moduleUnitUserProgress.findMany
-        .mockResolvedValueOnce(
-          [{ moduleUnitId: 10 }, { moduleUnitId: 11 }] as any,
-        ) // started
+        .mockResolvedValueOnce([
+          { moduleUnitId: 10 },
+          { moduleUnitId: 11 },
+        ] as any) // started
         .mockResolvedValueOnce([{ moduleUnitId: 11 }] as any); // completed
 
       // Review backlog: 3 overdue items for student 2
       prisma.studentQuestionState.findMany
-        .mockResolvedValueOnce(
-          [{ userId: 2 }, { userId: 2 }, { userId: 2 }] as any,
-        ) // backlog
+        .mockResolvedValueOnce([
+          { userId: 2 },
+          { userId: 2 },
+          { userId: 2 },
+        ] as any) // backlog
         .mockResolvedValueOnce([{ userId: 2 }] as any); // overdue student ids (distinct)
 
       const result = await service.getSummary(MODULE_ID);
@@ -176,38 +181,47 @@ describe('RosterService', () => {
     });
 
     it('builds correct student row with all computed fields', async () => {
-      prisma.moduleUnit.findMany.mockResolvedValue(
-        [{ id: 10 }, { id: 11 }] as any,
-      );
+      prisma.moduleUnit.findMany.mockResolvedValue([
+        { id: 10 },
+        { id: 11 },
+      ] as any);
       prisma.userModule.findMany.mockResolvedValue([makeEnrollment(1)] as any);
 
       // Lesson progress: lesson 10 completed, lesson 11 not started
-      prisma.moduleUnitUserProgress.findMany.mockResolvedValue(
-        [{ studentId: 1, moduleUnitId: 10, isCompleted: true }] as any,
-      );
+      prisma.moduleUnitUserProgress.findMany.mockResolvedValue([
+        { studentId: 1, moduleUnitId: 10, isCompleted: true },
+      ] as any);
 
       // Ledger: lesson 10 has full baseline exp + full mastery exp → lessonMastery = 1.0
       // Lesson 11 has no entries → 0. averageMastery = (1.0 + 0) / 2 * 100 = 50
       prisma.expLedger.groupBy.mockResolvedValue([
-        { userId: 1, moduleUnitId: 10, eventType: 'practice_room_answer_correct', _sum: { awardedExp: 1000 } },
-        { userId: 1, moduleUnitId: 10, eventType: 'daily_practice_mastery_retained', _sum: { awardedExp: 700 } },
+        {
+          userId: 1,
+          moduleUnitId: 10,
+          eventType: 'practice_room_answer_correct',
+          _sum: { awardedExp: 1000 },
+        },
+        {
+          userId: 1,
+          moduleUnitId: 10,
+          eventType: 'daily_practice_mastery_retained',
+          _sum: { awardedExp: 700 },
+        },
       ] as any);
 
       // Review counts: 2 due, 1 overdue
-      prisma.studentQuestionState.findMany.mockResolvedValue(
-        [
-          { userId: 1, fsrsDueAt: EIGHT_DAYS_AGO }, // overdue
-          {
-            userId: 1,
-            fsrsDueAt: THREE_DAYS_AGO, // due but not overdue (within today's boundary — actually this is before DAY_START so it IS overdue)
-          },
-        ] as any,
-      );
+      prisma.studentQuestionState.findMany.mockResolvedValue([
+        { userId: 1, fsrsDueAt: EIGHT_DAYS_AGO }, // overdue
+        {
+          userId: 1,
+          fsrsDueAt: THREE_DAYS_AGO, // due but not overdue (within today's boundary — actually this is before DAY_START so it IS overdue)
+        },
+      ] as any);
 
       // Last activity: 3 days ago (active)
-      prisma.questionAttempt.groupBy.mockResolvedValue(
-        [{ studentId: 1, _max: { attemptedAt: THREE_DAYS_AGO } }] as any,
-      );
+      prisma.questionAttempt.groupBy.mockResolvedValue([
+        { studentId: 1, _max: { attemptedAt: THREE_DAYS_AGO } },
+      ] as any);
 
       dailyPracticeService.getDailyPracticeStatus.mockResolvedValue({
         status: 'available',
@@ -250,13 +264,13 @@ describe('RosterService', () => {
       prisma.moduleUnitUserProgress.findMany.mockResolvedValue([] as any);
       prisma.expLedger.groupBy.mockResolvedValue([] as any);
       // Overdue review
-      prisma.studentQuestionState.findMany.mockResolvedValue(
-        [{ userId: 1, fsrsDueAt: EIGHT_DAYS_AGO }] as any,
-      );
+      prisma.studentQuestionState.findMany.mockResolvedValue([
+        { userId: 1, fsrsDueAt: EIGHT_DAYS_AGO },
+      ] as any);
       // Active recently
-      prisma.questionAttempt.groupBy.mockResolvedValue(
-        [{ studentId: 1, _max: { attemptedAt: THREE_DAYS_AGO } }] as any,
-      );
+      prisma.questionAttempt.groupBy.mockResolvedValue([
+        { studentId: 1, _max: { attemptedAt: THREE_DAYS_AGO } },
+      ] as any);
 
       const result = await service.getStudents(MODULE_ID, {});
 
@@ -265,16 +279,17 @@ describe('RosterService', () => {
 
     it('filters by at_risk', async () => {
       prisma.moduleUnit.findMany.mockResolvedValue([{ id: 10 }] as any);
-      prisma.userModule.findMany.mockResolvedValue(
-        [makeEnrollment(1), makeEnrollment(2)] as any,
-      );
+      prisma.userModule.findMany.mockResolvedValue([
+        makeEnrollment(1),
+        makeEnrollment(2),
+      ] as any);
       prisma.moduleUnitUserProgress.findMany.mockResolvedValue([] as any);
       prisma.expLedger.groupBy.mockResolvedValue([] as any);
       prisma.studentQuestionState.findMany.mockResolvedValue([] as any);
       // Student 1 active, student 2 inactive
-      prisma.questionAttempt.groupBy.mockResolvedValue(
-        [{ studentId: 1, _max: { attemptedAt: THREE_DAYS_AGO } }] as any,
-      );
+      prisma.questionAttempt.groupBy.mockResolvedValue([
+        { studentId: 1, _max: { attemptedAt: THREE_DAYS_AGO } },
+      ] as any);
 
       const result = await service.getStudents(MODULE_ID, {
         filter: 'at_risk',
@@ -287,9 +302,10 @@ describe('RosterService', () => {
 
     it('filters by daily_practice_locked', async () => {
       prisma.moduleUnit.findMany.mockResolvedValue([{ id: 10 }] as any);
-      prisma.userModule.findMany.mockResolvedValue(
-        [makeEnrollment(1), makeEnrollment(2)] as any,
-      );
+      prisma.userModule.findMany.mockResolvedValue([
+        makeEnrollment(1),
+        makeEnrollment(2),
+      ] as any);
       prisma.moduleUnitUserProgress.findMany.mockResolvedValue([] as any);
       prisma.expLedger.groupBy.mockResolvedValue([] as any);
       prisma.studentQuestionState.findMany.mockResolvedValue([] as any);
@@ -400,31 +416,27 @@ describe('RosterService', () => {
     });
 
     it('computes per-lesson aggregates correctly', async () => {
-      prisma.moduleUnit.findMany.mockResolvedValue(
-        [
-          { id: 10, title: 'Lesson A', status: 'live' },
-          { id: 11, title: 'Lesson B', status: 'live' },
-        ] as any,
-      );
+      prisma.moduleUnit.findMany.mockResolvedValue([
+        { id: 10, title: 'Lesson A', status: 'live' },
+        { id: 11, title: 'Lesson B', status: 'live' },
+      ] as any);
       prisma.userModule.count.mockResolvedValue(5);
 
       // Progress aggregates: lesson 10 has 3 students started, avg mastery 75
-      prisma.moduleUnitUserProgress.groupBy.mockResolvedValue(
-        [
-          {
-            moduleUnitId: 10,
-            _count: { studentId: 3 },
-            _avg: { currentMasteryScore: 0.75 },
-            _max: { lastPracticedAt: THREE_DAYS_AGO },
-          },
-          {
-            moduleUnitId: 11,
-            _count: { studentId: 1 },
-            _avg: { currentMasteryScore: 0.9 },
-            _max: { lastPracticedAt: null },
-          },
-        ] as any,
-      );
+      prisma.moduleUnitUserProgress.groupBy.mockResolvedValue([
+        {
+          moduleUnitId: 10,
+          _count: { studentId: 3 },
+          _avg: { currentMasteryScore: 0.75 },
+          _max: { lastPracticedAt: THREE_DAYS_AGO },
+        },
+        {
+          moduleUnitId: 11,
+          _count: { studentId: 1 },
+          _avg: { currentMasteryScore: 0.9 },
+          _max: { lastPracticedAt: null },
+        },
+      ] as any);
 
       // Completed aggregates: lesson 10 has 2 completions
       (prisma.moduleUnitUserProgress.groupBy as jest.Mock)
@@ -464,36 +476,30 @@ describe('RosterService', () => {
     });
 
     it('sorts lessons by completion_rate descending', async () => {
-      prisma.moduleUnit.findMany.mockResolvedValue(
-        [
-          { id: 10, title: 'Low', status: 'live' },
-          { id: 11, title: 'High', status: 'live' },
-        ] as any,
-      );
+      prisma.moduleUnit.findMany.mockResolvedValue([
+        { id: 10, title: 'Low', status: 'live' },
+        { id: 11, title: 'High', status: 'live' },
+      ] as any);
       prisma.userModule.count.mockResolvedValue(10);
       prisma.moduleUnitUserProgress.groupBy
-        .mockResolvedValueOnce(
-          [
-            {
-              moduleUnitId: 10,
-              _count: { studentId: 2 },
-              _avg: { currentMasteryScore: 0.5 },
-              _max: { lastPracticedAt: null },
-            },
-            {
-              moduleUnitId: 11,
-              _count: { studentId: 8 },
-              _avg: { currentMasteryScore: 0.8 },
-              _max: { lastPracticedAt: null },
-            },
-          ] as any,
-        )
-        .mockResolvedValueOnce(
-          [
-            { moduleUnitId: 10, _count: { studentId: 1 } },
-            { moduleUnitId: 11, _count: { studentId: 7 } },
-          ] as any,
-        );
+        .mockResolvedValueOnce([
+          {
+            moduleUnitId: 10,
+            _count: { studentId: 2 },
+            _avg: { currentMasteryScore: 0.5 },
+            _max: { lastPracticedAt: null },
+          },
+          {
+            moduleUnitId: 11,
+            _count: { studentId: 8 },
+            _avg: { currentMasteryScore: 0.8 },
+            _max: { lastPracticedAt: null },
+          },
+        ] as any)
+        .mockResolvedValueOnce([
+          { moduleUnitId: 10, _count: { studentId: 1 } },
+          { moduleUnitId: 11, _count: { studentId: 7 } },
+        ] as any);
 
       const result = await service.getLessons(MODULE_ID, {
         sortBy: 'completion_rate',
@@ -520,25 +526,23 @@ describe('RosterService', () => {
       prisma.userModule.findMany.mockResolvedValue([makeEnrollment(1)] as any);
 
       // Due states: 2 due (1 overdue + 1 due-today)
-      prisma.studentQuestionState.findMany.mockResolvedValue(
-        [
-          { userId: 1, fsrsDueAt: EIGHT_DAYS_AGO },
-          { userId: 1, fsrsDueAt: NOW },
-        ] as any,
-      );
+      prisma.studentQuestionState.findMany.mockResolvedValue([
+        { userId: 1, fsrsDueAt: EIGHT_DAYS_AGO },
+        { userId: 1, fsrsDueAt: NOW },
+      ] as any);
 
       // Lapse aggregates
-      prisma.studentQuestionState.groupBy.mockResolvedValue(
-        [{ userId: 1, _sum: { lapseCount: 5 } }] as any,
-      );
+      prisma.studentQuestionState.groupBy.mockResolvedValue([
+        { userId: 1, _sum: { lapseCount: 5 } },
+      ] as any);
 
       dailyPracticeService.getDailyPracticeStatus.mockResolvedValue({
         status: 'completed',
       });
 
-      prisma.dailyPracticeSet.findMany.mockResolvedValue(
-        [{ userId: 1, completedAt: THREE_DAYS_AGO }] as any,
-      );
+      prisma.dailyPracticeSet.findMany.mockResolvedValue([
+        { userId: 1, completedAt: THREE_DAYS_AGO },
+      ] as any);
 
       const result = await service.getReview(MODULE_ID, {});
 
@@ -554,22 +558,19 @@ describe('RosterService', () => {
     });
 
     it('sorts by overdue_review_count descending', async () => {
-      prisma.userModule.findMany.mockResolvedValue(
-        [makeEnrollment(1), makeEnrollment(2)] as any,
-      );
+      prisma.userModule.findMany.mockResolvedValue([
+        makeEnrollment(1),
+        makeEnrollment(2),
+      ] as any);
 
-      prisma.studentQuestionState.findMany.mockResolvedValue(
-        [
-          { userId: 2, fsrsDueAt: EIGHT_DAYS_AGO },
-          { userId: 2, fsrsDueAt: EIGHT_DAYS_AGO },
-        ] as any,
-      );
-      prisma.studentQuestionState.groupBy.mockResolvedValue(
-        [
-          { userId: 1, _sum: { lapseCount: 0 } },
-          { userId: 2, _sum: { lapseCount: 1 } },
-        ] as any,
-      );
+      prisma.studentQuestionState.findMany.mockResolvedValue([
+        { userId: 2, fsrsDueAt: EIGHT_DAYS_AGO },
+        { userId: 2, fsrsDueAt: EIGHT_DAYS_AGO },
+      ] as any);
+      prisma.studentQuestionState.groupBy.mockResolvedValue([
+        { userId: 1, _sum: { lapseCount: 0 } },
+        { userId: 2, _sum: { lapseCount: 1 } },
+      ] as any);
       prisma.dailyPracticeSet.findMany.mockResolvedValue([] as any);
 
       const result = await service.getReview(MODULE_ID, {
@@ -599,7 +600,7 @@ describe('RosterService', () => {
       prisma.userModule.findUnique.mockResolvedValue({
         ...makeEnrollment(1),
         roleInModule: 'teacher',
-      } as any);
+      });
 
       await expect(service.getStudentDetail(MODULE_ID, 1)).rejects.toThrow(
         NotFoundException,
@@ -608,65 +609,65 @@ describe('RosterService', () => {
 
     it('returns full student detail with all blocks', async () => {
       prisma.userModule.findUnique.mockResolvedValue(makeEnrollment(1));
-      prisma.moduleUnit.findMany.mockResolvedValue(
-        [
-          { id: 10, title: 'Lesson A' },
-          { id: 11, title: 'Lesson B' },
-        ] as any,
-      );
+      prisma.moduleUnit.findMany.mockResolvedValue([
+        { id: 10, title: 'Lesson A' },
+        { id: 11, title: 'Lesson B' },
+      ] as any);
 
       // Per-lesson progress
-      prisma.moduleUnitUserProgress.findMany.mockResolvedValue(
-        [
-          {
-            moduleUnitId: 10,
-            studentId: 1,
-            isCompleted: true,
-            currentMasteryScore: 0.85,
-            completedAt: THREE_DAYS_AGO,
-            lastPracticedAt: THREE_DAYS_AGO,
-          },
-        ] as any,
-      );
+      prisma.moduleUnitUserProgress.findMany.mockResolvedValue([
+        {
+          moduleUnitId: 10,
+          studentId: 1,
+          isCompleted: true,
+          currentMasteryScore: 0.85,
+          completedAt: THREE_DAYS_AGO,
+          lastPracticedAt: THREE_DAYS_AGO,
+        },
+      ] as any);
 
       // Ledger: lesson 10 has 600 baseline exp + 420 mastery exp
       // completionRate = 0.6, masteryRate = 0.6 → lessonMastery = 0.6*0.20 + 0.6*0.80 = 0.60
       // Lesson 11 has no entries → 0. averageMastery = (0.60 + 0) / 2 * 100 = 30
       prisma.expLedger.groupBy.mockResolvedValue([
-        { moduleUnitId: 10, eventType: 'practice_room_answer_correct', _sum: { awardedExp: 600 } },
-        { moduleUnitId: 10, eventType: 'daily_practice_mastery_encountered', _sum: { awardedExp: 420 } },
+        {
+          moduleUnitId: 10,
+          eventType: 'practice_room_answer_correct',
+          _sum: { awardedExp: 600 },
+        },
+        {
+          moduleUnitId: 10,
+          eventType: 'daily_practice_mastery_encountered',
+          _sum: { awardedExp: 420 },
+        },
       ] as any);
 
       // FSRS review states
-      prisma.studentQuestionState.findMany.mockResolvedValue(
-        [
-          { fsrsDueAt: EIGHT_DAYS_AGO, lapseCount: 2 },
-          { fsrsDueAt: NOW, lapseCount: 1 },
-        ] as any,
-      );
+      prisma.studentQuestionState.findMany.mockResolvedValue([
+        { fsrsDueAt: EIGHT_DAYS_AGO, lapseCount: 2 },
+        { fsrsDueAt: NOW, lapseCount: 1 },
+      ] as any);
 
       // Recent attempts (7 days)
-      prisma.questionAttempt.findMany.mockResolvedValue(
-        [
-          { isCorrect: true, timeTakenMs: 5000, hintsUsed: 0 },
-          { isCorrect: false, timeTakenMs: 8000, hintsUsed: 1 },
-          { isCorrect: true, timeTakenMs: 3000, hintsUsed: 0 },
-        ] as any,
-      );
+      prisma.questionAttempt.findMany.mockResolvedValue([
+        { isCorrect: true, timeTakenMs: 5000, hintsUsed: 0 },
+        { isCorrect: false, timeTakenMs: 8000, hintsUsed: 1 },
+        { isCorrect: true, timeTakenMs: 3000, hintsUsed: 0 },
+      ] as any);
 
       dailyPracticeService.getDailyPracticeStatus.mockResolvedValue({
         status: 'available',
       });
 
       // Last activity
-      prisma.questionAttempt.findFirst.mockResolvedValue(
-        { attemptedAt: THREE_DAYS_AGO } as any,
-      );
+      prisma.questionAttempt.findFirst.mockResolvedValue({
+        attemptedAt: THREE_DAYS_AGO,
+      } as any);
 
       // Last daily practice completion
-      prisma.dailyPracticeSet.findFirst.mockResolvedValue(
-        { completedAt: THREE_DAYS_AGO } as any,
-      );
+      prisma.dailyPracticeSet.findFirst.mockResolvedValue({
+        completedAt: THREE_DAYS_AGO,
+      } as any);
 
       const result = await service.getStudentDetail(MODULE_ID, 1);
 

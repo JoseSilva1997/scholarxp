@@ -85,9 +85,9 @@ export function partitionQuestViewsByTier(quests: QuestView[]): PartitionedQuest
   };
 }
 
-function selectTodayDailyQuestState(quests: QuestView[]): TodayDailyQuestState {
-  const todayUtc = new Date().toISOString().slice(0, 10);
-  const allTodayQuests = quests.filter((quest) => quest.questDateUtc === todayUtc);
+function selectTodayDailyQuestState(quests: QuestView[], userTimezone: string): TodayDailyQuestState {
+  const todayLocal = new Intl.DateTimeFormat('en-CA', { timeZone: userTimezone }).format(new Date());
+  const allTodayQuests = quests.filter((quest) => quest.questDateUtc === todayLocal);
   const { dailyQuests } = partitionQuestViewsByTier(allTodayQuests);
   const todayDailyQuests = dailyQuests.slice(0, TODAY_QUEST_MAX);
   const completedCount = todayDailyQuests.filter((quest) => quest.isCompleted).length;
@@ -103,7 +103,7 @@ function selectTodayDailyQuestState(quests: QuestView[]): TodayDailyQuestState {
   };
 }
 
-export function useTodayQuestSummaryQuery(enabled: boolean, userId?: number) {
+export function useTodayQuestSummaryQuery(enabled: boolean, userId?: number, userTimezone = 'UTC') {
   return useQuery<QuestHistoryResponse, Error, TodayQuestSummary>({
     queryKey: queryKeys.quests.todaySummary(userId ?? null),
     queryFn: () =>
@@ -115,7 +115,7 @@ export function useTodayQuestSummaryQuery(enabled: boolean, userId?: number) {
     staleTime: 30_000,
     // Derive today-only progress in one place so global chips and pages stay consistent.
     select: (response) => {
-      const todayDailyQuestState = selectTodayDailyQuestState(response.quests);
+      const todayDailyQuestState = selectTodayDailyQuestState(response.quests, userTimezone);
 
       return {
         completed: todayDailyQuestState.completed,
@@ -127,22 +127,22 @@ export function useTodayQuestSummaryQuery(enabled: boolean, userId?: number) {
   });
 }
 
-export function useTodayQuestListQuery(enabled: boolean, userId?: number) {
+export function useTodayQuestListQuery(enabled: boolean, userId?: number, userTimezone = 'UTC') {
   return useQuery<QuestHistoryResponse, Error, TodayQuestList>({
     queryKey: queryKeys.quests.todayList(userId ?? null),
     queryFn: () =>
       listQuests({
-        // A one-day window is enough because this UI only renders the current UTC day.
+        // A one-day window is enough because this UI only renders the current local day.
         dayLimit: 1,
         dayOffset: 0,
       }),
     enabled,
     staleTime: 30_000,
     select: (response) => {
-      const todayUtc = new Date().toISOString().slice(0, 10);
-      const allToday = response.quests.filter((quest) => quest.questDateUtc === todayUtc);
+      const todayLocal = new Intl.DateTimeFormat('en-CA', { timeZone: userTimezone }).format(new Date());
+      const allToday = response.quests.filter((quest) => quest.questDateUtc === todayLocal);
       const { masterQuest } = partitionQuestViewsByTier(allToday);
-      const todayDailyQuestState = selectTodayDailyQuestState(response.quests);
+      const todayDailyQuestState = selectTodayDailyQuestState(response.quests, userTimezone);
 
       return {
         quests: todayDailyQuestState.quests,

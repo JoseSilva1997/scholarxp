@@ -57,7 +57,8 @@ export const DateHelpers = {
       const get = (type: string): number => {
         const part = parts.find((p) => p.type === type);
         // Some Intl implementations return '24' for midnight with hour12:false — normalise to 0.
-        return parseInt(part?.value ?? '0', 10) % 24;
+        const value = parseInt(part?.value ?? '0', 10);
+        return type === 'hour' ? value % 24 : value;
       };
 
       return new Date(

@@ -60,20 +60,33 @@ function parseConfig() {
   const isAll = values.all || (!moduleUnitId && !values.all) || false;
 
   return {
-    USER_ID: MANUAL_CONFIG.USER_ID ?? (values.user ? parseInt(values.user, 10) : 38),
+    USER_ID:
+      MANUAL_CONFIG.USER_ID ?? (values.user ? parseInt(values.user, 10) : 38),
     SET_ACCOUNT_EXP:
       MANUAL_CONFIG.SET_ACCOUNT_EXP ??
-      (values.setAccountExp ? parseInt(values.setAccountExp, 10) : isAll ? 200 : null),
+      (values.setAccountExp
+        ? parseInt(values.setAccountExp, 10)
+        : isAll
+          ? 200
+          : null),
     MODULE_UNIT_ID: moduleUnitId,
     IS_ALL: isAll,
-    DELETE_DAILY_PRACTICE_SETS: MANUAL_CONFIG.DELETE_DAILY_PRACTICE_SETS ?? isAll,
+    DELETE_DAILY_PRACTICE_SETS:
+      MANUAL_CONFIG.DELETE_DAILY_PRACTICE_SETS ?? isAll,
     DELETE_DAILY_QUESTS: MANUAL_CONFIG.DELETE_DAILY_QUESTS ?? isAll,
-    DELETE_EXP_LEDGER: MANUAL_CONFIG.DELETE_EXP_LEDGER ?? (isAll || !!moduleUnitId),
-    DELETE_MODULE_UNIT_USER_PROGRESS: MANUAL_CONFIG.DELETE_MODULE_UNIT_USER_PROGRESS ?? (isAll || !!moduleUnitId),
-    DELETE_PRACTICE_SESSIONS: MANUAL_CONFIG.DELETE_PRACTICE_SESSIONS ?? (isAll || !!moduleUnitId),
-    DELETE_QUESTION_ATTEMPTS: MANUAL_CONFIG.DELETE_QUESTION_ATTEMPTS ?? (isAll || !!moduleUnitId),
-    DELETE_STUDENT_QUESTION_STATE: MANUAL_CONFIG.DELETE_STUDENT_QUESTION_STATE ?? (isAll || !!moduleUnitId),
-    RESET_USER_MODULE_PROGRESS: MANUAL_CONFIG.RESET_USER_MODULE_PROGRESS ?? (isAll || !!moduleUnitId),
+    DELETE_EXP_LEDGER:
+      MANUAL_CONFIG.DELETE_EXP_LEDGER ?? (isAll || !!moduleUnitId),
+    DELETE_MODULE_UNIT_USER_PROGRESS:
+      MANUAL_CONFIG.DELETE_MODULE_UNIT_USER_PROGRESS ??
+      (isAll || !!moduleUnitId),
+    DELETE_PRACTICE_SESSIONS:
+      MANUAL_CONFIG.DELETE_PRACTICE_SESSIONS ?? (isAll || !!moduleUnitId),
+    DELETE_QUESTION_ATTEMPTS:
+      MANUAL_CONFIG.DELETE_QUESTION_ATTEMPTS ?? (isAll || !!moduleUnitId),
+    DELETE_STUDENT_QUESTION_STATE:
+      MANUAL_CONFIG.DELETE_STUDENT_QUESTION_STATE ?? (isAll || !!moduleUnitId),
+    RESET_USER_MODULE_PROGRESS:
+      MANUAL_CONFIG.RESET_USER_MODULE_PROGRESS ?? (isAll || !!moduleUnitId),
   };
 }
 

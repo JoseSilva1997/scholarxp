@@ -25,6 +25,7 @@ export interface AuthUser {
   profilePictureUrl: string;
   globalRole: GlobalRole;
   isVerified: boolean;
+  timezone: string;
   institutionIds?: number[];
   hasInstitutionMembership?: boolean;
   ltiIdentities?: { institutionId: number; ltiUserId: string }[];
@@ -74,4 +75,8 @@ export interface ResendVerificationResponse {
 
 export interface UpdateUserRolePayload {
   globalRole: Exclude<GlobalRole, 'pending'>;
+}
+
+export interface UpdateTimezonePayload {
+  timezone: string;
 }
