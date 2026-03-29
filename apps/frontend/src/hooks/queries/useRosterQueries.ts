@@ -26,7 +26,10 @@ export function useRosterStudentsQuery(
   query: RosterStudentsQuery = {},
 ) {
   return useQuery({
-    queryKey: moduleId ? queryKeys.roster.students(moduleId) : queryKeys.roster.students(0),
+    // Include query params so sort/filter/search changes trigger a new fetch.
+    queryKey: moduleId
+      ? [...queryKeys.roster.students(moduleId), query]
+      : [...queryKeys.roster.students(0), query],
     queryFn: () => getRosterStudents(moduleId!, query),
     enabled: moduleId !== null,
     staleTime: 30_000,
@@ -38,7 +41,10 @@ export function useRosterLessonsQuery(
   query: RosterLessonsQuery = {},
 ) {
   return useQuery({
-    queryKey: moduleId ? queryKeys.roster.lessons(moduleId) : queryKeys.roster.lessons(0),
+    // Include query params so sort/direction changes trigger a new fetch.
+    queryKey: moduleId
+      ? [...queryKeys.roster.lessons(moduleId), query]
+      : [...queryKeys.roster.lessons(0), query],
     queryFn: () => getRosterLessons(moduleId!, query),
     enabled: moduleId !== null,
     staleTime: 30_000,
