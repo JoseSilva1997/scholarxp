@@ -443,7 +443,12 @@ describe('QuestGenerationService', () => {
 
     expect(
       questDailyPracticeAvailabilityService.findAllAvailableModuleIds,
-    ).toHaveBeenCalledWith(42, [1, 2], new Date('2026-03-13T12:30:00.000Z'));
+    ).toHaveBeenCalledWith(
+      42,
+      [1, 2],
+      new Date('2026-03-13T12:30:00.000Z'),
+      'UTC',
+    );
     expect(prisma.dailyQuest.createMany).toHaveBeenCalledWith({
       data: expect.arrayContaining([
         expect.objectContaining({

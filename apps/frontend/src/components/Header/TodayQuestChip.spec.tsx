@@ -9,13 +9,30 @@ const queryMocks = vi.hoisted(() => ({
   useMasterQuestStreakQuery: vi.fn(),
 }));
 
+let authState = {
+  user: {
+    id: 1,
+    timezone: 'UTC',
+  },
+};
+
 vi.mock('@/hooks/queries/useQuestsQueries', () => ({
   useTodayQuestListQuery: queryMocks.useTodayQuestListQuery,
   useMasterQuestStreakQuery: queryMocks.useMasterQuestStreakQuery,
 }));
 
+vi.mock('@/context/AuthContext', () => ({
+  useAuth: () => authState,
+}));
+
 describe('TodayQuestChip', () => {
   beforeEach(() => {
+    authState = {
+      user: {
+        id: 1,
+        timezone: 'UTC',
+      },
+    };
     sessionStorage.clear();
     queryMocks.useTodayQuestListQuery.mockReset();
     queryMocks.useMasterQuestStreakQuery.mockReset();
