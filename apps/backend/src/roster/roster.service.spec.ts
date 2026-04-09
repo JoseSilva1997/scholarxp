@@ -4,7 +4,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { createPrismaMock, PrismaMock } from '../test/test-helpers';
 import { PrismaService } from '../prisma/prisma.service';
 import { DailyPracticeService } from '../daily-practice/daily-practice.service';
+import { RosterLessonAnalyticsService } from './roster-lesson-analytics.service';
+import { RosterModuleAnalyticsService } from './roster-module-analytics.service';
 import { RosterService } from './roster.service';
+import { RosterStudentAnalyticsService } from './roster-student-analytics.service';
 
 // Stable "now" so assertions are deterministic
 const NOW = new Date('2026-03-28T12:00:00.000Z');
@@ -50,6 +53,9 @@ describe('RosterService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RosterService,
+        RosterModuleAnalyticsService,
+        RosterStudentAnalyticsService,
+        RosterLessonAnalyticsService,
         { provide: PrismaService, useValue: prisma },
         { provide: DailyPracticeService, useValue: dailyPracticeService },
       ],
@@ -396,58 +402,65 @@ describe('RosterService', () => {
         { id: 10, title: 'Lesson A', status: 'live' },
         { id: 11, title: 'Lesson B', status: 'live' },
       ] as any);
-      prisma.userModule.count.mockResolvedValue(5);
-
-      // Progress aggregates: lesson 10 has 3 students started, avg mastery 75
-      prisma.moduleUnitUserProgress.groupBy.mockResolvedValue([
-        {
-          moduleUnitId: 10,
-          _count: { studentId: 3 },
-          _avg: { currentMasteryScore: 0.75 },
-          _max: { lastPracticedAt: THREE_DAYS_AGO },
-        },
-        {
-          moduleUnitId: 11,
-          _count: { studentId: 1 },
-          _avg: { currentMasteryScore: 0.9 },
-          _max: { lastPracticedAt: null },
-        },
+      // 2 enrolled students: IDs 1 and 2
+      prisma.userModule.findMany.mockResolvedValueOnce([
+        { userId: 1 },
+        { userId: 2 },
       ] as any);
 
-      // Completed aggregates: lesson 10 has 2 completions
-      (prisma.moduleUnitUserProgress.groupBy as jest.Mock)
+      // Progress aggregates (no _avg — mastery now comes from expLedger)
+      prisma.moduleUnitUserProgress.groupBy
         .mockResolvedValueOnce([
           {
             moduleUnitId: 10,
-            _count: { studentId: 3 },
-            _avg: { currentMasteryScore: 0.75 },
+            _count: { studentId: 2 },
             _max: { lastPracticedAt: THREE_DAYS_AGO },
           },
           {
             moduleUnitId: 11,
             _count: { studentId: 1 },
-            _avg: { currentMasteryScore: 0.9 },
             _max: { lastPracticedAt: null },
           },
-        ])
+        ] as any)
         .mockResolvedValueOnce([
-          { moduleUnitId: 10, _count: { studentId: 2 } },
-        ]);
+          { moduleUnitId: 10, _count: { studentId: 1 } },
+        ] as any);
+
+      // Student 1 on lesson 10: completionExp=600, masteryExp=420
+      //   score = min(600,1000)/1000 * 0.20 + min(420,700)/700 * 0.80 = 0.6*0.20 + 0.6*0.80 = 0.60
+      // Student 2: no XP → score = 0
+      // averageMastery for lesson 10 = (0.60 + 0) / 2 * 100 = 30
+      // averageMastery for lesson 11 = 0 (no XP for either student)
+      prisma.expLedger.groupBy.mockResolvedValueOnce([
+        {
+          userId: 1,
+          moduleUnitId: 10,
+          eventType: 'practice_room_answer_correct',
+          _sum: { awardedExp: 600 },
+        },
+        {
+          userId: 1,
+          moduleUnitId: 10,
+          eventType: 'daily_practice_mastery_encountered',
+          _sum: { awardedExp: 420 },
+        },
+      ] as any);
 
       const result = await service.getLessons(MODULE_ID, {});
 
       expect(result.rows).toHaveLength(2);
 
       const lessonA = result.rows.find((r) => r.moduleUnitId === 10)!;
-      expect(lessonA.studentsStarted).toBe(3);
-      expect(lessonA.studentsCompleted).toBe(2);
-      expect(lessonA.completionRate).toBe(40); // 2/5 * 100
-      expect(lessonA.averageMastery).toBe(75);
+      expect(lessonA.studentsStarted).toBe(2);
+      expect(lessonA.studentsCompleted).toBe(1);
+      expect(lessonA.completionRate).toBe(50); // 1/2 * 100
+      expect(lessonA.averageMastery).toBe(30); // (0.60 + 0) / 2 * 100
       expect(lessonA.lastPracticedAt).toBe(THREE_DAYS_AGO.toISOString());
 
       const lessonB = result.rows.find((r) => r.moduleUnitId === 11)!;
       expect(lessonB.studentsCompleted).toBe(0);
       expect(lessonB.completionRate).toBe(0);
+      expect(lessonB.averageMastery).toBe(0);
       expect(lessonB.lastPracticedAt).toBeNull();
     });
 
@@ -456,19 +469,28 @@ describe('RosterService', () => {
         { id: 10, title: 'Low', status: 'live' },
         { id: 11, title: 'High', status: 'live' },
       ] as any);
-      prisma.userModule.count.mockResolvedValue(10);
+      prisma.userModule.findMany.mockResolvedValueOnce([
+        { userId: 1 },
+        { userId: 2 },
+        { userId: 3 },
+        { userId: 4 },
+        { userId: 5 },
+        { userId: 6 },
+        { userId: 7 },
+        { userId: 8 },
+        { userId: 9 },
+        { userId: 10 },
+      ] as any);
       prisma.moduleUnitUserProgress.groupBy
         .mockResolvedValueOnce([
           {
             moduleUnitId: 10,
             _count: { studentId: 2 },
-            _avg: { currentMasteryScore: 0.5 },
             _max: { lastPracticedAt: null },
           },
           {
             moduleUnitId: 11,
             _count: { studentId: 8 },
-            _avg: { currentMasteryScore: 0.8 },
             _max: { lastPracticedAt: null },
           },
         ] as any)
@@ -476,6 +498,7 @@ describe('RosterService', () => {
           { moduleUnitId: 10, _count: { studentId: 1 } },
           { moduleUnitId: 11, _count: { studentId: 7 } },
         ] as any);
+      prisma.expLedger.groupBy.mockResolvedValueOnce([] as any);
 
       const result = await service.getLessons(MODULE_ID, {
         sortBy: 'completion_rate',
@@ -643,12 +666,15 @@ describe('RosterService', () => {
     } as any;
   }
 
-  function setupDrilldownMocks(overrides: {
-    moduleUnit?: object | null;
-    enrollments?: object[];
-    progress?: object[];
-    attempts?: object[];
-  } = {}) {
+  function setupDrilldownMocks(
+    overrides: {
+      moduleUnit?: object | null;
+      enrollments?: object[];
+      progress?: object[];
+      ledger?: object[];
+      attempts?: object[];
+    } = {},
+  ) {
     prisma.moduleUnit.findFirst.mockResolvedValue(
       overrides.moduleUnit !== undefined
         ? (overrides.moduleUnit as any)
@@ -659,6 +685,9 @@ describe('RosterService', () => {
     );
     prisma.moduleUnitUserProgress.findMany.mockResolvedValue(
       (overrides.progress ?? []) as any,
+    );
+    prisma.expLedger.groupBy.mockResolvedValueOnce(
+      (overrides.ledger ?? []) as any,
     );
     prisma.questionAttempt.findMany.mockResolvedValue(
       (overrides.attempts ?? []) as any,
@@ -687,14 +716,26 @@ describe('RosterService', () => {
       expect(result.questionHealth.slowQuestions).toHaveLength(0);
     });
 
-    it('maps enrolled students to drilldown rows with mastery from progress', async () => {
+    it('maps enrolled students to drilldown rows with mastery from XP ledger', async () => {
+      // completionExp=600, masteryExp=420 → 0.6*0.20 + 0.6*0.80 = 0.60 → 60%
       setupDrilldownMocks({
         progress: [
           {
             studentId: 1,
             isCompleted: true,
-            currentMasteryScore: 0.75,
             lastPracticedAt: THREE_DAYS_AGO,
+          },
+        ],
+        ledger: [
+          {
+            userId: 1,
+            eventType: 'practice_room_answer_correct',
+            _sum: { awardedExp: 600 },
+          },
+          {
+            userId: 1,
+            eventType: 'daily_practice_mastery_encountered',
+            _sum: { awardedExp: 420 },
           },
         ],
       });
@@ -706,12 +747,12 @@ describe('RosterService', () => {
         studentId: 1,
         fullName: 'First1 Last1',
         isCompleted: true,
-        masteryScore: 75,
+        masteryScore: 60,
         lastPracticedAt: THREE_DAYS_AGO.toISOString(),
       });
     });
 
-    it('sets masteryScore to null when student has no progress record', async () => {
+    it('sets masteryScore to null when student has no XP for the lesson', async () => {
       setupDrilldownMocks({ progress: [] });
 
       const result = await service.getLessonDrilldown(MODULE_ID, UNIT_ID);
@@ -753,12 +794,37 @@ describe('RosterService', () => {
     it('outlier cap: timeTakenMs > 180000 is excluded from slow-question computation', async () => {
       // 5 attempts per student (one per question): all have valid time except one outlier
       const base = [
-        makeAttempt({ id: 1, studentId: 1, timeTakenMs: 5_000, sessionId: 's1' }),
-        makeAttempt({ id: 2, studentId: 2, timeTakenMs: 5_000, sessionId: 's2' }),
-        makeAttempt({ id: 3, studentId: 3, timeTakenMs: 5_000, sessionId: 's3' }),
-        makeAttempt({ id: 4, studentId: 4, timeTakenMs: 5_000, sessionId: 's4' }),
+        makeAttempt({
+          id: 1,
+          studentId: 1,
+          timeTakenMs: 5_000,
+          sessionId: 's1',
+        }),
+        makeAttempt({
+          id: 2,
+          studentId: 2,
+          timeTakenMs: 5_000,
+          sessionId: 's2',
+        }),
+        makeAttempt({
+          id: 3,
+          studentId: 3,
+          timeTakenMs: 5_000,
+          sessionId: 's3',
+        }),
+        makeAttempt({
+          id: 4,
+          studentId: 4,
+          timeTakenMs: 5_000,
+          sessionId: 's4',
+        }),
         // This row should be excluded because it exceeds the 3-minute cap
-        makeAttempt({ id: 5, studentId: 5, timeTakenMs: 200_000, sessionId: 's5' }),
+        makeAttempt({
+          id: 5,
+          studentId: 5,
+          timeTakenMs: 200_000,
+          sessionId: 's5',
+        }),
       ];
       setupDrilldownMocks({ attempts: base });
 
@@ -775,16 +841,106 @@ describe('RosterService', () => {
       const t2 = new Date('2026-03-28T10:01:00.000Z');
       const attempts = [
         // Q100 — fast (openers excluded)
-        makeAttempt({ id: 1, studentId: 1, questionId: 100, contentId: 200, sessionId: 'sA', timeTakenMs: 2_000, attemptedAt: t }),
-        makeAttempt({ id: 2, studentId: 1, questionId: 101, contentId: 201, sessionId: 'sA', timeTakenMs: 2_000, attemptedAt: t2, question: { title: 'Q101' }, content: { isCore: true, questionUnitId: 101, variantMetadata: null } }),
-        makeAttempt({ id: 3, studentId: 2, questionId: 100, contentId: 200, sessionId: 'sB', timeTakenMs: 2_000, attemptedAt: t }),
-        makeAttempt({ id: 4, studentId: 2, questionId: 101, contentId: 201, sessionId: 'sB', timeTakenMs: 2_000, attemptedAt: t2, question: { title: 'Q101' }, content: { isCore: true, questionUnitId: 101, variantMetadata: null } }),
-        makeAttempt({ id: 5, studentId: 3, questionId: 100, contentId: 200, sessionId: 'sC', timeTakenMs: 2_000, attemptedAt: t }),
-        makeAttempt({ id: 6, studentId: 3, questionId: 101, contentId: 201, sessionId: 'sC', timeTakenMs: 2_000, attemptedAt: t2, question: { title: 'Q101' }, content: { isCore: true, questionUnitId: 101, variantMetadata: null } }),
-        makeAttempt({ id: 7, studentId: 4, questionId: 100, contentId: 200, sessionId: 'sD', timeTakenMs: 2_000, attemptedAt: t }),
-        makeAttempt({ id: 8, studentId: 4, questionId: 101, contentId: 201, sessionId: 'sD', timeTakenMs: 2_000, attemptedAt: t2, question: { title: 'Q101' }, content: { isCore: true, questionUnitId: 101, variantMetadata: null } }),
-        makeAttempt({ id: 9, studentId: 5, questionId: 100, contentId: 200, sessionId: 'sE', timeTakenMs: 2_000, attemptedAt: t }),
-        makeAttempt({ id: 10, studentId: 5, questionId: 101, contentId: 201, sessionId: 'sE', timeTakenMs: 2_000, attemptedAt: t2, question: { title: 'Q101' }, content: { isCore: true, questionUnitId: 101, variantMetadata: null } }),
+        makeAttempt({
+          id: 1,
+          studentId: 1,
+          questionId: 100,
+          contentId: 200,
+          sessionId: 'sA',
+          timeTakenMs: 2_000,
+          attemptedAt: t,
+        }),
+        makeAttempt({
+          id: 2,
+          studentId: 1,
+          questionId: 101,
+          contentId: 201,
+          sessionId: 'sA',
+          timeTakenMs: 2_000,
+          attemptedAt: t2,
+          question: { title: 'Q101' },
+          content: { isCore: true, questionUnitId: 101, variantMetadata: null },
+        }),
+        makeAttempt({
+          id: 3,
+          studentId: 2,
+          questionId: 100,
+          contentId: 200,
+          sessionId: 'sB',
+          timeTakenMs: 2_000,
+          attemptedAt: t,
+        }),
+        makeAttempt({
+          id: 4,
+          studentId: 2,
+          questionId: 101,
+          contentId: 201,
+          sessionId: 'sB',
+          timeTakenMs: 2_000,
+          attemptedAt: t2,
+          question: { title: 'Q101' },
+          content: { isCore: true, questionUnitId: 101, variantMetadata: null },
+        }),
+        makeAttempt({
+          id: 5,
+          studentId: 3,
+          questionId: 100,
+          contentId: 200,
+          sessionId: 'sC',
+          timeTakenMs: 2_000,
+          attemptedAt: t,
+        }),
+        makeAttempt({
+          id: 6,
+          studentId: 3,
+          questionId: 101,
+          contentId: 201,
+          sessionId: 'sC',
+          timeTakenMs: 2_000,
+          attemptedAt: t2,
+          question: { title: 'Q101' },
+          content: { isCore: true, questionUnitId: 101, variantMetadata: null },
+        }),
+        makeAttempt({
+          id: 7,
+          studentId: 4,
+          questionId: 100,
+          contentId: 200,
+          sessionId: 'sD',
+          timeTakenMs: 2_000,
+          attemptedAt: t,
+        }),
+        makeAttempt({
+          id: 8,
+          studentId: 4,
+          questionId: 101,
+          contentId: 201,
+          sessionId: 'sD',
+          timeTakenMs: 2_000,
+          attemptedAt: t2,
+          question: { title: 'Q101' },
+          content: { isCore: true, questionUnitId: 101, variantMetadata: null },
+        }),
+        makeAttempt({
+          id: 9,
+          studentId: 5,
+          questionId: 100,
+          contentId: 200,
+          sessionId: 'sE',
+          timeTakenMs: 2_000,
+          attemptedAt: t,
+        }),
+        makeAttempt({
+          id: 10,
+          studentId: 5,
+          questionId: 101,
+          contentId: 201,
+          sessionId: 'sE',
+          timeTakenMs: 2_000,
+          attemptedAt: t2,
+          question: { title: 'Q101' },
+          content: { isCore: true, questionUnitId: 101, variantMetadata: null },
+        }),
       ];
       setupDrilldownMocks({ attempts });
 
@@ -799,7 +955,13 @@ describe('RosterService', () => {
     it('variant discrepancy: does not flag when delta < 15pp', async () => {
       // Core and variant have similar accuracy (both ~80%)
       const coreAttempts = Array.from({ length: 5 }, (_, i) =>
-        makeAttempt({ id: i + 1, studentId: i + 1, questionId: 100, contentId: 200, isCorrect: i < 4 }),
+        makeAttempt({
+          id: i + 1,
+          studentId: i + 1,
+          questionId: 100,
+          contentId: 200,
+          isCorrect: i < 4,
+        }),
       );
       const variantAttempts = Array.from({ length: 5 }, (_, i) =>
         makeAttempt({
@@ -808,7 +970,11 @@ describe('RosterService', () => {
           questionId: 100,
           contentId: 201,
           isCorrect: i < 3,
-          content: { isCore: false, questionUnitId: 100, variantMetadata: { variantLabel: 'Harder' } },
+          content: {
+            isCore: false,
+            questionUnitId: 100,
+            variantMetadata: { variantLabel: 'Harder' },
+          },
         }),
       );
       setupDrilldownMocks({ attempts: [...coreAttempts, ...variantAttempts] });
@@ -820,13 +986,21 @@ describe('RosterService', () => {
       // Use core=80, variant=70 (delta=10) by making 4/5 correct for both
       // Already set up incorrectly — let's just assert count >= 0 (non-deterministic test is bad)
       // Use a dedicated test for < 15 threshold below
-      expect(result.questionHealth.variantDiscrepancies.length).toBeGreaterThanOrEqual(0);
+      expect(
+        result.questionHealth.variantDiscrepancies.length,
+      ).toBeGreaterThanOrEqual(0);
     });
 
     it('variant discrepancy: flags when delta >= 15pp', async () => {
       // Core: 5/5 correct = 100%; Variant: 3/5 correct = 60% → delta = -40pp
       const coreAttempts = Array.from({ length: 5 }, (_, i) =>
-        makeAttempt({ id: i + 1, studentId: i + 1, questionId: 100, contentId: 200, isCorrect: true }),
+        makeAttempt({
+          id: i + 1,
+          studentId: i + 1,
+          questionId: 100,
+          contentId: 200,
+          isCorrect: true,
+        }),
       );
       const variantAttempts = Array.from({ length: 5 }, (_, i) =>
         makeAttempt({
@@ -835,7 +1009,11 @@ describe('RosterService', () => {
           questionId: 100,
           contentId: 201,
           isCorrect: i < 3,
-          content: { isCore: false, questionUnitId: 100, variantMetadata: { variantLabel: 'Harder' } },
+          content: {
+            isCore: false,
+            questionUnitId: 100,
+            variantMetadata: { variantLabel: 'Harder' },
+          },
         }),
       );
       setupDrilldownMocks({ attempts: [...coreAttempts, ...variantAttempts] });
