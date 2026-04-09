@@ -1,6 +1,7 @@
 // Expandable details panel beneath summary cards; contains Students and Lessons tabs.
 import type { RosterTab } from '../../hooks/page-state/useModuleRosterPageState';
 import type {
+  LessonDrilldownResponse,
   RosterStudentRow,
   RosterStudentFilter,
   RosterStudentSortBy,
@@ -12,6 +13,7 @@ import type {
 import StudentsTab from './StudentsTab';
 import LessonsTab from './LessonsTab';
 import StudentDrillDown from './StudentDrillDown';
+import LessonDrillDown from './LessonDrillDown';
 import styles from './RosterDetailsPanel.module.css';
 
 type RosterDetailsPanelProps = {
@@ -41,6 +43,12 @@ type RosterDetailsPanelProps = {
   onLessonSortByChange: (s: RosterLessonSortBy) => void;
   lessonSortDirection: SortDirection;
   onLessonSortDirectionChange: (d: SortDirection) => void;
+  selectedLessonId: number | null;
+  onSelectLesson: (id: number | null) => void;
+  onClearSelectedLesson: () => void;
+  lessonDrilldown: LessonDrilldownResponse | undefined;
+  isLessonDrilldownLoading: boolean;
+  lessonDrilldownError: string | null;
 
   // Student drill-down
   selectedStudentId: number | null;
@@ -79,6 +87,12 @@ export default function RosterDetailsPanel({
   onLessonSortByChange,
   lessonSortDirection,
   onLessonSortDirectionChange,
+  selectedLessonId,
+  onSelectLesson,
+  onClearSelectedLesson,
+  lessonDrilldown,
+  isLessonDrilldownLoading,
+  lessonDrilldownError,
   selectedStudentId,
   onSelectStudent,
   onClearSelectedStudent,
@@ -88,7 +102,8 @@ export default function RosterDetailsPanel({
 }: RosterDetailsPanelProps) {
   if (!isOpen) return null;
 
-  const showDrillDown = selectedStudentId !== null && activeTab === 'students';
+  const showStudentDrillDown = selectedStudentId !== null && activeTab === 'students';
+  const showLessonDrillDown = selectedLessonId !== null && activeTab === 'lessons';
 
   return (
     <div className={styles.panel} role="region" aria-label="Roster details">
@@ -144,16 +159,28 @@ export default function RosterDetailsPanel({
             onSortByChange={onLessonSortByChange}
             sortDirection={lessonSortDirection}
             onSortDirectionChange={onLessonSortDirectionChange}
+            selectedLessonId={selectedLessonId}
+            onSelectLesson={onSelectLesson}
           />
         )}
       </div>
 
-      {showDrillDown && (
+      {showStudentDrillDown && (
         <StudentDrillDown
           detail={studentDetail}
           isLoading={isStudentDetailLoading}
           error={studentDetailError}
           onClose={onClearSelectedStudent}
+        />
+      )}
+
+      {showLessonDrillDown && (
+        <LessonDrillDown
+          key={selectedLessonId}
+          detail={lessonDrilldown}
+          isLoading={isLessonDrilldownLoading}
+          error={lessonDrilldownError}
+          onClose={onClearSelectedLesson}
         />
       )}
     </div>

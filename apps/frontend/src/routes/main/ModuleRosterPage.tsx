@@ -86,6 +86,12 @@ export default function ModuleRosterPage() {
             onLessonSortByChange={state.setLessonSortBy}
             lessonSortDirection={state.lessonSortDirection}
             onLessonSortDirectionChange={state.setLessonSortDirection}
+            selectedLessonId={state.selectedLessonId}
+            onSelectLesson={state.selectLesson}
+            onClearSelectedLesson={() => state.selectLesson(null)}
+            lessonDrilldown={state.lessonDrilldown}
+            isLessonDrilldownLoading={state.isLessonDrilldownLoading}
+            lessonDrilldownError={state.lessonDrilldownError}
             // Student drill-down
             selectedStudentId={state.selectedStudentId}
             onSelectStudent={state.selectStudent}

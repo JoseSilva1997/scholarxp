@@ -1,5 +1,6 @@
 // Roster API client: module-scoped tutor analytics for enrollment, lesson coverage, and per-student metrics.
 import type {
+  LessonDrilldownResponse,
   RosterSummaryResponse,
   RosterStudentsQuery,
   RosterStudentsResponse,
@@ -52,6 +53,16 @@ export async function getRosterStudentDetail(
 ): Promise<RosterStudentDetailResponse> {
   return apiFetch<RosterStudentDetailResponse>(
     `/module/${moduleId}/roster/students/${studentId}`,
+    { method: 'GET' },
+  );
+}
+
+export async function getLessonDrilldown(
+  moduleId: number,
+  moduleUnitId: number,
+): Promise<LessonDrilldownResponse> {
+  return apiFetch<LessonDrilldownResponse>(
+    `/module/${moduleId}/roster/lessons/${moduleUnitId}`,
     { method: 'GET' },
   );
 }

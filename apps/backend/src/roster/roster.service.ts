@@ -2,6 +2,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type {
   DailyPracticeStatus,
+  HighHintUsageRow,
+  LessonDrilldownStudentRow,
+  QuestionAccuracySummary,
+  QuestionVariantDiscrepancy,
   RosterLessonsQuery,
   RosterLessonsResponse,
   RosterStudentDetailResponse,
@@ -9,6 +13,7 @@ import type {
   RosterStudentsQuery,
   RosterStudentsResponse,
   RosterSummaryResponse,
+  SlowQuestionRow,
   SortDirection,
 } from '@scholarxp/api-contracts';
 import {
@@ -20,10 +25,39 @@ import {
 } from '@scholarxp/constants';
 import { PrismaService } from '../prisma/prisma.service';
 import { DailyPracticeService } from '../daily-practice/daily-practice.service';
+import { LessonDrilldownResponseDto } from './dto/lesson-drilldown.dto';
 
 // At-risk definition: no activity in last 7 days. Overdue FSRS items are excluded because
 // the daily-practice algorithm intentionally caps reviews per day, so backlog is normal.
 const ACTIVITY_WINDOW_DAYS = 7;
+
+// Shape of each attempt row fetched by getLessonDrilldown — explicit type so Prisma's inferred
+// type doesn't need to be re-derived in every helper method signature.
+type AttemptRow = {
+  id: number;
+  sessionId: string;
+  studentId: number | null;
+  questionId: number;
+  contentId: number;
+  isCorrect: boolean;
+  timeTakenMs: number;
+  hintsUsed: number;
+  attemptedAt: Date;
+  question: { title: string };
+  content: {
+    isCore: boolean;
+    questionUnitId: number;
+    variantMetadata: { variantLabel: string } | null;
+  };
+};
+
+// Question-health thresholds — hardcoded for v1; can be made configurable later.
+const MIN_QUESTION_ATTEMPTS = 5;
+const TIME_OUTLIER_CAP_MS = 180_000;
+const HINT_USAGE_THRESHOLD_PCT = 40;
+const SLOW_QUESTION_MULTIPLIER = 2;
+const VARIANT_DISCREPANCY_THRESHOLD_PP = 15;
+const MAX_STRUGGLING_QUESTIONS = 10;
 
 @Injectable()
 export class RosterService {
@@ -441,6 +475,102 @@ export class RosterService {
     };
   }
 
+  async getLessonDrilldown(
+    moduleId: number,
+    moduleUnitId: number,
+  ): Promise<LessonDrilldownResponseDto> {
+    const moduleUnit = await this.prisma.moduleUnit.findFirst({
+      where: { id: moduleUnitId, moduleId },
+      select: { id: true, title: true },
+    });
+
+    if (!moduleUnit) {
+      throw new NotFoundException('Lesson not found in this module.');
+    }
+
+    const [enrollments, progressRecords, attempts] = await Promise.all([
+      this.prisma.userModule.findMany({
+        where: { moduleId, roleInModule: 'student' },
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              profilePictureUrl: true,
+            },
+          },
+        },
+      }),
+      this.prisma.moduleUnitUserProgress.findMany({
+        where: { moduleUnitId },
+        select: {
+          studentId: true,
+          isCompleted: true,
+          currentMasteryScore: true,
+          lastPracticedAt: true,
+        },
+      }),
+      this.prisma.questionAttempt.findMany({
+        where: { moduleUnitId },
+        select: {
+          id: true,
+          sessionId: true,
+          studentId: true,
+          questionId: true,
+          contentId: true,
+          isCorrect: true,
+          timeTakenMs: true,
+          hintsUsed: true,
+          attemptedAt: true,
+          question: { select: { title: true } },
+          content: {
+            select: {
+              isCore: true,
+              questionUnitId: true,
+              variantMetadata: { select: { variantLabel: true } },
+            },
+          },
+        },
+      }),
+    ]);
+
+    const progressByStudent = new Map(
+      progressRecords
+        .filter((p) => p.studentId !== null)
+        .map((p) => [p.studentId!, p]),
+    );
+
+    const students: LessonDrilldownStudentRow[] = enrollments.map((e) => {
+      const progress = progressByStudent.get(e.userId);
+      return {
+        studentId: e.userId,
+        fullName: `${e.user.firstName} ${e.user.lastName}`,
+        avatarUrl: e.user.profilePictureUrl,
+        isCompleted: progress?.isCompleted ?? false,
+        // Prisma stores 0–1; contract expects 0–100. Null when no progress record exists.
+        masteryScore: progress
+          ? Math.round(progress.currentMasteryScore * 100)
+          : null,
+        lastPracticedAt: progress?.lastPracticedAt?.toISOString() ?? null,
+      };
+    });
+
+    const questionHealth = {
+      strugglingQuestions: this.computeStrugglingQuestions(attempts),
+      variantDiscrepancies: this.computeVariantDiscrepancies(attempts),
+      highHintUsage: this.computeHighHintUsage(attempts),
+      slowQuestions: this.computeSlowQuestions(attempts),
+    };
+
+    return {
+      moduleUnitId,
+      lessonTitle: moduleUnit.title,
+      students,
+      questionHealth,
+    };
+  }
+
   // --- Private helpers ---
 
   private async getModuleTitleOrThrow(moduleId: number): Promise<string> {
@@ -837,5 +967,282 @@ export class RosterService {
     }
 
     return sorted;
+  }
+
+  // --- Question-health helpers ---
+
+  // Ranks questions by lowest first-attempt accuracy (class-wide). Excludes questions with
+  // fewer than MIN_QUESTION_ATTEMPTS total attempts to avoid single-student noise. Returns max 10.
+  private computeStrugglingQuestions(
+    attempts: AttemptRow[],
+  ): QuestionAccuracySummary[] {
+    const byQuestion = new Map<number, AttemptRow[]>();
+    for (const a of attempts) {
+      const bucket = byQuestion.get(a.questionId) ?? [];
+      bucket.push(a);
+      byQuestion.set(a.questionId, bucket);
+    }
+
+    const result: QuestionAccuracySummary[] = [];
+
+    for (const [questionId, qAttempts] of byQuestion) {
+      if (qAttempts.length < MIN_QUESTION_ATTEMPTS) continue;
+
+      const overallAccuracy = Math.round(
+        (qAttempts.filter((a) => a.isCorrect).length / qAttempts.length) * 100,
+      );
+
+      // First-attempt accuracy: per student, pick the attempt with the smallest
+      // (attemptedAt, id) to break ties deterministically.
+      const byStudent = new Map<number, AttemptRow>();
+      for (const a of qAttempts) {
+        if (a.studentId === null) continue;
+        const best = byStudent.get(a.studentId);
+        if (
+          !best ||
+          a.attemptedAt < best.attemptedAt ||
+          (a.attemptedAt.getTime() === best.attemptedAt.getTime() &&
+            a.id < best.id)
+        ) {
+          byStudent.set(a.studentId, a);
+        }
+      }
+
+      const firstAttempts = [...byStudent.values()];
+      const firstAttemptAccuracy =
+        firstAttempts.length > 0
+          ? Math.round(
+              (firstAttempts.filter((a) => a.isCorrect).length /
+                firstAttempts.length) *
+                100,
+            )
+          : 0;
+
+      result.push({
+        questionId,
+        questionTitle: qAttempts[0].question.title,
+        totalAttempts: qAttempts.length,
+        firstAttemptAccuracy,
+        overallAccuracy,
+      });
+    }
+
+    result.sort((a, b) => a.firstAttemptAccuracy - b.firstAttemptAccuracy);
+    return result.slice(0, MAX_STRUGGLING_QUESTIONS);
+  }
+
+  // Flags questions where a variant's first-attempt accuracy deviates from the core's by ≥ 15pp.
+  // Applies MIN_QUESTION_ATTEMPTS per content individually before comparing.
+  private computeVariantDiscrepancies(
+    attempts: AttemptRow[],
+  ): QuestionVariantDiscrepancy[] {
+    // Group attempts by (questionId, contentId)
+    type ContentKey = `${number}:${number}`;
+    const byContent = new Map<ContentKey, AttemptRow[]>();
+    for (const a of attempts) {
+      const key: ContentKey = `${a.questionId}:${a.contentId}`;
+      const bucket = byContent.get(key) ?? [];
+      bucket.push(a);
+      byContent.set(key, bucket);
+    }
+
+    // Collect (questionId, contentId) pairs that are variants (isCore = false with a label)
+    // and their corresponding core contentId first-attempt accuracy.
+    // First pass: find core first-attempt accuracy per questionId.
+    const coreAccByQuestion = new Map<
+      number,
+      { accuracy: number; attempts: number }
+    >();
+    for (const [key, contentAttempts] of byContent) {
+      const sample = contentAttempts[0];
+      if (!sample.content.isCore) continue;
+
+      const firstAttemptsByStudent = this.firstAttemptsByStudent(contentAttempts);
+      if (firstAttemptsByStudent.length < MIN_QUESTION_ATTEMPTS) continue;
+
+      const accuracy = Math.round(
+        (firstAttemptsByStudent.filter((a) => a.isCorrect).length /
+          firstAttemptsByStudent.length) *
+          100,
+      );
+      coreAccByQuestion.set(sample.questionId, {
+        accuracy,
+        attempts: firstAttemptsByStudent.length,
+      });
+      void key;
+    }
+
+    // Second pass: find variant first-attempt accuracy per (questionId, contentId).
+    const result: QuestionVariantDiscrepancy[] = [];
+
+    for (const [, contentAttempts] of byContent) {
+      const sample = contentAttempts[0];
+      if (sample.content.isCore) continue;
+      if (!sample.content.variantMetadata) continue;
+
+      const coreData = coreAccByQuestion.get(sample.questionId);
+      if (!coreData) continue;
+
+      const firstAttemptsByStudent = this.firstAttemptsByStudent(contentAttempts);
+      if (firstAttemptsByStudent.length < MIN_QUESTION_ATTEMPTS) continue;
+
+      const variantAccuracy = Math.round(
+        (firstAttemptsByStudent.filter((a) => a.isCorrect).length /
+          firstAttemptsByStudent.length) *
+          100,
+      );
+      const delta = variantAccuracy - coreData.accuracy;
+
+      if (Math.abs(delta) >= VARIANT_DISCREPANCY_THRESHOLD_PP) {
+        result.push({
+          questionId: sample.questionId,
+          questionTitle: contentAttempts[0].question.title,
+          coreAccuracy: coreData.accuracy,
+          coreAttempts: coreData.attempts,
+          variantLabel: sample.content.variantMetadata.variantLabel,
+          variantAccuracy,
+          variantAttempts: firstAttemptsByStudent.length,
+          delta,
+        });
+      }
+    }
+
+    return result;
+  }
+
+  // Flags questions where ≥ 40% of students' first attempts used the hint.
+  private computeHighHintUsage(attempts: AttemptRow[]): HighHintUsageRow[] {
+    const byQuestion = new Map<number, AttemptRow[]>();
+    for (const a of attempts) {
+      const bucket = byQuestion.get(a.questionId) ?? [];
+      bucket.push(a);
+      byQuestion.set(a.questionId, bucket);
+    }
+
+    const result: HighHintUsageRow[] = [];
+
+    for (const [questionId, qAttempts] of byQuestion) {
+      if (qAttempts.length < MIN_QUESTION_ATTEMPTS) continue;
+
+      const firstAttempts = this.firstAttemptsByStudent(qAttempts);
+      const studentsWithHint = firstAttempts.filter(
+        (a) => a.hintsUsed > 0,
+      ).length;
+      const totalStudents = firstAttempts.length;
+      if (totalStudents === 0) continue;
+
+      const hintUsageRate = Math.round(
+        (studentsWithHint / totalStudents) * 100,
+      );
+      if (hintUsageRate >= HINT_USAGE_THRESHOLD_PCT) {
+        result.push({
+          questionId,
+          questionTitle: qAttempts[0].question.title,
+          hintUsageRate,
+          studentsWithHint,
+          totalStudents,
+        });
+      }
+    }
+
+    result.sort((a, b) => b.hintUsageRate - a.hintUsageRate);
+    return result;
+  }
+
+  // Flags questions whose median response time exceeds 2× the lesson median.
+  // Outlier cap (> 3 min) and session-opener exclusion (rank-1 per sessionId+studentId) applied first.
+  private computeSlowQuestions(attempts: AttemptRow[]): SlowQuestionRow[] {
+    // Step 1 — cap outliers
+    const capped = attempts.filter(
+      (a) => a.timeTakenMs <= TIME_OUTLIER_CAP_MS,
+    );
+
+    // Step 2 — identify and exclude session-opener attempts (rank-1 per sessionId+studentId)
+    const sessionOpeners = new Set<number>();
+    const bySession = new Map<string, AttemptRow[]>();
+    for (const a of capped) {
+      const key = `${a.sessionId}:${a.studentId ?? 'null'}`;
+      const bucket = bySession.get(key) ?? [];
+      bucket.push(a);
+      bySession.set(key, bucket);
+    }
+    for (const sessionAttempts of bySession.values()) {
+      sessionAttempts.sort((a, b) => {
+        if (a.attemptedAt < b.attemptedAt) return -1;
+        if (a.attemptedAt > b.attemptedAt) return 1;
+        return a.id - b.id;
+      });
+      sessionOpeners.add(sessionAttempts[0].id);
+    }
+
+    const qualifying = capped.filter((a) => !sessionOpeners.has(a.id));
+
+    // Step 3 — compute median timeTakenMs per question
+    const byQuestion = new Map<number, AttemptRow[]>();
+    for (const a of qualifying) {
+      const bucket = byQuestion.get(a.questionId) ?? [];
+      bucket.push(a);
+      byQuestion.set(a.questionId, bucket);
+    }
+
+    const questionMedians: { questionId: number; medianMs: number; title: string; count: number }[] = [];
+    for (const [questionId, qAttempts] of byQuestion) {
+      if (qAttempts.length < MIN_QUESTION_ATTEMPTS) continue;
+      const medianMs = this.median(qAttempts.map((a) => a.timeTakenMs));
+      questionMedians.push({
+        questionId,
+        medianMs,
+        title: qAttempts[0].question.title,
+        count: qAttempts.length,
+      });
+    }
+
+    if (questionMedians.length === 0) return [];
+
+    // Step 4 — lesson median = median of all question medians
+    const lessonMedianMs = this.median(questionMedians.map((q) => q.medianMs));
+
+    const result: SlowQuestionRow[] = [];
+    for (const q of questionMedians) {
+      if (q.medianMs > SLOW_QUESTION_MULTIPLIER * lessonMedianMs) {
+        result.push({
+          questionId: q.questionId,
+          questionTitle: q.title,
+          medianTimeSec: Math.round(q.medianMs / 100) / 10,
+          lessonMedianTimeSec: Math.round(lessonMedianMs / 100) / 10,
+          qualifyingAttempts: q.count,
+        });
+      }
+    }
+
+    result.sort((a, b) => b.medianTimeSec - a.medianTimeSec);
+    return result;
+  }
+
+  // Returns the first attempt per student (min attemptedAt, min id as tiebreak).
+  private firstAttemptsByStudent(attempts: AttemptRow[]): AttemptRow[] {
+    const byStudent = new Map<number, AttemptRow>();
+    for (const a of attempts) {
+      if (a.studentId === null) continue;
+      const best = byStudent.get(a.studentId);
+      if (
+        !best ||
+        a.attemptedAt < best.attemptedAt ||
+        (a.attemptedAt.getTime() === best.attemptedAt.getTime() &&
+          a.id < best.id)
+      ) {
+        byStudent.set(a.studentId, a);
+      }
+    }
+    return [...byStudent.values()];
+  }
+
+  // Returns the median of a numeric array. Input must be non-empty.
+  private median(values: number[]): number {
+    const sorted = [...values].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 === 0
+      ? (sorted[mid - 1] + sorted[mid]) / 2
+      : sorted[mid];
   }
 }

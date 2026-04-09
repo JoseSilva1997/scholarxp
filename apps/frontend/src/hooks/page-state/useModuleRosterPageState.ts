@@ -1,4 +1,4 @@
-// Orchestrates roster page state: summary cards, detail panel expansion, tab/filter/sort selection, and student drill-down.
+// Orchestrates roster page state: summary cards, detail panel expansion, tab/filter/sort selection, and roster drill-downs.
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import type {
   AuthUser,
@@ -17,6 +17,7 @@ import {
   useRosterStudentsQuery,
   useRosterLessonsQuery,
   useRosterStudentDetailQuery,
+  useRosterLessonDrilldownQuery,
 } from '../queries/useRosterQueries';
 import {
   getDisplayErrorMessage,
@@ -83,6 +84,13 @@ type UseModuleRosterPageStateResult = {
   studentDetail: ReturnType<typeof useRosterStudentDetailQuery>['data'] | undefined;
   isStudentDetailLoading: boolean;
   studentDetailError: string | null;
+
+  // Lesson drill-down
+  selectedLessonId: number | null;
+  selectLesson: (lessonId: number | null) => void;
+  lessonDrilldown: ReturnType<typeof useRosterLessonDrilldownQuery>['data'] | undefined;
+  isLessonDrilldownLoading: boolean;
+  lessonDrilldownError: string | null;
 };
 
 export function useModuleRosterPageState({
@@ -117,6 +125,9 @@ export function useModuleRosterPageState({
   // Student drill-down
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
 
+  // Lesson drill-down
+  const [selectedLessonId, setSelectedLessonId] = useState<number | null>(null);
+
   // Queries
   const summaryQuery = useRosterSummaryQuery(parsedId);
   const studentsQuery = useRosterStudentsQuery(parsedId, {
@@ -130,6 +141,7 @@ export function useModuleRosterPageState({
     sortDirection: lessonSortDirection,
   });
   const studentDetailQuery = useRosterStudentDetailQuery(parsedId, selectedStudentId);
+  const lessonDrilldownQuery = useRosterLessonDrilldownQuery(parsedId, selectedLessonId);
 
   // Error logging — only escalate server errors to telemetry
   useEffect(() => {
@@ -161,6 +173,17 @@ export function useModuleRosterPageState({
     }
   }, [studentDetailQuery.error, parsedId, selectedStudentId]);
 
+  useEffect(() => {
+    if (lessonDrilldownQuery.error && shouldLogApiError(lessonDrilldownQuery.error)) {
+      logError(lessonDrilldownQuery.error, {
+        feature: 'roster',
+        action: 'lesson-drilldown',
+        moduleId: parsedId,
+        moduleUnitId: selectedLessonId,
+      });
+    }
+  }, [lessonDrilldownQuery.error, parsedId, selectedLessonId]);
+
   // Detail panel helpers
   const openDetail = useCallback((tab: RosterTab) => {
     setIsDetailOpen(true);
@@ -170,6 +193,7 @@ export function useModuleRosterPageState({
   const closeDetail = useCallback(() => {
     setIsDetailOpen(false);
     setSelectedStudentId(null);
+    setSelectedLessonId(null);
   }, []);
 
   // Card click handlers apply preset filter/sort then open the correct tab
@@ -202,9 +226,18 @@ export function useModuleRosterPageState({
 
   const selectStudent = useCallback((studentId: number) => {
     setSelectedStudentId((prev) => (prev === studentId ? null : studentId));
+    setSelectedLessonId(null);
   }, []);
 
   const clearSelectedStudent = useCallback(() => {
+    setSelectedStudentId(null);
+  }, []);
+
+  const selectLesson = useCallback((lessonId: number | null) => {
+    setSelectedLessonId((prev) => {
+      if (lessonId === null) return null;
+      return prev === lessonId ? null : lessonId;
+    });
     setSelectedStudentId(null);
   }, []);
 
@@ -277,6 +310,16 @@ export function useModuleRosterPageState({
     studentDetailError: studentDetailQuery.error
       ? getDisplayErrorMessage(studentDetailQuery.error, {
           fallbackMessage: 'Could not load student details.',
+        })
+      : null,
+
+    selectedLessonId,
+    selectLesson,
+    lessonDrilldown: lessonDrilldownQuery.data,
+    isLessonDrilldownLoading: selectedLessonId !== null && lessonDrilldownQuery.isPending,
+    lessonDrilldownError: lessonDrilldownQuery.error
+      ? getDisplayErrorMessage(lessonDrilldownQuery.error, {
+          fallbackMessage: 'Could not load lesson details.',
         })
       : null,
   };

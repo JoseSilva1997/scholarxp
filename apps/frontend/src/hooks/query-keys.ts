@@ -55,6 +55,8 @@ export const queryKeys = {
     lessons: (moduleId: number) => ['roster', 'lessons', moduleId] as const,
     studentDetail: (moduleId: number, studentId: number) =>
       ['roster', 'student-detail', moduleId, studentId] as const,
+    lessonDrilldown: (moduleId: number, moduleUnitId: number) =>
+      ['roster', 'lesson-drilldown', moduleId, moduleUnitId] as const,
   },
   profile: {
     student: (userId: number | null) => ['profile', 'student', userId] as const,

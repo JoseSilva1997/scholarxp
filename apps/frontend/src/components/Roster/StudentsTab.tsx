@@ -122,7 +122,7 @@ export default function StudentsTab({
               <tr>
                 <th className={`${styles.th} ${styles.tdLeft}`}>Student</th>
                 <th className={`${styles.th} ${styles.thWrap}`}>Proficiency Level</th>
-                <th className={`${styles.th} ${styles.thWrap}`}>Proficiency XP</th>
+                <th className={`${styles.th} ${styles.thWrap}`}>Experience Points</th>
                 <th className={styles.th}>Lessons</th>
                 <th className={styles.th}>Mastery</th>
                 <th className={styles.th}>Daily Practice</th>

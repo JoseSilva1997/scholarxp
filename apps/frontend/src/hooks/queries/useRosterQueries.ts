@@ -9,6 +9,7 @@ import {
   getRosterStudents,
   getRosterLessons,
   getRosterStudentDetail,
+  getLessonDrilldown,
 } from '../../api/roster';
 import { queryKeys } from '../query-keys';
 
@@ -63,6 +64,22 @@ export function useRosterStudentDetailQuery(
     queryFn: () => getRosterStudentDetail(moduleId!, studentId!),
     // Only fetch when both ids are present — prevents premature requests before drill-down selection.
     enabled: moduleId !== null && studentId !== null,
+    staleTime: 30_000,
+  });
+}
+
+export function useRosterLessonDrilldownQuery(
+  moduleId: number | null,
+  moduleUnitId: number | null,
+) {
+  return useQuery({
+    queryKey:
+      moduleId && moduleUnitId
+        ? queryKeys.roster.lessonDrilldown(moduleId, moduleUnitId)
+        : queryKeys.roster.lessonDrilldown(0, 0),
+    queryFn: () => getLessonDrilldown(moduleId!, moduleUnitId!),
+    // Only fetch when a lesson row is selected in the Lessons tab.
+    enabled: moduleId !== null && moduleUnitId !== null,
     staleTime: 30_000,
   });
 }

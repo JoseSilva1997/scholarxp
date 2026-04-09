@@ -22,6 +22,8 @@ type LessonsTabProps = {
   onSortByChange: (sortBy: RosterLessonSortBy) => void;
   sortDirection: SortDirection;
   onSortDirectionChange: (dir: SortDirection) => void;
+  selectedLessonId: number | null;
+  onSelectLesson: (id: number | null) => void;
 };
 
 function formatDate(iso: string | null): string {
@@ -67,6 +69,8 @@ export default function LessonsTab({
   onSortByChange,
   sortDirection,
   onSortDirectionChange,
+  selectedLessonId,
+  onSelectLesson,
 }: LessonsTabProps) {
   return (
     <div className={styles.tabContent}>
@@ -105,7 +109,20 @@ export default function LessonsTab({
                 </tr>
               ) : (
                 rows.map((lesson) => (
-                  <tr key={lesson.moduleUnitId} className={styles.row}>
+                  <tr
+                    key={lesson.moduleUnitId}
+                    className={`${styles.row} ${selectedLessonId === lesson.moduleUnitId ? styles.rowSelected : ''}`}
+                    onClick={() => onSelectLesson(lesson.moduleUnitId)}
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={selectedLessonId === lesson.moduleUnitId}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        onSelectLesson(lesson.moduleUnitId);
+                      }
+                    }}
+                  >
                     <td className={styles.td}>
                       <span className={styles.lessonTitle}>{lesson.title}</span>
                     </td>

@@ -5,6 +5,7 @@ import { Authorize } from '../auth/decorators/authorize.decorator';
 import { AuthorizationGuard } from '../auth/guards/authorization.guard';
 import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
 import {
+  RosterLessonParamsDto,
   RosterModuleParamsDto,
   RosterStudentParamsDto,
 } from './dto/roster-params.dto';
@@ -49,6 +50,15 @@ export class RosterController {
     return this.rosterService.getStudentDetail(
       params.moduleId,
       params.studentId,
+    );
+  }
+
+  @Get('lessons/:moduleUnitId')
+  @Authorize({ capability: features.modules.roster, scope: 'module' })
+  getLessonDrilldown(@Param() params: RosterLessonParamsDto) {
+    return this.rosterService.getLessonDrilldown(
+      params.moduleId,
+      params.moduleUnitId,
     );
   }
 }

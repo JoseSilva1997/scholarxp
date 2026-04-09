@@ -67,6 +67,7 @@
 
 /* Allows header text to wrap — used for wide labels like "Proficiency Level" */
 .thWrap {
+  max-width: 100px;
   white-space: normal;
 }
 

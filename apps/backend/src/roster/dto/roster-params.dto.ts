@@ -15,3 +15,10 @@ export class RosterStudentParamsDto extends RosterModuleParamsDto {
   @Min(1)
   studentId: number;
 }
+
+export class RosterLessonParamsDto extends RosterModuleParamsDto {
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  moduleUnitId: number;
+}
