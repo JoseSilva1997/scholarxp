@@ -1,17 +1,17 @@
-// Reward query tests verify the standalone header reward track uses the expected cache keys and enablement rules.
+// Daily XP track query tests verify the standalone header widget uses the expected cache keys and enablement rules.
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import type { DailyLessonXpTrackResponse } from '@scholarxp/api-contracts';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { queryKeys } from '../query-keys';
-import { useDailyLessonXpTrackQuery } from './useRewardsQueries';
+import { useDailyLessonXpTrackQuery } from './useDailyXpTrackQueries';
 
 const apiMocks = vi.hoisted(() => ({
   getDailyLessonXpTrack: vi.fn(),
 }));
 
-vi.mock('@/api/rewards', () => ({
+vi.mock('@/api/daily-xp-track', () => ({
   getDailyLessonXpTrack: apiMocks.getDailyLessonXpTrack,
 }));
 
@@ -21,7 +21,7 @@ function createWrapper(queryClient: QueryClient) {
   };
 }
 
-describe('useRewardsQueries', () => {
+describe('useDailyXpTrackQueries', () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {

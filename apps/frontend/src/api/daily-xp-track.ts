@@ -1,4 +1,4 @@
-// Rewards API helpers keep frontend reward-track reads aligned with the backend-owned pacing contracts.
+// Daily XP track API helper; isolated from cosmetic rewards since this endpoint serves the header pacing widget, not cosmetics.
 import type { DailyLessonXpTrackResponse } from '@scholarxp/api-contracts';
 import { apiFetch } from './client';
 

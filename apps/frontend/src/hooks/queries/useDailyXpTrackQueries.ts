@@ -1,7 +1,7 @@
-// Reward query hooks centralize server-state wiring for standalone reward-track widgets so header components stay render-focused.
+// Daily XP track query hooks centralize server-state wiring for the header's pacing widget so render components stay lean.
 import { useQuery } from '@tanstack/react-query';
 import type { DailyLessonXpTrackResponse } from '@scholarxp/api-contracts';
-import { getDailyLessonXpTrack } from '@/api/rewards';
+import { getDailyLessonXpTrack } from '@/api/daily-xp-track';
 import { queryKeys } from '../query-keys';
 
 export function useDailyLessonXpTrackQuery(enabled: boolean, userId?: number) {
