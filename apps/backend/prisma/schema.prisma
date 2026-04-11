@@ -68,12 +68,15 @@ model User {
 }
 
 model Avatar {
-  id        Int      @id @default(autoincrement())
-  userId    Int      @map("user_id")
+  id                Int      @id @default(autoincrement())
+  userId            Int      @map("user_id")
   // Canonical lifetime account XP used for non-linear level-curve calculations.
-  totalExp  Int      @default(0) @map("total_exp")
-  createdAt DateTime @default(now()) @map("created_at")
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalExp          Int      @default(0) @map("total_exp")
+  // Per-slot cosmetic selections kept as a JSON blob so new reward slots don't require schema migrations;
+  // sanitizeEquippedCosmetics in the progression package is the single reader on both sides.
+  equippedCosmetics Json     @default("{}") @map("equipped_cosmetics")
+  createdAt         DateTime @default(now()) @map("created_at")
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId])
   @@map("avatars")
