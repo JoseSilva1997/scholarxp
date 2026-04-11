@@ -1,6 +1,6 @@
-// Role: triggers daily-practice batch generation on boot and at UTC midnight so reads can stay load-only.
+// Role: triggers daily-practice batch generation on boot and around local midnight so reads can stay load-only.
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { DailyPracticeGenerationBatchService } from './daily-practice-generation-batch.service';
 
 export const DAILY_PRACTICE_GENERATION_CRON_NAME = 'daily-practice-generation';
@@ -19,25 +19,30 @@ export class DailyPracticeGenerationScheduleService implements OnModuleInit {
     void this.runStartupGeneration();
   }
 
-  // Startup backfills the current UTC day after downtime so the first student request does not become a hidden generator.
+  // Startup backfills the current local day after downtime because scheduled runs only target local-midnight windows.
   async runStartupGeneration() {
     await this.runGeneration('startup');
   }
 
-  // UTC midnight keeps set creation aligned with the product rule that a new day begins globally, not per server locale.
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, {
+  // Quarter-hour polling catches full-, half-, and quarter-offset timezones shortly after their local midnight.
+  @Cron('*/15 * * * *', {
     name: DAILY_PRACTICE_GENERATION_CRON_NAME,
     timeZone: 'UTC',
   })
-  async handleUtcMidnightGeneration() {
-    await this.runGeneration('scheduled');
+  async handleScheduledGenerationWindow() {
+    await this.runGeneration('scheduled', true);
   }
 
-  private async runGeneration(trigger: 'startup' | 'scheduled') {
+  private async runGeneration(
+    trigger: 'startup' | 'scheduled',
+    onlyLocalMidnightWindow: boolean = false,
+  ) {
     try {
       const result =
         await this.dailyPracticeGenerationBatchService.generateDailyPracticeSetsForAllStudents(
           new Date(),
+          undefined,
+          { onlyLocalMidnightWindow },
         );
       this.logger.log(
         `Completed ${trigger} daily-practice generation for ${result.processedMembershipCount} enrollment(s), created ${result.createdSetCount} set(s), with ${result.failedMembershipCount} failure(s).`,

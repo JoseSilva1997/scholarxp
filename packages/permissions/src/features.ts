@@ -2,6 +2,7 @@
 export const features = {
   users: {
     selectOwnRole: 'users_select_own_role',
+    updateOwnTimezone: 'users_update_own_timezone',
   },
   modules: {
     create: 'modules_create',
@@ -11,6 +12,7 @@ export const features = {
     invitations: 'modules_invitations',
     invitationsRedemption: 'modules_invitations_redemption',
     manageContent: 'modules_manage_content',
+    roster: 'modules_roster',
   },
   navigation: {
     modules: 'navigation_modules',

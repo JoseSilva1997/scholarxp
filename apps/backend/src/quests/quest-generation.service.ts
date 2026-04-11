@@ -52,11 +52,24 @@ export class QuestGenerationService {
     tx?: PrismaClientLike,
   ): Promise<void> {
     const prismaClient = tx ?? this.prisma;
-    const { dayStartUtc } = DateHelpers.getUtcDayBounds(timestamp);
+
+    // Load timezone once here so all downstream calls (eligibility, day bounds, DB date) stay consistent.
+    const userRecord = await prismaClient.user.findUnique({
+      where: { id: userId },
+      select: { timezone: true },
+    });
+    const timezone = userRecord?.timezone ?? 'UTC';
+
+    // dayStartDb is the local calendar date stored as UTC midnight — used for @db.Date column lookups.
+    // dayStartUtc is the actual UTC instant of local midnight — used for DateTime range queries.
+    const localDateKey = DateHelpers.getLocalDateKey(timestamp, timezone);
+    const dayStartDb = new Date(`${localDateKey}T00:00:00.000Z`);
+    const { dayStartUtc } = DateHelpers.getLocalDayBounds(timestamp, timezone);
+
     const existingQuests = await prismaClient.dailyQuest.findMany({
       where: {
         userId,
-        questDateUtc: dayStartUtc,
+        questDateUtc: dayStartDb,
       },
       select: {
         id: true,
@@ -97,7 +110,7 @@ export class QuestGenerationService {
     const completedUnitTarget = await this.selectCompletedUnitTarget(
       userId,
       enrolledModuleIds,
-      dayStartUtc,
+      dayStartUtc, // actual UTC of local midnight — the completedAt comparison is a DateTime query
       prismaClient,
     );
     // Product rule: quests unlock only after the student has both joined a module and
@@ -113,6 +126,7 @@ export class QuestGenerationService {
         userId,
         enrolledModuleIds,
         timestamp,
+        timezone,
       });
 
     // module_unit_retry (importance 1) is suppressed when any importance-5 daily practice quests
@@ -142,7 +156,7 @@ export class QuestGenerationService {
             moduleId,
             moduleUnitId: null,
             type: QuestTypeValues.completeDailyPractice,
-            questDateUtc: dayStartUtc,
+            questDateUtc: dayStartDb,
           }),
         );
       }
@@ -162,7 +176,7 @@ export class QuestGenerationService {
           moduleId: streakModuleId,
           moduleUnitId: null,
           type: QuestTypeValues.dailyPracticeStreak,
-          questDateUtc: dayStartUtc,
+          questDateUtc: dayStartDb,
         }),
       );
     }
@@ -174,7 +188,7 @@ export class QuestGenerationService {
           moduleId: lessonQuestTarget.moduleId,
           moduleUnitId: null,
           type: lessonQuestTarget.type,
-          questDateUtc: dayStartUtc,
+          questDateUtc: dayStartDb,
         }),
       );
     }
@@ -208,7 +222,7 @@ export class QuestGenerationService {
           moduleUnitId: null,
           type: QuestTypeValues.masterDailyQuests,
           expGranted: masterQuestReward,
-          questDateUtc: dayStartUtc,
+          questDateUtc: dayStartDb,
         }),
       );
     }
@@ -262,11 +276,13 @@ export class QuestGenerationService {
     userId: number;
     enrolledModuleIds: number[];
     timestamp: Date;
+    timezone: string;
   }): Promise<number[]> {
     return this.questDailyPracticeAvailabilityService.findAllAvailableModuleIds(
       input.userId,
       input.enrolledModuleIds,
       input.timestamp,
+      input.timezone,
     );
   }
 

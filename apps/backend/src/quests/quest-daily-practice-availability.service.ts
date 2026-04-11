@@ -17,6 +17,7 @@ export class QuestDailyPracticeAvailabilityService {
     userId: number,
     moduleIds: number[],
     timestamp: Date,
+    timezone: string = 'UTC',
   ): Promise<number[]> {
     const result: number[] = [];
     const seenModuleIds = new Set<number>();
@@ -28,7 +29,12 @@ export class QuestDailyPracticeAvailabilityService {
       seenModuleIds.add(moduleId);
 
       if (
-        await this.isDailyPracticeAvailableForModule(userId, moduleId, timestamp)
+        await this.isDailyPracticeAvailableForModule(
+          userId,
+          moduleId,
+          timestamp,
+          timezone,
+        )
       ) {
         result.push(moduleId);
       }
@@ -42,6 +48,7 @@ export class QuestDailyPracticeAvailabilityService {
     userId: number,
     moduleIds: number[],
     timestamp: Date,
+    timezone: string = 'UTC',
   ): Promise<number | null> {
     const seenModuleIds = new Set<number>();
 
@@ -56,6 +63,7 @@ export class QuestDailyPracticeAvailabilityService {
           userId,
           moduleId,
           timestamp,
+          timezone,
         )
       ) {
         return moduleId;
@@ -69,11 +77,13 @@ export class QuestDailyPracticeAvailabilityService {
     userId: number,
     moduleId: number,
     timestamp: Date,
+    timezone: string,
   ): Promise<boolean> {
     const existingSet = await this.dailyPracticeSetReadService.findSetForUtcDay(
       userId,
       moduleId,
       timestamp,
+      timezone,
     );
     if (existingSet) {
       return existingSet.items.length > 0;
@@ -84,6 +94,7 @@ export class QuestDailyPracticeAvailabilityService {
         moduleId,
         userId,
         timestamp,
+        timezone,
       );
     } catch (error) {
       if (error instanceof ForbiddenException) {

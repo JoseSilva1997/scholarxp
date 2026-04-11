@@ -19,6 +19,7 @@ import DailyPracticePage from './routes/main/DailyPracticePage';
 import QuestsPage from './routes/main/QuestsPage';
 import ProfilePage from './routes/main/ProfilePage';
 import AcceptInvite from './routes/main/AcceptInvite';
+import ModuleRosterPage from './routes/main/ModuleRosterPage';
 
 function AppLayout() {
   const location = useLocation();
@@ -113,6 +114,7 @@ function AppLayout() {
                 <Route path="/main/landing" element={<Landing />} />
                 <Route path="/main/modules" element={<ModulesPage />} />
                 <Route path="/main/modules/:moduleId" element={<SingleModulePage />} />
+                <Route path="/main/modules/:moduleId/roster" element={<ModuleRosterPage />} />
                 <Route path="/main/modules/:moduleId/:unitId/editor" element={<ModuleUnitEditor />} />
                 <Route path="/main/modules/:moduleId/:unitId/practice-room" element={<PracticeRoomPage />} />
                 <Route path="/main/modules/:moduleId/daily-practice" element={<DailyPracticePage />} />

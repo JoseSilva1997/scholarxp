@@ -73,6 +73,7 @@ describe('Header', () => {
       profilePictureUrl: '',
       globalRole: 'student',
       isVerified: true,
+      timezone: 'UTC',
       avatar: {
         id: 10,
         totalExp: 1000,
@@ -117,6 +118,7 @@ describe('Header', () => {
       profilePictureUrl: '',
       globalRole: 'student',
       isVerified: true,
+      timezone: 'UTC',
       // avatar is undefined
     };
 
@@ -149,6 +151,7 @@ describe('Header', () => {
       profilePictureUrl: '',
       globalRole: 'teacher',
       isVerified: true,
+      timezone: 'UTC',
       avatar: {
         id: 20,
         totalExp: 3500,
@@ -180,6 +183,7 @@ describe('Header', () => {
         profilePictureUrl: '',
         globalRole: 'admin',
         isVerified: true,
+        timezone: 'UTC',
       };
 
       renderWithProviders(
@@ -199,6 +203,7 @@ describe('Header', () => {
       profilePictureUrl: '',
       globalRole: 'student',
       isVerified: true,
+      timezone: 'UTC',
       avatar: {
         id: 10,
         totalExp: 1000,

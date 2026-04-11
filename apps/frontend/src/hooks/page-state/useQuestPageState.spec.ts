@@ -55,6 +55,7 @@ describe('useQuestPageState', () => {
     profilePictureUrl: '',
     globalRole: 'student',
     isVerified: true,
+    timezone: 'UTC',
   };
 
   function createQuestView(overrides: Partial<QuestView>): QuestView {

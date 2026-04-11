@@ -51,6 +51,10 @@ export const STREAK_BONUS_EXP_PER_DELTA = 50;
 export const MAXIMUM_FIRST_ATTEMPT_BONUS_EXP = 150;
 // Total mastery XP pool earned through daily practice spaced repetition across all questions in a module unit.
 export const MASTERY_TOTAL_EXP = 700;
+// Weighting split for the roster mastery score: completion proves a student saw the material once;
+// mastery XP proves repeated engagement over time, so it carries the majority of the score.
+export const ROSTER_MASTERY_COMPLETION_WEIGHT = 0.20;
+export const ROSTER_MASTERY_EXP_WEIGHT = 0.80;
 
 // Module Unit completion rewards with deminishing returs per completion per UTC day
 export const MODULE_UNIT_COMPLETION_REWARDS = {

@@ -1,0 +1,191 @@
+/* Student drill-down panel: slides in below the table when a student row is selected. */
+.panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  margin-top: 16px;
+  animation: slideIn 0.25s ease-out;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.studentIdentity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+}
+
+.panelTitle {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.closeButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  font-size: 1.25rem;
+  font-family: inherit;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.closeButton:hover {
+  background: var(--color-surface-hover);
+}
+
+/* Sections */
+.section {
+  padding: 16px 0;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.bottomSection {
+  padding: 16px 0;
+}
+
+.section:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.sectionTitle {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  margin: 0 0 12px 0;
+}
+
+/* Stat grid */
+.statGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 32px;
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 120px;
+}
+
+.statLabel {
+  font-size: 0.75rem;
+  color: var(--color-text-dim);
+}
+
+.statValue {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.warningValue {
+  color: var(--color-accent-dark);
+}
+
+/* Lesson progress table */
+.lessonTableWrapper {
+  overflow-x: auto;
+}
+
+.lessonTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.lessonTable th {
+  text-align: left;
+  padding: 8px;
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.lessonTable td {
+  padding: 8px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  color: var(--color-text);
+}
+
+.emptyText {
+  color: var(--color-text-muted);
+  font-style: italic;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+/* Error */
+.errorMessage {
+  padding: 12px;
+  background: var(--color-error-light);
+  border: 1px solid var(--color-error-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-error-dark);
+  font-size: 0.875rem;
+}
+
+/* Skeleton */
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.skeletonBar {
+  height: 16px;
+  border-radius: var(--radius-sm);
+  background: var(--color-border);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@media (max-width: 768px) {
+  .panel {
+    padding: 16px;
+  }
+
+  .statGrid {
+    gap: 12px 20px;
+  }
+
+  .statItem {
+    min-width: 100px;
+  }
+}

@@ -33,6 +33,7 @@ describe('DailyPracticeGenerationService', () => {
 
   beforeEach(async () => {
     prisma = createPrismaMock();
+    prisma.user.findUnique.mockResolvedValue({ timezone: 'UTC' } as never);
     dailyPracticeSetReadService = {
       findSetForUtcDay: jest.fn(),
     };

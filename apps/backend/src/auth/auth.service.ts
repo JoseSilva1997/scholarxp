@@ -33,6 +33,7 @@ type UserRecord = {
   profilePictureUrl?: string | null;
   globalRole: GlobalRole;
   isVerified?: boolean;
+  timezone?: string | null;
 };
 
 @Injectable()
@@ -405,6 +406,7 @@ export class AuthService {
       profilePictureUrl?: string | null;
       globalRole: GlobalRole;
       isVerified?: boolean;
+      timezone?: string | null;
     },
     avatar?: { id: number; totalExp: number } | null,
     membership?: {
@@ -431,6 +433,7 @@ export class AuthService {
       profilePictureUrl: user.profilePictureUrl ?? 'default-profile-pic.png',
       globalRole: user.globalRole,
       isVerified: user.isVerified ?? false,
+      timezone: user.timezone ?? 'UTC',
       // Caller can flag that email verification is still pending for UX hints.
       requiresEmailVerification:
         requireVerification || !(user.isVerified ?? false),

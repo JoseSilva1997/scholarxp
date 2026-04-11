@@ -1,6 +1,7 @@
 // TodayQuestChip owns the student-only quest summary interaction so Header stays focused on layout and auth branches.
 import { useEffect, useRef, useState } from 'react';
 import { BsTrophyFill } from 'react-icons/bs';
+import { useAuth } from '@/context/AuthContext';
 import { useTodayQuestListQuery } from '@/hooks/queries/useQuestsQueries';
 import TodayQuestPopover from './TodayQuestPopover';
 import MasterQuestStreakChip from './MasterQuestStreakChip';
@@ -55,13 +56,15 @@ const readTodayChipAcknowledgement = (
 };
 
 export default function TodayQuestChip({ userId }: TodayQuestChipProps) {
+  const { user } = useAuth();
+  const userTimezone = user?.timezone ?? 'UTC';
   const [isTodayPopoverOpen, setIsTodayPopoverOpen] = useState(false);
   const [todayChipAcknowledgement, setTodayChipAcknowledgement] =
     useState<TodayChipAcknowledgement | null>(() =>
       readTodayChipAcknowledgement(userId),
     );
   const todayChipWrapperRef = useRef<HTMLDivElement | null>(null);
-  const todayQuestListQuery = useTodayQuestListQuery(true, userId);
+  const todayQuestListQuery = useTodayQuestListQuery(true, userId, userTimezone);
   const todayQuestList = todayQuestListQuery.data;
   const todayQuestLabel = todayQuestList
     ? `${todayQuestList.completed}/${todayQuestList.max}`

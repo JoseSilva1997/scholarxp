@@ -32,6 +32,7 @@ describe('UserBadge', () => {
     globalRole: 'student' as const,
     isVerified: true,
     profilePictureUrl: '',
+    timezone: 'UTC',
     avatar: {
       id: 1,
       totalExp: 850,

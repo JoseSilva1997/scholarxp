@@ -38,6 +38,15 @@ export const permissionMatrix: PermissionMatrix = {
   [features.users.selectOwnRole]: [
     'pending'
   ],
+  [features.users.updateOwnTimezone]: [
+    'pending',
+    'admin',
+    'institution_admin',
+    'teacher.independent',
+    'teacher.institutional',
+    'student.independent',
+    'student.institutional',
+  ],
 
   // ====MODULES====
   [features.modules.create]: [
@@ -72,8 +81,14 @@ export const permissionMatrix: PermissionMatrix = {
     'teacher.independent'
   ],
   [features.modules.invitationsRedemption]: [
-    'admin', 
+    'admin',
     'student.independent'
+  ],
+  [features.modules.roster]: [
+    'admin',
+    'institution_admin',
+    'teacher.independent',
+    'teacher.institutional',
   ],
 
   // ====NAVIGATION====

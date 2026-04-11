@@ -1,4 +1,4 @@
-// Quests page-state orchestrates paged quest-history fetching, UTC day grouping, and load-more actions.
+// Quests page-state orchestrates paged quest-history fetching, local-day grouping, and load-more actions.
 import { useEffect, useMemo } from 'react';
 import type { QuestView } from '@scholarxp/api-contracts';
 import {
@@ -76,22 +76,24 @@ export function useQuestPageState(): UseQuestPageStateResult {
     );
   }, [questHistoryQuery.data?.pages]);
 
+  const timezone = user?.timezone ?? 'UTC';
+
   // Transform grouped quest days into a format suitable for the UI
   const daySections = useMemo(() => {
-    const todayUtc = formatDateToUtcDay(new Date());
+    const todayLocal = new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(new Date());
     return groupedQuestDays.map(([questDayUtc, dayQuests]) => {
       const { dailyQuests, masterQuest } = partitionQuestViewsByTier(dayQuests);
 
       return {
         questDayUtc,
-        dayLabel: formatQuestDayLabel(questDayUtc),
-        isToday: questDayUtc === todayUtc,
+        dayLabel: formatQuestDayLabel(questDayUtc, todayLocal),
+        isToday: questDayUtc === todayLocal,
         // The page renders only the generated daily quests while the master quest gets its own chest treatment.
         quests: dailyQuests,
         masterQuest,
       };
     });
-  }, [groupedQuestDays]);
+  }, [groupedQuestDays, timezone]);
 
   // Generate a user-friendly error message if the query fails
   const pageError = questHistoryQuery.error
@@ -120,10 +122,11 @@ export function useQuestPageState(): UseQuestPageStateResult {
   };
 }
 
-// Helper function to format a UTC day into a user-friendly label
-function formatQuestDayLabel(questDayUtc: string): string {
-  const todayUtc = formatDateToUtcDay(new Date());
-  if (questDayUtc === todayUtc) {
+// Formats a stored YYYY-MM-DD date key into a display label.
+// questDayUtc represents the user's local calendar date (despite the field name),
+// so parsing it as UTC midnight and formatting in UTC preserves the stored date components.
+function formatQuestDayLabel(questDayUtc: string, todayLocal: string): string {
+  if (questDayUtc === todayLocal) {
     return 'Today';
   }
 
@@ -134,9 +137,4 @@ function formatQuestDayLabel(questDayUtc: string): string {
     year: 'numeric',
     timeZone: 'UTC',
   }).format(parsedDate);
-}
-
-// Helper function to convert a Date object to a UTC day string
-function formatDateToUtcDay(value: Date): string {
-  return value.toISOString().slice(0, 10);
 }

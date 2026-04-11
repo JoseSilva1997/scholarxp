@@ -9,12 +9,19 @@ type StudentModuleMembershipCursorRow = {
   id: number;
   userId: number;
   moduleId: number;
+  user: {
+    timezone: string;
+  };
 };
 
 export type GenerateDailyPracticeSetsForAllStudentsResult = {
   processedMembershipCount: number;
   createdSetCount: number;
   failedMembershipCount: number;
+};
+
+type GenerateDailyPracticeSetsForAllStudentsOptions = {
+  onlyLocalMidnightWindow?: boolean;
 };
 
 @Injectable()
@@ -32,8 +39,10 @@ export class DailyPracticeGenerationBatchService {
   async generateDailyPracticeSetsForAllStudents(
     timestamp: Date = new Date(),
     batchSize: number = DEFAULT_BATCH_SIZE,
+    options: GenerateDailyPracticeSetsForAllStudentsOptions = {},
   ): Promise<GenerateDailyPracticeSetsForAllStudentsResult> {
     const normalizedBatchSize = Math.max(1, Math.floor(batchSize));
+    const onlyLocalMidnightWindow = options.onlyLocalMidnightWindow ?? false;
     let lastMembershipId: number | null = null;
     let processedMembershipCount = 0;
     let createdSetCount = 0;
@@ -51,6 +60,11 @@ export class DailyPracticeGenerationBatchService {
           id: true,
           userId: true,
           moduleId: true,
+          user: {
+            select: {
+              timezone: true,
+            },
+          },
         },
         orderBy: {
           id: 'asc',
@@ -67,6 +81,16 @@ export class DailyPracticeGenerationBatchService {
       }
 
       for (const membership of studentMemberships) {
+        if (
+          onlyLocalMidnightWindow &&
+          !this.isWithinLocalMidnightWindow(
+            timestamp,
+            membership.user.timezone ?? 'UTC',
+          )
+        ) {
+          continue;
+        }
+
         try {
           const result =
             await this.dailyPracticeGenerationService.ensureSetGenerated(
@@ -89,5 +113,29 @@ export class DailyPracticeGenerationBatchService {
 
       lastMembershipId = studentMemberships[studentMemberships.length - 1].id;
     }
+  }
+
+  private isWithinLocalMidnightWindow(
+    timestamp: Date,
+    timezone: string,
+  ): boolean {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).formatToParts(timestamp);
+
+    const hour = parseInt(
+      parts.find((part) => part.type === 'hour')?.value ?? '0',
+      10,
+    );
+    const minute = parseInt(
+      parts.find((part) => part.type === 'minute')?.value ?? '0',
+      10,
+    );
+
+    // Quarter-hour polling covers full-, half-, and quarter-offset zones while keeping each cycle bounded.
+    return hour % 24 === 0 && minute < 15;
   }
 }

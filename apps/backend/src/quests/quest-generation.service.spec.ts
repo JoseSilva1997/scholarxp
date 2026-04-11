@@ -18,6 +18,7 @@ describe('QuestGenerationService', () => {
     questDailyPracticeAvailabilityService = {
       findAllAvailableModuleIds: jest.fn().mockResolvedValue([1]),
     };
+    prisma.user.findUnique.mockResolvedValue({ timezone: 'UTC' } as never);
     prisma.dailyQuest.createMany.mockResolvedValue({ count: 4 } as never);
 
     const moduleRef: TestingModule = await Test.createTestingModule({
@@ -223,9 +224,7 @@ describe('QuestGenerationService', () => {
 
     const createdData = (prisma.dailyQuest.createMany as jest.Mock).mock
       .calls[0][0].data;
-    const types = createdData.map(
-      (d: { type: string }) => d.type,
-    );
+    const types = createdData.map((d: { type: string }) => d.type);
     expect(types).not.toContain(QuestTypeValues.moduleUnitRetry);
     expect(types).toContain(QuestTypeValues.completeDailyPractice);
     expect(types).toContain(QuestTypeValues.dailyPracticeStreak);
@@ -444,7 +443,12 @@ describe('QuestGenerationService', () => {
 
     expect(
       questDailyPracticeAvailabilityService.findAllAvailableModuleIds,
-    ).toHaveBeenCalledWith(42, [1, 2], new Date('2026-03-13T12:30:00.000Z'));
+    ).toHaveBeenCalledWith(
+      42,
+      [1, 2],
+      new Date('2026-03-13T12:30:00.000Z'),
+      'UTC',
+    );
     expect(prisma.dailyQuest.createMany).toHaveBeenCalledWith({
       data: expect.arrayContaining([
         expect.objectContaining({

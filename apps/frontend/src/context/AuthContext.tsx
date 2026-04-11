@@ -3,6 +3,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   type ReactNode,
 } from 'react';
@@ -11,6 +12,7 @@ import type { AuthResponse } from '@scholarxp/api-contracts';
 import { getProgressWithinLevel } from '@scholarxp/progression';
 import { getCurrentUser, logout as apiLogout } from '../api/auth';
 import { clearCsrfToken, refreshCsrfToken } from '../api/client';
+import { updateTimezone } from '../api/users';
 import { queryKeys } from '../hooks/query-keys';
 import { logError } from '../utils/logger';
 import type { AuthUser } from '../types/auth';
@@ -123,6 +125,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Always fetch a fresh CSRF token bound to the new anonymous session to avoid stale reuse.
     await refreshCsrfToken();
   }, [queryClient, setUser]);
+
+  // Sync browser timezone to the server once per user identity so date-keyed features
+  // (quests, streaks) use the user's local clock rather than UTC.
+  useEffect(() => {
+    if (!authQuery.data?.user) return;
+    const currentUser = authQuery.data.user;
+    const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (!detected || detected === currentUser.timezone) return;
+
+    updateTimezone(currentUser.id, detected)
+      .then((updated) => {
+        setUser(updated);
+      })
+      .catch((error: unknown) => {
+        logError(error, { source: 'AuthContext.timezoneSync' });
+      });
+    // Re-run only when the user identity changes, not on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authQuery.data?.user?.id]);
 
   const value = useMemo(
     () => ({

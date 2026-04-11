@@ -56,22 +56,26 @@ describe('DailyPracticeGenerationScheduleService', () => {
 
     expect(
       dailyPracticeGenerationBatchService.generateDailyPracticeSetsForAllStudents,
-    ).toHaveBeenCalledWith(expect.any(Date));
+    ).toHaveBeenCalledWith(expect.any(Date), undefined, {
+      onlyLocalMidnightWindow: false,
+    });
     expect(logSpy).toHaveBeenCalledWith(
       'Completed startup daily-practice generation for 4 enrollment(s), created 2 set(s), with 1 failure(s).',
     );
   });
 
-  it('runs the UTC-midnight cron handler and logs the batch summary', async () => {
+  it('runs the scheduled generation window handler and logs the batch summary', async () => {
     const logSpy = jest
       .spyOn(Logger.prototype, 'log')
       .mockImplementation(() => undefined);
 
-    await service.handleUtcMidnightGeneration();
+    await service.handleScheduledGenerationWindow();
 
     expect(
       dailyPracticeGenerationBatchService.generateDailyPracticeSetsForAllStudents,
-    ).toHaveBeenCalledWith(expect.any(Date));
+    ).toHaveBeenCalledWith(expect.any(Date), undefined, {
+      onlyLocalMidnightWindow: true,
+    });
     expect(logSpy).toHaveBeenCalledWith(
       'Completed scheduled daily-practice generation for 4 enrollment(s), created 2 set(s), with 1 failure(s).',
     );
@@ -87,7 +91,7 @@ describe('DailyPracticeGenerationScheduleService', () => {
     );
 
     await expect(
-      service.handleUtcMidnightGeneration(),
+      service.handleScheduledGenerationWindow(),
     ).resolves.toBeUndefined();
     expect(errorSpy).toHaveBeenCalledWith(
       'Failed scheduled daily-practice generation.',

@@ -31,6 +31,7 @@ describe('RoleSelectorOverlay', () => {
     profilePictureUrl: '',
     globalRole: 'pending' as const,
     isVerified: true,
+    timezone: 'UTC',
   };
 
   beforeEach(() => {
