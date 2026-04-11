@@ -48,6 +48,9 @@ export const queryKeys = {
     dailyLessonXpTrackAll: ['rewards', 'daily-lesson-xp-track'] as const,
     dailyLessonXpTrack: (userId: number | null) =>
       ['rewards', 'daily-lesson-xp-track', userId] as const,
+    // Cosmetics mutations live under the same top-level bucket so future invalidation patterns can
+    // target either track-related or cosmetic-related rewards without overlap.
+    equipCosmetic: ['rewards', 'equip-cosmetic'] as const,
   },
   roster: {
     summary: (moduleId: number) => ['roster', 'summary', moduleId] as const,
