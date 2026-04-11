@@ -113,6 +113,16 @@ export const permissionMatrix: PermissionMatrix = {
     'student.independent',
     'student.institutional',
   ],
+  // Rewards are avatar-driven cosmetics, and only students have avatars, so the feature is student-only
+  // on both the sidebar entry and the equip mutation.
+  [features.navigation.rewards]: [
+    'student.independent',
+    'student.institutional',
+  ],
+  [features.rewards.equip]: [
+    'student.independent',
+    'student.institutional',
+  ],
 };
 
 // Evaluates a feature against the provided user context; designed for both server and client use.

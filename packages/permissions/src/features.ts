@@ -18,6 +18,10 @@ export const features = {
     modules: 'navigation_modules',
     quests: 'navigation_quests',
     profile: 'navigation_profile',
+    rewards: 'navigation_rewards',
+  },
+  rewards: {
+    equip: 'rewards_equip',
   },
 } as const;
 

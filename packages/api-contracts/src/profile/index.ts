@@ -22,33 +22,6 @@ export interface QuestHistorySummary {
   perfectDays: number;
 }
 
-export type RewardRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
-export type RewardCategory = 'avatar_frame' | 'profile_background' | 'title_badge' | 'flair_effect';
-
-export interface RewardItem {
-  id: string;
-  name: string;
-  category: RewardCategory;
-  rarity: RewardRarity;
-  previewUrl?: string;
-  sourceLabel: string;
-}
-
-export interface UpcomingReward {
-  id: string;
-  name: string;
-  category: RewardCategory;
-  rarity: RewardRarity;
-  previewUrl?: string;
-  unlocksAtLevel: number;
-}
-
-export interface StudentProfileRewards {
-  equipped: RewardItem[];
-  owned: RewardItem[];
-  upcoming: UpcomingReward[];
-}
-
 export interface StudentProfileResponse {
   accountLevel: number;
   totalAccountXP: number;
@@ -59,7 +32,6 @@ export interface StudentProfileResponse {
   dailyLessonXPTrack: DailyLessonXpTrackResponse | null;
   modules: StudentProfileModule[];
   questHistorySummary: QuestHistorySummary;
-  rewards: StudentProfileRewards;
 }
 
 // --- Tutor Profile ---

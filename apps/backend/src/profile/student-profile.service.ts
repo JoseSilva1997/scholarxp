@@ -7,7 +7,10 @@ import type {
   StudentProfileResponse,
 } from '@scholarxp/api-contracts';
 import { MODULE_UNIT_BASELINE_EXP } from '@scholarxp/constants';
-import { getProgressWithinLevel } from '@scholarxp/progression';
+import {
+  getProgressWithinLevel,
+  sanitizeEquippedCosmetics,
+} from '@scholarxp/progression';
 import { DailyPracticeService } from '../daily-practice/daily-practice.service';
 import { DailyLessonXpTrackService } from '../exp-engine/daily-lesson-xp-track.service';
 import { DateHelpers } from '../helpers/helpers';
@@ -36,14 +39,20 @@ export class StudentProfileService {
     // Avatar is always present for students — the promotion flow guarantees it.
     const avatar = await this.prisma.avatar.findUnique({
       where: { userId: user.id },
-      select: { id: true, totalExp: true },
+      select: { id: true, totalExp: true, equippedCosmetics: true },
     });
     const totalExp = avatar?.totalExp ?? 0;
     const progress = getProgressWithinLevel(totalExp);
+    // Sanitize against the freshly derived level so the profile view never surfaces an item the
+    // user can no longer earn, matching the same invariant enforced on /auth/me.
     const accountProgress = {
       id: avatar?.id ?? 0,
       totalExp,
       ...progress,
+      equippedCosmetics: sanitizeEquippedCosmetics(
+        avatar?.equippedCosmetics ?? null,
+        progress.level,
+      ),
     };
 
     const [streakStatus, dailyLessonXPTrack, modules, questSummary] =
@@ -67,8 +76,6 @@ export class StudentProfileService {
         totalCompleted: questSummary.totalCompleted,
         perfectDays: questSummary.perfectDays,
       },
-      // Rewards backend is not yet implemented — return empty arrays.
-      rewards: { equipped: [], owned: [], upcoming: [] },
     };
   }
 
