@@ -1,6 +1,7 @@
 /**
- * Manages the application's color theme (light vs dark).
- * Persists user preference to localStorage and updates the document's data-theme attribute.
+ * Manages the active theme id and applies it via the `data-theme` attribute on <html>.
+ * Keeps localStorage as the baseline source so anonymous and tutor users retain their preference across reloads;
+ * the CosmeticThemeSync bridge is what pushes server-backed student cosmetics into this state when authenticated.
  */
 import {
   useCallback,
@@ -11,57 +12,47 @@ import {
 } from 'react';
 import {
   ThemeContext,
+  THEME_IDS,
   THEME_STORAGE_KEY,
+  isDarkFamily,
   type Theme,
 } from './theme-context';
+
+function isKnownTheme(value: string | null): value is Theme {
+  return value !== null && (THEME_IDS as readonly string[]).includes(value);
+}
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
-    return (stored as Theme) || 'light';
+    return isKnownTheme(stored) ? stored : 'light';
   });
 
-  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light');
-
-  // Handle system preference changes
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    
-    const updateResolvedTheme = () => {
-        setResolvedTheme(theme);
-    };
-
-    updateResolvedTheme();
-    mediaQuery.addEventListener('change', updateResolvedTheme);
-    return () => mediaQuery.removeEventListener('change', updateResolvedTheme);
-  }, [theme]);
-
-  // Apply theme to document
+  // Apply theme to <html> and persist to localStorage so subsequent loads hydrate without flashing the default.
   useEffect(() => {
     const root = window.document.documentElement;
-    
     root.setAttribute('data-theme', theme);
-    
     localStorage.setItem(THEME_STORAGE_KEY, theme);
   }, [theme]);
 
+  // Toggle remains a light/dark binary so the header button stays a simple one-tap affordance;
+  // more exotic theme picks come through the Rewards page via setTheme directly.
   const toggleTheme = useCallback(() => {
-    setThemeState((current) => {
-      if (current === 'light') return 'dark';
-      if (current === 'dark') return 'light';
-      // If system, toggle to the opposite of what's currently resolved
-      return resolvedTheme === 'light' ? 'dark' : 'light';
-    });
-  }, [resolvedTheme]);
+    setThemeState((current) => (isDarkFamily(current) ? 'light' : 'dark'));
+  }, []);
+
+  const setTheme = useCallback((next: Theme) => {
+    setThemeState(next);
+  }, []);
 
   const value = useMemo(
     () => ({
       theme,
-      resolvedTheme,
-      setTheme: setThemeState,
+      resolvedTheme: (isDarkFamily(theme) ? 'dark' : 'light') as 'light' | 'dark',
+      setTheme,
       toggleTheme,
     }),
-    [theme, resolvedTheme, toggleTheme],
+    [theme, setTheme, toggleTheme],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

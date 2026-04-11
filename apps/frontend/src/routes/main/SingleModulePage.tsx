@@ -27,7 +27,9 @@ import DebugMeta from '@/components/DebugMeta';
 export default function SingleModulePage() {
   const { moduleId } = useParams<{ moduleId: string }>();
   const { user } = useAuth();
-  const { theme } = useTheme();
+  // resolvedTheme collapses every unlockable theme into light/dark so this component does not need
+  // to enumerate every theme id when picking a light- or dark-variant SVG asset.
+  const { resolvedTheme } = useTheme();
   const {
     module,
     moduleUnits,
@@ -128,10 +130,10 @@ export default function SingleModulePage() {
                         <img
                           src={
                             isStudentViewEnabled
-                              ? theme === 'dark'
+                              ? resolvedTheme === 'dark'
                                 ? untoggleStudentViewDarkIcon
                                 : untoggleStudentViewIcon
-                              : theme === 'dark'
+                              : resolvedTheme === 'dark'
                                 ? toggleStudentViewDarkIcon
                                 : toggleStudentViewIcon
                           }

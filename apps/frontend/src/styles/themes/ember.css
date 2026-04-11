@@ -1,0 +1,33 @@
+/* Ember theme — warm red/orange palette unlocked at level 65. Dark-family base. */
+:root[data-theme='ember'] {
+  --color-primary: #fb923c;
+  --color-primary-dark: #f97316;
+  --color-primary-light: #fdba74;
+  --color-primary-subtle: #fed7aa;
+  --color-primary-soft: rgba(251, 146, 60, 0.15);
+
+  --color-secondary: #f87171;
+  --color-secondary-dark: #ef4444;
+  --color-secondary-light: #fca5a5;
+  --color-secondary-soft: rgba(248, 113, 113, 0.15);
+
+  --color-accent: #fbbf24;
+  --color-accent-dark: #f59e0b;
+  --color-accent-light: #fcd34d;
+  --color-accent-soft: rgba(251, 191, 36, 0.15);
+
+  --color-bg: #1c0f0a;
+  --color-surface: #2d1810;
+  --color-surface-hover: #44231a;
+  --color-text: #fff7ed;
+  --color-text-soft: #fed7aa;
+  --color-text-muted: #fdba74;
+  --color-text-dim: #c2410c;
+  --color-border: #7c2d12;
+  --color-border-hover: #9a3412;
+
+  --color-shadow-subtle: rgba(0, 0, 0, 0.45);
+  --color-shadow-base: rgba(0, 0, 0, 0.55);
+
+  --input-bg: #2d1810;
+}

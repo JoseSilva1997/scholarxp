@@ -9,6 +9,7 @@ import Login from './routes/Login';
 import Register from './routes/Register';
 import VerifyEmail from './routes/VerifyEmail';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { CosmeticThemeSync } from './context/CosmeticThemeSync';
 import RoleSelectorOverlay from './components/RoleSelectorOverlay';
 import AuthedLayout from './layouts/AuthedLayout';
 import ModulesPage from './routes/main/ModulesPage';
@@ -57,6 +58,9 @@ function AppLayout() {
 
   return (
     <div className={`App ${usesFullWidth ? 'App--auth' : ''}`}>
+      {/* Bridges server-backed cosmetic selections into ThemeProvider state for students;
+          a null-render component so it doesn't disturb layout. */}
+      <CosmeticThemeSync />
       {shouldShowHeader ? (
         <Header
           user={user}

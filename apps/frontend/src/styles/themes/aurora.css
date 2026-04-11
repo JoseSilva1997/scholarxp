@@ -1,0 +1,30 @@
+/* Aurora theme — cool teal/green palette unlocked at level 15. Light-family base. */
+/* First-pass palette: tuned to stay accessible while feeling distinct from the default blue primary. */
+:root[data-theme='aurora'] {
+  --color-primary: #0ea5a5;
+  --color-primary-dark: #0b8787;
+  --color-primary-light: #2dd4bf;
+  --color-primary-subtle: #5eead4;
+  --color-primary-soft: rgba(14, 165, 165, 0.1);
+
+  --color-secondary: #14b8a6;
+  --color-secondary-dark: #0d9488;
+  --color-secondary-light: #5eead4;
+  --color-secondary-soft: rgba(20, 184, 166, 0.1);
+
+  --color-accent: #22c55e;
+  --color-accent-dark: #16a34a;
+  --color-accent-light: #4ade80;
+  --color-accent-soft: rgba(34, 197, 94, 0.1);
+
+  --color-bg: #f0fdfa;
+  --color-surface: #ffffff;
+  --color-surface-hover: #ccfbf1;
+  --color-border: #99f6e4;
+  --color-border-hover: #5eead4;
+
+  /* Ambient glows kept in the teal family so background washes reinforce the theme identity. */
+  --color-bg-glow-primary: rgba(14, 165, 165, 0.08);
+  --color-bg-glow-secondary: rgba(20, 184, 166, 0.06);
+  --color-bg-glow-accent: rgba(34, 197, 94, 0.06);
+}

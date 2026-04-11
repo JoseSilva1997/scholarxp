@@ -1,0 +1,34 @@
+/* Midnight theme — deep indigo palette unlocked at level 40. Dark-family base. */
+:root[data-theme='midnight'] {
+  --color-primary: #818cf8;
+  --color-primary-dark: #6366f1;
+  --color-primary-light: #a5b4fc;
+  --color-primary-subtle: #c7d2fe;
+  --color-primary-soft: rgba(129, 140, 248, 0.15);
+
+  --color-secondary: #a78bfa;
+  --color-secondary-dark: #8b5cf6;
+  --color-secondary-light: #c4b5fd;
+  --color-secondary-soft: rgba(167, 139, 250, 0.15);
+
+  --color-accent: #f0abfc;
+  --color-accent-dark: #e879f9;
+  --color-accent-light: #f5d0fe;
+  --color-accent-soft: rgba(240, 171, 252, 0.12);
+
+  --color-bg: #0f0f23;
+  --color-surface: #1a1a2e;
+  --color-surface-hover: #252543;
+  --color-text: #e0e7ff;
+  --color-text-soft: #a5b4fc;
+  --color-text-muted: #818cf8;
+  --color-text-dim: #6366f1;
+  --color-border: #312e81;
+  --color-border-hover: #4338ca;
+
+  /* Dark-family sibling overrides so shadows read on top of the deeper background. */
+  --color-shadow-subtle: rgba(0, 0, 0, 0.45);
+  --color-shadow-base: rgba(0, 0, 0, 0.55);
+
+  --input-bg: #1a1a2e;
+}

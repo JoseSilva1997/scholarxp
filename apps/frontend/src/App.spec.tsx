@@ -22,6 +22,12 @@ vi.mock('./context/AuthContext', () => ({
   useAuth: () => mockAuthState,
 }));
 
+// CosmeticThemeSync depends on TanStack Query + cosmetics hooks; App routing tests don't care about
+// theme syncing, so we stub it out here to keep the test surface focused on route behavior.
+vi.mock('./context/CosmeticThemeSync', () => ({
+  CosmeticThemeSync: () => null,
+}));
+
 vi.mock('./components/Header/Header', () => ({
   default: () => <div>header</div>,
 }));

@@ -1,24 +1,81 @@
-// Unit tests for ThemeToggle verify theme-switching transitions and icon rendering.
+// Unit tests for ThemeToggle verify theme-switching transitions, icon rendering, and student-only cosmetic writes.
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+import type { AuthUser } from '@scholarxp/api-contracts';
 import ThemeToggle from './ThemeToggle';
 import { useTheme } from '../../context/useTheme';
+import { useAuth } from '../../context/AuthContext';
+import { useCosmetics } from '@/rewards';
 
-// Mock the useTheme hook to control the theme state in tests.
 vi.mock('../../context/useTheme', () => ({
   useTheme: vi.fn(),
+}));
+
+vi.mock('../../context/AuthContext', () => ({
+  useAuth: vi.fn(),
+}));
+
+vi.mock('@/rewards', () => ({
+  useCosmetics: vi.fn(),
 }));
 
 describe('ThemeToggle', () => {
   const mockSetTheme = vi.fn();
   const mockToggleTheme = vi.fn();
+  const mockEquipCosmetic = vi.fn();
+
+  function stubCosmetics() {
+    vi.mocked(useCosmetics).mockReturnValue({
+      equipped: {} as never,
+      cosmetic: () => 'light',
+      level: 1,
+      equipCosmetic: mockEquipCosmetic,
+      isEquipping: false,
+    });
+  }
+
+  function stubAuth(user: AuthUser | null) {
+    vi.mocked(useAuth).mockReturnValue({
+      user,
+      setUser: vi.fn(),
+      applyStudentExpReward: vi.fn(),
+      refreshUser: vi.fn(),
+      logout: vi.fn(),
+      isLoading: false,
+    });
+  }
+
+  function buildStudent(): AuthUser {
+    return {
+      id: 1,
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      email: 'ada@example.com',
+      profilePictureUrl: 'https://example.com/ada.png',
+      globalRole: 'student',
+      isVerified: true,
+      timezone: 'UTC',
+      avatar: {
+        id: 1,
+        totalExp: 500,
+        level: 10,
+        currentLevelExp: 100,
+        nextLevelExpRequired: 200,
+        xpToNextLevel: 100,
+        progressPercent: 50,
+        equippedCosmetics: {},
+      },
+    };
+  }
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockEquipCosmetic.mockResolvedValue(undefined);
+    stubAuth(null);
+    stubCosmetics();
   });
 
-  it('renders light theme state correctly', () => {
-    // Stage: hook returns light theme.
+  it('renders the light-mode affordance when resolvedTheme is light', () => {
     vi.mocked(useTheme).mockReturnValue({
       theme: 'light',
       resolvedTheme: 'light',
@@ -28,19 +85,14 @@ describe('ThemeToggle', () => {
 
     render(<ThemeToggle />);
     const button = screen.getByRole('button');
-    
-    // Verify accessibility and labels.
+
     expect(button).toHaveAttribute('aria-label', 'Switch theme (currently Light theme)');
     expect(button).toHaveAttribute('title', 'Light theme');
-    
-    // Note: Icon rendering is verified by presence of the component without crashing,
-    // as icons are third-party components (react-icons).
   });
 
-  it('renders dark theme state correctly', () => {
-    // Stage: hook returns dark theme.
+  it('renders the dark-mode affordance when resolvedTheme is dark', () => {
     vi.mocked(useTheme).mockReturnValue({
-      theme: 'dark',
+      theme: 'midnight',
       resolvedTheme: 'dark',
       setTheme: mockSetTheme,
       toggleTheme: mockToggleTheme,
@@ -48,13 +100,14 @@ describe('ThemeToggle', () => {
 
     render(<ThemeToggle />);
     const button = screen.getByRole('button');
-    
-    // Verify labels update for dark theme.
+
+    // Dark-family themes (midnight, ember, celestial) all surface as "Dark theme" in the label
+    // because the toggle collapses them into the same visual bucket.
     expect(button).toHaveAttribute('aria-label', 'Switch theme (currently Dark theme)');
     expect(button).toHaveAttribute('title', 'Dark theme');
   });
 
-  it('switches to dark when clicked in light theme', () => {
+  it('switches light → dark locally for anonymous users without firing the cosmetic mutation', () => {
     vi.mocked(useTheme).mockReturnValue({
       theme: 'light',
       resolvedTheme: 'light',
@@ -63,16 +116,13 @@ describe('ThemeToggle', () => {
     });
 
     render(<ThemeToggle />);
-    const button = screen.getByRole('button');
-    
-    // Action: Toggle.
-    fireEvent.click(button);
-    
-    // Assert: Transition directed to dark.
+    fireEvent.click(screen.getByRole('button'));
+
     expect(mockSetTheme).toHaveBeenCalledWith('dark');
+    expect(mockEquipCosmetic).not.toHaveBeenCalled();
   });
 
-  it('switches to light when clicked in dark theme', () => {
+  it('switches dark → light locally for anonymous users', () => {
     vi.mocked(useTheme).mockReturnValue({
       theme: 'dark',
       resolvedTheme: 'dark',
@@ -81,35 +131,43 @@ describe('ThemeToggle', () => {
     });
 
     render(<ThemeToggle />);
-    const button = screen.getByRole('button');
-    
-    // Action: Toggle.
-    fireEvent.click(button);
-    
-    // Assert: Transition directed to light.
+    fireEvent.click(screen.getByRole('button'));
+
     expect(mockSetTheme).toHaveBeenCalledWith('light');
+    expect(mockEquipCosmetic).not.toHaveBeenCalled();
   });
 
-  it('defaults to light theme for unknown or system themes', () => {
-    // Stage: theme is unexpected or 'system' (if added in future).
+  it('also fires the cosmetic equip mutation for authenticated students', () => {
+    stubAuth(buildStudent());
     vi.mocked(useTheme).mockReturnValue({
-      // Intentionally cast an out-of-contract value to verify fallback behavior.
-      theme: 'system' as unknown as ReturnType<typeof useTheme>['theme'],
+      theme: 'light',
       resolvedTheme: 'light',
       setTheme: mockSetTheme,
       toggleTheme: mockToggleTheme,
     });
 
     render(<ThemeToggle />);
-    const button = screen.getByRole('button');
-    
-    // Verify fallback labels.
-    expect(button).toHaveAttribute('title', 'Light theme');
-    
-    // Action: Toggle from unknown state.
-    fireEvent.click(button);
-    
-    // Assert: Fallback to light state.
-    expect(mockSetTheme).toHaveBeenCalledWith('light');
+    fireEvent.click(screen.getByRole('button'));
+
+    // Local theme update keeps the UI immediate; the equip mutation persists the selection cross-device.
+    expect(mockSetTheme).toHaveBeenCalledWith('dark');
+    expect(mockEquipCosmetic).toHaveBeenCalledWith('theme', 'dark');
+  });
+
+  it('does not fire the cosmetic mutation for teachers', () => {
+    const teacher = { ...buildStudent(), globalRole: 'teacher' as const, avatar: null };
+    stubAuth(teacher);
+    vi.mocked(useTheme).mockReturnValue({
+      theme: 'light',
+      resolvedTheme: 'light',
+      setTheme: mockSetTheme,
+      toggleTheme: mockToggleTheme,
+    });
+
+    render(<ThemeToggle />);
+    fireEvent.click(screen.getByRole('button'));
+
+    expect(mockSetTheme).toHaveBeenCalledWith('dark');
+    expect(mockEquipCosmetic).not.toHaveBeenCalled();
   });
 });

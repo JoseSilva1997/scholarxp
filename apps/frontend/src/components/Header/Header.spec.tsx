@@ -31,6 +31,12 @@ vi.mock('./UserBadge', () => ({
   },
 }));
 
+// ThemeToggle now depends on AuthContext + cosmetics hooks — Header routing/branding tests have no
+// opinion on toggle behavior, so we stub it out to avoid wiring an AuthProvider into this shared test harness.
+vi.mock('./ThemeToggle', () => ({
+  default: () => <div data-testid="theme-toggle">theme-toggle</div>,
+}));
+
 describe('Header', () => {
   beforeEach(() => {
     mockUserBadgeProps = {};
