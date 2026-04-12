@@ -128,18 +128,18 @@ const CATALOG_COPY: Record<CosmeticSlot, CatalogSlotCopy> = {
   expBarColor: {
     default: {
       id: 'default',
-      name: 'Default Blue',
-      description: 'The standard blue XP fill.',
+      name: 'Default',
+      description: 'The theme default XP fill.',
     },
     red: {
       id: 'red',
       name: 'Crimson',
       description: 'A bold red XP fill.',
     },
-    green: {
-      id: 'green',
-      name: 'Jade',
-      description: 'A vibrant green XP fill.',
+    cyan: {
+      id: 'cyan',
+      name: 'Aqua',
+      description: 'A cool cyan XP fill.',
     },
     purple: {
       id: 'purple',

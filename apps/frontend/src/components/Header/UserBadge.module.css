@@ -1,33 +1,39 @@
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: clamp(6px, 2vw, 12px);
+  gap: clamp(6px, 3vw, 16px);
   border-radius: var(--radius-full);
   padding: clamp(4px, 1.5vw, 8px) clamp(4px, 1vw, 6px) clamp(4px, 1.5vw, 8px) clamp(12px, 3vw, 20px);
-  background: var(--color-glass-bg); /* Glassy background for dark header context */
+  background: transparent; /* Glassy background for dark header context */
   backdrop-filter: blur(12px);
-  border: 1px solid var(--color-glass-border); /* Subtle glass border */
   transition: all var(--transition-base);
   position: relative;
   max-width: clamp(50px, 90vw, 100%);
 }
 
-/* Shimmer layer moved to a separate pseudo-element that doesn't conflict with layout */
-.badge::before {
-  display: none;
+
+/* ── User badge cosmetic tiers (silver / gold / diamond) ─────────────────────
+   When data-user-badge is set on <html>, the badge shell progressively restores
+   the glass look with tier-specific accent colors. The default badge is plain. */
+
+:root[data-user-badge] .badge {
+  background: var(--color-badge-shell-bg);
+  border: 1px solid var(--color-badge-shell-border);
+  box-shadow: var(--color-badge-shell-shadow);
 }
 
-.badge:hover {
-  background: var(--color-glass-bg-hover);
-  border-color: var(--color-primary-light);
+:root[data-user-badge] .badge:hover {
+  background: var(--color-badge-shell-hover-bg);
+  border-color: var(--color-badge-shell-hover-border);
   transform: translateY(-1px);
   box-shadow:
     var(--shadow-lg),
-    inset 0 1px 1px var(--color-glass-border);
+    var(--color-badge-shell-shadow),
+    inset 0 1px 1px rgba(255, 255, 255, 0.05);
 }
 
-/* We create a nested element for the shimmer effect to keep the main badge container overflow: visible */
-.shimmerEffect {
+/* Restore the shimmer sweep for upgraded badges — the shimmer color is tier-specific. */
+:root[data-user-badge] .shimmerEffect {
   position: absolute;
   inset: 0;
   border-radius: inherit;
@@ -36,7 +42,7 @@
   z-index: 0;
 }
 
-.shimmerEffect::after {
+:root[data-user-badge] .shimmerEffect::after {
   content: '';
   position: absolute;
   top: 0;
@@ -46,16 +52,54 @@
   background: linear-gradient(
     90deg,
     transparent,
-    var(--color-glass-shimmer),
+    var(--color-badge-shimmer),
     transparent
   );
   transform: skewX(-20deg);
   transition: none;
 }
 
-.badge:hover .shimmerEffect::after {
+:root[data-user-badge] .badge:hover .shimmerEffect::after {
   left: 150%;
   transition: left 0.8s ease-in-out;
+}
+
+/* Diamond gets a subtle pulsing outer glow on top of the base hover — the extra effect that sets it apart. */
+:root[data-user-badge='diamond'] .badge::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  border: 1px solid rgba(167, 139, 250, 0.2);
+  pointer-events: none;
+  animation: diamondPulse 3s ease-in-out infinite;
+}
+
+@keyframes diamondPulse {
+  0%, 100% { opacity: 0.4; box-shadow: 0 0 8px rgba(167, 139, 250, 0.1); }
+  50% { opacity: 1; box-shadow: 0 0 18px rgba(167, 139, 250, 0.25); }
+}
+
+/* Tier-aware level badge: the small pill below the ring adopts the tier accent color. */
+:root[data-user-badge] .levelBadge {
+  background: var(--color-badge-accent);
+  box-shadow: 0 0 8px var(--color-badge-accent-soft);
+}
+
+/* Tier-aware menu avatar ring: the gradient border around the dropdown avatar matches the tier. */
+:root[data-user-badge] .menuHeaderProfileSide {
+  background: linear-gradient(135deg, var(--color-badge-accent-light), var(--color-badge-accent));
+  box-shadow:
+    0 0 0 2px var(--color-glass-border),
+    0 0 20px var(--color-badge-accent-soft);
+}
+
+/* Tier-aware menu level badge: the small level number inside the dropdown also picks up the accent. */
+:root[data-user-badge] .menuHeaderLevelBadge {
+  background: var(--color-badge-accent);
+  box-shadow:
+    0 4px 12px var(--color-overlay-dark),
+    0 0 10px var(--color-badge-accent-soft);
 }
 
 /* ── Avatar + ring cluster ───────────────────────────────────────────────────── */
@@ -74,9 +118,9 @@
    all sides; rotate(-90deg) starts the fill arc at 12 o'clock */
 .progressRing {
   position: absolute;
-  inset: -6px;
-  width: calc(100% + 12px);
-  height: calc(100% + 12px);
+  inset: -7px;
+  width: calc(100% + 14px);
+  height: calc(100% + 14px);
   pointer-events: none;
   z-index: 1;
   transform: rotate(-90deg);
@@ -90,7 +134,8 @@
 }
 
 .progressRingFill {
-  stroke: var(--color-secondary);
+  /* color-xp-fill is set by the XP bar color cosmetic; falls back to the default secondary green. */
+  stroke: var(--color-xp-fill, var(--color-secondary));
   /* transition is set inline so the sequencer can vary duration per phase (fill / instant-reset / final-fill) */
 }
 
@@ -99,7 +144,6 @@
   height: clamp(32px, 8vw, 40px);
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid var(--color-primary);
   background: var(--btn-primary-dark); /* Slate-800 or deep slate base */
   transition: all var(--transition-fast);
   display: block;
@@ -118,10 +162,6 @@
   overflow: hidden; /* Clip any bleeding edges */
   position: relative;
   z-index: 2;
-}
-
-.avatarButton:hover .avatar {
-  transform: scale(1.1);
 }
 
 /* Level badge sits at the bottom of the ring, partially overlapping the arc,
@@ -352,9 +392,9 @@
 
 .menuBarFill {
   height: 100%;
-  background: linear-gradient(90deg, var(--color-secondary-light), var(--color-secondary));
+  background: linear-gradient(90deg, var(--color-xp-fill, var(--color-secondary-light)), var(--color-xp-fill, var(--color-secondary)));
   border-radius: var(--radius-full);
-  box-shadow: 0 0 8px var(--color-secondary-soft);
+  box-shadow: 0 0 8px var(--color-xp-fill-glow, var(--color-secondary-soft));
   transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 

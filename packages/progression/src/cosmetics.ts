@@ -52,7 +52,7 @@ export const COSMETIC_UNLOCKS: Record<CosmeticSlot, Record<string, number>> = {
   expBarColor: {
     default: 1,
     red: 20,
-    green: 20,
+    cyan: 20,
     purple: 20,
     orange: 20,
     rainbow: 60,

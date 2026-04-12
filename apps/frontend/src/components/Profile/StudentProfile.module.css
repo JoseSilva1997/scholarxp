@@ -99,7 +99,8 @@
 
 .progressFill {
   height: 100%;
-  background: var(--color-accent);
+  /* XP bar color cosmetic overrides the fill; falls back to the default green gradient when no cosmetic is set. */
+  background: var(--color-xp-fill, linear-gradient(90deg, var(--color-secondary) 0%, var(--color-secondary-light) 100%));
   border-radius: var(--radius-full);
   transition: width 0.5s ease-out;
 }

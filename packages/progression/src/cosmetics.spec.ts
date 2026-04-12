@@ -44,7 +44,7 @@ describe('Cosmetic unlock table', () => {
     expect(COSMETIC_UNLOCKS.moduleUnitBadge.polished).toBe(10);
     expect(COSMETIC_UNLOCKS.theme.aurora).toBe(15);
     expect(COSMETIC_UNLOCKS.expBarColor.red).toBe(20);
-    expect(COSMETIC_UNLOCKS.expBarColor.green).toBe(20);
+    expect(COSMETIC_UNLOCKS.expBarColor.cyan).toBe(20);
     expect(COSMETIC_UNLOCKS.expBarColor.purple).toBe(20);
     expect(COSMETIC_UNLOCKS.expBarColor.orange).toBe(20);
     expect(COSMETIC_UNLOCKS.userBadge.silver).toBe(25);
@@ -107,7 +107,7 @@ describe('getUnlockedRewardIds', () => {
     expect(getUnlockedRewardIds('expBarColor', 20)).toEqual([
       'default',
       'red',
-      'green',
+      'cyan',
       'purple',
       'orange',
     ]);

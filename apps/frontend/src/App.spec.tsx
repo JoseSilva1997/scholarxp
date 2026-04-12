@@ -28,6 +28,10 @@ vi.mock('./context/CosmeticThemeSync', () => ({
   CosmeticThemeSync: () => null,
 }));
 
+vi.mock('./context/CosmeticStyleSync', () => ({
+  CosmeticStyleSync: () => null,
+}));
+
 vi.mock('./components/Header/Header', () => ({
   default: () => <div>header</div>,
 }));
