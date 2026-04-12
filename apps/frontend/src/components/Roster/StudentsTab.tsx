@@ -6,7 +6,7 @@ import type {
   SortDirection,
 } from '@scholarxp/api-contracts';
 import defaultAvatar from '@/assets/default-profile-pic.png';
-import { ProficiencyLevelBadge } from '@/components/SingleModulePage/ProficiencyLevelBadge';
+import { ProficiencyBadge } from '@/components/ProficiencyBadge';
 import RosterTableToolbar from './RosterTableToolbar';
 import styles from './RosterTable.module.css';
 
@@ -170,7 +170,7 @@ export default function StudentsTab({
                     </td>
                     <td className={styles.td}>
                       <div style={{ display: 'flex', justifyContent: 'center' }}>
-                        <ProficiencyLevelBadge level={student.moduleLevel} small />
+                        <ProficiencyBadge level={student.moduleLevel} small forceVariant="plain" />
                       </div>
                     </td>
                     <td className={styles.td}>{student.currentXp}</td>

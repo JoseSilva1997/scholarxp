@@ -21,7 +21,7 @@ import { useMemo } from 'react';
 import { features } from '@scholarxp/permissions';
 import { canUserAccess } from '@/permissions/permission';
 import styles from './SingleModulePage.module.css';
-import { ProficiencyLevelBadge } from '@/components/SingleModulePage/ProficiencyLevelBadge';
+import { ProficiencyBadge } from '@/components/ProficiencyBadge';
 import DebugMeta from '@/components/DebugMeta';
 
 export default function SingleModulePage() {
@@ -171,7 +171,7 @@ export default function SingleModulePage() {
               {user?.globalRole === 'student' && module.userModuleLevel !== undefined ? (
                 <div className={styles.progressContainer}>
                   <div className={styles.badgeSection}>
-                    <ProficiencyLevelBadge level={module.userModuleLevel} />
+                    <ProficiencyBadge level={module.userModuleLevel} />
                   </div>
 
                   <div className={styles.progressData}>
