@@ -18,6 +18,7 @@ import ModuleUnitEditor from './routes/main/ModuleUnitEditor';
 import PracticeRoomPage from './routes/main/PracticeRoomPage';
 import DailyPracticePage from './routes/main/DailyPracticePage';
 import QuestsPage from './routes/main/QuestsPage';
+import RewardsPage from './routes/main/RewardsPage';
 import ProfilePage from './routes/main/ProfilePage';
 import AcceptInvite from './routes/main/AcceptInvite';
 import ModuleRosterPage from './routes/main/ModuleRosterPage';
@@ -123,6 +124,7 @@ function AppLayout() {
                 <Route path="/main/modules/:moduleId/:unitId/practice-room" element={<PracticeRoomPage />} />
                 <Route path="/main/modules/:moduleId/daily-practice" element={<DailyPracticePage />} />
                 <Route path="/main/quests" element={<QuestsPage />} />
+                <Route path="/main/rewards" element={<RewardsPage />} />
                 <Route path="/main/profile" element={<ProfilePage />} />
               </Route>
             </Route>

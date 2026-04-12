@@ -1,4 +1,4 @@
-/* Student profile view: overview stats, module cards, achievements, locker scaffold, lifetime stats. */
+/* Student profile view: overview stats, module cards, achievements, cosmetics, lifetime stats. */
 
 .studentProfile {
   display: flex;
@@ -1134,4 +1134,102 @@
   .statsGrid {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+/* --- Cosmetics section (replaces old locker scaffold) --- */
+
+.cosmeticsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cosmeticsViewAll {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.cosmeticsViewAll:hover {
+  text-decoration: underline;
+}
+
+.cosmeticsGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cosmeticsSlot {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cosmeticsSlotLabel {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-soft);
+}
+
+.cosmeticsOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cosmeticsOption {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-soft);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.cosmeticsOption:hover:not(:disabled) {
+  border-color: var(--color-border-hover);
+  background: var(--color-surface-hover);
+}
+
+.cosmeticsOptionActive {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  cursor: default;
+}
+
+.cosmeticsCheckIcon {
+  font-size: 0.6rem;
+}
+
+.cosmeticsEmpty {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-hover);
+}
+
+.cosmeticsEmptyIcon {
+  font-size: 1.25rem;
+  color: var(--color-text-dim);
+  flex-shrink: 0;
+}
+
+.cosmeticsEmptyText {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin: 0;
 }

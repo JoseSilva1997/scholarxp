@@ -59,6 +59,7 @@ vi.mock('./routes/main/SingleModulePage', () => ({ default: () => <div>single-mo
 vi.mock('./routes/main/ModuleUnitEditor', () => ({ default: () => <div>module-unit-editor-page</div> }));
 vi.mock('./routes/main/DailyPracticePage', () => ({ default: () => <div>daily-practice-page</div> }));
 vi.mock('./routes/main/QuestsPage', () => ({ default: () => <div>quests-page</div> }));
+vi.mock('./routes/main/RewardsPage', () => ({ default: () => <div>rewards-page</div> }));
 vi.mock('./routes/main/ProfilePage', () => ({ default: () => <div>profile-page</div> }));
 
 function renderAt(pathname: string) {

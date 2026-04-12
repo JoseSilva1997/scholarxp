@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { RiBook3Line, RiUser3Line } from 'react-icons/ri';
 import { PiPathDuotone } from "react-icons/pi";
+import { BsGift } from 'react-icons/bs';
 import { useAuth } from '../context/AuthContext';
 import { useUiLayout } from '../context/UiLayoutContext';
 import { canUserAccess } from '../permissions/permission';
@@ -37,6 +38,13 @@ const navItems: NavItem[] = [
     hint: 'My quest progress',
     icon: PiPathDuotone,
     feature: features.navigation.quests,
+  },
+  {
+    to: '/main/rewards',
+    label: 'Rewards',
+    hint: 'Cosmetics & unlocks',
+    icon: BsGift,
+    feature: features.navigation.rewards,
   },
   {
     to: '/main/profile',

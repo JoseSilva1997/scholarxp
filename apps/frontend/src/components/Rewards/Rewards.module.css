@@ -1,0 +1,164 @@
+/* Shared styles for the Rewards domain components: cards, slot groups, and rarity badges. */
+
+/* ---- Slot group ---- */
+.slotGroup {
+  margin-bottom: 2rem;
+}
+
+.slotHeader {
+  margin-bottom: 1rem;
+}
+
+.slotTitle {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 0.25rem;
+}
+
+.slotDescription {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+
+/* ---- Card ---- */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+.cardUnlocked {
+  cursor: default;
+}
+
+.cardUnlocked:hover {
+  border-color: var(--color-border-hover);
+  box-shadow: var(--shadow-md);
+}
+
+.cardLocked {
+  opacity: 0.6;
+}
+
+.cardEquipped {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary-soft);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.cardName {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--color-text);
+}
+
+.cardDescription {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin: 0;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.cardFooter {
+  display: flex;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 0.5rem;
+}
+
+/* ---- Rarity badge ---- */
+.rarityBadge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+.rarity_common {
+  background: var(--color-surface-hover);
+  color: var(--color-text-muted);
+}
+
+.rarity_uncommon {
+  background: var(--color-secondary-soft);
+  color: var(--color-secondary-dark);
+}
+
+.rarity_rare {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+}
+
+.rarity_epic {
+  background: rgba(139, 92, 246, 0.1);
+  color: #7c3aed;
+}
+
+.rarity_legendary {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-dark);
+}
+
+/* ---- Equip / Locked labels ---- */
+.equipButton {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.35rem 1rem;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  color: var(--color-primary);
+  background: transparent;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.equipButton:hover:not(:disabled) {
+  background: var(--color-primary);
+  color: var(--color-text-on-primary);
+}
+
+.equipButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.equippedLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-secondary);
+}
+
+.lockedLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--color-text-dim);
+}

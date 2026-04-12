@@ -133,7 +133,7 @@ describe('SidebarNav', () => {
       );
 
       // React-icons render SVGs; asserting icon containers keeps the test resilient.
-      expect(container.querySelectorAll('a span[aria-hidden="true"] svg')).toHaveLength(3);
+      expect(container.querySelectorAll('a span[aria-hidden="true"] svg')).toHaveLength(4);
 
       rerender(
         <MemoryRouter>
@@ -142,7 +142,7 @@ describe('SidebarNav', () => {
       );
 
       // Icons should still be present in collapsed mode.
-      expect(container.querySelectorAll('a span[aria-hidden="true"] svg')).toHaveLength(3);
+      expect(container.querySelectorAll('a span[aria-hidden="true"] svg')).toHaveLength(4);
     });
   });
 

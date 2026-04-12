@@ -3,6 +3,7 @@ import type { StudentProfileResponse } from '@scholarxp/api-contracts';
 import type { StudentModuleSortKey } from '../../hooks/page-state/useProfilePageState';
 import {
   AchievementsSection,
+  CosmeticsSection,
   ModulesSection,
   OverviewSection,
   StatsSection,
@@ -29,6 +30,7 @@ export default function StudentProfile({
         onSortChange={onModuleSortChange}
       />
       <AchievementsSection profile={profile} />
+      <CosmeticsSection />
       <StatsSection profile={profile} />
     </div>
   );
