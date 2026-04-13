@@ -1,4 +1,4 @@
-// Ornate hex badge (L5 unlock): gold outer border, purple middle, inner gold hexagon with level number.
+// Ornate hex badge (L5 unlock): gold outer border, bronze middle, inner gold hexagon with level number.
 import type { BadgeVariantProps } from '../types';
 import styles from './OrnateBadge.module.css';
 

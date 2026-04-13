@@ -109,6 +109,7 @@
 
   /* Specialty Graphics */
   --color-success-rays: rgba(76, 175, 80, 0.95);
+  --color-badge-purple-primary: #8b5cf6;
 
   /* Streak Flame — tier color scale used by StreakIndicator */
   --color-flame-tier1: var(--color-accent);            /* warm amber  — ≥ 30 % threshold */
@@ -193,10 +194,10 @@
   --color-badge-gold-shadow: #5C4301;
   --color-badge-glow: rgba(212, 175, 55, 0.2);
 
-  /* Badge Profile Level Purple */
-  --color-badge-purple-primary: #9D4EDD;
-  --color-badge-purple-dark: #6800E6;
-  --color-badge-purple-darkest: #1A002E;
+  /* Badge Profile Level Bronze */
+  --color-badge-bronze-primary: #D28E46;
+  --color-badge-bronze-dark: #B56535;
+  --color-badge-bronze-darkest: #7D3F15;
 
   /* Badge Profile Level Number */
   --color-badge-number: #2D0052;

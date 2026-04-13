@@ -21,7 +21,7 @@ const ICONS: IconType[] = [
 ];
 
 // Enough icons to tile large viewports; flex-wrap fills the space naturally.
-const ICON_COUNT = 1000;
+const ICON_COUNT = 1000; // Adjust as needed for performance vs. coverage.
 
 const ICON_LIST = Array.from({ length: ICON_COUNT }, (_, i) => ({
   id: i,
