@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { getProgressWithinLevel } from '@scholarxp/progression';
 import type { AuthUser } from '@/types/auth';
+import { getNewlyUnlockedRewards, type CatalogItem } from '@/rewards';
 import defaultAvatar from '@/assets/default-profile-pic.png';
+import UnlockToast from '../Rewards/UnlockToast';
 import styles from './UserBadge.module.css';
 
 type UserBadgeProps = {
@@ -37,6 +39,9 @@ export default function UserBadge({ user, onLogout }: UserBadgeProps) {
   const [expGainIndicator, setExpGainIndicator] = useState<number | null>(null);
   const [isLevelingUp, setIsLevelingUp] = useState(false);
   const [isBadgeCrashing, setIsBadgeCrashing] = useState(false);
+  // Queued cosmetic unlocks shown in a toast after the level-up celebration finishes.
+  const [unlockedItems, setUnlockedItems] = useState<CatalogItem[]>([]);
+  const unlockToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Ring owns its own percent + transition duration so it can sequence fill→pause→reset→fill
   // independently of the XP counter animation that drives the displayed numbers.
   const [ringPercent, setRingPercent] = useState<number | null>(null);
@@ -101,7 +106,8 @@ export default function UserBadge({ user, onLogout }: UserBadgeProps) {
       return () => cancelAnimationFrame(frameId);
     }
 
-    const levelsGained = nextLevel - prevTargetLevelRef.current;
+    const prevLevel = prevTargetLevelRef.current;
+    const levelsGained = nextLevel - prevLevel;
     prevTargetLevelRef.current = nextLevel;
 
     // Cancel any in-flight ring animation and stale level-up cleanup timers so this
@@ -111,6 +117,7 @@ export default function UserBadge({ user, onLogout }: UserBadgeProps) {
     if (levelingUpTimerRef.current) { clearTimeout(levelingUpTimerRef.current); levelingUpTimerRef.current = null; }
     if (crashTimerRef.current) { clearTimeout(crashTimerRef.current); crashTimerRef.current = null; }
     if (uncrashTimerRef.current) { clearTimeout(uncrashTimerRef.current); uncrashTimerRef.current = null; }
+    if (unlockToastTimerRef.current) { clearTimeout(unlockToastTimerRef.current); unlockToastTimerRef.current = null; }
 
     const schedule = (delayMs: number, fn: () => void) => {
       ringAnimTimersRef.current.push(setTimeout(fn, delayMs));
@@ -192,6 +199,19 @@ export default function UserBadge({ user, onLogout }: UserBadgeProps) {
         schedule(cursor, () => {
           setIsLevelingUp(false);
         });
+
+        // Show unlock toast after the celebration ends so it doesn't compete with the animation.
+        const newRewards = getNewlyUnlockedRewards(prevLevel, nextLevel);
+        if (newRewards.length > 0) {
+          schedule(cursor + 400, () => {
+            setUnlockedItems(newRewards);
+            // Auto-dismiss after 8 seconds if the user doesn't interact.
+            unlockToastTimerRef.current = setTimeout(() => {
+              setUnlockedItems([]);
+              unlockToastTimerRef.current = null;
+            }, 8000);
+          });
+        }
       }
     }
 
@@ -199,6 +219,7 @@ export default function UserBadge({ user, onLogout }: UserBadgeProps) {
       ringAnimTimersRef.current.forEach(clearTimeout);
       if (crashTimerRef.current) clearTimeout(crashTimerRef.current);
       if (uncrashTimerRef.current) clearTimeout(uncrashTimerRef.current);
+      if (unlockToastTimerRef.current) clearTimeout(unlockToastTimerRef.current);
     };
   }, [targetTotalExp]);
 
@@ -210,10 +231,21 @@ export default function UserBadge({ user, onLogout }: UserBadgeProps) {
       if (expGainIndicatorTimeoutRef.current !== null) {
         clearTimeout(expGainIndicatorTimeoutRef.current);
       }
+      if (unlockToastTimerRef.current !== null) {
+        clearTimeout(unlockToastTimerRef.current);
+      }
       ringAnimTimersRef.current.forEach(clearTimeout);
     },
     [],
   );
+
+  const dismissUnlockToast = () => {
+    setUnlockedItems([]);
+    if (unlockToastTimerRef.current) {
+      clearTimeout(unlockToastTimerRef.current);
+      unlockToastTimerRef.current = null;
+    }
+  };
 
   const targetRef = useRef<number | null>(null);
 
@@ -628,6 +660,17 @@ export default function UserBadge({ user, onLogout }: UserBadgeProps) {
           </div>
         </div>
       ) : null}
+
+      {/* Unlock toast — rendered in a portal-like position (fixed CSS) so it floats above page content. */}
+      <AnimatePresence>
+        {unlockedItems.length > 0 ? (
+          <UnlockToast
+            key="unlock-toast"
+            items={unlockedItems}
+            onDismiss={dismissUnlockToast}
+          />
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }
