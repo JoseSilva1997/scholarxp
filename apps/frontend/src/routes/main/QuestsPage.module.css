@@ -519,7 +519,7 @@
 .loadMoreButton {
   margin-top: 24px;
   padding: 18px 40px;
-  background: var(--color-text);
+  background: var(--btn-primary-dark);
   color: var(--color-text-on-primary);
   border: none;
   border-radius: 100px;

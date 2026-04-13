@@ -8,6 +8,7 @@ const SYNCED_SLOTS = [
   { slot: 'expBarColor', attr: 'data-xp-color' },
   { slot: 'background', attr: 'data-bg' },
   { slot: 'userBadge', attr: 'data-user-badge' },
+  { slot: 'userBadgeOverlay', attr: 'data-badge-overlay' },
 ] as const;
 
 export function CosmeticStyleSync() {

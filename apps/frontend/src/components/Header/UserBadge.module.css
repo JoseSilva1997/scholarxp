@@ -80,6 +80,67 @@
   50% { opacity: 1; box-shadow: 0 0 18px rgba(167, 139, 250, 0.25); }
 }
 
+/* ── Apex overlay (L100 capstone) ─────────────────────────────────────────────
+   A rotating gradient border ring around the entire badge. Layers on top of whatever
+   user-badge tier is active (diamond at L100). Uses ::before so it doesn't conflict
+   with diamond's ::after pulse. */
+
+:root[data-badge-overlay='apex'] .badge::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  padding: 2px;
+  /* Rotating conic gradient creates the "premium foil" shimmer effect. */
+  background: conic-gradient(
+    from var(--apex-angle, 0deg),
+    #c084fc,
+    #60a5fa,
+    #34d399,
+    #fbbf24,
+    #f472b6,
+    #c084fc
+  );
+  /* Mask trick: the gradient is the border only, transparent in the middle. */
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 15;
+  animation: apexRotate 4s linear infinite;
+  opacity: 0.8;
+}
+
+:root[data-badge-overlay='apex'] .badge:hover::before {
+  opacity: 1;
+  animation-duration: 2.5s;
+}
+
+/* The badge also gets a persistent outer glow that pulses more intensely than diamond's. */
+:root[data-badge-overlay='apex'] .badge {
+  box-shadow:
+    var(--color-badge-shell-shadow, none),
+    0 0 20px rgba(192, 132, 252, 0.2),
+    0 0 40px rgba(96, 165, 250, 0.1);
+}
+
+@keyframes apexRotate {
+  to { --apex-angle: 360deg; }
+}
+
+/* Register the custom property so the conic-gradient angle can be animated.
+   @property is supported in Chrome/Edge/Safari; Firefox gracefully degrades to a static gradient. */
+@property --apex-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
 /* Tier-aware level badge: the small pill below the ring adopts the tier accent color. */
 :root[data-user-badge] .levelBadge {
   background: var(--color-badge-accent);
@@ -620,5 +681,11 @@
 
   .meta {
     display: none;
+  }
+
+  /* Slim down the apex overlay border on compact badges so it doesn't visually dominate. */
+  :root[data-badge-overlay='apex'] .badge::before {
+    inset: -2px;
+    padding: 1.5px;
   }
 }
