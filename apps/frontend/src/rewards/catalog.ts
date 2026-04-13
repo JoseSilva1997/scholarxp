@@ -92,15 +92,15 @@ const CATALOG_COPY: Record<CosmeticSlot, CatalogSlotCopy> = {
       name: 'Standard Mark',
       description: 'The default badge awarded for completing a lesson.',
     },
-    polished: {
-      id: 'polished',
-      name: 'Polished Seal',
-      description: 'A refined variant that catches the light.',
+    roseGold: {
+      id: 'roseGold',
+      name: 'Rose Gold Medal',
+      description: 'A Rose Gold Diamond-Textured Medal.',
     },
-    prestige: {
-      id: 'prestige',
-      name: 'Prestige Emblem',
-      description: 'An ornate emblem reserved for veteran students.',
+    antique: {
+      id: 'antique',
+      name: 'Antique Medal',
+      description: 'An Antique Gold Key-Patterned Medal.',
     },
   },
   userBadge: {

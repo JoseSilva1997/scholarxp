@@ -38,8 +38,8 @@ export const COSMETIC_UNLOCKS: Record<CosmeticSlot, Record<string, number>> = {
   },
   moduleUnitBadge: {
     standard: 1,
-    polished: 10,
-    prestige: 70,
+    roseGold: 10,
+    antique: 70,
   },
   userBadge: {
     standard: 1,

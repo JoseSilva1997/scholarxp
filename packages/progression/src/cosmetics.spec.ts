@@ -41,7 +41,7 @@ describe('Cosmetic unlock table', () => {
   // which forces a deliberate review of the user-visible progression schedule.
   it('matches the product spec for every milestone unlock', () => {
     expect(COSMETIC_UNLOCKS.proficiencyBadge.ornate).toBe(5);
-    expect(COSMETIC_UNLOCKS.moduleUnitBadge.polished).toBe(10);
+    expect(COSMETIC_UNLOCKS.moduleUnitBadge.roseGold).toBe(10);
     expect(COSMETIC_UNLOCKS.theme.aurora).toBe(15);
     expect(COSMETIC_UNLOCKS.expBarColor.red).toBe(20);
     expect(COSMETIC_UNLOCKS.expBarColor.cyan).toBe(20);
@@ -56,7 +56,7 @@ describe('Cosmetic unlock table', () => {
     expect(COSMETIC_UNLOCKS.proficiencyBadge.master).toBe(55);
     expect(COSMETIC_UNLOCKS.expBarColor.rainbow).toBe(60);
     expect(COSMETIC_UNLOCKS.theme.ember).toBe(65);
-    expect(COSMETIC_UNLOCKS.moduleUnitBadge.prestige).toBe(70);
+    expect(COSMETIC_UNLOCKS.moduleUnitBadge.antique).toBe(70);
     expect(COSMETIC_UNLOCKS.userBadge.diamond).toBe(75);
     expect(COSMETIC_UNLOCKS.proficiencyBadge.legend).toBe(80);
     expect(COSMETIC_UNLOCKS.background.scholar).toBe(85);
