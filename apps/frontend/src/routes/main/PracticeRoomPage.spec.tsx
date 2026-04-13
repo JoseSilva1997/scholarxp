@@ -3,10 +3,20 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// LessonCompleteModal uses useCompletionMedal which depends on AuthContext;
-// stub it so this spec stays focused on practice-room interaction logic.
+// LessonCompleteModal uses useCompletionMedal and PracticeRoomPage uses useCosmetics,
+// both of which depend on AuthContext; stub them so this spec stays focused on interaction logic.
 vi.mock('@/rewards/useCompletionMedal', () => ({
-  useCompletionMedal: () => 'test-medal.png',
+  useCompletionMedal: () => ({ src: 'test-medal.png', scale: 1 }),
+}));
+
+vi.mock('@/rewards', () => ({
+  useCosmetics: () => ({
+    equipped: {},
+    cosmetic: () => 'default',
+    level: 1,
+    equipCosmetic: vi.fn(),
+    isEquipping: false,
+  }),
 }));
 import React from 'react';
 import type { PracticeQuestionUnit } from '@scholarxp/api-contracts';

@@ -89,7 +89,7 @@ const CATALOG_COPY: Record<CosmeticSlot, CatalogSlotCopy> = {
   moduleUnitBadge: {
     standard: {
       id: 'standard',
-      name: 'Standard Mark',
+      name: 'Standard Medal',
       description: 'The default badge awarded for completing a lesson.',
     },
     roseGold: {
