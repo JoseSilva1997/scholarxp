@@ -200,6 +200,21 @@
   /* transition is set inline so the sequencer can vary duration per phase (fill / instant-reset / final-fill) */
 }
 
+/* Rainbow XP: since SVG stroke can't render a gradient, cycle through the spectrum instead. */
+:root[data-xp-color='rainbow'] .progressRingFill {
+  animation: rainbowStroke 4s linear infinite;
+}
+
+@keyframes rainbowStroke {
+  0%      { stroke: #ef4444; }
+  16.6%   { stroke: #f97316; }
+  33.3%   { stroke: #eab308; }
+  50%     { stroke: #22c55e; }
+  66.6%   { stroke: #3b82f6; }
+  83.3%   { stroke: #a855f7; }
+  100%    { stroke: #ef4444; }
+}
+
 .avatar {
   width: clamp(32px, 8vw, 40px);
   height: clamp(32px, 8vw, 40px);
