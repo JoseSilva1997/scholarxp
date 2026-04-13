@@ -55,23 +55,11 @@ export const SLOT_DISPLAY: Record<CosmeticSlot, SlotDisplay> = {
     description: 'The badge you earn for completing a lesson unit.',
     displayOrder: 7,
   },
-  questBadgeSet: {
-    slot: 'questBadgeSet',
-    title: 'Quest Badge Set',
-    description: 'The icon set used for your daily quest badges.',
-    displayOrder: 8,
-  },
-  dailyPracticeButton: {
-    slot: 'dailyPracticeButton',
-    title: 'Daily Practice Button',
-    description: 'How the daily practice call-to-action looks on module pages.',
-    displayOrder: 9,
-  },
   answerFeedbackAnim: {
     slot: 'answerFeedbackAnim',
     title: 'Answer Feedback Flair',
     description: 'Extra particles layered over the correct/incorrect answer indicators in practice.',
-    displayOrder: 10,
+    displayOrder: 8,
   },
 };
 

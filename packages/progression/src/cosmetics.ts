@@ -9,9 +9,7 @@ export const COSMETIC_SLOTS = [
   'userBadge',
   'expBarColor',
   'background',
-  'questBadgeSet',
   'userBadgeOverlay',
-  'dailyPracticeButton',
   'answerFeedbackAnim',
 ] as const;
 
@@ -59,19 +57,13 @@ export const COSMETIC_UNLOCKS: Record<CosmeticSlot, Record<string, number>> = {
   },
   background: {
     default: 1,
+    geometric: 35,
     nebula: 45,
-  },
-  questBadgeSet: {
-    standard: 1,
-    mystic: 85,
+    scholar: 85,
   },
   userBadgeOverlay: {
     none: 1,
     apex: 100,
-  },
-  dailyPracticeButton: {
-    default: 1,
-    animatedBorder: 35,
   },
   answerFeedbackAnim: {
     default: 1,
@@ -88,9 +80,7 @@ export const COSMETIC_DEFAULTS: Record<CosmeticSlot, string> = {
   userBadge: 'standard',
   expBarColor: 'default',
   background: 'default',
-  questBadgeSet: 'standard',
   userBadgeOverlay: 'none',
-  dailyPracticeButton: 'default',
   answerFeedbackAnim: 'default',
 };
 

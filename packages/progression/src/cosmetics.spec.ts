@@ -49,7 +49,7 @@ describe('Cosmetic unlock table', () => {
     expect(COSMETIC_UNLOCKS.expBarColor.orange).toBe(20);
     expect(COSMETIC_UNLOCKS.userBadge.silver).toBe(25);
     expect(COSMETIC_UNLOCKS.proficiencyBadge.elite).toBe(30);
-    expect(COSMETIC_UNLOCKS.dailyPracticeButton.animatedBorder).toBe(35);
+    expect(COSMETIC_UNLOCKS.background.geometric).toBe(35);
     expect(COSMETIC_UNLOCKS.theme.midnight).toBe(40);
     expect(COSMETIC_UNLOCKS.background.nebula).toBe(45);
     expect(COSMETIC_UNLOCKS.userBadge.gold).toBe(50);
@@ -59,7 +59,7 @@ describe('Cosmetic unlock table', () => {
     expect(COSMETIC_UNLOCKS.moduleUnitBadge.prestige).toBe(70);
     expect(COSMETIC_UNLOCKS.userBadge.diamond).toBe(75);
     expect(COSMETIC_UNLOCKS.proficiencyBadge.legend).toBe(80);
-    expect(COSMETIC_UNLOCKS.questBadgeSet.mystic).toBe(85);
+    expect(COSMETIC_UNLOCKS.background.scholar).toBe(85);
     expect(COSMETIC_UNLOCKS.theme.celestial).toBe(90);
     expect(COSMETIC_UNLOCKS.answerFeedbackAnim.particles).toBe(95);
     expect(COSMETIC_UNLOCKS.userBadgeOverlay.apex).toBe(100);

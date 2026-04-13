@@ -163,22 +163,20 @@ const CATALOG_COPY: Record<CosmeticSlot, CatalogSlotCopy> = {
       name: 'Default',
       description: 'The standard app background.',
     },
+    geometric: {
+      id: 'geometric',
+      name: 'Geometric',
+      description: 'A subtle repeating hexagonal grid layered over the background.',
+    },
     nebula: {
       id: 'nebula',
       name: 'Nebula',
       description: 'A deep-space nebula that shifts subtly as you scroll.',
     },
-  },
-  questBadgeSet: {
-    standard: {
-      id: 'standard',
-      name: 'Standard Quest Badges',
-      description: 'The default quest icon set.',
-    },
-    mystic: {
-      id: 'mystic',
-      name: 'Mystic Quest Badges',
-      description: 'A reimagined quest icon set with arcane flair.',
+    scholar: {
+      id: 'scholar',
+      name: 'Scholar',
+      description: 'Scattered study icons — books, lightbulbs, and stars — as a wallpaper.',
     },
   },
   userBadgeOverlay: {
@@ -191,18 +189,6 @@ const CATALOG_COPY: Record<CosmeticSlot, CatalogSlotCopy> = {
       id: 'apex',
       name: 'Apex Overlay',
       description: 'A shining overlay reserved for level 100.',
-    },
-  },
-  dailyPracticeButton: {
-    default: {
-      id: 'default',
-      name: 'Default',
-      description: 'The standard daily practice button.',
-    },
-    animatedBorder: {
-      id: 'animatedBorder',
-      name: 'Animated Border',
-      description: 'A gradient border that traces around the button perimeter.',
     },
   },
   answerFeedbackAnim: {
