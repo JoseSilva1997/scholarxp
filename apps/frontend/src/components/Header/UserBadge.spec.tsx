@@ -41,6 +41,7 @@ describe('UserBadge', () => {
       nextLevelExpRequired: 318,
       xpToNextLevel: 268,
       progressPercent: 15.72,
+      equippedCosmetics: {},
     },
   };
 

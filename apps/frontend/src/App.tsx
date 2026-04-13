@@ -11,6 +11,8 @@ import VerifyEmail from './routes/VerifyEmail';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CosmeticThemeSync } from './context/CosmeticThemeSync';
 import { CosmeticStyleSync } from './context/CosmeticStyleSync';
+import { useCosmetics } from '@/rewards';
+import ScholarBackground from './components/Rewards/ScholarBackground';
 import RoleSelectorOverlay from './components/RoleSelectorOverlay';
 import AuthedLayout from './layouts/AuthedLayout';
 import ModulesPage from './routes/main/ModulesPage';
@@ -35,6 +37,7 @@ function AppLayout() {
   const isShellRoute = location.pathname.startsWith('/main');
 
   const { user, isLoading, logout, setUser } = useAuth();
+  const { cosmetic } = useCosmetics();
   // Public landing at '/' needs full-width, no padding — its own sections manage layout.
   const isLandingRoute = location.pathname === '/' && !user && !isLoading;
   const shouldShowRoleSelector =
@@ -64,6 +67,7 @@ function AppLayout() {
           a null-render component so it doesn't disturb layout. */}
       <CosmeticThemeSync />
       <CosmeticStyleSync />
+      {cosmetic('background') === 'scholar' ? <ScholarBackground /> : null}
       {shouldShowHeader ? (
         <Header
           user={user}

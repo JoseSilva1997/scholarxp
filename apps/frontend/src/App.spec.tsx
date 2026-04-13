@@ -32,6 +32,20 @@ vi.mock('./context/CosmeticStyleSync', () => ({
   CosmeticStyleSync: () => null,
 }));
 
+vi.mock('@/rewards', () => ({
+  useCosmetics: () => ({
+    equipped: {},
+    cosmetic: () => 'default',
+    level: 1,
+    equipCosmetic: vi.fn(),
+    isEquipping: false,
+  }),
+}));
+
+vi.mock('./components/Rewards/ScholarBackground', () => ({
+  default: () => null,
+}));
+
 vi.mock('./components/Header/Header', () => ({
   default: () => <div>header</div>,
 }));

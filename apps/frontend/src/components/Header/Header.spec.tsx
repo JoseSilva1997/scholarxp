@@ -88,6 +88,7 @@ describe('Header', () => {
         nextLevelExpRequired: 318,
         xpToNextLevel: 118,
         progressPercent: 62.89,
+        equippedCosmetics: {},
       },
     };
 
@@ -166,6 +167,7 @@ describe('Header', () => {
         nextLevelExpRequired: 500,
         xpToNextLevel: 450,
         progressPercent: 10,
+        equippedCosmetics: {},
       },
     };
 
@@ -218,6 +220,7 @@ describe('Header', () => {
         nextLevelExpRequired: 318,
         xpToNextLevel: 118,
         progressPercent: 62.89,
+        equippedCosmetics: {},
       },
     };
 

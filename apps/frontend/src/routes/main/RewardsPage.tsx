@@ -92,7 +92,7 @@ export default function RewardsPage() {
             display={group.display}
             unlocked={group.unlocked}
             locked={group.locked}
-            equippedId={equipped[group.slot]}
+            equippedId={equipped[group.slot as keyof typeof equipped]}
             onEquip={equipCosmetic}
             isEquipping={isEquipping}
           />
