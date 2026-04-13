@@ -1,4 +1,4 @@
-// Compact cosmetics picker on the student profile: one row per slot showing the equipped item and swap options.
+// Compact cosmetics equip panel on the student profile: one row per slot with inline option chips.
 import { useNavigate } from 'react-router-dom';
 import { BsGift } from 'react-icons/bs';
 import { FaCheck } from 'react-icons/fa6';
@@ -9,6 +9,12 @@ export default function CosmeticsSection() {
   const { level, equipped, equipCosmetic, isEquipping } = useCosmetics();
   const navigate = useNavigate();
 
+  // Only show slots where the user has at least two options — single-option slots have nothing to swap.
+  const activeSlots = ORDERED_SLOTS.filter((slot) => {
+    const unlocked = getCatalogBySlot(slot).filter((item) => item.unlocksAtLevel <= level);
+    return unlocked.length > 1;
+  });
+
   return (
     <section className={styles.cosmeticsSection}>
       <div className={styles.sectionHeader}>
@@ -18,60 +24,54 @@ export default function CosmeticsSection() {
           className={styles.cosmeticsViewAll}
           onClick={() => navigate('/main/rewards')}
         >
-          View all rewards
+          View rewards
         </button>
       </div>
 
-      <div className={styles.cosmeticsGrid}>
-        {ORDERED_SLOTS.map((slot) => {
-          const display = SLOT_DISPLAY[slot];
-          const items = getCatalogBySlot(slot);
-          const unlocked = items.filter((item) => item.unlocksAtLevel <= level);
-          // Single-option slots get a compact display — there's nothing to swap.
-          if (unlocked.length <= 1) return null;
+      {activeSlots.length > 0 ? (
+        <div className={styles.cosmeticsRows}>
+          {activeSlots.map((slot) => {
+            const display = SLOT_DISPLAY[slot];
+            const unlocked = getCatalogBySlot(slot).filter((item) => item.unlocksAtLevel <= level);
+            const equippedId = equipped[slot];
 
-          const equippedId = equipped[slot];
-
-          return (
-            <div key={slot} className={styles.cosmeticsSlot}>
-              <span className={styles.cosmeticsSlotLabel}>{display.title}</span>
-              <div className={styles.cosmeticsOptions}>
-                {unlocked.map((item) => {
-                  const active = item.id === equippedId;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className={`${styles.cosmeticsOption} ${active ? styles.cosmeticsOptionActive : ''}`}
-                      onClick={() => { if (!active) void equipCosmetic(slot, item.id); }}
-                      disabled={isEquipping || active}
-                      title={item.name}
-                    >
-                      {item.name}
-                      {active ? (
-                        <FaCheck className={styles.cosmeticsCheckIcon} aria-hidden="true" />
-                      ) : null}
-                    </button>
-                  );
-                })}
+            return (
+              <div key={slot} className={styles.cosmeticsRow}>
+                <span className={styles.cosmeticsRowLabel}>{display.title}</span>
+                <div className={styles.cosmeticsRowOptions}>
+                  {unlocked.map((item) => {
+                    const active = item.id === equippedId;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className={`${styles.cosmeticChip} ${active ? styles.cosmeticChipActive : ''}`}
+                        onClick={() => {
+                          if (!active) void equipCosmetic(slot, item.id);
+                        }}
+                        disabled={isEquipping || active}
+                        title={item.name}
+                      >
+                        {item.name}
+                        {active ? (
+                          <FaCheck className={styles.cosmeticChipCheck} aria-hidden="true" />
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Hint when no multi-option slots exist yet (very low level students). */}
-      {ORDERED_SLOTS.every((slot) => {
-        const unlocked = getCatalogBySlot(slot).filter((item) => item.unlocksAtLevel <= level);
-        return unlocked.length <= 1;
-      }) ? (
+            );
+          })}
+        </div>
+      ) : (
         <div className={styles.cosmeticsEmpty}>
           <BsGift className={styles.cosmeticsEmptyIcon} aria-hidden="true" />
           <p className={styles.cosmeticsEmptyText}>
             Keep levelling up to unlock cosmetics you can swap here!
           </p>
         </div>
-      ) : null}
+      )}
     </section>
   );
 }

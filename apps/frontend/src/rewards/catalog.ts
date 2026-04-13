@@ -30,32 +30,32 @@ const CATALOG_COPY: Record<CosmeticSlot, CatalogSlotCopy> = {
   theme: {
     light: {
       id: 'light',
-      name: 'Light',
+      name: 'Light - Theme',
       description: 'The clean daytime palette every account starts with.',
     },
     dark: {
       id: 'dark',
-      name: 'Dark',
+      name: 'Dark - Theme',
       description: 'Easy on the eyes for late-night study sessions.',
     },
     aurora: {
       id: 'aurora',
-      name: 'Aurora',
+      name: 'Aurora - Theme',
       description: 'Cool greens and teals inspired by the northern lights.',
     },
     midnight: {
       id: 'midnight',
-      name: 'Midnight',
+      name: 'Midnight - Theme',
       description: 'Deep indigos for a calm, focused atmosphere.',
     },
     ember: {
       id: 'ember',
-      name: 'Ember',
+      name: 'Ember - Theme',
       description: 'Warm oranges and reds for a high-energy session.',
     },
     celestial: {
       id: 'celestial',
-      name: 'Celestial',
+      name: 'Celestial - Theme',
       description: 'A starlit palette earned only by the most dedicated.',
     },
   },
@@ -67,23 +67,23 @@ const CATALOG_COPY: Record<CosmeticSlot, CatalogSlotCopy> = {
     },
     ornate: {
       id: 'ornate',
-      name: 'Ornate Hex',
-      description: 'The classic gold-and-purple hexagonal badge.',
+      name: 'Ornate Hex - Proficiency level badge',
+      description: 'A gold and green hexagonal crest.',
     },
     elite: {
       id: 'elite',
-      name: 'Elite Crest',
-      description: 'A refined crest for students who have proven themselves.',
+      name: 'Elite Crest - Proficiency level badge',
+      description: 'A silver and blue shield-shaped badge.',
     },
     master: {
       id: 'master',
-      name: "Master's Sigil",
-      description: 'A distinguished mark of mastery.',
+      name: "Master Crest - Proficiency level badge",
+      description: 'A gold and purple ornate badge.',
     },
     legend: {
       id: 'legend',
-      name: "Legend's Crown",
-      description: 'Reserved for students approaching the peak of their journey.',
+      name: "Legend's Crest - Proficiency level badge",
+      description: 'A legendary gold and orange badge with a radiant animated glow.',
     },
   },
   moduleUnitBadge: {
@@ -94,34 +94,34 @@ const CATALOG_COPY: Record<CosmeticSlot, CatalogSlotCopy> = {
     },
     roseGold: {
       id: 'roseGold',
-      name: 'Rose Gold Medal',
+      name: 'Rose Gold Medal - Completion Medal',
       description: 'A Rose Gold Diamond-Textured Medal.',
     },
     antique: {
       id: 'antique',
-      name: 'Antique Medal',
+      name: 'Antique Medal - Completion Medal',
       description: 'An Antique Gold Key-Patterned Medal.',
     },
   },
   userBadge: {
     standard: {
       id: 'standard',
-      name: 'Standard Frame',
+      name: 'Standard Frame - User Badge',
       description: 'The default avatar frame.',
     },
     silver: {
       id: 'silver',
-      name: 'Silver Frame',
+      name: 'Silver Frame - User Badge',
       description: 'A polished silver ring around your avatar.',
     },
     gold: {
       id: 'gold',
-      name: 'Gold Frame',
+      name: 'Gold Frame - User Badge',
       description: 'A warm gold ring that marks seasoned students.',
     },
     diamond: {
       id: 'diamond',
-      name: 'Diamond Frame',
+      name: 'Diamond Frame - User Badge',
       description: 'A crystalline ring for the truly dedicated.',
     },
   },
@@ -133,27 +133,27 @@ const CATALOG_COPY: Record<CosmeticSlot, CatalogSlotCopy> = {
     },
     red: {
       id: 'red',
-      name: 'Crimson',
+      name: 'Crimson - XP Bar Color',
       description: 'A bold red XP fill.',
     },
     cyan: {
       id: 'cyan',
-      name: 'Aqua',
+      name: 'Aqua - XP Bar Color',
       description: 'A cool cyan XP fill.',
     },
     purple: {
       id: 'purple',
-      name: 'Amethyst',
+      name: 'Amethyst - XP Bar Color',
       description: 'A rich purple XP fill.',
     },
     orange: {
       id: 'orange',
-      name: 'Sunset',
+      name: 'Sunset - XP Bar Color',
       description: 'A warm orange XP fill.',
     },
     rainbow: {
       id: 'rainbow',
-      name: 'Rainbow',
+      name: 'Rainbow - XP Bar Color',
       description: 'An animated rainbow gradient for students near the level cap.',
     },
   },
@@ -165,17 +165,17 @@ const CATALOG_COPY: Record<CosmeticSlot, CatalogSlotCopy> = {
     },
     geometric: {
       id: 'geometric',
-      name: 'Geometric',
+      name: 'Geometric - Background',
       description: 'A subtle repeating hexagonal grid layered over the background.',
     },
     nebula: {
       id: 'nebula',
-      name: 'Nebula',
+      name: 'Nebula - Background',
       description: 'A deep-space nebula that shifts subtly as you scroll.',
     },
     scholar: {
       id: 'scholar',
-      name: 'Scholar',
+      name: 'Scholar - Background',
       description: 'Scattered study icons — books, lightbulbs, and stars — as a wallpaper.',
     },
   },
@@ -187,7 +187,7 @@ const CATALOG_COPY: Record<CosmeticSlot, CatalogSlotCopy> = {
     },
     apex: {
       id: 'apex',
-      name: 'Apex Overlay',
+      name: 'Apex Overlay - User Badge Overlay',
       description: 'A shining overlay reserved for level 100.',
     },
   },
@@ -199,7 +199,7 @@ const CATALOG_COPY: Record<CosmeticSlot, CatalogSlotCopy> = {
     },
     particles: {
       id: 'particles',
-      name: 'Particle Burst',
+      name: 'Particle Burst - Answer Feedback Animation',
       description: 'Extra particles layered over the default feedback animation.',
     },
   },

@@ -1,0 +1,228 @@
+/* Progression timeline: vertical bar with alternating left/right branches per 5-level milestone. */
+
+/* ---- Container ---- */
+.timeline {
+  position: relative;
+  padding: 8px 0 48px;
+}
+
+/* ---- Vertical bar ---- */
+/* overflow: hidden clips the fill to the track bounds, letting height% work correctly
+   without knowing the container's pixel height. */
+.barTrack {
+  position: absolute;
+  left: calc(50% - 6px);
+  top: 0;
+  bottom: 0;
+  width: 12px;
+  background: var(--color-border);
+  border-radius: 6px;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.barFill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: linear-gradient(to bottom, var(--color-primary), var(--color-primary-light));
+  transition: height 0.8s ease;
+  border-radius: 6px;
+}
+
+/* ---- Band header row ---- */
+.bandHeaderRow {
+  position: relative;
+  padding: 16px 0 10px;
+  z-index: 1;
+}
+
+/* ---- Rarity chips ---- */
+.rarityChip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.rarity_uncommon {
+  background: var(--color-secondary-soft);
+  color: var(--color-secondary-dark);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.rarity_rare {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.rarity_epic {
+  background: rgba(139, 92, 246, 0.1);
+  color: #7c3aed;
+  border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.rarity_legendary {
+  background: var(--color-accent-soft);
+  color: var(--color-legendary-chip);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+/* ---- Separator row ---- */
+.separatorRow {
+  position: relative;
+  padding: 12px 0 4px;
+  z-index: 1;
+}
+
+.separatorLine {
+  width: 100%;
+  height: 2px;
+  background: var(--color-border-hover);
+  border-radius: 1px;
+}
+
+/* ---- Entry row ---- */
+.entryRow {
+  position: relative;
+  padding: 14px 0 24px;
+  min-height: 72px;
+}
+
+/* Tick dot centered on the bar. box-sizing: border-box keeps the visual size = 20px,
+   so left: calc(50% - 10px) places the center exactly on the bar center. */
+.tick {
+  box-sizing: border-box;
+  position: absolute;
+  left: calc(50% - 10px);
+  top: 14px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border-hover);
+  background: var(--color-surface);
+  z-index: 2;
+  transition: border-color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.tickUnlocked {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+}
+
+/* Horizontal arm from the tick edge to the content block */
+.arm {
+  position: absolute;
+  top: 23px; /* tick top(14) + tick half(10) - arm half(1) */
+  height: 2px;
+  width: 48px;
+  background: var(--color-border);
+  z-index: 1;
+  transition: background var(--transition-fast);
+}
+
+.armRight {
+  left: calc(50% + 10px);
+}
+
+.armLeft {
+  right: calc(50% + 10px);
+}
+
+.armUnlocked {
+  background: var(--color-primary-soft);
+}
+
+/* ---- Content blocks ---- */
+.entryContent {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 260px;
+}
+
+/* Right: push left edge past bar + tick + arm + gap */
+.entryContentRight {
+  margin-left: calc(50% + 66px); /* 50% + tick_half(10) + arm(48) + gap(8) */
+}
+
+/* Left: push right edge past bar + tick + arm + gap, then right-align children */
+.entryContentLeft {
+  margin-left: auto;
+  margin-right: calc(50% + 66px);
+  align-items: flex-end;
+}
+
+.entryContentLocked {
+  opacity: 0.5;
+}
+
+/* Level badge above the reward items */
+.levelBadge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--color-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ---- Reward item: icon + name/desc ---- */
+.rewardItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+/* Reverse layout for left-side items so the icon sits closest to the bar */
+.entryContentLeft .rewardItem {
+  flex-direction: row-reverse;
+}
+
+.rewardIconWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-hover);
+  border: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.rewardIcon {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.rewardText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.entryContentLeft .rewardText {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.rewardName {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+
+.rewardDesc {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  line-height: 1.35;
+}

@@ -110,6 +110,7 @@
   /* Specialty Graphics */
   --color-success-rays: rgba(76, 175, 80, 0.95);
   --color-badge-purple-primary: #8b5cf6;
+  --color-legendary-chip: #f97316;
 
   /* Streak Flame — tier color scale used by StreakIndicator */
   --color-flame-tier1: var(--color-accent);            /* warm amber  — ≥ 30 % threshold */
