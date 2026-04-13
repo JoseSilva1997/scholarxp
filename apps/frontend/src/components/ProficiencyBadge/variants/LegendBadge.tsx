@@ -1,11 +1,23 @@
-// Legend badge skeleton (L80 unlock). Replace the placeholder markup with custom art.
+// Legend crest badge (L80 unlock): gold/bronze crest with orange (legendary) core and flanking heraldic wings.
 import type { BadgeVariantProps } from '../types';
-import styles from './SkeletonBadge.module.css';
+import styles from './LegendBadge.module.css';
 
 export default function LegendBadge({ level, small }: BadgeVariantProps) {
   return (
-    <span className={`${styles.skeleton} ${styles.legend} ${small ? styles.skeletonSmall : ''}`}>
-      {level}
-    </span>
+    <div className={styles.wrapper}>
+      <div className={styles.glowWrapper}>
+        <div className={`${styles.outer} ${small ? styles.outerSmall : ''}`}>
+          <div className={`${styles.middle} ${small ? styles.middleSmall : ''}`}>
+            <div className={styles.innerShadow}>
+              <div className={`${styles.inner} ${small ? styles.innerSmall : ''}`}>
+                <span className={`${styles.number} ${small ? styles.numberSmall : ''}`}>
+                  {level}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

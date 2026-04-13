@@ -1,0 +1,122 @@
+/* Legend crest badge (L80 unlock): gold/bronze border, orange (legendary) core, flanked by heraldic wings. */
+
+.wrapper {
+  display: flex;
+  align-items: center;
+}
+
+/* Badge sits above the wings where they overlap */
+.glowWrapper {
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 0 18px rgba(249, 115, 22, 0.55)); /* Legendary orange glow */
+}
+
+.outer {
+  width: 80px;
+  height: 90px;
+  background: linear-gradient(
+    135deg,
+    #fef08a 0%,    /* bright gold */
+    #eab308 30%,   /* solid gold */
+    #a16207 65%,   /* bronze shadow */
+    #713f12 100%   /* dark bronze tip */
+  );
+  /* 12-point crest — shoulder notches make it more elaborate than MasterBadge's 8-point */
+  clip-path: polygon(
+    50% 0%,  62% 6%,
+    82% 10%, 95% 32%,
+    100% 55%, 85% 80%,
+    50% 100%, 15% 80%,
+    0% 55%,  5% 32%,
+    18% 10%, 38% 6%
+  );
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.middle {
+  width: 68px;
+  height: 77px;
+  background: radial-gradient(
+    ellipse at top,
+    #fed7aa 0%,    /* light orange */
+    #fb923c 30%,   /* orange */
+    #ea580c 65%,   /* deep orange */
+    #9a3412 100%   /* dark rust */
+  );
+  clip-path: polygon(
+    50% 0%,  62% 6%,
+    82% 10%, 95% 32%,
+    100% 55%, 85% 80%,
+    50% 100%, 15% 80%,
+    0% 55%,  5% 32%,
+    18% 10%, 38% 6%
+  );
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.innerShadow {
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.55));
+}
+
+.inner {
+  width: 42px;
+  height: 47px;
+  background: linear-gradient(
+    135deg,
+    #ffffff 0%,
+    #fef08a 35%,   /* mild gold */
+    #eab308 100%   /* gold base */
+  );
+  /* Reuse 8-point medallion shape for the center gem — no need to repeat the crest outline */
+  clip-path: polygon(50% 5%, 85% 20%, 95% 50%, 80% 85%, 50% 95%, 20% 85%, 5% 50%, 15% 20%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Small variant */
+.outerSmall {
+  width: 60px;
+  height: 68px;
+}
+
+.middleSmall {
+  width: 51px;
+  height: 58px;
+}
+
+.innerSmall {
+  width: 32px;
+  height: 36px;
+}
+
+.number {
+  color: #c2410c; /* deep orange — readable against the gold medallion */
+  font-size: 1.15rem;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+  margin-top: 1px;
+}
+
+.numberSmall {
+  font-size: 0.9rem;
+}
+
+/* Wings tuck slightly behind the badge outer border */
+.wingLeft {
+  position: relative;
+  z-index: 0;
+  margin-right: -10px;
+}
+
+.wingRight {
+  position: relative;
+  z-index: 0;
+  margin-left: -10px;
+}
