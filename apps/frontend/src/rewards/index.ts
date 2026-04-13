@@ -11,3 +11,4 @@ export {
 export { ORDERED_SLOTS, SLOT_DISPLAY } from './slots';
 export type { SlotDisplay } from './slots';
 export { useCosmetics } from './useCosmetics';
+export { useCompletionMedal } from './useCompletionMedal';

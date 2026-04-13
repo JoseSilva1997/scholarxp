@@ -2,7 +2,7 @@
 // so XP feedback can be intentionally revealed only after the learner continues.
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import medalImage from '../../assets/module-unit/module-unit-completed-medal.png';
+import { useCompletionMedal } from '@/rewards/useCompletionMedal';
 import styles from './LessonCompleteModal.module.css';
 
 type LessonCompleteModalProps = {
@@ -18,6 +18,7 @@ export default function LessonCompleteModal({
   unitTitle,
   onDismiss,
 }: LessonCompleteModalProps) {
+  const { src: medalImage, scale: medalScale } = useCompletionMedal();
   const [isDismissReady, setIsDismissReady] = useState(false);
 
   useEffect(() => {
@@ -54,8 +55,8 @@ export default function LessonCompleteModal({
             src={medalImage}
             alt=""
             className={styles.medal}
-            initial={{ y: -220, scale: 0.88, rotate: -8, opacity: 0 }}
-            animate={{ y: 0, scale: 1, rotate: 0, opacity: 1 }}
+            initial={{ y: -220, scale: 0.88 * medalScale, rotate: -8, opacity: 0 }}
+            animate={{ y: 0, scale: medalScale, rotate: 0, opacity: 1 }}
             transition={{
               y: { duration: 0.75, ease: [0.16, 1, 0.3, 1] },
               scale: { duration: 0.75, ease: 'easeOut' },

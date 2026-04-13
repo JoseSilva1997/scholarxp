@@ -2,6 +2,12 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+// LessonCompleteModal uses useCompletionMedal which depends on AuthContext;
+// stub it so this spec stays focused on practice-room interaction logic.
+vi.mock('@/rewards/useCompletionMedal', () => ({
+  useCompletionMedal: () => 'test-medal.png',
+}));
 import React from 'react';
 import type { PracticeQuestionUnit } from '@scholarxp/api-contracts';
 import PracticeRoomPage from './PracticeRoomPage';

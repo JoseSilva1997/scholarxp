@@ -1,6 +1,13 @@
 // Verifies student lesson card behavior for lock state and collapsible detail display.
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+
+// useCompletionMedal depends on AuthContext; stub it to return the default asset
+// so this spec can stay focused on card rendering/interaction logic.
+vi.mock('@/rewards/useCompletionMedal', () => ({
+  useCompletionMedal: () => 'test-medal.png',
+}));
+
 import StudentModuleUnitCard from './StudentModuleUnitCard';
 import {
   MASTERY_TOTAL_EXP,

@@ -1,7 +1,7 @@
 // Student-facing module unit card; shows neutral badge and start practice CTA without edit or authoring controls.
 import { useState } from 'react';
 import styles from './StudentModuleUnitCard.module.css';
-import completionMedalIcon from '@/assets/module-unit/module-unit-completed-medal.png';
+import { useCompletionMedal } from '@/rewards/useCompletionMedal';
 import { FaCheck, FaMinus, FaXmark, FaBolt, FaFire, FaGraduationCap } from 'react-icons/fa6';
 import { TbTargetArrow } from "react-icons/tb";
 import { IoMdLock } from "react-icons/io"
@@ -28,6 +28,7 @@ export default function StudentModuleUnitCard({
   onOpenPracticeRoom,
   onRetryPracticeRoom,
 }: StudentModuleUnitCardProps) {
+  const { src: completionMedalIcon, scale: medalScale } = useCompletionMedal();
   // Practice-room reward design currently has three streak thresholds; keep this explicit constant-driven total in one place.
   const maximumStreakBonusExp = STREAK_BONUS_EXP_PER_DELTA * 3;
   // Units with fewer than 4 questions don't qualify for streak bonuses (mirrors backend policy).
@@ -81,6 +82,7 @@ export default function StudentModuleUnitCard({
                     src={completionMedalIcon}
                     alt="Completion medal awarded"
                     className={`${styles.statusIconImage} ${styles.completionMedal}`}
+                    style={medalScale !== 1 ? { transform: `scale(${medalScale})` } : undefined}
                   />
                 ) : isLocked ? (
                   <IoMdLock className={styles.lockedPadlockIcon} aria-hidden="true" />
