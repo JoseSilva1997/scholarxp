@@ -21,6 +21,7 @@ export type Theme = (typeof THEME_IDS)[number];
 // (e.g. swapping between a light-background SVG and a dark-background SVG).
 export const DARK_THEMES: readonly Theme[] = [
   'dark',
+  'aurora',
   'midnight',
   'ember',
   'celestial',

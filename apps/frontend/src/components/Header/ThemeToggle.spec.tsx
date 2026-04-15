@@ -92,7 +92,7 @@ describe('ThemeToggle', () => {
 
   it('renders the dark-mode affordance when resolvedTheme is dark', () => {
     vi.mocked(useTheme).mockReturnValue({
-      theme: 'midnight',
+      theme: 'aurora',
       resolvedTheme: 'dark',
       setTheme: mockSetTheme,
       toggleTheme: mockToggleTheme,
@@ -101,7 +101,7 @@ describe('ThemeToggle', () => {
     render(<ThemeToggle />);
     const button = screen.getByRole('button');
 
-    // Dark-family themes (midnight, ember, celestial) all surface as "Dark theme" in the label
+    // Dark-family themes (dark, aurora, midnight, ember, celestial) all surface as "Dark theme" in the label
     // because the toggle collapses them into the same visual bucket.
     expect(button).toHaveAttribute('aria-label', 'Switch theme (currently Dark theme)');
     expect(button).toHaveAttribute('title', 'Dark theme');
