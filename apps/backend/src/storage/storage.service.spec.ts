@@ -9,7 +9,8 @@ describe('StorageService', () => {
         ({
           FIREBASE_PROJECT_ID: 'proj',
           FIREBASE_CLIENT_EMAIL: 'svc@example.com',
-          FIREBASE_PRIVATE_KEY: '-----BEGIN PRIVATE KEY-----\\nabc\\n-----END PRIVATE KEY-----\\n',
+          FIREBASE_PRIVATE_KEY:
+            '-----BEGIN PRIVATE KEY-----\\nabc\\n-----END PRIVATE KEY-----\\n',
           FIREBASE_STORAGE_BUCKET: 'gs://scholar-xp-test.firebasestorage.app',
         })[key],
     } as unknown as ConfigService;
@@ -33,7 +34,9 @@ describe('StorageService', () => {
       ),
     ).toBe(true);
     expect(
-      service.isOwnedUrl('https://lh3.googleusercontent.com/a/some-google-avatar'),
+      service.isOwnedUrl(
+        'https://lh3.googleusercontent.com/a/some-google-avatar',
+      ),
     ).toBe(false);
   });
 
@@ -45,7 +48,9 @@ describe('StorageService', () => {
       ),
     ).toBe('profile-pictures/42/abc def.png');
     expect(
-      service.pathFromUrl('https://lh3.googleusercontent.com/a/some-google-avatar'),
+      service.pathFromUrl(
+        'https://lh3.googleusercontent.com/a/some-google-avatar',
+      ),
     ).toBeNull();
   });
 });

@@ -10,7 +10,10 @@ describe('UsersService', () => {
   let service: UsersService;
   let prisma: PrismaMock;
   let storage: jest.Mocked<
-    Pick<StorageService, 'upload' | 'delete' | 'isOwnedUrl' | 'pathFromUrl' | 'publicUrl'>
+    Pick<
+      StorageService,
+      'upload' | 'delete' | 'isOwnedUrl' | 'pathFromUrl' | 'publicUrl'
+    >
   >;
 
   const now = new Date('2026-01-01T00:00:00Z');
@@ -180,7 +183,13 @@ describe('UsersService', () => {
       0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00,
     ]);
 
-    function pngFile(overrides: Partial<{ size: number; mimetype: string; buffer: Buffer }> = {}) {
+    function pngFile(
+      overrides: Partial<{
+        size: number;
+        mimetype: string;
+        buffer: Buffer;
+      }> = {},
+    ) {
       return {
         buffer: overrides.buffer ?? pngBuffer,
         mimetype: overrides.mimetype ?? 'image/png',
@@ -222,12 +231,22 @@ describe('UsersService', () => {
     });
 
     it('uploads, persists the public URL, and deletes the prior owned blob', async () => {
-      const owned = 'https://storage.googleapis.com/bucket/profile-pictures/42/old.png';
-      prisma.user.findUnique.mockResolvedValue({ ...baseUser, profilePictureUrl: owned });
-      storage.upload.mockResolvedValue({ path: 'p', publicUrl: 'https://cdn/new.png' });
+      const owned =
+        'https://storage.googleapis.com/bucket/profile-pictures/42/old.png';
+      prisma.user.findUnique.mockResolvedValue({
+        ...baseUser,
+        profilePictureUrl: owned,
+      });
+      storage.upload.mockResolvedValue({
+        path: 'p',
+        publicUrl: 'https://cdn/new.png',
+      });
       storage.isOwnedUrl.mockReturnValue(true);
       storage.pathFromUrl.mockReturnValue('profile-pictures/42/old.png');
-      prisma.user.update.mockResolvedValue({ ...baseUser, profilePictureUrl: 'https://cdn/new.png' });
+      prisma.user.update.mockResolvedValue({
+        ...baseUser,
+        profilePictureUrl: 'https://cdn/new.png',
+      });
 
       const result = await service.updateProfilePicture(baseUser.id, pngFile());
 
@@ -240,7 +259,9 @@ describe('UsersService', () => {
         where: { id: baseUser.id },
         data: { profilePictureUrl: 'https://cdn/new.png' },
       });
-      expect(storage.delete).toHaveBeenCalledWith('profile-pictures/42/old.png');
+      expect(storage.delete).toHaveBeenCalledWith(
+        'profile-pictures/42/old.png',
+      );
       expect(result.profilePictureUrl).toBe('https://cdn/new.png');
     });
 
@@ -249,9 +270,15 @@ describe('UsersService', () => {
         ...baseUser,
         profilePictureUrl: 'https://lh3.googleusercontent.com/a/google-avatar',
       });
-      storage.upload.mockResolvedValue({ path: 'p', publicUrl: 'https://cdn/new.png' });
+      storage.upload.mockResolvedValue({
+        path: 'p',
+        publicUrl: 'https://cdn/new.png',
+      });
       storage.isOwnedUrl.mockReturnValue(false);
-      prisma.user.update.mockResolvedValue({ ...baseUser, profilePictureUrl: 'https://cdn/new.png' });
+      prisma.user.update.mockResolvedValue({
+        ...baseUser,
+        profilePictureUrl: 'https://cdn/new.png',
+      });
 
       await service.updateProfilePicture(baseUser.id, pngFile());
 
@@ -263,7 +290,8 @@ describe('UsersService', () => {
     it('resets to the default sentinel and deletes prior owned blob', async () => {
       prisma.user.findUnique.mockResolvedValue({
         ...baseUser,
-        profilePictureUrl: 'https://storage.googleapis.com/bucket/profile-pictures/42/old.png',
+        profilePictureUrl:
+          'https://storage.googleapis.com/bucket/profile-pictures/42/old.png',
       });
       storage.isOwnedUrl.mockReturnValue(true);
       storage.pathFromUrl.mockReturnValue('profile-pictures/42/old.png');
@@ -278,7 +306,9 @@ describe('UsersService', () => {
         where: { id: baseUser.id },
         data: { profilePictureUrl: 'default-profile-pic.png' },
       });
-      expect(storage.delete).toHaveBeenCalledWith('profile-pictures/42/old.png');
+      expect(storage.delete).toHaveBeenCalledWith(
+        'profile-pictures/42/old.png',
+      );
       expect(result.profilePictureUrl).toBe('default-profile-pic.png');
     });
 

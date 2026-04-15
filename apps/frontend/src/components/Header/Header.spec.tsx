@@ -21,7 +21,7 @@ type MockUserBadgeProps = {
 };
 
 let mockUserBadgeProps: Partial<MockUserBadgeProps> = {};
-vi.mock('./UserBadge', () => ({
+vi.mock('./UserBadge/UserBadge', () => ({
   default: (props: unknown) => {
     // The test only needs level/exp, so we narrow incoming props to that minimal shape.
     if (props && typeof props === 'object') {

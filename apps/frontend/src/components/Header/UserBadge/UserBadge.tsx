@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { getProgressWithinLevel } from '@scholarxp/progression';
 import type { AuthUser } from '@/types/auth';
 import { getNewlyUnlockedRewards, type CatalogItem } from '@/rewards';
 import defaultAvatar from '@/assets/default-profile-pic.png';
-import UnlockToast from '../Rewards/UnlockToast';
+import UnlockToast from '../../Rewards/UnlockToast';
+import UserBadgeMenu from './UserBadgeMenu';
 import styles from './UserBadge.module.css';
 
 type UserBadgeProps = {
@@ -58,7 +58,6 @@ export default function UserBadge({ user, onLogout }: UserBadgeProps) {
   const ringPercentRef = useRef<number | null>(null);
   const ringAnimTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const menuRef = useRef<HTMLDivElement | null>(null);
-  const navigate = useNavigate();
 
   const toggleMenu = () => setIsMenuOpen((open) => !open);
   const closeMenu = () => setIsMenuOpen(false);
@@ -564,99 +563,14 @@ export default function UserBadge({ user, onLogout }: UserBadgeProps) {
       </div>
 
       {isMenuOpen ? (
-        <div className={styles.menu} role="menu">
-          {/* Panel Header with Profile Preview */}
-          <div className={styles.menuHeader}>
-            <div className={styles.menuHeaderProfileSide}>
-              <img
-                src={avatarSrc}
-                alt=""
-                className={styles.menuHeaderAvatar}
-                referrerPolicy="no-referrer"
-                onError={(event) => {
-                  event.currentTarget.onerror = null;
-                  event.currentTarget.src = defaultAvatar;
-                }}
-              />
-              {user.globalRole === 'student' && animatedProgress && (
-                <div className={styles.menuHeaderLevelBadge}>
-                  {animatedProgress.level}
-                </div>
-              )}
-            </div>
-            <div className={styles.menuHeaderInfo}>
-              <div className={styles.menuHeaderName}>{formatName(user) || 'User'}</div>
-              <div className={styles.menuHeaderRole}>
-                {user.globalRole === 'student' ? 'Student' : 'Teacher'}
-              </div>
-
-              {/* Student Progress (Integrated into Header Info) */}
-              {user.globalRole === 'student' && animatedProgress ? (
-                <div className={styles.menuProgressIntegrated}>
-                  <div className={styles.menuExpLabel}>
-                    {animatedProgress.currentLevelExp} / {animatedProgress.nextLevelExpRequired} XP
-                  </div>
-                  <div className={styles.menuBarTrack}>
-                    <div className={styles.menuBarFill} style={{ width: `${expPercent}%` }} />
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          </div>
-
-          {/* Panel Content */}
-          <div className={styles.menuContent}>
-            {/* Main Actions */}
-            <div className={styles.menuSection}>
-              <button
-                type="button"
-                className={styles.menuItem}
-                role="menuitem"
-                onClick={() => {
-                  navigate('/main');
-                  closeMenu();
-                }}
-              >
-                <svg className={styles.menuItemIcon} fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" />
-                </svg>
-                My content
-              </button>
-              <button
-                type="button"
-                className={styles.menuItem}
-                role="menuitem"
-                onClick={() => {
-                  navigate('/main/profile');
-                  closeMenu();
-                }}
-              >
-                <svg className={styles.menuItemIcon} fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                </svg>
-                Account settings
-              </button>
-            </div>
-
-            {/* Logout Section */}
-            <div className={styles.menuFooter}>
-              <button
-                type="button"
-                className={styles.menuItem}
-                role="menuitem"
-                onClick={async () => {
-                  closeMenu();
-                  if (onLogout) await onLogout();
-                }}
-              >
-                <svg className={styles.menuItemIcon} fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z" />
-                </svg>
-                Log out
-              </button>
-            </div>
-          </div>
-        </div>
+        <UserBadgeMenu
+          avatarSrc={avatarSrc}
+          closeMenu={closeMenu}
+          expPercent={expPercent}
+          onLogout={onLogout}
+          studentProgress={isStudent && animatedProgress ? animatedProgress : null}
+          user={user}
+        />
       ) : null}
 
       {/* Unlock toast — rendered in a portal-like position (fixed CSS) so it floats above page content. */}

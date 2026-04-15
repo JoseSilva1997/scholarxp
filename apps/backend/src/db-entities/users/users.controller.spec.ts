@@ -51,7 +51,11 @@ describe('UsersController', () => {
   });
 
   it('forwards profile-picture uploads and returns refreshed auth payload', async () => {
-    const file = { buffer: Buffer.from(''), mimetype: 'image/png', size: 1 } as any;
+    const file = {
+      buffer: Buffer.from(''),
+      mimetype: 'image/png',
+      size: 1,
+    } as any;
     const refreshed = { id: 1, profilePictureUrl: 'https://cdn/x.png' };
     service.updateProfilePicture.mockResolvedValue({ id: 1 });
     authService.getUserById.mockResolvedValue(refreshed);

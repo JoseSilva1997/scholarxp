@@ -18,10 +18,7 @@ describe('RewardsService', () => {
   beforeEach(async () => {
     prisma = createPrismaMock();
     const moduleRef: TestingModule = await Test.createTestingModule({
-      providers: [
-        RewardsService,
-        { provide: PrismaService, useValue: prisma },
-      ],
+      providers: [RewardsService, { provide: PrismaService, useValue: prisma }],
     }).compile();
 
     service = moduleRef.get(RewardsService);

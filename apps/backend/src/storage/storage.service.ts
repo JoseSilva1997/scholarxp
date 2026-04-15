@@ -27,8 +27,13 @@ export class StorageService implements OnModuleInit {
     const projectId = this.requireEnv('FIREBASE_PROJECT_ID');
     const clientEmail = this.requireEnv('FIREBASE_CLIENT_EMAIL');
     // Env-stored private keys keep escaped newlines literal; convert back so the JWT signer parses PEM correctly.
-    const privateKey = this.requireEnv('FIREBASE_PRIVATE_KEY').replace(/\\n/g, '\n');
-    this.bucketName = normalizeBucketName(this.requireEnv('FIREBASE_STORAGE_BUCKET'));
+    const privateKey = this.requireEnv('FIREBASE_PRIVATE_KEY').replace(
+      /\\n/g,
+      '\n',
+    );
+    this.bucketName = normalizeBucketName(
+      this.requireEnv('FIREBASE_STORAGE_BUCKET'),
+    );
 
     const storage = new Storage({
       projectId,
@@ -64,7 +69,9 @@ export class StorageService implements OnModuleInit {
       await this.bucket.file(objectPath).delete({ ignoreNotFound: true });
     } catch (err) {
       // Old-blob cleanup must never block the user-visible flow; log and swallow so updates still succeed.
-      this.logger.warn(`Failed to delete object ${objectPath}: ${(err as Error).message}`);
+      this.logger.warn(
+        `Failed to delete object ${objectPath}: ${(err as Error).message}`,
+      );
     }
   }
 

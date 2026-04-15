@@ -81,7 +81,8 @@ describe('SidebarNav', () => {
       expect(screen.getByText('Modules')).toBeInTheDocument();
       expect(screen.getByText('Module catalogue')).toBeInTheDocument();
       expect(screen.getByText('Quest History')).toBeInTheDocument();
-      expect(screen.getByText('My account')).toBeInTheDocument();
+      expect(screen.getByText('Rewards')).toBeInTheDocument();
+      expect(screen.getByText('Cosmetics & unlocks')).toBeInTheDocument();
     });
 
     it('renders collapsed state with tooltips only (collapsed=true)', () => {
@@ -94,7 +95,7 @@ describe('SidebarNav', () => {
       // In collapsed mode, labelBlock should NOT render (hints should be hidden)
       expect(screen.queryByText('Module catalogue')).not.toBeInTheDocument();
       expect(screen.queryByText('My quest progress')).not.toBeInTheDocument();
-      expect(screen.queryByText('My account')).not.toBeInTheDocument();
+      expect(screen.queryByText('Cosmetics & unlocks')).not.toBeInTheDocument();
 
       // But sr (screen-reader only) labels should still exist
       // Look for span that contains "Modules" and has aria-hidden=false (or no aria-hidden)
@@ -133,7 +134,7 @@ describe('SidebarNav', () => {
       );
 
       // React-icons render SVGs; asserting icon containers keeps the test resilient.
-      expect(container.querySelectorAll('a span[aria-hidden="true"] svg')).toHaveLength(4);
+      expect(container.querySelectorAll('a span[aria-hidden="true"] svg')).toHaveLength(3);
 
       rerender(
         <MemoryRouter>
@@ -142,7 +143,7 @@ describe('SidebarNav', () => {
       );
 
       // Icons should still be present in collapsed mode.
-      expect(container.querySelectorAll('a span[aria-hidden="true"] svg')).toHaveLength(4);
+      expect(container.querySelectorAll('a span[aria-hidden="true"] svg')).toHaveLength(3);
     });
   });
 
@@ -158,11 +159,11 @@ describe('SidebarNav', () => {
 
       expect(screen.getByText('Modules')).toBeInTheDocument();
       expect(screen.getByText('Quest History')).toBeInTheDocument();
-      expect(screen.getByText('Profile')).toBeInTheDocument();
+      expect(screen.getByText('Rewards')).toBeInTheDocument();
     });
 
     it('filters out unauthorized items (canUserAccess returns false)', () => {
-      // Only Modules and Profile allowed, Quest History blocked
+      // Only Modules and Rewards allowed, Quest History blocked
       mocks.canUserAccess.mockImplementation((feature: string) => feature !== features.navigation.quests);
 
       render(
@@ -173,7 +174,7 @@ describe('SidebarNav', () => {
 
       expect(screen.getByText('Modules')).toBeInTheDocument();
       expect(screen.queryByText('Quest History')).not.toBeInTheDocument();
-      expect(screen.getByText('Profile')).toBeInTheDocument();
+      expect(screen.getByText('Rewards')).toBeInTheDocument();
     });
 
     it('handles multiple unauthorized items', () => {
@@ -188,7 +189,7 @@ describe('SidebarNav', () => {
 
       expect(screen.getByText('Modules')).toBeInTheDocument();
       expect(screen.queryByText('Quest History')).not.toBeInTheDocument();
-      expect(screen.queryByText('Profile')).not.toBeInTheDocument();
+      expect(screen.queryByText('Rewards')).not.toBeInTheDocument();
     });
 
     it('always shows items without feature requirement', () => {
@@ -204,7 +205,7 @@ describe('SidebarNav', () => {
       // All items have features defined, so none should show
       expect(screen.queryByText('Modules')).not.toBeInTheDocument();
       expect(screen.queryByText('Quest History')).not.toBeInTheDocument();
-      expect(screen.queryByText('Profile')).not.toBeInTheDocument();
+      expect(screen.queryByText('Rewards')).not.toBeInTheDocument();
     });
 
     it('calls canUserAccess with correct feature names', () => {
@@ -217,7 +218,7 @@ describe('SidebarNav', () => {
       // Verify canUserAccess was called with each feature
       expect(mocks.canUserAccess).toHaveBeenCalledWith(features.navigation.modules, expect.any(Object));
       expect(mocks.canUserAccess).toHaveBeenCalledWith(features.navigation.quests, expect.any(Object));
-      expect(mocks.canUserAccess).toHaveBeenCalledWith(features.navigation.profile, expect.any(Object));
+      expect(mocks.canUserAccess).toHaveBeenCalledWith(features.navigation.rewards, expect.any(Object));
     });
   });
 
@@ -317,7 +318,7 @@ describe('SidebarNav', () => {
       // In collapsed mode, text should still be in the DOM (for screen readers)
       expect(screen.getByText('Modules')).toBeInTheDocument();
       expect(screen.getByText('Quest History')).toBeInTheDocument();
-      expect(screen.getByText('Profile')).toBeInTheDocument();
+      expect(screen.getByText('Rewards')).toBeInTheDocument();
     });
   });
 
@@ -331,11 +332,11 @@ describe('SidebarNav', () => {
         </MemoryRouter>,
       );
 
-      // Should show Modules and Profile (due to permissions)
+      // Should show Modules and Rewards (due to permissions)
       // But not Quest History
       expect(screen.getByText('Modules')).toBeInTheDocument();
       expect(screen.queryByText('Quest History')).not.toBeInTheDocument();
-      expect(screen.getByText('Profile')).toBeInTheDocument();
+      expect(screen.getByText('Rewards')).toBeInTheDocument();
 
       // Should not show hints in collapsed mode
       expect(screen.queryByText('Module catalogue')).not.toBeInTheDocument();
@@ -358,7 +359,7 @@ describe('SidebarNav', () => {
 
     it('filters correctly when collapsed with navigationCallback', () => {
       const onNavigate = vi.fn();
-      mocks.canUserAccess.mockImplementation((feature: string) => feature === features.navigation.profile);
+      mocks.canUserAccess.mockImplementation((feature: string) => feature === features.navigation.rewards);
 
       render(
         <MemoryRouter>
@@ -366,9 +367,9 @@ describe('SidebarNav', () => {
         </MemoryRouter>,
       );
 
-      // Find and click the Profile link
-      const profileLink = screen.getByText('Profile').closest('a');
-      fireEvent.click(profileLink!);
+      // Find and click the Rewards link
+      const rewardsLink = screen.getByText('Rewards').closest('a');
+      fireEvent.click(rewardsLink!);
       expect(onNavigate).toHaveBeenCalledOnce();
     });
   });

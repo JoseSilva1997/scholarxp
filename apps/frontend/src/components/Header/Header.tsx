@@ -3,7 +3,7 @@ import type { AuthUser } from '@/types/auth';
 import logo from '@/assets/logo.svg';
 import ThemeToggle from '@/components/Header/ThemeToggle';
 import StudentQuestHeaderStatus from './StudentQuestHeaderStatus';
-import UserBadge from './UserBadge';
+import UserBadge from './UserBadge/UserBadge';
 import styles from './Header.module.css';
 
 type HeaderProps = {
