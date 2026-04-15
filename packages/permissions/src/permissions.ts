@@ -47,6 +47,14 @@ export const permissionMatrix: PermissionMatrix = {
     'student.independent',
     'student.institutional',
   ],
+  [features.users.updateOwnProfilePicture]: [
+    'admin',
+    'institution_admin',
+    'teacher.independent',
+    'teacher.institutional',
+    'student.independent',
+    'student.institutional',
+  ],
 
   // ====MODULES====
   [features.modules.create]: [

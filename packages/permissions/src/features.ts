@@ -3,6 +3,7 @@ export const features = {
   users: {
     selectOwnRole: 'users_select_own_role',
     updateOwnTimezone: 'users_update_own_timezone',
+    updateOwnProfilePicture: 'users_update_own_profile_picture',
   },
   modules: {
     create: 'modules_create',
