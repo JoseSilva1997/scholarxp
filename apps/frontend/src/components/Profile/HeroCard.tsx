@@ -1,8 +1,19 @@
 // Profile hero banner: shared by student and tutor roles with role-specific visual additions.
+import { useRef, useState, type ChangeEvent } from 'react';
 import type { AuthUser } from '@/types/auth';
-import type { AccountProgress } from '@scholarxp/api-contracts';
+import {
+  PROFILE_PICTURE_ALLOWED_MIME_TYPES,
+  PROFILE_PICTURE_MAX_BYTES,
+  type AccountProgress,
+  type ProfilePictureMimeType,
+} from '@scholarxp/api-contracts';
+import { canAccess, features } from '@scholarxp/permissions';
 import { FaFire } from 'react-icons/fa6';
 import defaultAvatar from '@/assets/default-profile-pic.png';
+import { useAuth } from '@/context/AuthContext';
+import { removeProfilePicture, uploadProfilePicture } from '@/api/users';
+import { cropImageToSquare } from '@/utils/cropImageToSquare';
+import { logError } from '@/utils/logger';
 import styles from './HeroCard.module.css';
 
 type HeroCardProps = {
@@ -12,6 +23,8 @@ type HeroCardProps = {
   isEditingProfile: boolean;
   onEditProfile: () => void;
 };
+
+const ACCEPT_ATTR = PROFILE_PICTURE_ALLOWED_MIME_TYPES.join(',');
 
 function formatName(user: AuthUser) {
   return [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
@@ -32,11 +45,65 @@ export default function HeroCard({
 }: HeroCardProps) {
   const isStudent = user.globalRole === 'student';
   const name = formatName(user) || 'User';
+  const { setUser } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [isMutating, setIsMutating] = useState(false);
+  const [pictureError, setPictureError] = useState<string | null>(null);
+
+  const canEditPicture = canAccess(features.users.updateOwnProfilePicture, {
+    role: user.globalRole,
+    hasInstitutionMembership: user.hasInstitutionMembership,
+  });
 
   const avatarSrc =
     user.profilePictureUrl && user.profilePictureUrl.startsWith('http')
       ? user.profilePictureUrl
       : defaultAvatar;
+  const hasCustomPicture = avatarSrc !== defaultAvatar;
+
+  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const input = event.target;
+    const file = input.files?.[0];
+    // Always reset the input value so re-selecting the same file still fires onChange.
+    input.value = '';
+    if (!file) return;
+
+    setPictureError(null);
+    if (!PROFILE_PICTURE_ALLOWED_MIME_TYPES.includes(file.type as ProfilePictureMimeType)) {
+      setPictureError('Image must be PNG, JPEG, or WebP.');
+      return;
+    }
+    if (file.size > PROFILE_PICTURE_MAX_BYTES) {
+      setPictureError('Image must be 5 MB or smaller.');
+      return;
+    }
+
+    setIsMutating(true);
+    try {
+      const cropped = await cropImageToSquare(file);
+      const refreshed = await uploadProfilePicture(user.id, cropped);
+      setUser(refreshed);
+    } catch (err) {
+      logError(err, { source: 'HeroCard.uploadProfilePicture' });
+      setPictureError('Failed to update profile picture. Please try again.');
+    } finally {
+      setIsMutating(false);
+    }
+  }
+
+  async function handleRemove() {
+    setPictureError(null);
+    setIsMutating(true);
+    try {
+      const refreshed = await removeProfilePicture(user.id);
+      setUser(refreshed);
+    } catch (err) {
+      logError(err, { source: 'HeroCard.removeProfilePicture' });
+      setPictureError('Failed to remove profile picture. Please try again.');
+    } finally {
+      setIsMutating(false);
+    }
+  }
 
   const progressPercent = accountProgress
     ? Math.min(100, Math.round(accountProgress.progressPercent))
@@ -84,7 +151,6 @@ export default function HeroCard({
             src={avatarSrc}
             alt={`${name} profile picture`}
             className={`${styles.avatar} ${isStudent ? styles.avatarStudent : styles.avatarTutor}`}
-            crossOrigin="anonymous"
             referrerPolicy="no-referrer"
             onError={(event) => {
               event.currentTarget.onerror = null;
@@ -98,6 +164,40 @@ export default function HeroCard({
             </div>
           ) : null}
         </div>
+
+        {isEditingProfile && canEditPicture ? (
+          <div className={styles.pictureActions}>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={ACCEPT_ATTR}
+              onChange={handleFileChange}
+              hidden
+              data-testid="profile-picture-input"
+            />
+            <button
+              type="button"
+              className={styles.pictureButton}
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isMutating}
+            >
+              {isMutating ? 'Working...' : 'Upload'}
+            </button>
+            {hasCustomPicture ? (
+              <button
+                type="button"
+                className={styles.pictureButton}
+                onClick={handleRemove}
+                disabled={isMutating}
+              >
+                Remove
+              </button>
+            ) : null}
+            {pictureError ? (
+              <p className={styles.pictureError} role="alert">{pictureError}</p>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       <div className={styles.info}>
