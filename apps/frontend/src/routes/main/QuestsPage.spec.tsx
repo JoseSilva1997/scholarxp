@@ -87,6 +87,32 @@ describe('QuestsPage route', () => {
     expect(screen.getByText('1/1 Quest Completed')).toBeInTheDocument();
   });
 
+  it('renders placeholder copy for days without generated quests', () => {
+    mocks.useQuestPageState.mockReturnValue({
+      daySections: [
+        {
+          questDayUtc: '2026-02-17',
+          dayLabel: 'Feb 17, 2026',
+          isToday: false,
+          isPlaceholder: true,
+          quests: [],
+          masterQuest: null,
+        },
+      ],
+      isLoading: false,
+      isLoadingMore: false,
+      pageError: null,
+      canLoadMore: false,
+      loadMore: vi.fn(),
+    });
+
+    render(<QuestsPage />);
+
+    expect(screen.getByText('No daily quests were generated for this day.')).toBeInTheDocument();
+    expect(screen.getByLabelText('No master quest available')).toBeInTheDocument();
+    expect(screen.getByTestId('quest-history-placeholder')).toBeInTheDocument();
+  });
+
   it('keeps only one tooltip open across different quest history cards', async () => {
     const user = userEvent.setup();
     const firstQuest: QuestView = {

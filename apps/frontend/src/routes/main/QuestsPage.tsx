@@ -109,15 +109,18 @@ export default function QuestsPage() {
             </div>
             
             {daySections.map((daySection) => {
+              const isPlaceholder = daySection.isPlaceholder;
               // Check if all quests in the day are complete and count them.
               const completedQuestsCount = daySection.quests.filter(
                 (quest) => quest.isCompleted,
               ).length;
               const dailyQuestCount = daySection.quests.length;
               const allQuestsComplete =
-                daySection.masterQuest?.isCompleted ??
+                (!isPlaceholder &&
+                  (daySection.masterQuest?.isCompleted ??
                 (completedQuestsCount === dailyQuestCount &&
-                  dailyQuestCount > 0);
+                  dailyQuestCount > 0))) ||
+                false;
               const MasterQuestIcon = allQuestsComplete
                 ? GiOpenTreasureChest
                 : GiLockedChest;
@@ -138,38 +141,55 @@ export default function QuestsPage() {
                   <section
                     className={`${styles.daySection} ${allQuestsComplete ? styles.completed : ""} ${
                       daySection.isToday ? styles.isToday : ""
-                    }`.trim()}
+                    } ${isPlaceholder ? styles.placeholderSection : ''}`.trim()}
                   >
                     <div className={styles.dayInfo}>
                       <h2 className={styles.dayLabel}>{daySection.dayLabel}</h2>
                       <p className={styles.dayProgress}>
-                        {completedQuestsCount}/{dailyQuestCount}{' '}
-                        {dailyQuestCount === 1 ? 'Quest' : 'Quests'} Completed
+                        {isPlaceholder
+                          ? 'No daily quests were generated for this day.'
+                          : `${completedQuestsCount}/${dailyQuestCount} ${
+                              dailyQuestCount === 1 ? 'Quest' : 'Quests'
+                            } Completed`}
                       </p>
                     </div>
                     <div className={styles.dayQuestRow}>
-                      <QuestHistoryCard
-                        quests={daySection.quests}
-                        activeTooltipId={activeTooltipId}
-                        onTooltipToggle={setActiveTooltipId}
-                        tooltipIdPrefix={daySection.questDayUtc}
-                      />
+                      {isPlaceholder ? (
+                        <div
+                          className={styles.questHistoryPlaceholder}
+                          aria-hidden="true"
+                          data-testid="quest-history-placeholder"
+                        />
+                      ) : (
+                        <QuestHistoryCard
+                          quests={daySection.quests}
+                          activeTooltipId={activeTooltipId}
+                          onTooltipToggle={setActiveTooltipId}
+                          tooltipIdPrefix={daySection.questDayUtc}
+                        />
+                      )}
                       <div className={styles.masterQuestSeparator} aria-hidden="true" />
                       <div
                         className={`${styles.masterQuestIndicator} ${
-                          allQuestsComplete
+                          isPlaceholder
+                            ? styles.masterQuestIndicatorPlaceholder
+                            : allQuestsComplete
                             ? styles.masterQuestIndicatorComplete
                             : styles.masterQuestIndicatorIncomplete
                         }`.trim()}
                         role="img"
                         aria-label={
-                          allQuestsComplete
+                          isPlaceholder
+                            ? 'No master quest available'
+                            : allQuestsComplete
                             ? 'Master quest completed'
                             : 'Master quest incomplete'
                         }
                         title={
-                          daySection.masterQuest?.description ??
-                          'Complete every daily quest available today to unlock the master quest reward.'
+                          isPlaceholder
+                            ? 'No master quest exists for days without generated daily quests.'
+                            : daySection.masterQuest?.description ??
+                              'Complete every daily quest available today to unlock the master quest reward.'
                         }
                       >
                         <MasterQuestIcon
