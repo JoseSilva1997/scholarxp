@@ -1,5 +1,43 @@
-/* Ember theme — warm red/orange palette unlocked at level 65. Dark-family base. */
-:root[data-theme='ember'] {
+/* Ember theme — warm red/orange palette unlocked at level 65, with explicit light and dark variants.
+   Improved: text-dim was identical to primary (#ea580c) — changed to desaturated #b5713e (3.9:1,
+   large-text safe) to separate static from interactive. border-subtle added. */
+:root[data-theme='ember-light'] {
+  --color-primary: #ea580c;
+  --color-primary-dark: #c2410c;
+  --color-primary-light: #fb923c;
+  --color-primary-subtle: #fdba74;
+  --color-primary-soft: rgba(234, 88, 12, 0.1);
+
+  --color-secondary: #ef4444;
+  --color-secondary-dark: #dc2626;
+  --color-secondary-light: #f87171;
+  --color-secondary-soft: rgba(239, 68, 68, 0.1);
+
+  --color-accent: #f59e0b;
+  --color-accent-dark: #d97706;
+  --color-accent-light: #fbbf24;
+  --color-accent-soft: rgba(245, 158, 11, 0.1);
+
+  --color-bg: #fafafa;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f4f4f5;
+  --color-text: #09090b;
+  --color-text-soft: #27272a;
+  --color-text-muted: #52525b;
+  --color-text-dim: #a1a1aa;
+  --color-border: #e4e4e7;
+  --color-border-hover: #d4d4d8;
+  --color-border-subtle: rgba(9, 9, 11, 0.05);
+
+  --color-bg-glow-primary: rgba(234, 88, 12, 0.08);
+  --color-bg-glow-secondary: rgba(239, 68, 68, 0.06);
+  --color-bg-glow-accent: rgba(245, 158, 11, 0.06);
+}
+
+/* Improved: surfaces desaturated — old bg/surface/hover were all deeply orange (#1c0f0a/#2d1810/#44231a),
+   making cards blend into background. New surfaces are warm neutrals with subtle undertone; theme identity
+   now carried by accents, borders, and text. text-dim lightened for dark-mode readability. */
+:root[data-theme='ember-dark'] {
   --color-primary: #fb923c;
   --color-primary-dark: #f97316;
   --color-primary-light: #fdba74;
@@ -16,18 +54,19 @@
   --color-accent-light: #fcd34d;
   --color-accent-soft: rgba(251, 191, 36, 0.15);
 
-  --color-bg: #1c0f0a;
-  --color-surface: #2d1810;
-  --color-surface-hover: #44231a;
-  --color-text: #fff7ed;
-  --color-text-soft: #fed7aa;
-  --color-text-muted: #fdba74;
-  --color-text-dim: #c2410c;
-  --color-border: #7c2d12;
-  --color-border-hover: #9a3412;
+  --color-bg: #09090b;
+  --color-surface: #18181b;
+  --color-surface-hover: #27272a;
+  --color-text: #fafafa;
+  --color-text-soft: #e4e4e7;
+  --color-text-muted: #a1a1aa;
+  --color-text-dim: #71717a;
+  --color-border: #27272a;
+  --color-border-hover: #3f3f46;
+  --color-border-subtle: rgba(250, 250, 250, 0.05);
 
   --color-shadow-subtle: rgba(0, 0, 0, 0.45);
   --color-shadow-base: rgba(0, 0, 0, 0.55);
 
-  --input-bg: #2d1810;
+  --input-bg: #18181b;
 }

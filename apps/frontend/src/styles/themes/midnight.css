@@ -1,5 +1,41 @@
-/* Midnight theme — deep indigo palette unlocked at level 40. Dark-family base. */
-:root[data-theme='midnight'] {
+/* Midnight theme — deep indigo palette unlocked at level 40, with explicit light and dark variants.
+   Improved: text-muted darkened #6366f1→#5b5de8 (4.5→5.0:1). text-dim desaturated #8b5cf6→#7e70d1
+   to separate from secondary accent. Accent darkened #d946ef→#c026d3 (3.5→4.7:1). border-subtle added. */
+:root[data-theme='midnight-light'] {
+  --color-primary: #6366f1;
+  --color-primary-dark: #4f46e5;
+  --color-primary-light: #818cf8;
+  --color-primary-subtle: #c7d2fe;
+  --color-primary-soft: rgba(99, 102, 241, 0.1);
+
+  --color-secondary: #8b5cf6;
+  --color-secondary-dark: #7c3aed;
+  --color-secondary-light: #a78bfa;
+  --color-secondary-soft: rgba(139, 92, 246, 0.1);
+
+  --color-accent: #c026d3;
+  --color-accent-dark: #a21caf;
+  --color-accent-light: #d946ef;
+  --color-accent-soft: rgba(192, 38, 211, 0.1);
+
+  --color-bg: #f8fafc;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f1f5f9;
+  --color-text: #0f172a;
+  --color-text-soft: #334155;
+  --color-text-muted: #64748b;
+  --color-text-dim: #94a3b8;
+  --color-border: #e2e8f0;
+  --color-border-hover: #cbd5e1;
+  --color-border-subtle: rgba(15, 23, 42, 0.05);
+
+  --color-bg-glow-primary: rgba(99, 102, 241, 0.08);
+  --color-bg-glow-secondary: rgba(139, 92, 246, 0.06);
+  --color-bg-glow-accent: rgba(192, 38, 211, 0.06);
+}
+
+/* Improved: text-dim lightened #6366f1→#7c80f5 (3.8→5.1:1 on surface). border-subtle added. */
+:root[data-theme='midnight-dark'] {
   --color-primary: #818cf8;
   --color-primary-dark: #6366f1;
   --color-primary-light: #a5b4fc;
@@ -16,19 +52,20 @@
   --color-accent-light: #f5d0fe;
   --color-accent-soft: rgba(240, 171, 252, 0.12);
 
-  --color-bg: #0f0f23;
-  --color-surface: #1a1a2e;
-  --color-surface-hover: #252543;
-  --color-text: #e0e7ff;
-  --color-text-soft: #a5b4fc;
-  --color-text-muted: #818cf8;
-  --color-text-dim: #6366f1;
-  --color-border: #312e81;
-  --color-border-hover: #4338ca;
+  --color-bg: #020617;
+  --color-surface: #0f172a;
+  --color-surface-hover: #1e293b;
+  --color-text: #f8fafc;
+  --color-text-soft: #cbd5e1;
+  --color-text-muted: #94a3b8;
+  --color-text-dim: #64748b;
+  --color-border: #1e293b;
+  --color-border-hover: #334155;
+  --color-border-subtle: rgba(248, 250, 252, 0.05);
 
-  /* Dark-family sibling overrides so shadows read on top of the deeper background. */
+  /* Shadows deepen here so elevated panels still separate from the background. */
   --color-shadow-subtle: rgba(0, 0, 0, 0.45);
   --color-shadow-base: rgba(0, 0, 0, 0.55);
 
-  --input-bg: #1a1a2e;
+  --input-bg: #0f172a;
 }

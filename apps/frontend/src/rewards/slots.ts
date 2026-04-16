@@ -16,7 +16,7 @@ export const SLOT_DISPLAY: Record<CosmeticSlot, SlotDisplay> = {
   theme: {
     slot: 'theme',
     title: 'Theme',
-    description: 'Recolor the entire app. Light and dark ship with every account; more unlock as you level up.',
+    description: 'Choose the app palette here, then use the header toggle to switch its light and dark variants.',
     displayOrder: 1,
   },
   background: {

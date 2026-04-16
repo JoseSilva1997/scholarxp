@@ -1,29 +1,12 @@
 import { useTheme } from '../../context/useTheme';
-import { useAuth } from '../../context/AuthContext';
-import { useCosmetics } from '@/rewards';
 import { BsSunFill, BsMoonStarsFill } from 'react-icons/bs';
 import styles from './ThemeToggle.module.css';
 
 /**
- * Header toggle that swaps between light and dark themes.
- * For students, also writes the choice through the cosmetic mutation so the selection persists across devices.
- * Non-students keep using the localStorage-backed ThemeProvider state alone.
+ * Header toggle that flips the active theme variant without changing the selected family.
  */
 export default function ThemeToggle() {
-  const { resolvedTheme, setTheme } = useTheme();
-  const { user } = useAuth();
-  const { equipCosmetic } = useCosmetics();
-
-  const handleToggle = () => {
-    // Flip based on the resolved family so toggling from aurora/midnight/etc. still lands on a sensible opposite.
-    const next = resolvedTheme === 'dark' ? 'light' : 'dark';
-    setTheme(next);
-    if (user?.globalRole === 'student') {
-      // Fire-and-forget: ThemeProvider state already updated so the UI reflects the change immediately,
-      // and the mutation propagates the choice server-side for other devices.
-      void equipCosmetic('theme', next);
-    }
-  };
+  const { resolvedTheme, toggleTheme } = useTheme();
 
   const getIcon = () => {
     if (resolvedTheme === 'dark') {
@@ -32,14 +15,14 @@ export default function ThemeToggle() {
     return <BsSunFill className={`${styles.icon} ${styles.sunIcon}`} />;
   };
 
-  const getLabel = () => (resolvedTheme === 'dark' ? 'Dark theme' : 'Light theme');
+  const getLabel = () => (resolvedTheme === 'dark' ? 'Dark variant' : 'Light variant');
 
   return (
     <button
       type="button"
       className={styles.toggle}
-      onClick={handleToggle}
-      aria-label={`Switch theme (currently ${getLabel()})`}
+      onClick={toggleTheme}
+      aria-label={`Switch theme variant (currently ${getLabel()})`}
       title={getLabel()}
     >
       <div className={styles.iconWrapper}>{getIcon()}</div>

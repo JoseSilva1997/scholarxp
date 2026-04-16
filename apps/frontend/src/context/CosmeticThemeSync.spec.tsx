@@ -1,4 +1,4 @@
-// Verifies CosmeticThemeSync pushes the student-equipped theme into ThemeProvider state and leaves non-students alone.
+// Verifies CosmeticThemeSync forwards student theme rewards into ThemeProvider's family/variant migration path.
 import { render } from '@testing-library/react';
 import type { AuthUser } from '@scholarxp/api-contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -64,14 +64,17 @@ function buildStudent(): AuthUser {
 }
 
 describe('CosmeticThemeSync', () => {
-  const setTheme = vi.fn();
+  const syncThemeReward = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(useTheme).mockReturnValue({
-      theme: 'light',
+      theme: 'default',
+      themeVariant: 'light',
       resolvedTheme: 'light',
-      setTheme,
+      setTheme: vi.fn(),
+      setThemeVariant: vi.fn(),
+      syncThemeReward,
       toggleTheme: vi.fn(),
     });
   });
@@ -82,7 +85,7 @@ describe('CosmeticThemeSync', () => {
 
     render(<CosmeticThemeSync />);
 
-    expect(setTheme).toHaveBeenCalledWith('aurora');
+    expect(syncThemeReward).toHaveBeenCalledWith('aurora');
   });
 
   it('does not touch theme state for teachers', () => {
@@ -91,7 +94,7 @@ describe('CosmeticThemeSync', () => {
 
     render(<CosmeticThemeSync />);
 
-    expect(setTheme).not.toHaveBeenCalled();
+    expect(syncThemeReward).not.toHaveBeenCalled();
   });
 
   it('does not touch theme state for anonymous users', () => {
@@ -100,17 +103,16 @@ describe('CosmeticThemeSync', () => {
 
     render(<CosmeticThemeSync />);
 
-    expect(setTheme).not.toHaveBeenCalled();
+    expect(syncThemeReward).not.toHaveBeenCalled();
   });
 
-  it('skips the update when the cosmetic theme already matches the current theme', () => {
+  it('forwards legacy default ids so ThemeProvider can migrate them centrally', () => {
     stubAuth(buildStudent());
-    stubCosmetics('light');
+    stubCosmetics('dark');
 
     render(<CosmeticThemeSync />);
 
-    // Same value — no redundant state updates so ThemeProvider's effect does not re-run unnecessarily.
-    expect(setTheme).not.toHaveBeenCalled();
+    expect(syncThemeReward).toHaveBeenCalledWith('dark');
   });
 
   it('ignores unknown theme ids that might appear from a stale catalog', () => {
@@ -119,6 +121,6 @@ describe('CosmeticThemeSync', () => {
 
     render(<CosmeticThemeSync />);
 
-    expect(setTheme).not.toHaveBeenCalled();
+    expect(syncThemeReward).not.toHaveBeenCalled();
   });
 });

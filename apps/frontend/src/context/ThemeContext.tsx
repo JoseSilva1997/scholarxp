@@ -1,7 +1,6 @@
 /**
- * Manages the active theme id and applies it via the `data-theme` attribute on <html>.
- * Keeps localStorage as the baseline source so anonymous and tutor users retain their preference across reloads;
- * the CosmeticThemeSync bridge is what pushes server-backed student cosmetics into this state when authenticated.
+ * Manages the active theme family and light/dark variant on <html>.
+ * Family syncs from the equipped cosmetic; the variant is an explicit local preference controlled by the header toggle.
  */
 import {
   useCallback,
@@ -12,47 +11,105 @@ import {
 } from 'react';
 import {
   ThemeContext,
-  THEME_IDS,
   THEME_STORAGE_KEY,
-  isDarkFamily,
+  THEME_VARIANT_STORAGE_KEY,
+  isKnownTheme,
+  isKnownThemeRewardId,
+  isKnownThemeVariant,
+  themeFamilyFromRewardId,
+  themeVariantFromRewardId,
   type Theme,
+  type ThemeRewardId,
+  type ThemeVariant,
 } from './theme-context';
 
-function isKnownTheme(value: string | null): value is Theme {
-  return value !== null && (THEME_IDS as readonly string[]).includes(value);
+type StoredThemeState = {
+  theme: Theme;
+  variant: ThemeVariant;
+  hasExplicitVariantPreference: boolean;
+};
+
+function readStoredThemeState(): StoredThemeState {
+  const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+  const storedVariant = localStorage.getItem(THEME_VARIANT_STORAGE_KEY);
+
+  const theme = isKnownTheme(storedTheme)
+    ? storedTheme
+    : isKnownThemeRewardId(storedTheme)
+      ? themeFamilyFromRewardId(storedTheme)
+      : 'default';
+
+  const variant = isKnownThemeVariant(storedVariant)
+    ? storedVariant
+    : isKnownThemeRewardId(storedTheme)
+      ? themeVariantFromRewardId(storedTheme)
+      : 'light';
+
+  return {
+    theme,
+    variant,
+    // Preserve legacy default light/dark selections until the user toggles a different variant locally.
+    hasExplicitVariantPreference:
+      isKnownThemeVariant(storedVariant)
+      || storedTheme === 'light'
+      || storedTheme === 'dark',
+  };
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    const stored = localStorage.getItem(THEME_STORAGE_KEY);
-    return isKnownTheme(stored) ? stored : 'light';
-  });
+  const [theme, setThemeState] = useState<Theme>(() => readStoredThemeState().theme);
+  const [themeVariant, setThemeVariantState] = useState<ThemeVariant>(
+    () => readStoredThemeState().variant,
+  );
+  const [hasExplicitVariantPreference, setHasExplicitVariantPreference] = useState(
+    () => readStoredThemeState().hasExplicitVariantPreference,
+  );
 
-  // Apply theme to <html> and persist to localStorage so subsequent loads hydrate without flashing the default.
+  // Persist both selectors explicitly so the app theme no longer follows the OS scheme behind the user's back.
   useEffect(() => {
     const root = window.document.documentElement;
-    root.setAttribute('data-theme', theme);
+    root.setAttribute('data-theme-family', theme);
+    root.setAttribute('data-theme-variant', themeVariant);
+    root.setAttribute('data-theme', `${theme}-${themeVariant}`);
     localStorage.setItem(THEME_STORAGE_KEY, theme);
-  }, [theme]);
-
-  // Toggle remains a light/dark binary so the header button stays a simple one-tap affordance;
-  // more exotic theme picks come through the Rewards page via setTheme directly.
-  const toggleTheme = useCallback(() => {
-    setThemeState((current) => (isDarkFamily(current) ? 'light' : 'dark'));
-  }, []);
+    localStorage.setItem(THEME_VARIANT_STORAGE_KEY, themeVariant);
+  }, [theme, themeVariant]);
 
   const setTheme = useCallback((next: Theme) => {
     setThemeState(next);
   }, []);
 
+  const setThemeVariant = useCallback((next: ThemeVariant) => {
+    setHasExplicitVariantPreference(true);
+    setThemeVariantState(next);
+  }, []);
+
+  const syncThemeReward = useCallback((themeRewardId: ThemeRewardId) => {
+    const nextTheme = themeFamilyFromRewardId(themeRewardId);
+    setThemeState((current) => (current === nextTheme ? current : nextTheme));
+
+    if (!hasExplicitVariantPreference) {
+      const nextVariant = themeVariantFromRewardId(themeRewardId);
+      setThemeVariantState((current) => (current === nextVariant ? current : nextVariant));
+    }
+  }, [hasExplicitVariantPreference]);
+
+  const toggleTheme = useCallback(() => {
+    setHasExplicitVariantPreference(true);
+    setThemeVariantState((current) => (current === 'dark' ? 'light' : 'dark'));
+  }, []);
+
   const value = useMemo(
     () => ({
       theme,
-      resolvedTheme: (isDarkFamily(theme) ? 'dark' : 'light') as 'light' | 'dark',
+      themeVariant,
+      resolvedTheme: themeVariant,
       setTheme,
+      setThemeVariant,
+      syncThemeReward,
       toggleTheme,
     }),
-    [theme, setTheme, toggleTheme],
+    [theme, themeVariant, setTheme, setThemeVariant, syncThemeReward, toggleTheme],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

@@ -1,9 +1,48 @@
 // Compact cosmetics equip panel on the student profile: one row per slot with inline option chips.
 import { useNavigate } from 'react-router-dom';
+import type { CatalogItem } from '@/rewards';
 import { BsGift } from 'react-icons/bs';
 import { FaCheck } from 'react-icons/fa6';
 import { ORDERED_SLOTS, SLOT_DISPLAY, getCatalogBySlot, useCosmetics } from '@/rewards';
+import { themeFamilyFromRewardId } from '@/context/theme-context';
 import styles from '../StudentProfile.module.css';
+
+const DEFAULT_THEME_CHIP: Pick<CatalogItem, 'id' | 'name' | 'description'> = {
+  id: 'default',
+  name: 'Default - Theme',
+  description: 'Balanced base palette. Use the header toggle to switch its light and dark variants.',
+};
+
+function getThemeChipItems(items: CatalogItem[]): CatalogItem[] {
+  return items
+    .filter((item) => item.id !== 'dark')
+    .map((item) => (
+      item.id === 'light'
+        ? { ...item, ...DEFAULT_THEME_CHIP }
+        : item
+    ));
+}
+
+function getVisibleItems(slot: (typeof ORDERED_SLOTS)[number], items: CatalogItem[]): CatalogItem[] {
+  if (slot !== 'theme') {
+    return items;
+  }
+  return getThemeChipItems(items);
+}
+
+function getActiveItemId(slot: (typeof ORDERED_SLOTS)[number], equippedId: string): string {
+  if (slot !== 'theme' || (equippedId !== 'light' && equippedId !== 'dark')) {
+    return equippedId;
+  }
+  return themeFamilyFromRewardId(equippedId);
+}
+
+function getRewardIdToEquip(slot: (typeof ORDERED_SLOTS)[number], itemId: string): string {
+  if (slot === 'theme' && itemId === 'default') {
+    return 'light';
+  }
+  return itemId;
+}
 
 export default function CosmeticsSection() {
   const { level, equipped, equipCosmetic, isEquipping } = useCosmetics();
@@ -33,13 +72,14 @@ export default function CosmeticsSection() {
           {activeSlots.map((slot) => {
             const display = SLOT_DISPLAY[slot];
             const unlocked = getCatalogBySlot(slot).filter((item) => item.unlocksAtLevel <= level);
-            const equippedId = equipped[slot];
+            const visibleItems = getVisibleItems(slot, unlocked);
+            const equippedId = getActiveItemId(slot, equipped[slot]);
 
             return (
               <div key={slot} className={styles.cosmeticsRow}>
                 <span className={styles.cosmeticsRowLabel}>{display.title}</span>
                 <div className={styles.cosmeticsRowOptions}>
-                  {unlocked.map((item) => {
+                  {visibleItems.map((item) => {
                     const active = item.id === equippedId;
                     return (
                       <button
@@ -47,7 +87,7 @@ export default function CosmeticsSection() {
                         type="button"
                         className={`${styles.cosmeticChip} ${active ? styles.cosmeticChipActive : ''}`}
                         onClick={() => {
-                          if (!active) void equipCosmetic(slot, item.id);
+                          if (!active) void equipCosmetic(slot, getRewardIdToEquip(slot, item.id));
                         }}
                         disabled={isEquipping || active}
                         title={item.name}

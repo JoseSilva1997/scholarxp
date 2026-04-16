@@ -27,8 +27,7 @@ import DebugMeta from '@/components/DebugMeta';
 export default function SingleModulePage() {
   const { moduleId } = useParams<{ moduleId: string }>();
   const { user } = useAuth();
-  // resolvedTheme collapses every unlockable theme into light/dark so this component does not need
-  // to enumerate every theme id when picking a light- or dark-variant SVG asset.
+  // Icon assets only care about the explicit light/dark variant, not which color family the user picked.
   const { resolvedTheme } = useTheme();
   const {
     module,

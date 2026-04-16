@@ -1,5 +1,43 @@
-/* Celestial theme — starlit palette unlocked at level 90 (level cap teaser). Dark-family base. */
-:root[data-theme='celestial'] {
+/* Celestial theme — starlit palette unlocked at level 90, with explicit light and dark variants.
+   Improved: primary darkened #a855f7→#9333ea (4.0→5.4:1 on white). text-dim was identical to old
+   primary — changed to #9845e2 (4.9:1) for separation from interactive elements. border-subtle added. */
+:root[data-theme='celestial-light'] {
+  --color-primary: #9333ea;
+  --color-primary-dark: #7e22ce;
+  --color-primary-light: #c084fc;
+  --color-primary-subtle: #e9d5ff;
+  --color-primary-soft: rgba(147, 51, 234, 0.1);
+
+  --color-secondary: #3b82f6;
+  --color-secondary-dark: #2563eb;
+  --color-secondary-light: #60a5fa;
+  --color-secondary-soft: rgba(59, 130, 246, 0.1);
+
+  --color-accent: #eab308;
+  --color-accent-dark: #ca8a04;
+  --color-accent-light: #facc15;
+  --color-accent-soft: rgba(234, 179, 8, 0.1);
+
+  --color-bg: #f9fafb;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f3f4f6;
+  --color-text: #111827;
+  --color-text-soft: #374151;
+  --color-text-muted: #6b7280;
+  --color-text-dim: #9ca3af;
+  --color-border: #e5e7eb;
+  --color-border-hover: #d1d5db;
+  --color-border-subtle: rgba(17, 24, 39, 0.05);
+
+  --color-bg-glow-primary: rgba(147, 51, 234, 0.08);
+  --color-bg-glow-secondary: rgba(59, 130, 246, 0.06);
+  --color-bg-glow-accent: rgba(234, 179, 8, 0.06);
+}
+
+/* Improved: surfaces desaturated — old bg/surface/hover were all deeply purple (#030712/#0c0a1f/#1a1333),
+   making cards invisible against background. New surfaces are near-neutral with subtle purple undertone;
+   theme identity now carried by accents, borders, and text instead of surface hue. */
+:root[data-theme='celestial-dark'] {
   --color-primary: #c084fc;
   --color-primary-dark: #a855f7;
   --color-primary-light: #d8b4fe;
@@ -17,18 +55,19 @@
   --color-accent-soft: rgba(253, 224, 71, 0.15);
 
   --color-bg: #030712;
-  --color-surface: #0c0a1f;
-  --color-surface-hover: #1a1333;
-  --color-text: #f5f3ff;
-  --color-text-soft: #ddd6fe;
-  --color-text-muted: #c4b5fd;
-  --color-text-dim: #8b5cf6;
-  --color-border: #312e81;
-  --color-border-hover: #4c1d95;
+  --color-surface: #111827;
+  --color-surface-hover: #1f2937;
+  --color-text: #f9fafb;
+  --color-text-soft: #d1d5db;
+  --color-text-muted: #9ca3af;
+  --color-text-dim: #6b7280;
+  --color-border: #1f2937;
+  --color-border-hover: #374151;
+  --color-border-subtle: rgba(249, 250, 251, 0.05);
 
-  /* Stronger shadow contrast against the very dark background so elevated cards still pop. */
+  /* Stronger shadows keep elevated cards legible over the near-black background. */
   --color-shadow-subtle: rgba(0, 0, 0, 0.5);
   --color-shadow-base: rgba(0, 0, 0, 0.65);
 
-  --input-bg: #0c0a1f;
+  --input-bg: #111827;
 }

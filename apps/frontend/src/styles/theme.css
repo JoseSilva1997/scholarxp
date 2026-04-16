@@ -257,6 +257,7 @@
   --input-border: var(--color-border);
   --input-focus-ring: var(--color-primary-soft);
   --input-focus-border: var(--color-primary);
+  color-scheme: light;
 
   font-family: var(--font-sans);
   color: var(--color-text);
@@ -272,69 +273,70 @@
   }
 }
 
-/* Dark Theme overrides */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    --color-bg: #121826; /* Deep Slate - Muted */
-    --color-surface: #1c2333; /* Slightly lighter surface */
-    --color-surface-hover: #262f3f; /* Hover state for surfaces */
-    --color-text: #e2e8f0; /* Slate 200 - Less harsh than Slate 100 */
-    --color-text-soft: #94a3b8; /* Slate 400 */
-    --color-text-muted: #64748b; /* Slate 500 */
-    --color-text-dim: #8393AA; /* Slate 600 */
-    --color-border: #2d3748; /* Muted border */
-    --color-border-hover: #3b4759;
-    --color-border-subtle: rgba(255, 255, 255, 0.05);
+:root[data-theme-variant='dark'] {
+  color-scheme: dark;
+}
 
-    /* Text contrast on dark */
-    --color-text-on-dark-vibrant: rgba(255, 255, 255, 0.9);
-    --color-text-on-dark-muted: rgba(255, 255, 255, 0.7);
+:root[data-theme='default-dark'] {
+  --color-bg: #121826; /* Deep Slate - Muted */
+  --color-surface: #1c2333; /* Slightly lighter surface */
+  --color-surface-hover: #262f3f; /* Hover state for surfaces */
+  --color-text: #e2e8f0; /* Slate 200 - Less harsh than Slate 100 */
+  --color-text-soft: #94a3b8; /* Slate 400 */
+  --color-text-muted: #64748b; /* Slate 500 */
+  --color-text-dim: #8393AA; /* Slate 600 */
+  --color-border: #2d3748; /* Muted border */
+  --color-border-hover: #3b4759;
+  --color-border-subtle: rgba(255, 255, 255, 0.05);
 
-    --color-shadow-extra-subtle: rgba(0, 0, 0, 0.25);
-    --color-shadow-subtle: rgba(0, 0, 0, 0.35);
-    --color-shadow-inset: rgba(0, 0, 0, 0.45);
-    --color-shadow-soft: rgba(0, 0, 0, 0.35);
-    --color-shadow-base: rgba(0, 0, 0, 0.45);
-    --color-shadow-elevated: rgba(0, 0, 0, 0.55);
-    --color-shadow-dark: rgba(0, 0, 0, 0.65);
+  /* Text contrast on dark */
+  --color-text-on-dark-vibrant: rgba(255, 255, 255, 0.9);
+  --color-text-on-dark-muted: rgba(255, 255, 255, 0.7);
 
-    /* Validation & Errors for Dark Mode */
-    --color-error-soft: rgba(239, 68, 68, 0.15);
-    --color-error-border: rgba(239, 68, 68, 0.3);
-    --color-success-soft: rgba(16, 185, 129, 0.15);
-    --color-success-border: rgba(16, 185, 129, 0.3);
+  --color-shadow-extra-subtle: rgba(0, 0, 0, 0.25);
+  --color-shadow-subtle: rgba(0, 0, 0, 0.35);
+  --color-shadow-inset: rgba(0, 0, 0, 0.45);
+  --color-shadow-soft: rgba(0, 0, 0, 0.35);
+  --color-shadow-base: rgba(0, 0, 0, 0.45);
+  --color-shadow-elevated: rgba(0, 0, 0, 0.55);
+  --color-shadow-dark: rgba(0, 0, 0, 0.65);
 
-    /* Soft accents for Dark Mode visibility */
-    --color-primary-soft: rgba(59, 130, 246, 0.15);
-    --color-secondary-soft: rgba(16, 185, 129, 0.15);
-    --color-accent-soft: rgba(245, 158, 11, 0.15);
+  /* Validation & Errors for Dark Mode */
+  --color-error-soft: rgba(239, 68, 68, 0.15);
+  --color-error-border: rgba(239, 68, 68, 0.3);
+  --color-success-soft: rgba(16, 185, 129, 0.15);
+  --color-success-border: rgba(16, 185, 129, 0.3);
 
-    /* Form Elements for Dark Mode */
-    --input-bg: #1c2333;
-    --input-focus-ring: rgba(59, 130, 246, 0.2);
-    --input-focus-border: var(--color-primary-light);
+  /* Soft accents for Dark Mode visibility */
+  --color-primary-soft: rgba(59, 130, 246, 0.15);
+  --color-secondary-soft: rgba(16, 185, 129, 0.15);
+  --color-accent-soft: rgba(245, 158, 11, 0.15);
 
-    /* Specialized Surfaces for Dark Mode */
-    --color-quest-gold-soft: rgba(243, 206, 48, 0.2);
-    --color-quest-gold-glow: rgba(243, 206, 48, 0.4);
-    --color-quest-gold-surface: #262518;
-    --color-quest-wood-soft: rgba(139, 94, 52, 0.24);
-    --color-quest-wood-glow: rgba(139, 94, 52, 0.36);
-    --color-quest-wood-surface: #2b2118;
+  /* Form Elements for Dark Mode */
+  --input-bg: #1c2333;
+  --input-focus-ring: rgba(59, 130, 246, 0.2);
+  --input-focus-border: var(--color-primary-light);
 
-    /* Glassmorphism Overrides */
-    --color-glass-bg: rgba(28, 35, 51, 0.5);
-    --color-glass-bg-hover: rgba(28, 35, 51, 0.7);
-    --color-glass-bg-deep: rgba(18, 24, 38, 0.5);
-    --color-glass-bg-deep-solid: rgba(18, 24, 38, 0.98);
+  /* Specialized Surfaces for Dark Mode */
+  --color-quest-gold-soft: rgba(243, 206, 48, 0.2);
+  --color-quest-gold-glow: rgba(243, 206, 48, 0.4);
+  --color-quest-gold-surface: #262518;
+  --color-quest-wood-soft: rgba(139, 94, 52, 0.24);
+  --color-quest-wood-glow: rgba(139, 94, 52, 0.36);
+  --color-quest-wood-surface: #2b2118;
 
-    /* Button Colors - Deep Navy for better presence without being too stark */
-    --btn-primary-dark: #2a4365; /* Deep Navy Blue */
-    --btn-primary-dark-hover: #3182ce; /* Bright Blue for active feel */
+  /* Glassmorphism Overrides */
+  --color-glass-bg: rgba(28, 35, 51, 0.5);
+  --color-glass-bg-hover: rgba(28, 35, 51, 0.7);
+  --color-glass-bg-deep: rgba(18, 24, 38, 0.5);
+  --color-glass-bg-deep-solid: rgba(18, 24, 38, 0.98);
 
-    /* Badge glow for Dark Mode visibility */
-    --color-badge-glow: rgba(212, 175, 55, 0.45);
-  }
+  /* Button Colors - Deep Navy for better presence without being too stark */
+  --btn-primary-dark: #2a4365; /* Deep Navy Blue */
+  --btn-primary-dark-hover: #3182ce; /* Bright Blue for active feel */
+
+  /* Badge glow for Dark Mode visibility */
+  --color-badge-glow: rgba(212, 175, 55, 0.45);
 }
 
 /* ── Cosmetic: XP bar color overrides ────────────────────────────────────────
