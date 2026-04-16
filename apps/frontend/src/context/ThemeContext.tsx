@@ -29,6 +29,9 @@ type StoredThemeState = {
   hasExplicitVariantPreference: boolean;
 };
 
+const DEFAULT_THEME: Theme = 'default';
+const DEFAULT_THEME_VARIANT: ThemeVariant = 'light';
+
 function readStoredThemeState(): StoredThemeState {
   const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
   const storedVariant = localStorage.getItem(THEME_VARIANT_STORAGE_KEY);
@@ -37,13 +40,13 @@ function readStoredThemeState(): StoredThemeState {
     ? storedTheme
     : isKnownThemeRewardId(storedTheme)
       ? themeFamilyFromRewardId(storedTheme)
-      : 'default';
+      : DEFAULT_THEME;
 
   const variant = isKnownThemeVariant(storedVariant)
     ? storedVariant
     : isKnownThemeRewardId(storedTheme)
       ? themeVariantFromRewardId(storedTheme)
-      : 'light';
+      : DEFAULT_THEME_VARIANT;
 
   return {
     theme,
@@ -94,6 +97,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   }, [hasExplicitVariantPreference]);
 
+  const resetTheme = useCallback(() => {
+    // Sessionless and non-student accounts have no server-backed cosmetic theme, so reset to the app default.
+    setHasExplicitVariantPreference(false);
+    setThemeState(DEFAULT_THEME);
+    setThemeVariantState(DEFAULT_THEME_VARIANT);
+  }, []);
+
   const toggleTheme = useCallback(() => {
     setHasExplicitVariantPreference(true);
     setThemeVariantState((current) => (current === 'dark' ? 'light' : 'dark'));
@@ -107,9 +117,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       setTheme,
       setThemeVariant,
       syncThemeReward,
+      resetTheme,
       toggleTheme,
     }),
-    [theme, themeVariant, setTheme, setThemeVariant, syncThemeReward, toggleTheme],
+    [theme, themeVariant, setTheme, setThemeVariant, syncThemeReward, resetTheme, toggleTheme],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

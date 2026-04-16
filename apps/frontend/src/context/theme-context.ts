@@ -76,6 +76,7 @@ export type ThemeContextValue = {
   setTheme: (theme: Theme) => void;
   setThemeVariant: (variant: ThemeVariant) => void;
   syncThemeReward: (themeRewardId: ThemeRewardId) => void;
+  resetTheme: () => void;
   toggleTheme: () => void;
 };
 

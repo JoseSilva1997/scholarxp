@@ -64,6 +64,7 @@ function buildStudent(): AuthUser {
 }
 
 describe('CosmeticThemeSync', () => {
+  const resetTheme = vi.fn();
   const syncThemeReward = vi.fn();
 
   beforeEach(() => {
@@ -75,6 +76,7 @@ describe('CosmeticThemeSync', () => {
       setTheme: vi.fn(),
       setThemeVariant: vi.fn(),
       syncThemeReward,
+      resetTheme,
       toggleTheme: vi.fn(),
     });
   });
@@ -86,24 +88,27 @@ describe('CosmeticThemeSync', () => {
     render(<CosmeticThemeSync />);
 
     expect(syncThemeReward).toHaveBeenCalledWith('aurora');
+    expect(resetTheme).not.toHaveBeenCalled();
   });
 
-  it('does not touch theme state for teachers', () => {
+  it('resets theme state for teachers without student cosmetics', () => {
     stubAuth({ ...buildStudent(), globalRole: 'teacher', avatar: null });
     stubCosmetics('midnight');
 
     render(<CosmeticThemeSync />);
 
     expect(syncThemeReward).not.toHaveBeenCalled();
+    expect(resetTheme).toHaveBeenCalledTimes(1);
   });
 
-  it('does not touch theme state for anonymous users', () => {
+  it('resets theme state for anonymous users', () => {
     stubAuth(null);
     stubCosmetics('ember');
 
     render(<CosmeticThemeSync />);
 
     expect(syncThemeReward).not.toHaveBeenCalled();
+    expect(resetTheme).toHaveBeenCalledTimes(1);
   });
 
   it('forwards legacy default ids so ThemeProvider can migrate them centrally', () => {
@@ -113,6 +118,7 @@ describe('CosmeticThemeSync', () => {
     render(<CosmeticThemeSync />);
 
     expect(syncThemeReward).toHaveBeenCalledWith('dark');
+    expect(resetTheme).not.toHaveBeenCalled();
   });
 
   it('ignores unknown theme ids that might appear from a stale catalog', () => {
@@ -122,5 +128,6 @@ describe('CosmeticThemeSync', () => {
     render(<CosmeticThemeSync />);
 
     expect(syncThemeReward).not.toHaveBeenCalled();
+    expect(resetTheme).not.toHaveBeenCalled();
   });
 });

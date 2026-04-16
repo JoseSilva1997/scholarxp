@@ -12,6 +12,7 @@ describe('ThemeToggle', () => {
   const mockSetTheme = vi.fn();
   const mockSetThemeVariant = vi.fn();
   const mockSyncThemeReward = vi.fn();
+  const mockResetTheme = vi.fn();
   const mockToggleTheme = vi.fn();
 
   beforeEach(() => {
@@ -26,6 +27,7 @@ describe('ThemeToggle', () => {
       setTheme: mockSetTheme,
       setThemeVariant: mockSetThemeVariant,
       syncThemeReward: mockSyncThemeReward,
+      resetTheme: mockResetTheme,
       toggleTheme: mockToggleTheme,
     });
 
@@ -44,6 +46,7 @@ describe('ThemeToggle', () => {
       setTheme: mockSetTheme,
       setThemeVariant: mockSetThemeVariant,
       syncThemeReward: mockSyncThemeReward,
+      resetTheme: mockResetTheme,
       toggleTheme: mockToggleTheme,
     });
 
@@ -62,6 +65,7 @@ describe('ThemeToggle', () => {
       setTheme: mockSetTheme,
       setThemeVariant: mockSetThemeVariant,
       syncThemeReward: mockSyncThemeReward,
+      resetTheme: mockResetTheme,
       toggleTheme: mockToggleTheme,
     });
 
@@ -72,5 +76,6 @@ describe('ThemeToggle', () => {
     expect(mockSetTheme).not.toHaveBeenCalled();
     expect(mockSetThemeVariant).not.toHaveBeenCalled();
     expect(mockSyncThemeReward).not.toHaveBeenCalled();
+    expect(mockResetTheme).not.toHaveBeenCalled();
   });
 });
