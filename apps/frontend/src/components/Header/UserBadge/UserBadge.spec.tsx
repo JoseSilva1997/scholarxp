@@ -195,9 +195,9 @@ describe('UserBadge', () => {
     render(<UserBadge user={user} />);
 
     fireEvent.click(screen.getByRole('button', { name: /toggle user menu/i }));
-    fireEvent.click(screen.getByRole('menuitem', { name: 'My content' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Account settings' }));
 
-    expect(navigateMock).toHaveBeenCalledWith('/main');
+    expect(navigateMock).toHaveBeenCalledWith('/main/profile');
   });
 
   it('calls onLogout from menu action', async () => {
