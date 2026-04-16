@@ -27,4 +27,43 @@ describe('RosterModuleAnalyticsService', () => {
 
     await expect(service.getSummary(999)).rejects.toThrow(NotFoundException);
   });
+
+  it('counts only lessons completed by at least half of enrolled students', async () => {
+    prisma.module.findUnique.mockResolvedValue({
+      id: 7,
+      title: 'Geometry',
+    } as any);
+    prisma.moduleUnit.findMany.mockResolvedValue([
+      { id: 101 },
+      { id: 102 },
+      { id: 103 },
+    ] as any);
+    prisma.userModule.findMany.mockResolvedValue([
+      { userId: 1 },
+      { userId: 2 },
+      { userId: 3 },
+    ] as any);
+    prisma.questionAttempt.findMany.mockResolvedValue([
+      { studentId: 1 },
+      { studentId: 2 },
+    ] as any);
+    prisma.moduleUnitUserProgress.findMany.mockResolvedValue([
+      { moduleUnitId: 101 },
+      { moduleUnitId: 102 },
+      { moduleUnitId: 103 },
+    ] as any);
+    prisma.moduleUnitUserProgress.groupBy.mockResolvedValue([
+      { moduleUnitId: 101, _count: { studentId: 1 } },
+      { moduleUnitId: 102, _count: { studentId: 2 } },
+      { moduleUnitId: 103, _count: { studentId: 3 } },
+    ] as any);
+
+    const result = await service.getSummary(7);
+
+    expect(result.lessonCoverage).toEqual({
+      totalLiveLessons: 3,
+      lessonsStartedByAtLeastOneStudent: 3,
+      lessonsCompletedByAtLeastHalfOfStudents: 2,
+    });
+  });
 });
