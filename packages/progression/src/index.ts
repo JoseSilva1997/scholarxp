@@ -1,4 +1,6 @@
 // Shared account progression utilities so backend and frontend derive level state from one canonical formula.
+export * from './cosmetics';
+
 export type AccountLevelProgress = {
   level: number;
   currentLevelExp: number;

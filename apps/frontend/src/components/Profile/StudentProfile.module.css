@@ -1,4 +1,4 @@
-/* Student profile view: overview stats, module cards, achievements, locker scaffold, lifetime stats. */
+/* Student profile view: overview stats, module cards, achievements, cosmetics, lifetime stats. */
 
 .studentProfile {
   display: flex;
@@ -99,7 +99,8 @@
 
 .progressFill {
   height: 100%;
-  background: var(--color-accent);
+  /* XP bar color cosmetic overrides the fill; falls back to the default green gradient when no cosmetic is set. */
+  background: var(--color-xp-fill, linear-gradient(90deg, var(--color-secondary) 0%, var(--color-secondary-light) 100%));
   border-radius: var(--radius-full);
   transition: width 0.5s ease-out;
 }
@@ -1134,4 +1135,109 @@
   .statsGrid {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+/* --- Cosmetics section: compact row layout, one row per slot --- */
+
+.cosmeticsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cosmeticsViewAll {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.cosmeticsViewAll:hover {
+  text-decoration: underline;
+}
+
+/* Stacks slot rows with tighter gap than the old two-row-per-slot layout */
+.cosmeticsRows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Slot label + chips on the same line, wrapping only when chips overflow */
+.cosmeticsRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cosmeticsRowLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-soft);
+  min-width: 108px;
+  flex-shrink: 0;
+}
+
+.cosmeticsRowOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  flex: 1;
+}
+
+/* Chips are slightly smaller than the old design to fit more options per row */
+.cosmeticChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-soft);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.cosmeticChip:hover:not(:disabled) {
+  border-color: var(--color-border-hover);
+  background: var(--color-surface-hover);
+}
+
+.cosmeticChipActive {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  cursor: default;
+}
+
+.cosmeticChipCheck {
+  font-size: 0.55rem;
+}
+
+.cosmeticsEmpty {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-hover);
+}
+
+.cosmeticsEmptyIcon {
+  font-size: 1.25rem;
+  color: var(--color-text-dim);
+  flex-shrink: 0;
+}
+
+.cosmeticsEmptyText {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin: 0;
 }

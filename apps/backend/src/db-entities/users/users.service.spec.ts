@@ -1,13 +1,20 @@
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { GlobalRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { StorageService } from '../../storage/storage.service';
 import { createPrismaMock, PrismaMock } from '../../test/test-helpers';
 import { UsersService } from './users.service';
 
 describe('UsersService', () => {
   let service: UsersService;
   let prisma: PrismaMock;
+  let storage: jest.Mocked<
+    Pick<
+      StorageService,
+      'upload' | 'delete' | 'isOwnedUrl' | 'pathFromUrl' | 'publicUrl'
+    >
+  >;
 
   const now = new Date('2026-01-01T00:00:00Z');
   const baseUser = {
@@ -24,9 +31,20 @@ describe('UsersService', () => {
   beforeEach(async () => {
     prisma = createPrismaMock();
     prisma.$transaction.mockImplementation(async (cb: any) => cb(prisma));
+    storage = {
+      upload: jest.fn(),
+      delete: jest.fn(),
+      isOwnedUrl: jest.fn(),
+      pathFromUrl: jest.fn(),
+      publicUrl: jest.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [UsersService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        UsersService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: StorageService, useValue: storage },
+      ],
     }).compile();
 
     service = module.get(UsersService);
@@ -156,6 +174,158 @@ describe('UsersService', () => {
 
       expect(prisma.avatar.findFirst).not.toHaveBeenCalled();
       expect(prisma.avatar.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('updateProfilePicture', () => {
+    // PNG signature: 89 50 4E 47 0D 0A 1A 0A
+    const pngBuffer = Buffer.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00,
+    ]);
+
+    function pngFile(
+      overrides: Partial<{
+        size: number;
+        mimetype: string;
+        buffer: Buffer;
+      }> = {},
+    ) {
+      return {
+        buffer: overrides.buffer ?? pngBuffer,
+        mimetype: overrides.mimetype ?? 'image/png',
+        size: overrides.size ?? pngBuffer.length,
+      };
+    }
+
+    it('throws BadRequestException when no file is provided', async () => {
+      await expect(
+        service.updateProfilePicture(baseUser.id, undefined),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('rejects files exceeding the size limit', async () => {
+      await expect(
+        service.updateProfilePicture(
+          baseUser.id,
+          pngFile({ size: 6 * 1024 * 1024 }),
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('rejects unsupported MIME types', async () => {
+      await expect(
+        service.updateProfilePicture(
+          baseUser.id,
+          pngFile({ mimetype: 'image/gif' }),
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('rejects spoofed Content-Type when magic bytes do not match', async () => {
+      await expect(
+        service.updateProfilePicture(
+          baseUser.id,
+          pngFile({ buffer: Buffer.from('not-an-image') }),
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('uploads, persists the public URL, and deletes the prior owned blob', async () => {
+      const owned =
+        'https://storage.googleapis.com/bucket/profile-pictures/42/old.png';
+      prisma.user.findUnique.mockResolvedValue({
+        ...baseUser,
+        profilePictureUrl: owned,
+      });
+      storage.upload.mockResolvedValue({
+        path: 'p',
+        publicUrl: 'https://cdn/new.png',
+      });
+      storage.isOwnedUrl.mockReturnValue(true);
+      storage.pathFromUrl.mockReturnValue('profile-pictures/42/old.png');
+      prisma.user.update.mockResolvedValue({
+        ...baseUser,
+        profilePictureUrl: 'https://cdn/new.png',
+      });
+
+      const result = await service.updateProfilePicture(baseUser.id, pngFile());
+
+      expect(storage.upload).toHaveBeenCalledWith(
+        expect.stringMatching(/^profile-pictures\/42\/[0-9a-f-]+\.png$/),
+        pngBuffer,
+        'image/png',
+      );
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: baseUser.id },
+        data: { profilePictureUrl: 'https://cdn/new.png' },
+      });
+      expect(storage.delete).toHaveBeenCalledWith(
+        'profile-pictures/42/old.png',
+      );
+      expect(result.profilePictureUrl).toBe('https://cdn/new.png');
+    });
+
+    it('does not delete external URLs (e.g. Google OAuth avatars)', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        ...baseUser,
+        profilePictureUrl: 'https://lh3.googleusercontent.com/a/google-avatar',
+      });
+      storage.upload.mockResolvedValue({
+        path: 'p',
+        publicUrl: 'https://cdn/new.png',
+      });
+      storage.isOwnedUrl.mockReturnValue(false);
+      prisma.user.update.mockResolvedValue({
+        ...baseUser,
+        profilePictureUrl: 'https://cdn/new.png',
+      });
+
+      await service.updateProfilePicture(baseUser.id, pngFile());
+
+      expect(storage.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('removeProfilePicture', () => {
+    it('resets to the default sentinel and deletes prior owned blob', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        ...baseUser,
+        profilePictureUrl:
+          'https://storage.googleapis.com/bucket/profile-pictures/42/old.png',
+      });
+      storage.isOwnedUrl.mockReturnValue(true);
+      storage.pathFromUrl.mockReturnValue('profile-pictures/42/old.png');
+      prisma.user.update.mockResolvedValue({
+        ...baseUser,
+        profilePictureUrl: 'default-profile-pic.png',
+      });
+
+      const result = await service.removeProfilePicture(baseUser.id);
+
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: baseUser.id },
+        data: { profilePictureUrl: 'default-profile-pic.png' },
+      });
+      expect(storage.delete).toHaveBeenCalledWith(
+        'profile-pictures/42/old.png',
+      );
+      expect(result.profilePictureUrl).toBe('default-profile-pic.png');
+    });
+
+    it('does not call storage.delete when the prior URL is external', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        ...baseUser,
+        profilePictureUrl: 'https://lh3.googleusercontent.com/a/google-avatar',
+      });
+      storage.isOwnedUrl.mockReturnValue(false);
+      prisma.user.update.mockResolvedValue({
+        ...baseUser,
+        profilePictureUrl: 'default-profile-pic.png',
+      });
+
+      await service.removeProfilePicture(baseUser.id);
+
+      expect(storage.delete).not.toHaveBeenCalled();
     });
   });
 });

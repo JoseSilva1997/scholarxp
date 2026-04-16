@@ -8,7 +8,7 @@ const queryMocks = vi.hoisted(() => ({
   useDailyLessonXpTrackQuery: vi.fn(),
 }));
 
-vi.mock('@/hooks/queries/useRewardsQueries', () => ({
+vi.mock('@/hooks/queries/useDailyXpTrackQueries', () => ({
   useDailyLessonXpTrackQuery: queryMocks.useDailyLessonXpTrackQuery,
 }));
 

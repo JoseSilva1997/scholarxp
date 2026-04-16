@@ -22,6 +22,30 @@ vi.mock('./context/AuthContext', () => ({
   useAuth: () => mockAuthState,
 }));
 
+// CosmeticThemeSync depends on TanStack Query + cosmetics hooks; App routing tests don't care about
+// theme syncing, so we stub it out here to keep the test surface focused on route behavior.
+vi.mock('./context/CosmeticThemeSync', () => ({
+  CosmeticThemeSync: () => null,
+}));
+
+vi.mock('./context/CosmeticStyleSync', () => ({
+  CosmeticStyleSync: () => null,
+}));
+
+vi.mock('@/rewards', () => ({
+  useCosmetics: () => ({
+    equipped: {},
+    cosmetic: () => 'default',
+    level: 1,
+    equipCosmetic: vi.fn(),
+    isEquipping: false,
+  }),
+}));
+
+vi.mock('./components/Rewards/ScholarBackground', () => ({
+  default: () => null,
+}));
+
 vi.mock('./components/Header/Header', () => ({
   default: () => <div>header</div>,
 }));
@@ -53,6 +77,7 @@ vi.mock('./routes/main/SingleModulePage', () => ({ default: () => <div>single-mo
 vi.mock('./routes/main/ModuleUnitEditor', () => ({ default: () => <div>module-unit-editor-page</div> }));
 vi.mock('./routes/main/DailyPracticePage', () => ({ default: () => <div>daily-practice-page</div> }));
 vi.mock('./routes/main/QuestsPage', () => ({ default: () => <div>quests-page</div> }));
+vi.mock('./routes/main/RewardsPage', () => ({ default: () => <div>rewards-page</div> }));
 vi.mock('./routes/main/ProfilePage', () => ({ default: () => <div>profile-page</div> }));
 
 function renderAt(pathname: string) {

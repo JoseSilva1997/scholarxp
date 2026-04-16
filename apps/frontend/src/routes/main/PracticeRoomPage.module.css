@@ -413,9 +413,26 @@
   box-shadow: 0 2px 0 var(--color-error); 
 }
 
-.optionButtonIncorrect .optionLetter { 
-  background: var(--color-error); 
-  color: var(--color-text-on-primary); 
+.optionButtonIncorrect .optionLetter {
+  background: var(--color-error);
+  color: var(--color-text-on-primary);
+}
+
+/* Cosmetic: tremble animation applied to incorrect answers when the particle-burst flair is equipped. */
+.optionTremble {
+  animation: tremble 0.5s ease-in-out;
+}
+
+@keyframes tremble {
+  0%, 100% { transform: translateX(0); }
+  10% { transform: translateX(-4px) rotate(-0.5deg); }
+  20% { transform: translateX(4px) rotate(0.5deg); }
+  30% { transform: translateX(-3px) rotate(-0.3deg); }
+  40% { transform: translateX(3px) rotate(0.3deg); }
+  50% { transform: translateX(-2px); }
+  60% { transform: translateX(2px); }
+  70% { transform: translateX(-1px); }
+  80% { transform: translateX(1px); }
 }
 
 .optionContentWrapper {

@@ -41,7 +41,7 @@ export default function RosterSummaryCards({
   if (!summary) return null;
 
   const coverageLabel = summary.lessonCoverage.totalLiveLessons > 0
-    ? `${summary.lessonCoverage.lessonsCompletedByAtLeastOneStudent}/${summary.lessonCoverage.totalLiveLessons}`
+    ? `${summary.lessonCoverage.lessonsCompletedByAtLeastHalfOfStudents}/${summary.lessonCoverage.totalLiveLessons}`
     : '0/0';
 
   return (
@@ -80,11 +80,11 @@ export default function RosterSummaryCards({
         type="button"
         className={styles.card}
         onClick={onLessonCoverageClick}
-        aria-label={`Lesson coverage ${coverageLabel}. View lesson details.`}
+        aria-label={`Lesson coverage ${coverageLabel}, completed by at least 50% of students. View lesson details.`}
       >
         <span className={styles.label}>Lesson Coverage</span>
         <span className={styles.value}>{coverageLabel}</span>
-        <span className={styles.subtitle}>completed by at least 1 student</span>
+        <span className={styles.subtitle}>completed by at least 50% of students</span>
       </button>
     </div>
   );

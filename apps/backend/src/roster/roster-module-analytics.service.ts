@@ -25,7 +25,7 @@ export class RosterModuleAnalyticsService {
         lessonCoverage: {
           totalLiveLessons: liveLessonIds.length,
           lessonsStartedByAtLeastOneStudent: 0,
-          lessonsCompletedByAtLeastOneStudent: 0,
+          lessonsCompletedByAtLeastHalfOfStudents: 0,
         },
       };
     }
@@ -105,10 +105,12 @@ export class RosterModuleAnalyticsService {
       return {
         totalLiveLessons: 0,
         lessonsStartedByAtLeastOneStudent: 0,
-        lessonsCompletedByAtLeastOneStudent: 0,
+        lessonsCompletedByAtLeastHalfOfStudents: 0,
       };
     }
 
+    // Round up so odd-sized rosters still treat 50% as an inclusive threshold.
+    const minimumCompletedStudents = Math.ceil(enrolledStudentIds.length / 2);
     const [startedLessons, completedLessons] = await Promise.all([
       this.prisma.moduleUnitUserProgress.findMany({
         where: {
@@ -118,21 +120,23 @@ export class RosterModuleAnalyticsService {
         distinct: ['moduleUnitId'],
         select: { moduleUnitId: true },
       }),
-      this.prisma.moduleUnitUserProgress.findMany({
+      this.prisma.moduleUnitUserProgress.groupBy({
+        by: ['moduleUnitId'],
         where: {
           moduleUnitId: { in: liveLessonIds },
           studentId: { in: enrolledStudentIds },
           isCompleted: true,
         },
-        distinct: ['moduleUnitId'],
-        select: { moduleUnitId: true },
+        _count: { studentId: true },
       }),
     ]);
 
     return {
       totalLiveLessons: liveLessonIds.length,
       lessonsStartedByAtLeastOneStudent: startedLessons.length,
-      lessonsCompletedByAtLeastOneStudent: completedLessons.length,
+      lessonsCompletedByAtLeastHalfOfStudents: completedLessons.filter(
+        (lesson) => (lesson._count.studentId ?? 0) >= minimumCompletedStudents,
+      ).length,
     };
   }
 }

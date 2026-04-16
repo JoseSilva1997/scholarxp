@@ -62,10 +62,8 @@ export default function ModuleRosterPage() {
           />
 
           <RosterDetailsPanel
-            isOpen={state.isDetailOpen}
             activeTab={state.activeTab}
             onTabChange={state.setActiveTab}
-            onClose={state.closeDetail}
             // Students
             studentRows={state.studentRows}
             isStudentsLoading={state.isStudentsLoading}

@@ -126,10 +126,13 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
     await fetchCsrfToken(baseUrl);
   }
 
+  // FormData bodies must let the browser set the multipart boundary; forcing application/json breaks them.
+  const isFormDataBody = typeof FormData !== 'undefined' && rest.body instanceof FormData;
+
   const response = await fetch(`${baseUrl}${path}`, {
     credentials: 'include',
     headers: {
-      'Content-Type': 'application/json',
+      ...(isFormDataBody ? {} : { 'Content-Type': 'application/json' }),
       ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
       ...(headers ?? {}),
     },

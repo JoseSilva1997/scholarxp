@@ -11,6 +11,8 @@ describe('UsersController', () => {
   let controller: UsersController;
   const service = {
     updateRole: jest.fn(),
+    updateProfilePicture: jest.fn(),
+    removeProfilePicture: jest.fn(),
   };
   const authService = {
     getUserById: jest.fn(),
@@ -46,5 +48,34 @@ describe('UsersController', () => {
     expect(service.updateRole).toHaveBeenCalledWith(1, GlobalRole.student);
     expect(authService.getUserById).toHaveBeenCalledWith(1);
     expect(result).toEqual(response);
+  });
+
+  it('forwards profile-picture uploads and returns refreshed auth payload', async () => {
+    const file = {
+      buffer: Buffer.from(''),
+      mimetype: 'image/png',
+      size: 1,
+    } as any;
+    const refreshed = { id: 1, profilePictureUrl: 'https://cdn/x.png' };
+    service.updateProfilePicture.mockResolvedValue({ id: 1 });
+    authService.getUserById.mockResolvedValue(refreshed);
+
+    const result = await controller.updateProfilePicture(1, file);
+
+    expect(service.updateProfilePicture).toHaveBeenCalledWith(1, file);
+    expect(authService.getUserById).toHaveBeenCalledWith(1);
+    expect(result).toEqual(refreshed);
+  });
+
+  it('forwards profile-picture deletion and returns refreshed auth payload', async () => {
+    const refreshed = { id: 1, profilePictureUrl: 'default-profile-pic.png' };
+    service.removeProfilePicture.mockResolvedValue({ id: 1 });
+    authService.getUserById.mockResolvedValue(refreshed);
+
+    const result = await controller.removeProfilePicture(1);
+
+    expect(service.removeProfilePicture).toHaveBeenCalledWith(1);
+    expect(authService.getUserById).toHaveBeenCalledWith(1);
+    expect(result).toEqual(refreshed);
   });
 });

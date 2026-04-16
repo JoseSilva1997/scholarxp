@@ -1,0 +1,37 @@
+/* Shared skeleton styles for badge variants that don't have final art yet.
+   Each variant adds its own accent color via a modifier class so you can
+   visually tell them apart even before the real design lands. */
+
+.skeleton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  border: 2px dashed var(--color-border);
+  color: var(--color-text);
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1;
+  background: var(--color-surface);
+}
+
+.skeletonSmall {
+  width: 36px;
+  height: 36px;
+  font-size: 0.75rem;
+}
+
+/* Per-tier accent hints so each skeleton is visually distinguishable during development. */
+.elite {
+  border-color: var(--color-primary);
+}
+
+.master {
+  border-color: var(--color-accent);
+}
+
+.legend {
+  border-color: var(--color-error);
+}

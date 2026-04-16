@@ -15,7 +15,9 @@ import StreakIndicator from '../../components/PracticeRoom/StreakTrackerIndicato
 import FirstTryAccuracyIndicator from '../../components/PracticeRoom/FirstTryAccuracyIndicator';
 import BaseXpIndicator from '../../components/PracticeRoom/BaseXpIndicator';
 import LessonCompleteModal from '../../components/PracticeRoom/LessonCompleteModal';
+import ConfettiBurst from '../../components/PracticeRoom/ConfettiBurst';
 import RewardsGuideTooltip from '../../components/PracticeRoom/RewardsGuideTooltip';
+import { useCosmetics } from '@/rewards';
 import { usePracticeRoomPageState } from '../../hooks/page-state/practice-room/usePracticeRoomPageState';
 import styles from './PracticeRoomPage.module.css';
 import { getQuestionUnitStatusClass } from './practice-room-status';
@@ -63,6 +65,9 @@ export default function PracticeRoomPage() {
     moduleIdParam: moduleId,
     unitIdParam: unitId,
   });
+
+  const { cosmetic } = useCosmetics();
+  const hasParticleFlair = cosmetic('answerFeedbackAnim') === 'particles';
 
   // Feedback remains presentation-only and uses local question data so it can be swapped to server-driven feedback later.
   // Revisited questions render prior feedback until the student starts a new
@@ -300,6 +305,8 @@ export default function PracticeRoomPage() {
                   {activeQuestionOptions.map((option, optionIndex) => {
                     const isSelected = selectedOptionIndex === optionIndex;
                     const feedback = optionFeedback[optionIndex];
+                    const showConfetti = hasParticleFlair && feedback?.isCorrectOption;
+                    const showTremble = hasParticleFlair && feedback?.isSelectedIncorrect;
 
                     return (
                       <button
@@ -311,11 +318,15 @@ export default function PracticeRoomPage() {
                           feedback?.isCorrectOption ? styles.optionButtonCorrect : ''
                         } ${
                           feedback?.isSelectedIncorrect ? styles.optionButtonIncorrect : ''
+                        } ${
+                          showTremble ? styles.optionTremble : ''
                         }`}
                         onClick={() => selectOption(activeQuestion.question.id, optionIndex)}
                         aria-pressed={isSelected}
                         disabled={isRoomReadOnly}
+                        style={{ position: 'relative', overflow: 'visible' }}
                       >
+                        {showConfetti ? <ConfettiBurst /> : null}
                         <div className={styles.optionContentWrapper}>
                           <span className={styles.optionLetter}>
                             {String.fromCharCode(65 + optionIndex)}

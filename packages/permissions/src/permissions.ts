@@ -47,6 +47,14 @@ export const permissionMatrix: PermissionMatrix = {
     'student.independent',
     'student.institutional',
   ],
+  [features.users.updateOwnProfilePicture]: [
+    'admin',
+    'institution_admin',
+    'teacher.independent',
+    'teacher.institutional',
+    'student.independent',
+    'student.institutional',
+  ],
 
   // ====MODULES====
   [features.modules.create]: [
@@ -110,6 +118,16 @@ export const permissionMatrix: PermissionMatrix = {
     'institution_admin',
     'teacher.independent',
     'teacher.institutional',
+    'student.independent',
+    'student.institutional',
+  ],
+  // Rewards are avatar-driven cosmetics, and only students have avatars, so the feature is student-only
+  // on both the sidebar entry and the equip mutation.
+  [features.navigation.rewards]: [
+    'student.independent',
+    'student.institutional',
+  ],
+  [features.rewards.equip]: [
     'student.independent',
     'student.institutional',
   ],

@@ -43,10 +43,7 @@ type UseModuleRosterPageStateResult = {
   isSummaryLoading: boolean;
 
   // Detail panel
-  isDetailOpen: boolean;
   activeTab: RosterTab;
-  openDetail: (tab: RosterTab) => void;
-  closeDetail: () => void;
   setActiveTab: (tab: RosterTab) => void;
 
   // Card click handlers — each opens the detail panel with a preset tab/filter/sort
@@ -108,8 +105,7 @@ export function useModuleRosterPageState({
     [user],
   );
 
-  // Detail panel state
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  // Detail panel state stays mounted so the roster always has a visible working area.
   const [activeTab, setActiveTab] = useState<RosterTab>('students');
 
   // Students tab local state
@@ -184,45 +180,33 @@ export function useModuleRosterPageState({
     }
   }, [lessonDrilldownQuery.error, parsedId, selectedLessonId]);
 
-  // Detail panel helpers
-  const openDetail = useCallback((tab: RosterTab) => {
-    setIsDetailOpen(true);
-    setActiveTab(tab);
-  }, []);
-
-  const closeDetail = useCallback(() => {
-    setIsDetailOpen(false);
-    setSelectedStudentId(null);
-    setSelectedLessonId(null);
-  }, []);
-
   // Card click handlers apply preset filter/sort then open the correct tab
   const handleStudentsEnrolledClick = useCallback(() => {
     setStudentFilter('all');
     setStudentSortBy('name');
     setStudentSortDirection('asc');
-    openDetail('students');
-  }, [openDetail]);
+    setActiveTab('students');
+  }, []);
 
   const handleActiveLast7DaysClick = useCallback(() => {
     setStudentFilter('active_7d');
     setStudentSortBy('last_activity');
     setStudentSortDirection('desc');
-    openDetail('students');
-  }, [openDetail]);
+    setActiveTab('students');
+  }, []);
 
   const handleAtRiskClick = useCallback(() => {
     setStudentFilter('at_risk');
     setStudentSortBy('last_activity');
     setStudentSortDirection('asc');
-    openDetail('students');
-  }, [openDetail]);
+    setActiveTab('students');
+  }, []);
 
   const handleLessonCoverageClick = useCallback(() => {
     setLessonSortBy('completion_rate');
     setLessonSortDirection('asc');
-    openDetail('lessons');
-  }, [openDetail]);
+    setActiveTab('lessons');
+  }, []);
 
   const selectStudent = useCallback((studentId: number) => {
     setSelectedStudentId((prev) => (prev === studentId ? null : studentId));
@@ -263,10 +247,7 @@ export function useModuleRosterPageState({
     summary: summaryQuery.data ?? null,
     isSummaryLoading: parsedId !== null && summaryQuery.isPending,
 
-    isDetailOpen,
     activeTab,
-    openDetail,
-    closeDetail,
     setActiveTab,
 
     handleStudentsEnrolledClick,

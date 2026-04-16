@@ -109,6 +109,8 @@
 
   /* Specialty Graphics */
   --color-success-rays: rgba(76, 175, 80, 0.95);
+  --color-badge-purple-primary: #8b5cf6;
+  --color-legendary-chip: #f97316;
 
   /* Streak Flame — tier color scale used by StreakIndicator */
   --color-flame-tier1: var(--color-accent);            /* warm amber  — ≥ 30 % threshold */
@@ -193,10 +195,10 @@
   --color-badge-gold-shadow: #5C4301;
   --color-badge-glow: rgba(212, 175, 55, 0.2);
 
-  /* Badge Profile Level Purple */
-  --color-badge-purple-primary: #9D4EDD;
-  --color-badge-purple-dark: #6800E6;
-  --color-badge-purple-darkest: #1A002E;
+  /* Badge Profile Level Bronze */
+  --color-badge-bronze-primary: #D28E46;
+  --color-badge-bronze-dark: #B56535;
+  --color-badge-bronze-darkest: #7D3F15;
 
   /* Badge Profile Level Number */
   --color-badge-number: #2D0052;
@@ -255,6 +257,7 @@
   --input-border: var(--color-border);
   --input-focus-ring: var(--color-primary-soft);
   --input-focus-border: var(--color-primary);
+  color-scheme: light;
 
   font-family: var(--font-sans);
   color: var(--color-text);
@@ -270,67 +273,185 @@
   }
 }
 
-/* Dark Theme overrides */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    --color-bg: #121826; /* Deep Slate - Muted */
-    --color-surface: #1c2333; /* Slightly lighter surface */
-    --color-surface-hover: #262f3f; /* Hover state for surfaces */
-    --color-text: #e2e8f0; /* Slate 200 - Less harsh than Slate 100 */
-    --color-text-soft: #94a3b8; /* Slate 400 */
-    --color-text-muted: #64748b; /* Slate 500 */
-    --color-text-dim: #8393AA; /* Slate 600 */
-    --color-border: #2d3748; /* Muted border */
-    --color-border-hover: #3b4759;
-    --color-border-subtle: rgba(255, 255, 255, 0.05);
+:root[data-theme-variant='dark'] {
+  color-scheme: dark;
+}
 
-    /* Text contrast on dark */
-    --color-text-on-dark-vibrant: rgba(255, 255, 255, 0.9);
-    --color-text-on-dark-muted: rgba(255, 255, 255, 0.7);
+:root[data-theme='default-dark'] {
+  --color-bg: #121826; /* Deep Slate - Muted */
+  --color-surface: #1c2333; /* Slightly lighter surface */
+  --color-surface-hover: #262f3f; /* Hover state for surfaces */
+  --color-text: #e2e8f0; /* Slate 200 - Less harsh than Slate 100 */
+  --color-text-soft: #94a3b8; /* Slate 400 */
+  --color-text-muted: #64748b; /* Slate 500 */
+  --color-text-dim: #8393AA; /* Slate 600 */
+  --color-border: #2d3748; /* Muted border */
+  --color-border-hover: #3b4759;
+  --color-border-subtle: rgba(255, 255, 255, 0.05);
 
-    --color-shadow-extra-subtle: rgba(0, 0, 0, 0.25);
-    --color-shadow-subtle: rgba(0, 0, 0, 0.35);
-    --color-shadow-inset: rgba(0, 0, 0, 0.45);
-    --color-shadow-soft: rgba(0, 0, 0, 0.35);
-    --color-shadow-base: rgba(0, 0, 0, 0.45);
-    --color-shadow-elevated: rgba(0, 0, 0, 0.55);
-    --color-shadow-dark: rgba(0, 0, 0, 0.65);
+  /* Text contrast on dark */
+  --color-text-on-dark-vibrant: rgba(255, 255, 255, 0.9);
+  --color-text-on-dark-muted: rgba(255, 255, 255, 0.7);
 
-    /* Validation & Errors for Dark Mode */
-    --color-error-soft: rgba(239, 68, 68, 0.15);
-    --color-error-border: rgba(239, 68, 68, 0.3);
-    --color-success-soft: rgba(16, 185, 129, 0.15);
-    --color-success-border: rgba(16, 185, 129, 0.3);
+  --color-shadow-extra-subtle: rgba(0, 0, 0, 0.25);
+  --color-shadow-subtle: rgba(0, 0, 0, 0.35);
+  --color-shadow-inset: rgba(0, 0, 0, 0.45);
+  --color-shadow-soft: rgba(0, 0, 0, 0.35);
+  --color-shadow-base: rgba(0, 0, 0, 0.45);
+  --color-shadow-elevated: rgba(0, 0, 0, 0.55);
+  --color-shadow-dark: rgba(0, 0, 0, 0.65);
 
-    /* Soft accents for Dark Mode visibility */
-    --color-primary-soft: rgba(59, 130, 246, 0.15);
-    --color-secondary-soft: rgba(16, 185, 129, 0.15);
-    --color-accent-soft: rgba(245, 158, 11, 0.15);
+  /* Validation & Errors for Dark Mode */
+  --color-error-soft: rgba(239, 68, 68, 0.15);
+  --color-error-border: rgba(239, 68, 68, 0.3);
+  --color-success-soft: rgba(16, 185, 129, 0.15);
+  --color-success-border: rgba(16, 185, 129, 0.3);
 
-    /* Form Elements for Dark Mode */
-    --input-bg: #1c2333;
-    --input-focus-ring: rgba(59, 130, 246, 0.2);
-    --input-focus-border: var(--color-primary-light);
+  /* Soft accents for Dark Mode visibility */
+  --color-primary-soft: rgba(59, 130, 246, 0.15);
+  --color-secondary-soft: rgba(16, 185, 129, 0.15);
+  --color-accent-soft: rgba(245, 158, 11, 0.15);
 
-    /* Specialized Surfaces for Dark Mode */
-    --color-quest-gold-soft: rgba(243, 206, 48, 0.2);
-    --color-quest-gold-glow: rgba(243, 206, 48, 0.4);
-    --color-quest-gold-surface: #262518;
-    --color-quest-wood-soft: rgba(139, 94, 52, 0.24);
-    --color-quest-wood-glow: rgba(139, 94, 52, 0.36);
-    --color-quest-wood-surface: #2b2118;
+  /* Form Elements for Dark Mode */
+  --input-bg: #1c2333;
+  --input-focus-ring: rgba(59, 130, 246, 0.2);
+  --input-focus-border: var(--color-primary-light);
 
-    /* Glassmorphism Overrides */
-    --color-glass-bg: rgba(28, 35, 51, 0.5);
-    --color-glass-bg-hover: rgba(28, 35, 51, 0.7);
-    --color-glass-bg-deep: rgba(18, 24, 38, 0.5);
-    --color-glass-bg-deep-solid: rgba(18, 24, 38, 0.98);
+  /* Specialized Surfaces for Dark Mode */
+  --color-quest-gold-soft: rgba(243, 206, 48, 0.2);
+  --color-quest-gold-glow: rgba(243, 206, 48, 0.4);
+  --color-quest-gold-surface: #262518;
+  --color-quest-wood-soft: rgba(139, 94, 52, 0.24);
+  --color-quest-wood-glow: rgba(139, 94, 52, 0.36);
+  --color-quest-wood-surface: #2b2118;
 
-    /* Button Colors - Deep Navy for better presence without being too stark */
-    --btn-primary-dark: #2a4365; /* Deep Navy Blue */
-    --btn-primary-dark-hover: #3182ce; /* Bright Blue for active feel */
+  /* Glassmorphism Overrides */
+  --color-glass-bg: rgba(28, 35, 51, 0.5);
+  --color-glass-bg-hover: rgba(28, 35, 51, 0.7);
+  --color-glass-bg-deep: rgba(18, 24, 38, 0.5);
+  --color-glass-bg-deep-solid: rgba(18, 24, 38, 0.98);
 
-    /* Badge glow for Dark Mode visibility */
-    --color-badge-glow: rgba(212, 175, 55, 0.45);
-  }
+  /* Button Colors - Deep Navy for better presence without being too stark */
+  --btn-primary-dark: #2a4365; /* Deep Navy Blue */
+  --btn-primary-dark-hover: #3182ce; /* Bright Blue for active feel */
+
+  /* Badge glow for Dark Mode visibility */
+  --color-badge-glow: rgba(212, 175, 55, 0.45);
+}
+
+/* ── Cosmetic: XP bar color overrides ────────────────────────────────────────
+   CosmeticStyleSync sets data-xp-color on <html>; these selectors swap the
+   fill color used by UserBadge's SVG ring and profile/menu progress bars. */
+
+:root[data-xp-color='red'] {
+  --color-xp-fill: #ef4444;
+  --color-xp-fill-glow: rgba(239, 68, 68, 0.4);
+}
+
+:root[data-xp-color='cyan'] {
+  --color-xp-fill: #06b6d4;
+  --color-xp-fill-glow: rgba(6, 182, 212, 0.4);
+}
+
+:root[data-xp-color='purple'] {
+  --color-xp-fill: #a855f7;
+  --color-xp-fill-glow: rgba(168, 85, 247, 0.4);
+}
+
+:root[data-xp-color='orange'] {
+  --color-xp-fill: #f97316;
+  --color-xp-fill-glow: rgba(249, 115, 22, 0.4);
+}
+
+/* Rainbow: the static fallback color is used for SVG stroke (which can't animate gradients natively).
+   The progress bar fills get an animated background gradient via a global override below. */
+:root[data-xp-color='rainbow'] {
+  --color-xp-fill: #a855f7;
+  --color-xp-fill-glow: rgba(168, 85, 247, 0.3);
+}
+
+@keyframes rainbowShift {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+/* Apply the animated rainbow to any HTML progress bar when the cosmetic is active.
+   SVG strokes get the static --color-xp-fill fallback since stroke can't animate a gradient. */
+:root[data-xp-color='rainbow'] :is(
+  [class*='progressFill'],
+  [class*='menuBarFill']
+) {
+  background: linear-gradient(90deg, #ef4444, #f97316, #eab308, #22c55e, #3b82f6, #8b5cf6, #ec4899, #ef4444) !important;
+  background-size: 200% 100% !important;
+  animation: rainbowShift 3s linear infinite !important;
+}
+
+/* ── Cosmetic: background overrides ──────────────────────────────────────────
+   data-bg on <html> swaps the App shell background. */
+
+/* Geometric: repeating hexagonal grid using a CSS-only pattern. */
+:root[data-bg='geometric'] {
+  --color-bg-cosmetic:
+    linear-gradient(30deg, var(--color-border-subtle) 12%, transparent 12.5%, transparent 87%, var(--color-border-subtle) 87.5%, var(--color-border-subtle)),
+    linear-gradient(150deg, var(--color-border-subtle) 12%, transparent 12.5%, transparent 87%, var(--color-border-subtle) 87.5%, var(--color-border-subtle)),
+    linear-gradient(30deg, var(--color-border-subtle) 12%, transparent 12.5%, transparent 87%, var(--color-border-subtle) 87.5%, var(--color-border-subtle)),
+    linear-gradient(150deg, var(--color-border-subtle) 12%, transparent 12.5%, transparent 87%, var(--color-border-subtle) 87.5%, var(--color-border-subtle)),
+    linear-gradient(60deg, rgba(0,0,0,0.03) 25%, transparent 25.5%, transparent 75%, rgba(0,0,0,0.03) 75%, rgba(0,0,0,0.03)),
+    linear-gradient(60deg, rgba(0,0,0,0.03) 25%, transparent 25.5%, transparent 75%, rgba(0,0,0,0.03) 75%, rgba(0,0,0,0.03)),
+    var(--color-bg);
+  background-size: 80px 140px;
+  background-position: 0 0, 0 0, 40px 70px, 40px 70px, 0 0, 40px 70px;
+}
+
+/* Nebula: layered radial gradients evoking a deep-space wash. */
+:root[data-bg='nebula'] {
+  --color-bg-cosmetic: radial-gradient(ellipse at 20% 50%, rgba(88, 28, 135, 0.15), transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(30, 64, 175, 0.12), transparent 50%),
+    radial-gradient(ellipse at 50% 90%, rgba(15, 23, 42, 0.08), transparent 40%),
+    var(--color-bg);
+}
+
+/* Scholar background uses a React component (ScholarBackground.tsx) with real react-icons
+   rather than CSS data URIs, so no :root[data-bg='scholar'] rule is needed here. */
+
+/* ── Cosmetic: user badge shell overrides ─────────────────────────────────────
+   data-user-badge on <html> progressively restores and ornaments the badge pill.
+   The default (standard) badge is transparent/borderless.
+   Silver brings back the glass look; gold and diamond layer on top with richer colors. */
+
+:root[data-user-badge='silver'] {
+  --color-badge-shell-bg: var(--color-glass-bg);
+  --color-badge-shell-border: rgba(148, 163, 184, 0.45);
+  --color-badge-shell-hover-bg: var(--color-glass-bg-hover);
+  --color-badge-shell-hover-border: rgba(148, 163, 184, 0.7);
+  --color-badge-shell-shadow: 0 0 12px rgba(148, 163, 184, 0.15);
+  --color-badge-shimmer: rgba(148, 163, 184, 0.18);
+  /* Accent used by level pip, menu avatar ring, and menu level badge */
+  --color-badge-accent: #94a3b8;
+  --color-badge-accent-light: #cbd5e1;
+  --color-badge-accent-soft: rgba(148, 163, 184, 0.25);
+}
+
+:root[data-user-badge='gold'] {
+  --color-badge-shell-bg: var(--color-glass-bg);
+  --color-badge-shell-border: rgba(212, 175, 55, 0.5);
+  --color-badge-shell-hover-bg: var(--color-glass-bg-hover);
+  --color-badge-shell-hover-border: rgba(212, 175, 55, 0.8);
+  --color-badge-shell-shadow: 0 0 14px rgba(212, 175, 55, 0.2);
+  --color-badge-shimmer: rgba(212, 175, 55, 0.2);
+  --color-badge-accent: #d4af37;
+  --color-badge-accent-light: #f0d060;
+  --color-badge-accent-soft: rgba(212, 175, 55, 0.3);
+}
+
+:root[data-user-badge='diamond'] {
+  --color-badge-shell-bg: var(--color-glass-bg);
+  --color-badge-shell-border: rgba(167, 139, 250, 0.5);
+  --color-badge-shell-hover-bg: var(--color-glass-bg-hover);
+  --color-badge-shell-hover-border: rgba(167, 139, 250, 0.85);
+  --color-badge-shell-shadow: 0 0 16px rgba(167, 139, 250, 0.25), 0 0 32px rgba(167, 139, 250, 0.1);
+  --color-badge-shimmer: rgba(167, 139, 250, 0.22);
+  --color-badge-accent: #a78bfa;
+  --color-badge-accent-light: #c4b5fd;
+  --color-badge-accent-soft: rgba(167, 139, 250, 0.3);
 }

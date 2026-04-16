@@ -1,6 +1,6 @@
 /**
- * Manages the application's color theme (light vs dark).
- * Persists user preference to localStorage and updates the document's data-theme attribute.
+ * Manages the active theme family and light/dark variant on <html>.
+ * Family syncs from the equipped cosmetic; the variant is an explicit local preference controlled by the header toggle.
  */
 import {
   useCallback,
@@ -12,56 +12,115 @@ import {
 import {
   ThemeContext,
   THEME_STORAGE_KEY,
+  THEME_VARIANT_STORAGE_KEY,
+  isKnownTheme,
+  isKnownThemeRewardId,
+  isKnownThemeVariant,
+  themeFamilyFromRewardId,
+  themeVariantFromRewardId,
   type Theme,
+  type ThemeRewardId,
+  type ThemeVariant,
 } from './theme-context';
 
+type StoredThemeState = {
+  theme: Theme;
+  variant: ThemeVariant;
+  hasExplicitVariantPreference: boolean;
+};
+
+const DEFAULT_THEME: Theme = 'default';
+const DEFAULT_THEME_VARIANT: ThemeVariant = 'light';
+
+function readStoredThemeState(): StoredThemeState {
+  const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+  const storedVariant = localStorage.getItem(THEME_VARIANT_STORAGE_KEY);
+
+  const theme = isKnownTheme(storedTheme)
+    ? storedTheme
+    : isKnownThemeRewardId(storedTheme)
+      ? themeFamilyFromRewardId(storedTheme)
+      : DEFAULT_THEME;
+
+  const variant = isKnownThemeVariant(storedVariant)
+    ? storedVariant
+    : isKnownThemeRewardId(storedTheme)
+      ? themeVariantFromRewardId(storedTheme)
+      : DEFAULT_THEME_VARIANT;
+
+  return {
+    theme,
+    variant,
+    // Preserve legacy default light/dark selections until the user toggles a different variant locally.
+    hasExplicitVariantPreference:
+      isKnownThemeVariant(storedVariant)
+      || storedTheme === 'light'
+      || storedTheme === 'dark',
+  };
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    const stored = localStorage.getItem(THEME_STORAGE_KEY);
-    return (stored as Theme) || 'light';
-  });
+  const [theme, setThemeState] = useState<Theme>(() => readStoredThemeState().theme);
+  const [themeVariant, setThemeVariantState] = useState<ThemeVariant>(
+    () => readStoredThemeState().variant,
+  );
+  const [hasExplicitVariantPreference, setHasExplicitVariantPreference] = useState(
+    () => readStoredThemeState().hasExplicitVariantPreference,
+  );
 
-  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light');
-
-  // Handle system preference changes
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    
-    const updateResolvedTheme = () => {
-        setResolvedTheme(theme);
-    };
-
-    updateResolvedTheme();
-    mediaQuery.addEventListener('change', updateResolvedTheme);
-    return () => mediaQuery.removeEventListener('change', updateResolvedTheme);
-  }, [theme]);
-
-  // Apply theme to document
+  // Persist both selectors explicitly so the app theme no longer follows the OS scheme behind the user's back.
   useEffect(() => {
     const root = window.document.documentElement;
-    
-    root.setAttribute('data-theme', theme);
-    
+    root.setAttribute('data-theme-family', theme);
+    root.setAttribute('data-theme-variant', themeVariant);
+    root.setAttribute('data-theme', `${theme}-${themeVariant}`);
     localStorage.setItem(THEME_STORAGE_KEY, theme);
-  }, [theme]);
+    localStorage.setItem(THEME_VARIANT_STORAGE_KEY, themeVariant);
+  }, [theme, themeVariant]);
+
+  const setTheme = useCallback((next: Theme) => {
+    setThemeState(next);
+  }, []);
+
+  const setThemeVariant = useCallback((next: ThemeVariant) => {
+    setHasExplicitVariantPreference(true);
+    setThemeVariantState(next);
+  }, []);
+
+  const syncThemeReward = useCallback((themeRewardId: ThemeRewardId) => {
+    const nextTheme = themeFamilyFromRewardId(themeRewardId);
+    setThemeState((current) => (current === nextTheme ? current : nextTheme));
+
+    if (!hasExplicitVariantPreference) {
+      const nextVariant = themeVariantFromRewardId(themeRewardId);
+      setThemeVariantState((current) => (current === nextVariant ? current : nextVariant));
+    }
+  }, [hasExplicitVariantPreference]);
+
+  const resetTheme = useCallback(() => {
+    // Sessionless and non-student accounts have no server-backed cosmetic theme, so reset to the app default.
+    setHasExplicitVariantPreference(false);
+    setThemeState(DEFAULT_THEME);
+    setThemeVariantState(DEFAULT_THEME_VARIANT);
+  }, []);
 
   const toggleTheme = useCallback(() => {
-    setThemeState((current) => {
-      if (current === 'light') return 'dark';
-      if (current === 'dark') return 'light';
-      // If system, toggle to the opposite of what's currently resolved
-      return resolvedTheme === 'light' ? 'dark' : 'light';
-    });
-  }, [resolvedTheme]);
+    setHasExplicitVariantPreference(true);
+    setThemeVariantState((current) => (current === 'dark' ? 'light' : 'dark'));
+  }, []);
 
   const value = useMemo(
     () => ({
       theme,
-      resolvedTheme,
-      setTheme: setThemeState,
+      themeVariant,
+      resolvedTheme: themeVariant,
+      setTheme,
+      setThemeVariant,
+      syncThemeReward,
+      resetTheme,
       toggleTheme,
     }),
-    [theme, resolvedTheme, toggleTheme],
+    [theme, themeVariant, setTheme, setThemeVariant, syncThemeReward, resetTheme, toggleTheme],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

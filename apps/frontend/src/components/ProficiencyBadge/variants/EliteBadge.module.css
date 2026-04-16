@@ -1,0 +1,84 @@
+/* Elite crest badge (L30 unlock): silver borders with blue core. Shaped like a shield/crest. */
+
+.glowWrapper {
+  filter: drop-shadow(0 0 18px var(--color-primary-shadow));
+}
+
+.outer {
+  width: 64px;
+  height: 72px;
+  background: linear-gradient(
+    135deg,
+    #f8fafc 0%,
+    var(--color-tier-silver) 40%,
+    #475569 80%,
+    #1e293b 100%
+  );
+  clip-path: polygon(50% 0%, 100% 15%, 90% 75%, 50% 100%, 10% 75%, 0% 15%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.middle {
+  width: 52px;
+  height: 59px;
+  background: radial-gradient(
+    ellipse at top,
+    var(--color-primary-light) 0%,
+    var(--color-primary) 40%,
+    var(--color-primary-dark) 100%
+  );
+  clip-path: polygon(50% 0%, 100% 15%, 90% 75%, 50% 100%, 10% 75%, 0% 15%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.innerShadow {
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.4));
+}
+
+.inner {
+  width: 32px;
+  height: 36px;
+  background: linear-gradient(
+    135deg,
+    #ffffff 0%,
+    var(--color-tier-silver) 50%,
+    #64748b 100%
+  );
+  clip-path: polygon(50% 0%, 100% 15%, 90% 75%, 50% 100%, 10% 75%, 0% 15%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Small variant — ~75% scale for dense contexts */
+.outerSmall {
+  width: 48px;
+  height: 54px;
+}
+
+.middleSmall {
+  width: 39px;
+  height: 44px;
+}
+
+.innerSmall {
+  width: 24px;
+  height: 27px;
+}
+
+.number {
+  color: var(--color-badge-number);
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+  margin-top: 1px; /* optical alignment for the crest shape */
+}
+
+.numberSmall {
+  font-size: 0.75rem;
+}

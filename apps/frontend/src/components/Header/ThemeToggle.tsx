@@ -3,45 +3,26 @@ import { BsSunFill, BsMoonStarsFill } from 'react-icons/bs';
 import styles from './ThemeToggle.module.css';
 
 /**
- * A toggle button to switch between light, dark, and system themes.
- * Cycle through: light -> dark -> light
+ * Header toggle that flips the active theme variant without changing the selected family.
  */
 export default function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
-
-  const handleToggle = () => {
-    if (theme === 'light') setTheme('dark');
-    else setTheme('light');
-  };
+  const { resolvedTheme, toggleTheme } = useTheme();
 
   const getIcon = () => {
-    switch (theme) {
-      case 'light':
-        return <BsSunFill className={`${styles.icon} ${styles.sunIcon}`}/>;
-      case 'dark':
-        return <BsMoonStarsFill className={`${styles.icon} ${styles.moonIcon}`} />;
-      default:
-        return <BsSunFill className={`${styles.icon} ${styles.sunIcon}`} />;
+    if (resolvedTheme === 'dark') {
+      return <BsMoonStarsFill className={`${styles.icon} ${styles.moonIcon}`} />;
     }
+    return <BsSunFill className={`${styles.icon} ${styles.sunIcon}`} />;
   };
 
-  const getLabel = () => {
-    switch (theme) {
-      case 'light':
-        return 'Light theme';
-      case 'dark':
-        return 'Dark theme';
-      default:
-        return 'Light theme';
-    }
-  };
+  const getLabel = () => (resolvedTheme === 'dark' ? 'Dark variant' : 'Light variant');
 
   return (
     <button
       type="button"
       className={styles.toggle}
-      onClick={handleToggle}
-      aria-label={`Switch theme (currently ${getLabel()})`}
+      onClick={toggleTheme}
+      aria-label={`Switch theme variant (currently ${getLabel()})`}
       title={getLabel()}
     >
       <div className={styles.iconWrapper}>{getIcon()}</div>

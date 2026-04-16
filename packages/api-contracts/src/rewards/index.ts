@@ -13,4 +13,5 @@ export interface Awards {
   accountExp: number;
 }
 
+export * from './cosmetics';
 export * from './daily-lesson-xp-track';

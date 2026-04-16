@@ -1,0 +1,39 @@
+/* Confetti burst: particles fly outward from center and fade. */
+
+.container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 10;
+}
+
+.particle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--size);
+  height: var(--size);
+  border-radius: 2px;
+  opacity: 0;
+  animation: confettiFly 0.8s ease-out var(--delay) forwards;
+}
+
+@keyframes confettiFly {
+  0% {
+    transform: translate(-50%, -50%) scale(0) rotate(0deg);
+    opacity: 1;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(
+        calc(-50% + var(--tx)),
+        calc(-50% + var(--ty))
+      )
+      scale(1)
+      rotate(var(--rot));
+    opacity: 0;
+  }
+}

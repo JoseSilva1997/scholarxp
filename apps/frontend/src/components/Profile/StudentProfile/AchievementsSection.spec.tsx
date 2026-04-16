@@ -16,6 +16,7 @@ const baseProfile: StudentProfileResponse = {
     nextLevelExpRequired: 100,
     xpToNextLevel: 80,
     progressPercent: 20,
+    equippedCosmetics: {},
   },
   masterQuestStreak: 2,
   todayQuestProgress: { completed: 1, total: 3 },
@@ -24,11 +25,6 @@ const baseProfile: StudentProfileResponse = {
   questHistorySummary: {
     totalCompleted: 8,
     perfectDays: 0,
-  },
-  rewards: {
-    equipped: [],
-    owned: [],
-    upcoming: [],
   },
 };
 

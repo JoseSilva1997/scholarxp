@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { BsInfoCircle, BsLightningChargeFill } from 'react-icons/bs';
 import type { DailyLessonXpTrackResponse, DailyLessonXpTrackStep } from '@scholarxp/api-contracts';
-import { useDailyLessonXpTrackQuery } from '@/hooks/queries/useRewardsQueries';
+import { useDailyLessonXpTrackQuery } from '@/hooks/queries/useDailyXpTrackQueries';
 import styles from './DailyLessonXpTrackChip.module.css';
 
 type DailyLessonXpTrackChipProps = {

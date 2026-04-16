@@ -1,0 +1,83 @@
+/* Ornate hex badge (L5 unlock): gold + bronze layered hexagon. Ported from the original ProficiencyLevelBadge. */
+
+.glowWrapper {
+  filter: drop-shadow(0 0 15px var(--color-badge-glow));
+}
+
+.outer {
+  width: 60px;
+  height: 68.4px;
+  background: linear-gradient(
+    135deg,
+    var(--color-badge-gold-light) 0%,
+    var(--color-badge-gold-dark) 30%,
+    var(--color-badge-gold-darkest) 70%,
+    var(--color-badge-gold-shadow) 100%
+  );
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.middle {
+  width: 48px;
+  height: 55px;
+  background: radial-gradient(
+    ellipse at center,
+    var(--color-secondary-dark) 0%,
+    var(--color-secondary-dark) 50%,
+    var(--color-secondary-dark) 100%
+  );
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.innerShadow {
+  filter: drop-shadow(0 4px 6px var(--color-badge-number-shadow));
+}
+
+.inner {
+  width: 30px;
+  height: 34.8px;
+  background: linear-gradient(
+    135deg,
+    var(--color-badge-gold-light) 0%,
+    var(--color-badge-gold-primary) 40%,
+    var(--color-badge-gold-darkest) 100%
+  );
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Small variant — ~75% scale for dense contexts */
+.outerSmall {
+  width: 45px;
+  height: 51.3px;
+}
+
+.middleSmall {
+  width: 36px;
+  height: 41.25px;
+}
+
+.innerSmall {
+  width: 22.5px;
+  height: 26.1px;
+}
+
+.number {
+  color: var(--color-badge-number);
+  font-size: 0.9rem;
+  font-weight: 800;
+  line-height: 1;
+  text-shadow: 0 1px 0 var(--color-highlight-clean);
+}
+
+.numberSmall {
+  font-size: 0.675rem;
+}

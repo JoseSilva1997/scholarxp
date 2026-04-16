@@ -4,6 +4,13 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import LessonCompleteModal from './LessonCompleteModal';
 
+vi.mock('@/rewards/useCompletionMedal', () => ({
+  useCompletionMedal: () => ({
+    src: '/mock-medal.png',
+    scale: 1,
+  }),
+}));
+
 describe('LessonCompleteModal', () => {
   afterEach(() => {
     vi.useRealTimers();

@@ -1,17 +1,59 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { GlobalRole, Prisma } from '@prisma/client';
+import {
+  DEFAULT_PROFILE_PICTURE_VALUE,
+  PROFILE_PICTURE_ALLOWED_MIME_TYPES,
+  PROFILE_PICTURE_MAX_BYTES,
+  type ProfilePictureMimeType,
+} from '@scholarxp/api-contracts';
+import { randomUUID } from 'crypto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from '../../prisma/prisma.service';
+import { StorageService } from '../../storage/storage.service';
+
+// Magic-byte signatures for the three image formats we accept; checked alongside the declared MIME type
+// so a client cannot smuggle a non-image by setting the Content-Type header.
+const IMAGE_MAGIC_BYTES: Record<
+  ProfilePictureMimeType,
+  (b: Buffer) => boolean
+> = {
+  'image/png': (b) =>
+    b.length >= 8 &&
+    b[0] === 0x89 &&
+    b[1] === 0x50 &&
+    b[2] === 0x4e &&
+    b[3] === 0x47 &&
+    b[4] === 0x0d &&
+    b[5] === 0x0a &&
+    b[6] === 0x1a &&
+    b[7] === 0x0a,
+  'image/jpeg': (b) =>
+    b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff,
+  'image/webp': (b) =>
+    b.length >= 12 &&
+    b.toString('ascii', 0, 4) === 'RIFF' &&
+    b.toString('ascii', 8, 12) === 'WEBP',
+};
+
+const MIME_TO_EXT: Record<ProfilePictureMimeType, string> = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/webp': 'webp',
+};
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {}
 
   // Creation uses DTO-level transformations (trim, normalize) and keeps validation rules centralized.
   async create(createUserDto: CreateUserDto) {
@@ -96,6 +138,66 @@ export class UsersService {
       where: { id },
       data: { timezone },
     });
+  }
+
+  async updateProfilePicture(
+    id: number,
+    file: { buffer: Buffer; mimetype: string; size: number } | undefined,
+  ) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+    if (file.size > PROFILE_PICTURE_MAX_BYTES) {
+      throw new BadRequestException('Image exceeds maximum size');
+    }
+    const mime = file.mimetype as ProfilePictureMimeType;
+    if (!PROFILE_PICTURE_ALLOWED_MIME_TYPES.includes(mime)) {
+      throw new BadRequestException('Unsupported image type');
+    }
+    // Magic-byte sniff catches spoofed Content-Type values; declared MIME alone is not trustworthy from the client.
+    if (!IMAGE_MAGIC_BYTES[mime](file.buffer)) {
+      throw new BadRequestException(
+        'File contents do not match declared image type',
+      );
+    }
+
+    const existing = await this.getUserOrThrow(id);
+    const objectPath = `profile-pictures/${id}/${randomUUID()}.${MIME_TO_EXT[mime]}`;
+    const { publicUrl } = await this.storage.upload(
+      objectPath,
+      file.buffer,
+      mime,
+    );
+
+    const updated = await this.prisma.user.update({
+      where: { id },
+      data: { profilePictureUrl: publicUrl },
+    });
+
+    // Only delete prior blobs we own; external sources (Google OAuth avatar URLs) must never be touched.
+    if (this.storage.isOwnedUrl(existing.profilePictureUrl)) {
+      const priorPath = this.storage.pathFromUrl(existing.profilePictureUrl);
+      if (priorPath && priorPath !== objectPath) {
+        await this.storage.delete(priorPath);
+      }
+    }
+
+    return updated;
+  }
+
+  async removeProfilePicture(id: number) {
+    const existing = await this.getUserOrThrow(id);
+    const updated = await this.prisma.user.update({
+      where: { id },
+      data: { profilePictureUrl: DEFAULT_PROFILE_PICTURE_VALUE },
+    });
+    if (this.storage.isOwnedUrl(existing.profilePictureUrl)) {
+      const priorPath = this.storage.pathFromUrl(existing.profilePictureUrl);
+      if (priorPath) {
+        await this.storage.delete(priorPath);
+      }
+    }
+    return updated;
   }
 
   async remove(id: number) {

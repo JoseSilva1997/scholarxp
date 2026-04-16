@@ -9,6 +9,10 @@ import Login from './routes/Login';
 import Register from './routes/Register';
 import VerifyEmail from './routes/VerifyEmail';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { CosmeticThemeSync } from './context/CosmeticThemeSync';
+import { CosmeticStyleSync } from './context/CosmeticStyleSync';
+import { useCosmetics } from '@/rewards';
+import ScholarBackground from './components/Rewards/ScholarBackground';
 import RoleSelectorOverlay from './components/RoleSelectorOverlay';
 import AuthedLayout from './layouts/AuthedLayout';
 import ModulesPage from './routes/main/ModulesPage';
@@ -17,6 +21,7 @@ import ModuleUnitEditor from './routes/main/ModuleUnitEditor';
 import PracticeRoomPage from './routes/main/PracticeRoomPage';
 import DailyPracticePage from './routes/main/DailyPracticePage';
 import QuestsPage from './routes/main/QuestsPage';
+import RewardsPage from './routes/main/RewardsPage';
 import ProfilePage from './routes/main/ProfilePage';
 import AcceptInvite from './routes/main/AcceptInvite';
 import ModuleRosterPage from './routes/main/ModuleRosterPage';
@@ -32,6 +37,7 @@ function AppLayout() {
   const isShellRoute = location.pathname.startsWith('/main');
 
   const { user, isLoading, logout, setUser } = useAuth();
+  const { cosmetic } = useCosmetics();
   // Public landing at '/' needs full-width, no padding — its own sections manage layout.
   const isLandingRoute = location.pathname === '/' && !user && !isLoading;
   const shouldShowRoleSelector =
@@ -57,6 +63,11 @@ function AppLayout() {
 
   return (
     <div className={`App ${usesFullWidth ? 'App--auth' : ''}`}>
+      {/* Bridges server-backed cosmetic selections into ThemeProvider state for students;
+          a null-render component so it doesn't disturb layout. */}
+      <CosmeticThemeSync />
+      <CosmeticStyleSync />
+      {cosmetic('background') === 'scholar' ? <ScholarBackground /> : null}
       {shouldShowHeader ? (
         <Header
           user={user}
@@ -119,6 +130,7 @@ function AppLayout() {
                 <Route path="/main/modules/:moduleId/:unitId/practice-room" element={<PracticeRoomPage />} />
                 <Route path="/main/modules/:moduleId/daily-practice" element={<DailyPracticePage />} />
                 <Route path="/main/quests" element={<QuestsPage />} />
+                <Route path="/main/rewards" element={<RewardsPage />} />
                 <Route path="/main/profile" element={<ProfilePage />} />
               </Route>
             </Route>

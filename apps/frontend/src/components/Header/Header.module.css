@@ -43,7 +43,7 @@
 .headerRight {
   display: flex;
   align-items: center;
-  gap: clamp(6px, 1.5vw, 12px);
+  gap: clamp(6px, 1.5vw, 8px);
   flex-shrink: 0;
   padding-left: clamp(8px, 2vw, 20px);
   margin-left: auto;

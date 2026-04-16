@@ -21,13 +21,14 @@ import { useMemo } from 'react';
 import { features } from '@scholarxp/permissions';
 import { canUserAccess } from '@/permissions/permission';
 import styles from './SingleModulePage.module.css';
-import { ProficiencyLevelBadge } from '@/components/SingleModulePage/ProficiencyLevelBadge';
+import { ProficiencyBadge } from '@/components/ProficiencyBadge';
 import DebugMeta from '@/components/DebugMeta';
 
 export default function SingleModulePage() {
   const { moduleId } = useParams<{ moduleId: string }>();
   const { user } = useAuth();
-  const { theme } = useTheme();
+  // Icon assets only care about the explicit light/dark variant, not which color family the user picked.
+  const { resolvedTheme } = useTheme();
   const {
     module,
     moduleUnits,
@@ -128,10 +129,10 @@ export default function SingleModulePage() {
                         <img
                           src={
                             isStudentViewEnabled
-                              ? theme === 'dark'
+                              ? resolvedTheme === 'dark'
                                 ? untoggleStudentViewDarkIcon
                                 : untoggleStudentViewIcon
-                              : theme === 'dark'
+                              : resolvedTheme === 'dark'
                                 ? toggleStudentViewDarkIcon
                                 : toggleStudentViewIcon
                           }
@@ -169,7 +170,7 @@ export default function SingleModulePage() {
               {user?.globalRole === 'student' && module.userModuleLevel !== undefined ? (
                 <div className={styles.progressContainer}>
                   <div className={styles.badgeSection}>
-                    <ProficiencyLevelBadge level={module.userModuleLevel} />
+                    <ProficiencyBadge level={module.userModuleLevel} />
                   </div>
 
                   <div className={styles.progressData}>

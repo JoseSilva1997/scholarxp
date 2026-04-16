@@ -1,8 +1,9 @@
 // Sidebar navigation used inside the authenticated shell; highlights active route and supports compact mode for mobile.
 import { NavLink } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { RiBook3Line, RiUser3Line } from 'react-icons/ri';
+import { RiBook3Line } from 'react-icons/ri';
 import { PiPathDuotone } from "react-icons/pi";
+import { BsGift } from 'react-icons/bs';
 import { useAuth } from '../context/AuthContext';
 import { useUiLayout } from '../context/UiLayoutContext';
 import { canUserAccess } from '../permissions/permission';
@@ -39,11 +40,11 @@ const navItems: NavItem[] = [
     feature: features.navigation.quests,
   },
   {
-    to: '/main/profile',
-    label: 'Profile',
-    hint: 'My account',
-    icon: RiUser3Line,
-    feature: features.navigation.profile,
+    to: '/main/rewards',
+    label: 'Rewards',
+    hint: 'Cosmetics & unlocks',
+    icon: BsGift,
+    feature: features.navigation.rewards,
   },
 ];
 

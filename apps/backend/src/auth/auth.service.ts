@@ -16,7 +16,10 @@ import {
   type FeatureKey,
   type Role as PermissionRole,
 } from '@scholarxp/permissions';
-import { getProgressWithinLevel } from '@scholarxp/progression';
+import {
+  getProgressWithinLevel,
+  sanitizeEquippedCosmetics,
+} from '@scholarxp/progression';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailVerificationTokenService } from '../db-entities/email-verification-token/email-verification-token.service';
 import { MailDeliveryError, MailerService } from '../mailer/mailer.service';
@@ -393,7 +396,7 @@ export class AuthService {
     }
     return this.prisma.avatar.findUnique({
       where: { userId: user.id },
-      select: { id: true, totalExp: true },
+      select: { id: true, totalExp: true, equippedCosmetics: true },
     });
   }
 
@@ -408,7 +411,11 @@ export class AuthService {
       isVerified?: boolean;
       timezone?: string | null;
     },
-    avatar?: { id: number; totalExp: number } | null,
+    avatar?: {
+      id: number;
+      totalExp: number;
+      equippedCosmetics?: unknown;
+    } | null,
     membership?: {
       institutionIds?: number[];
       hasInstitutionMembership?: boolean;
@@ -417,13 +424,21 @@ export class AuthService {
     },
     requireVerification?: boolean,
   ): AuthUser {
-    const mappedAvatar = avatar
-      ? {
-          id: avatar.id,
-          totalExp: avatar.totalExp,
-          ...getProgressWithinLevel(avatar.totalExp),
-        }
-      : null;
+    // Sanitize the persisted JSON blob against the user's current level so stale or tampered entries
+    // never reach the UI. The client treats this as a plain read with no further validation.
+    const progress = avatar ? getProgressWithinLevel(avatar.totalExp) : null;
+    const mappedAvatar =
+      avatar && progress
+        ? {
+            id: avatar.id,
+            totalExp: avatar.totalExp,
+            ...progress,
+            equippedCosmetics: sanitizeEquippedCosmetics(
+              avatar.equippedCosmetics,
+              progress.level,
+            ),
+          }
+        : null;
 
     return {
       id: user.id,

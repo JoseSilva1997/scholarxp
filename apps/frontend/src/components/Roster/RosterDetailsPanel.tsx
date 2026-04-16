@@ -1,4 +1,4 @@
-// Expandable details panel beneath summary cards; contains Students and Lessons tabs.
+// Persistent details panel beneath summary cards; contains Students and Lessons tabs.
 import type { RosterTab } from '../../hooks/page-state/useModuleRosterPageState';
 import type {
   LessonDrilldownResponse,
@@ -17,10 +17,8 @@ import LessonDrillDown from './LessonDrillDown';
 import styles from './RosterDetailsPanel.module.css';
 
 type RosterDetailsPanelProps = {
-  isOpen: boolean;
   activeTab: RosterTab;
   onTabChange: (tab: RosterTab) => void;
-  onClose: () => void;
 
   // Students
   studentRows: RosterStudentRow[];
@@ -65,10 +63,8 @@ const TAB_LABELS: { key: RosterTab; label: string }[] = [
 ];
 
 export default function RosterDetailsPanel({
-  isOpen,
   activeTab,
   onTabChange,
-  onClose,
   studentRows,
   isStudentsLoading,
   studentsError,
@@ -100,8 +96,6 @@ export default function RosterDetailsPanel({
   isStudentDetailLoading,
   studentDetailError,
 }: RosterDetailsPanelProps) {
-  if (!isOpen) return null;
-
   const showStudentDrillDown = selectedStudentId !== null && activeTab === 'students';
   const showLessonDrillDown = selectedLessonId !== null && activeTab === 'lessons';
 
@@ -122,14 +116,6 @@ export default function RosterDetailsPanel({
             </button>
           ))}
         </div>
-        <button
-          type="button"
-          className={styles.closeButton}
-          onClick={onClose}
-          aria-label="Close details panel"
-        >
-          &times;
-        </button>
       </div>
 
       <div className={styles.tabPanel} role="tabpanel" aria-label={`${activeTab} tab`}>

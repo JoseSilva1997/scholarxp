@@ -42,7 +42,7 @@ export interface RosterLessonsQuery {
 export interface RosterLessonCoverage {
   totalLiveLessons: number;
   lessonsStartedByAtLeastOneStudent: number;
-  lessonsCompletedByAtLeastOneStudent: number;
+  lessonsCompletedByAtLeastHalfOfStudents: number;
 }
 
 export interface RosterSummaryResponse {

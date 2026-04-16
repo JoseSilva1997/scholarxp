@@ -1,5 +1,5 @@
 // Quests page-state orchestrates paged quest-history fetching, local-day grouping, and load-more actions.
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { QuestView } from '@scholarxp/api-contracts';
 import {
   getDisplayErrorMessage,
@@ -20,6 +20,7 @@ export type QuestDaySection = {
   questDayUtc: string;
   dayLabel: string;
   isToday: boolean;
+  isPlaceholder: boolean;
   quests: QuestView[];
   masterQuest: QuestView | null;
 };
@@ -40,6 +41,14 @@ type UseQuestPageStateResult = {
 export function useQuestPageState(): UseQuestPageStateResult {
   const { user, isLoading: isAuthLoading } = useAuth();
   const isHistoryQueryEnabled = !isAuthLoading && Boolean(user);
+  const activeUserId = user?.id ?? null;
+  const [visibleDayState, setVisibleDayState] = useState<{
+    userId: number | null;
+    count: number;
+  }>({
+    userId: activeUserId,
+    count: DAY_PAGE_SIZE,
+  });
 
   // Fetch quest history data using an infinite query pattern
   const questHistoryQuery = useQuestHistoryInfiniteQuery(
@@ -79,21 +88,32 @@ export function useQuestPageState(): UseQuestPageStateResult {
   const timezone = user?.timezone ?? 'UTC';
 
   // Transform grouped quest days into a format suitable for the UI
-  const daySections = useMemo(() => {
+  const allDaySections = useMemo(() => {
     const todayLocal = new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(new Date());
-    return groupedQuestDays.map(([questDayUtc, dayQuests]) => {
+    const groupedQuestDaysWithPlaceholders = fillMissingQuestDays(groupedQuestDays, todayLocal);
+
+    return groupedQuestDaysWithPlaceholders.map(([questDayUtc, dayQuests]) => {
       const { dailyQuests, masterQuest } = partitionQuestViewsByTier(dayQuests);
 
       return {
         questDayUtc,
         dayLabel: formatQuestDayLabel(questDayUtc, todayLocal),
         isToday: questDayUtc === todayLocal,
+        isPlaceholder: dayQuests.length === 0,
         // The page renders only the generated daily quests while the master quest gets its own chest treatment.
         quests: dailyQuests,
         masterQuest,
       };
     });
   }, [groupedQuestDays, timezone]);
+
+  const visibleDayCount =
+    visibleDayState.userId === activeUserId ? visibleDayState.count : DAY_PAGE_SIZE;
+
+  const daySections = useMemo(
+    () => allDaySections.slice(0, visibleDayCount),
+    [allDaySections, visibleDayCount],
+  );
 
   // Generate a user-friendly error message if the query fails
   const pageError = questHistoryQuery.error
@@ -105,6 +125,17 @@ export function useQuestPageState(): UseQuestPageStateResult {
 
   // Function to load more quest history pages
   const loadMore = () => {
+    if (visibleDayCount < allDaySections.length) {
+      setVisibleDayState((currentState) => ({
+        userId: activeUserId,
+        count:
+          (currentState.userId === activeUserId
+            ? currentState.count
+            : DAY_PAGE_SIZE) + DAY_PAGE_SIZE,
+      }));
+      return;
+    }
+
     // Query metadata controls continuation so UI only requests valid next-day windows.
     if (questHistoryQuery.hasNextPage && !questHistoryQuery.isFetchingNextPage) {
       void questHistoryQuery.fetchNextPage();
@@ -117,7 +148,8 @@ export function useQuestPageState(): UseQuestPageStateResult {
     isLoading: isHistoryQueryEnabled && questHistoryQuery.isPending,
     isLoadingMore: questHistoryQuery.isFetchingNextPage,
     pageError,
-    canLoadMore: Boolean(questHistoryQuery.hasNextPage),
+    canLoadMore:
+      visibleDayCount < allDaySections.length || Boolean(questHistoryQuery.hasNextPage),
     loadMore,
   };
 }
@@ -137,4 +169,36 @@ function formatQuestDayLabel(questDayUtc: string, todayLocal: string): string {
     year: 'numeric',
     timeZone: 'UTC',
   }).format(parsedDate);
+}
+
+function fillMissingQuestDays(
+  groupedQuestDays: Array<[string, QuestView[]]>,
+  todayLocal: string,
+): Array<[string, QuestView[]]> {
+  if (groupedQuestDays.length === 0) {
+    return [];
+  }
+
+  // Keep calendar gaps visible so missed days do not collapse into one continuous streak.
+  const filledQuestDays: Array<[string, QuestView[]]> = [];
+  let expectedQuestDayUtc =
+    groupedQuestDays[0][0] < todayLocal ? todayLocal : groupedQuestDays[0][0];
+
+  for (const [questDayUtc, dayQuests] of groupedQuestDays) {
+    while (expectedQuestDayUtc > questDayUtc) {
+      filledQuestDays.push([expectedQuestDayUtc, []]);
+      expectedQuestDayUtc = shiftQuestDay(expectedQuestDayUtc, -1);
+    }
+
+    filledQuestDays.push([questDayUtc, dayQuests]);
+    expectedQuestDayUtc = shiftQuestDay(questDayUtc, -1);
+  }
+
+  return filledQuestDays;
+}
+
+function shiftQuestDay(questDayUtc: string, dayDelta: number): string {
+  const parsedDate = new Date(`${questDayUtc}T00:00:00.000Z`);
+  parsedDate.setUTCDate(parsedDate.getUTCDate() + dayDelta);
+  return parsedDate.toISOString().slice(0, 10);
 }

@@ -135,13 +135,16 @@ describe('RosterService', () => {
         { studentId: 1 },
       ] as any);
 
-      // Lesson coverage: lesson 10 started, lesson 11 started and completed
-      prisma.moduleUnitUserProgress.findMany
-        .mockResolvedValueOnce([
-          { moduleUnitId: 10 },
-          { moduleUnitId: 11 },
-        ] as any) // started
-        .mockResolvedValueOnce([{ moduleUnitId: 11 }] as any); // completed
+      // Lesson coverage: lesson 10 has one completion, lesson 11 has two completions.
+      // With two enrolled students, both lessons meet the 50% threshold.
+      prisma.moduleUnitUserProgress.findMany.mockResolvedValueOnce([
+        { moduleUnitId: 10 },
+        { moduleUnitId: 11 },
+      ] as any); // started
+      prisma.moduleUnitUserProgress.groupBy.mockResolvedValue([
+        { moduleUnitId: 10, _count: { studentId: 1 } },
+        { moduleUnitId: 11, _count: { studentId: 2 } },
+      ] as any);
 
       const result = await service.getSummary(MODULE_ID);
 
@@ -153,7 +156,7 @@ describe('RosterService', () => {
       expect(result.lessonCoverage).toEqual({
         totalLiveLessons: 2,
         lessonsStartedByAtLeastOneStudent: 2,
-        lessonsCompletedByAtLeastOneStudent: 1,
+        lessonsCompletedByAtLeastHalfOfStudents: 2,
       });
     });
   });

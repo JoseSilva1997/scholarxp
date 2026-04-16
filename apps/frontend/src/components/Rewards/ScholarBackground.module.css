@@ -1,0 +1,21 @@
+/* Tiled icon wallpaper rendered behind app content. Covers the full viewport via flex-wrap repeat. */
+
+.wallpaper {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  padding: 20px;
+  gap: 40px 48px;
+  opacity: 0.12;
+}
+
+.icon {
+  font-size: 1.4rem;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}

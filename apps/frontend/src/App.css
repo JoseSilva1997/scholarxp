@@ -4,11 +4,11 @@
   height: 100%;
   min-height: 100vh;
   min-height: 100dvh;
-  /* Subtler, more modern ambient background */
-  /* Ambient glows provide depth without overwhelming the UI */
-  background: radial-gradient(circle at 10% 5%, var(--color-bg-glow-primary), transparent 25%),
+  /* color-bg-cosmetic is set by the background cosmetic (e.g., nebula); falls back to the default ambient glows. */
+  background: var(--color-bg-cosmetic,
+    radial-gradient(circle at 10% 5%, var(--color-bg-glow-primary), transparent 25%),
     radial-gradient(circle at 90% 85%, var(--color-bg-glow-secondary), transparent 25%),
-    var(--color-bg);
+    var(--color-bg));
   display: flex;
   flex-direction: column;
   position: relative;

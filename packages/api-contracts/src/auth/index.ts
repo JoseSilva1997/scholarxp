@@ -15,6 +15,9 @@ export interface AccountProgress {
   nextLevelExpRequired: number;
   xpToNextLevel: number;
   progressPercent: number;
+  // Per-slot cosmetic selections, already sanitized against the user's current level, so the
+  // client can read them without re-running unlock validation on every render.
+  equippedCosmetics: Record<string, string>;
 }
 
 export interface AuthUser {

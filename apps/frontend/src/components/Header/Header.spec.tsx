@@ -21,7 +21,7 @@ type MockUserBadgeProps = {
 };
 
 let mockUserBadgeProps: Partial<MockUserBadgeProps> = {};
-vi.mock('./UserBadge', () => ({
+vi.mock('./UserBadge/UserBadge', () => ({
   default: (props: unknown) => {
     // The test only needs level/exp, so we narrow incoming props to that minimal shape.
     if (props && typeof props === 'object') {
@@ -29,6 +29,12 @@ vi.mock('./UserBadge', () => ({
     }
     return <div data-testid="user-badge">user-badge</div>;
   },
+}));
+
+// ThemeToggle now depends on AuthContext + cosmetics hooks — Header routing/branding tests have no
+// opinion on toggle behavior, so we stub it out to avoid wiring an AuthProvider into this shared test harness.
+vi.mock('./ThemeToggle', () => ({
+  default: () => <div data-testid="theme-toggle">theme-toggle</div>,
 }));
 
 describe('Header', () => {
@@ -82,6 +88,7 @@ describe('Header', () => {
         nextLevelExpRequired: 318,
         xpToNextLevel: 118,
         progressPercent: 62.89,
+        equippedCosmetics: {},
       },
     };
 
@@ -160,6 +167,7 @@ describe('Header', () => {
         nextLevelExpRequired: 500,
         xpToNextLevel: 450,
         progressPercent: 10,
+        equippedCosmetics: {},
       },
     };
 
@@ -212,6 +220,7 @@ describe('Header', () => {
         nextLevelExpRequired: 318,
         xpToNextLevel: 118,
         progressPercent: 62.89,
+        equippedCosmetics: {},
       },
     };
 

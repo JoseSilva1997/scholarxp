@@ -335,6 +335,15 @@
   box-shadow: var(--shadow-sm);
 }
 
+.daySection.placeholderSection {
+  background: linear-gradient(
+    135deg,
+    var(--color-surface) 0%,
+    var(--color-surface-hover) 100%
+  );
+  border-style: dashed;
+}
+
 .dayQuestRow {
   display: flex;
   align-items: center;
@@ -344,6 +353,11 @@
   min-width: 0;
   /* Prevent overflow of quest badges at smaller breakpoints */
   overflow: visible;
+}
+
+.questHistoryPlaceholder {
+  flex: 1;
+  min-width: 0;
 }
 
 @media (max-width: 640px) {
@@ -411,6 +425,15 @@
 .masterQuestIndicatorIncomplete .masterQuestIndicatorIcon {
   color: var(--color-quest-wood);
   filter: drop-shadow(0 0 8px var(--color-quest-wood-glow));
+}
+
+.masterQuestIndicatorPlaceholder {
+  border: 1px dashed var(--color-border-hover);
+  background: var(--color-bg);
+}
+
+.masterQuestIndicatorPlaceholder .masterQuestIndicatorIcon {
+  color: var(--color-text-muted);
 }
 
 .masterQuestIndicatorComplete {
@@ -509,6 +532,12 @@
   color: var(--color-accent-dark);
 }
 
+.placeholderSection .dayProgress::after {
+  content: 'NO QUESTS';
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+}
+
 .completedCheckmark {
   color: var(--color-secondary);
   font-size: 1.85rem;
@@ -519,7 +548,7 @@
 .loadMoreButton {
   margin-top: 24px;
   padding: 18px 40px;
-  background: var(--color-text);
+  background: var(--btn-primary-dark);
   color: var(--color-text-on-primary);
   border: none;
   border-radius: 100px;
