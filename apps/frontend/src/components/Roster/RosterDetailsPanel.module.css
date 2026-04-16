@@ -1,4 +1,4 @@
-/* Expandable details panel beneath roster summary cards. */
+/* Persistent details panel beneath roster summary cards. */
 .panel {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
