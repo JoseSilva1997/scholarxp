@@ -73,9 +73,6 @@ describe('DailyPracticeFsrsStateService', () => {
 
   it('creates no state on a first-ever incorrect encounter', async () => {
     questionStateReadService.findStateForQuestion.mockResolvedValue(null);
-    fsrsGradeService.mapEncounterToGrade.mockReturnValue(
-      FsrsReviewGradeValues.again,
-    );
 
     const result = await service.applyEncounter({
       userId: 42,
@@ -97,6 +94,8 @@ describe('DailyPracticeFsrsStateService', () => {
     ).not.toHaveBeenCalled();
     expect(policyService.computeNextStateForExisting).not.toHaveBeenCalled();
     expect(prisma.questionAttempt.findMany).not.toHaveBeenCalled();
+    // No grade is computed for a deferred seed; the encounter was recorded by the caller but produces no FSRS state.
+    expect(fsrsGradeService.mapEncounterToGrade).not.toHaveBeenCalled();
   });
 
   it('seeds and persists state on the first correct encounter using policy output', async () => {
@@ -163,6 +162,24 @@ describe('DailyPracticeFsrsStateService', () => {
         timeToFirstCorrectMs: 12000 + 15000 + 7000,
       },
     });
+    expect(fsrsGradeService.mapEncounterToGrade).toHaveBeenCalledWith({
+      isCorrect: true,
+      hintUnlocked: false,
+      isSeeding: true,
+      priorFailedInAcquisition: 2,
+      priorHintedInAcquisition: 1,
+      timeTakenMs: 7000,
+    });
+    // Acquisition evidence must only count lesson-practice attempts — daily-practice reviews are excluded so seed difficulty is not contaminated.
+    expect(prisma.questionAttempt.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          studentId: 42,
+          questionId: 91,
+          session: { sessionType: 'practice_room' },
+        }),
+      }),
+    );
     expect(prisma.studentQuestionState.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
@@ -257,9 +274,20 @@ describe('DailyPracticeFsrsStateService', () => {
       reviewedAt,
       timezone: 'UTC',
     });
+    // Review-path grading judges the current encounter alone — acquisition history stays at zero here because it's already baked into the seeded card.
+    expect(fsrsGradeService.mapEncounterToGrade).toHaveBeenCalledWith({
+      isCorrect: false,
+      hintUnlocked: false,
+      isSeeding: false,
+      priorFailedInAcquisition: 0,
+      priorHintedInAcquisition: 0,
+      timeTakenMs: 10000,
+    });
     expect(
       policyService.computeSeedStateForFirstCorrect,
     ).not.toHaveBeenCalled();
+    // Review path must not re-read acquisition evidence — the seed already captured that history.
+    expect(prisma.questionAttempt.findMany).not.toHaveBeenCalled();
     expect(prisma.studentQuestionState.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         update: expect.objectContaining({

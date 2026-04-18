@@ -240,10 +240,15 @@ export class DailyPracticeService {
         { allowVariantContent: true },
       );
     const attemptedAt = new Date();
+    // Surface-level grade for the submit response: the state service is the source of truth for recorded grades (including acquisition-biased seed grading). This display compute keeps the client's simple pass/hint/clean signal without re-loading acquisition evidence here.
     const encounterGrade =
       this.dailyPracticeFsrsGradeService.mapEncounterToGrade({
-        firstAttemptCorrect: isCorrect,
+        isCorrect,
         hintUnlocked: payload.hintUnlocked,
+        isSeeding: false,
+        priorFailedInAcquisition: 0,
+        priorHintedInAcquisition: 0,
+        timeTakenMs: payload.timeTakenMs,
       });
 
     const progress = await this.prisma.$transaction(async (tx) => {

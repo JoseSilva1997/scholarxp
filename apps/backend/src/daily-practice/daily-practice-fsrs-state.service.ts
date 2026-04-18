@@ -1,6 +1,9 @@
 // Role: persists daily-practice FSRS updates — gates first-encounter creation on the first correct attempt and defers day-level scheduling policy to DailyPracticeFsrsPolicyService.
 import { Injectable } from '@nestjs/common';
-import { DailyPracticeAlgorithmVersionValues } from '@scholarxp/api-contracts';
+import {
+  DailyPracticeAlgorithmVersionValues,
+  PracticeSessionTypeValues,
+} from '@scholarxp/api-contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { DailyPracticeQuestionStateReadService } from './daily-practice-question-state-read.service';
 import { DailyPracticeFsrsGradeService } from './daily-practice-fsrs-grade.service';
@@ -56,11 +59,6 @@ export class DailyPracticeFsrsStateService {
       return null;
     }
 
-    const grade = this.fsrsGradeService.mapEncounterToGrade({
-      firstAttemptCorrect: params.firstAttemptCorrect,
-      hintUnlocked: params.hintUnlocked,
-    });
-
     if (!existingState) {
       if (!params.firstAttemptCorrect) {
         // Defer seeding until the first successful encounter — recording failed first attempts as FSRS state distorts stability for questions the learner has not yet acquired.
@@ -72,6 +70,15 @@ export class DailyPracticeFsrsStateService {
         params.userId,
         params.questionUnitId,
       );
+      // Seed-path grading folds acquisition struggle (prior fails/hints in lesson practice, or a very slow first success) into the seeded grade so stability reflects how hard the learner had to work to acquire the question.
+      const grade = this.fsrsGradeService.mapEncounterToGrade({
+        isCorrect: params.firstAttemptCorrect,
+        hintUnlocked: params.hintUnlocked,
+        isSeeding: true,
+        priorFailedInAcquisition: evidence.priorFailedAttempts,
+        priorHintedInAcquisition: evidence.priorHintedAttempts,
+        timeTakenMs: params.timeTakenMs,
+      });
       const seed = this.policyService.computeSeedStateForFirstCorrect({
         grade,
         reviewedAt: params.reviewedAt,
@@ -81,6 +88,16 @@ export class DailyPracticeFsrsStateService {
 
       return this.persistCreate(prismaClient, params, grade, seed);
     }
+
+    // Review-path grading is judged on the current encounter alone — acquisition history already shaped the seeded stability/difficulty and must not double-count into every review.
+    const grade = this.fsrsGradeService.mapEncounterToGrade({
+      isCorrect: params.firstAttemptCorrect,
+      hintUnlocked: params.hintUnlocked,
+      isSeeding: false,
+      priorFailedInAcquisition: 0,
+      priorHintedInAcquisition: 0,
+      timeTakenMs: params.timeTakenMs,
+    });
 
     const nextCard = this.policyService.computeNextStateForExisting({
       existingState,
@@ -224,11 +241,15 @@ export class DailyPracticeFsrsStateService {
     userId: number,
     questionUnitId: number,
   ): Promise<AcquisitionEvidence> {
-    // The current attempt is persisted before this service runs, so walking attempts in order covers up to and including the first correct one.
+    // Restrict to practice-room sessions: acquisition is lesson practice only. Daily-practice attempts are reviews and must not contaminate the seed's difficulty signal.
+    // The current attempt is persisted before this service runs, so when seeding occurs inside practice-room the walk already covers up to and including the first correct one.
     const attempts = await prismaClient.questionAttempt.findMany({
       where: {
         studentId: userId,
         questionId: questionUnitId,
+        session: {
+          sessionType: PracticeSessionTypeValues.practiceRoom,
+        },
       },
       orderBy: [{ attemptedAt: 'asc' }, { id: 'asc' }],
       select: {

@@ -7,6 +7,15 @@ import { DailyPracticeFsrsGradeService } from './daily-practice-fsrs-grade.servi
 describe('DailyPracticeFsrsGradeService', () => {
   let service: DailyPracticeFsrsGradeService;
 
+  const baseInput = {
+    isCorrect: true,
+    hintUnlocked: false,
+    isSeeding: false,
+    priorFailedInAcquisition: 0,
+    priorHintedInAcquisition: 0,
+    timeTakenMs: 5_000,
+  } as const;
+
   beforeEach(async () => {
     const moduleRef: TestingModule = await Test.createTestingModule({
       providers: [DailyPracticeFsrsGradeService],
@@ -15,29 +24,80 @@ describe('DailyPracticeFsrsGradeService', () => {
     service = moduleRef.get(DailyPracticeFsrsGradeService);
   });
 
-  it('maps incorrect first attempts to again', () => {
+  it('maps incorrect encounters to again regardless of seeding', () => {
     expect(
       service.mapEncounterToGrade({
-        firstAttemptCorrect: false,
-        hintUnlocked: false,
+        ...baseInput,
+        isCorrect: false,
+      }),
+    ).toBe(FsrsReviewGradeValues.again);
+    expect(
+      service.mapEncounterToGrade({
+        ...baseInput,
+        isCorrect: false,
+        isSeeding: true,
       }),
     ).toBe(FsrsReviewGradeValues.again);
   });
 
-  it('maps hinted correct first attempts to hard', () => {
+  it('maps correct encounters with a hint this turn to hard', () => {
     expect(
       service.mapEncounterToGrade({
-        firstAttemptCorrect: true,
+        ...baseInput,
         hintUnlocked: true,
       }),
     ).toBe(FsrsReviewGradeValues.hard);
   });
 
-  it('maps clean correct first attempts to good', () => {
+  it('maps clean correct review-path encounters to good even with prior acquisition struggle', () => {
+    // Review-path: acquisition history is already folded into seeded stability and must not double-count per review.
     expect(
       service.mapEncounterToGrade({
-        firstAttemptCorrect: true,
-        hintUnlocked: false,
+        ...baseInput,
+        isSeeding: false,
+        priorFailedInAcquisition: 3,
+        priorHintedInAcquisition: 2,
+        timeTakenMs: 60_000,
+      }),
+    ).toBe(FsrsReviewGradeValues.good);
+  });
+
+  it('downgrades clean correct seeds to hard when any prior acquisition attempt failed', () => {
+    expect(
+      service.mapEncounterToGrade({
+        ...baseInput,
+        isSeeding: true,
+        priorFailedInAcquisition: 1,
+      }),
+    ).toBe(FsrsReviewGradeValues.hard);
+  });
+
+  it('downgrades clean correct seeds to hard when acquisition required hints', () => {
+    expect(
+      service.mapEncounterToGrade({
+        ...baseInput,
+        isSeeding: true,
+        priorHintedInAcquisition: 1,
+      }),
+    ).toBe(FsrsReviewGradeValues.hard);
+  });
+
+  it('downgrades clean correct seeds to hard when the first successful retrieval was very slow', () => {
+    expect(
+      service.mapEncounterToGrade({
+        ...baseInput,
+        isSeeding: true,
+        timeTakenMs: 30_001,
+      }),
+    ).toBe(FsrsReviewGradeValues.hard);
+  });
+
+  it('maps clean correct seeds with no acquisition struggle to good', () => {
+    expect(
+      service.mapEncounterToGrade({
+        ...baseInput,
+        isSeeding: true,
+        timeTakenMs: 8_000,
       }),
     ).toBe(FsrsReviewGradeValues.good);
   });
