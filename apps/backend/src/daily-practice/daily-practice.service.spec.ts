@@ -339,6 +339,19 @@ describe('DailyPracticeService', () => {
     expect(dailyPracticeFsrsStateService.applyEncounter).toHaveBeenCalledTimes(
       1,
     );
+    expect(dailyPracticeFsrsStateService.applyEncounter).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 42,
+        moduleId: 7,
+        moduleUnitId: 11,
+        questionUnitId: 101,
+        firstAttemptCorrect: true,
+        timezone: 'UTC',
+        priorEncounterExists: false,
+      }),
+      tx,
+    );
+    expect(dailyPracticeMasteryExpService.evaluateAndAward).toHaveBeenCalled();
     expect(tx.dailyPracticeSet.update).toHaveBeenCalledWith({
       where: { id: persistedSet.id },
       data: { completedAt: expect.any(Date) },
@@ -365,6 +378,124 @@ describe('DailyPracticeService', () => {
       }),
     );
     expect(result).toBe(mappedResponse);
+  });
+
+  it('skips mastery XP evaluation when applyEncounter defers state creation on a first-incorrect attempt', async () => {
+    const persistedSet = buildPersistedSet();
+    const tx = createPrismaMock();
+    const mappedResponse = { hasCorrectAttempt: false };
+
+    dailyPracticeSetReadService.findOwnedSetById.mockResolvedValue(
+      persistedSet,
+    );
+    practiceRoomSessionService.getOwnedPracticeSessionOrThrow.mockResolvedValue(
+      {
+        id: 'session-1',
+        sessionType: PracticeSessionTypeValues.dailyPractice,
+        endTime: null,
+      },
+    );
+    practiceRoomAttemptService.computeIsCorrectForPayload.mockResolvedValue(
+      false,
+    );
+    dailyPracticeFsrsGradeService.mapEncounterToGrade.mockReturnValue(
+      FsrsReviewGradeValues.again,
+    );
+    practiceRoomAttemptService.createAttemptRecord.mockResolvedValue({
+      id: 1,
+    });
+    // Policy defers state creation on first-incorrect encounters, returning null so mastery XP must not be evaluated.
+    dailyPracticeFsrsStateService.applyEncounter.mockResolvedValue(null);
+    tx.questionAttempt.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
+    tx.questionAttempt.findMany.mockResolvedValue([] as never);
+    prisma.$transaction.mockImplementation(async (callback) => callback(tx));
+    dailyPracticeMapper.buildSubmitResponse.mockReturnValue(mappedResponse);
+
+    await service.submitAttempt(7, 42, {
+      setId: persistedSet.id,
+      moduleUnitId: 11,
+      questionUnitId: 101,
+      questionContentId: 601,
+      sessionId: 'session-1',
+      timeTakenMs: 9000,
+      hintUnlocked: false,
+      studentAnswer: { selectedOptionIndex: 0 },
+    });
+
+    expect(dailyPracticeFsrsStateService.applyEncounter).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(
+      dailyPracticeMasteryExpService.evaluateAndAward,
+    ).not.toHaveBeenCalled();
+    expect(dailyPracticeMapper.buildSubmitResponse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        awards: expect.objectContaining({ masteryExp: 0 }),
+      }),
+    );
+  });
+
+  it('forwards priorEncounterExists=true on later same-day attempts so the state service can still seed late-correct cards', async () => {
+    const persistedSet = buildPersistedSet();
+    const tx = createPrismaMock();
+    const mappedResponse = { hasCorrectAttempt: true };
+
+    dailyPracticeSetReadService.findOwnedSetById.mockResolvedValue(
+      persistedSet,
+    );
+    practiceRoomSessionService.getOwnedPracticeSessionOrThrow.mockResolvedValue(
+      {
+        id: 'session-1',
+        sessionType: PracticeSessionTypeValues.dailyPractice,
+        endTime: null,
+      },
+    );
+    practiceRoomAttemptService.computeIsCorrectForPayload.mockResolvedValue(
+      true,
+    );
+    dailyPracticeFsrsGradeService.mapEncounterToGrade.mockReturnValue(
+      FsrsReviewGradeValues.good,
+    );
+    practiceRoomAttemptService.createAttemptRecord.mockResolvedValue({
+      id: 1,
+    });
+    // State service decides whether to seed late or skip — the facade only forwards the flag.
+    dailyPracticeFsrsStateService.applyEncounter.mockResolvedValue({
+      id: 'state-late-seed',
+    });
+    // Both pre-submit findFirst calls return a prior daily attempt to model the late-correct scenario.
+    tx.questionAttempt.findFirst
+      .mockResolvedValueOnce({ id: 99 } as never)
+      .mockResolvedValueOnce(null);
+    tx.questionAttempt.findMany.mockResolvedValue([
+      { questionId: 101 },
+    ] as never);
+    prisma.$transaction.mockImplementation(async (callback) => callback(tx));
+    dailyPracticeMapper.buildSubmitResponse.mockReturnValue(mappedResponse);
+
+    await service.submitAttempt(7, 42, {
+      setId: persistedSet.id,
+      moduleUnitId: 11,
+      questionUnitId: 101,
+      questionContentId: 601,
+      sessionId: 'session-1',
+      timeTakenMs: 9000,
+      hintUnlocked: false,
+      studentAnswer: { selectedOptionIndex: 0 },
+    });
+
+    expect(dailyPracticeFsrsStateService.applyEncounter).toHaveBeenCalledWith(
+      expect.objectContaining({
+        questionUnitId: 101,
+        firstAttemptCorrect: true,
+        priorEncounterExists: true,
+      }),
+      tx,
+    );
+    // State service returned a seeded card, so mastery XP fires.
+    expect(dailyPracticeMasteryExpService.evaluateAndAward).toHaveBeenCalled();
   });
 
   it('rejects submits whose content id does not match the persisted daily-practice item', async () => {

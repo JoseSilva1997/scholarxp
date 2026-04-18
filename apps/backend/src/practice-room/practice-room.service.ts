@@ -190,22 +190,27 @@ export class PracticeRoomService {
         attemptedAt,
         tx,
       );
-      if (!hadAnySessionAttemptBeforeSubmit) {
-        // The first attempt within a lesson or retry session acts as the normalized encounter that seeds adaptive review state.
-        await this.dailyPracticeFsrsStateService.applyEncounter(
-          {
-            userId: studentId,
-            moduleId,
-            moduleUnitId,
-            questionUnitId: payload.questionUnitId,
-            reviewedAt: attemptedAt,
-            firstAttemptCorrect: isCorrect,
-            hintUnlocked: payload.hintUnlocked,
-            timeTakenMs: payload.timeTakenMs,
-          },
-          tx,
-        );
-      }
+      // Always feed encounters into the FSRS service so a late-correct attempt can still seed state after earlier wrong attempts in the same session. The state service guards against double-grading an already-seeded card via priorEncounterExists.
+      const timezoneRow = await tx.user.findUnique({
+        where: { id: studentId },
+        select: { timezone: true },
+      });
+      const timezone = timezoneRow?.timezone ?? 'UTC';
+      await this.dailyPracticeFsrsStateService.applyEncounter(
+        {
+          userId: studentId,
+          moduleId,
+          moduleUnitId,
+          questionUnitId: payload.questionUnitId,
+          reviewedAt: attemptedAt,
+          firstAttemptCorrect: isCorrect,
+          hintUnlocked: payload.hintUnlocked,
+          timeTakenMs: payload.timeTakenMs,
+          timezone,
+          priorEncounterExists: hadAnySessionAttemptBeforeSubmit,
+        },
+        tx,
+      );
       let updatedMembership: AttemptModuleExpRewardResult['updatedMembership'] =
         null;
       let moduleAwards: AttemptModuleExpRewardResult['moduleAwards'] = {

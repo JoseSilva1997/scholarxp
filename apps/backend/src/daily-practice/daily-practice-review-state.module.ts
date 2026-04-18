@@ -1,6 +1,7 @@
 // Role: shares the adaptive question-state services between daily-practice and lesson practice so all qualifying encounters feed one learner-state model.
 import { Module } from '@nestjs/common';
 import { DailyPracticeFsrsGradeService } from './daily-practice-fsrs-grade.service';
+import { DailyPracticeFsrsPolicyService } from './daily-practice-fsrs-policy.service';
 import { DailyPracticeFsrsStateService } from './daily-practice-fsrs-state.service';
 import { DailyPracticeQuestionStateReadService } from './daily-practice-question-state-read.service';
 
@@ -8,11 +9,13 @@ import { DailyPracticeQuestionStateReadService } from './daily-practice-question
 @Module({
   providers: [
     DailyPracticeFsrsGradeService,
+    DailyPracticeFsrsPolicyService,
     DailyPracticeFsrsStateService,
     DailyPracticeQuestionStateReadService,
   ],
   exports: [
     DailyPracticeFsrsGradeService,
+    DailyPracticeFsrsPolicyService,
     DailyPracticeFsrsStateService,
     DailyPracticeQuestionStateReadService,
   ],

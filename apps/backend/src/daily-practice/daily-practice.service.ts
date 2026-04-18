@@ -293,25 +293,27 @@ export class DailyPracticeService {
         tx,
       );
 
-      // FSRS state is updated at most once per day — subsequent retries on the same question don't re-grade.
-      // Mastery XP evaluation piggybacks on the same guard since it depends on the updated FSRS state.
-      let masteryExpAwarded = 0;
-      if (!hadAnyDailyAttemptBeforeSubmit) {
-        const updatedState =
-          await this.dailyPracticeFsrsStateService.applyEncounter(
-            {
-              userId: studentId,
-              moduleId,
-              moduleUnitId: payload.moduleUnitId,
-              questionUnitId: payload.questionUnitId,
-              reviewedAt: attemptedAt,
-              firstAttemptCorrect: isCorrect,
-              hintUnlocked: payload.hintUnlocked,
-              timeTakenMs: payload.timeTakenMs,
-            },
-            tx,
-          );
+      // FSRS state is updated at most once per day — subsequent retries on the same question don't re-grade. The state service gates re-grading internally via priorEncounterExists, so late-correct attempts can still seed a card that earlier wrong attempts deferred.
+      // Mastery XP only fires when state actually transitions or seeds (updatedState != null).
+      const updatedState =
+        await this.dailyPracticeFsrsStateService.applyEncounter(
+          {
+            userId: studentId,
+            moduleId,
+            moduleUnitId: payload.moduleUnitId,
+            questionUnitId: payload.questionUnitId,
+            reviewedAt: attemptedAt,
+            firstAttemptCorrect: isCorrect,
+            hintUnlocked: payload.hintUnlocked,
+            timeTakenMs: payload.timeTakenMs,
+            timezone,
+            priorEncounterExists: Boolean(hadAnyDailyAttemptBeforeSubmit),
+          },
+          tx,
+        );
 
+      let masteryExpAwarded = 0;
+      if (updatedState) {
         const masteryResult =
           await this.dailyPracticeMasteryExpService.evaluateAndAward(
             {

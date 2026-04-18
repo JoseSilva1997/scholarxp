@@ -83,6 +83,8 @@ describe('PracticeRoomService', () => {
     (prisma.$transaction as jest.Mock).mockImplementation(async (callback) =>
       callback(prisma),
     );
+    // Timezone lookup drives FSRS day-level due-date snapping — default to UTC for deterministic assertions.
+    prisma.user.findUnique.mockResolvedValue({ timezone: 'UTC' } as never);
 
     practiceRoomReadService = {
       loadRoomContext: jest.fn(),
@@ -358,6 +360,8 @@ describe('PracticeRoomService', () => {
           firstAttemptCorrect: true,
           hintUnlocked: false,
           timeTakenMs: payload.timeTakenMs,
+          timezone: 'UTC',
+          priorEncounterExists: false,
         },
         prisma,
       );
@@ -446,6 +450,8 @@ describe('PracticeRoomService', () => {
           firstAttemptCorrect: false,
           hintUnlocked: true,
           timeTakenMs: payload.timeTakenMs,
+          timezone: 'UTC',
+          priorEncounterExists: false,
         },
         prisma,
       );
@@ -497,6 +503,8 @@ describe('PracticeRoomService', () => {
           firstAttemptCorrect: true,
           hintUnlocked: false,
           timeTakenMs: payload.timeTakenMs,
+          timezone: 'UTC',
+          priorEncounterExists: false,
         },
         prisma,
       );
@@ -543,7 +551,7 @@ describe('PracticeRoomService', () => {
       });
     });
 
-    it('does not reapply adaptive review state after the first question attempt in the same session', async () => {
+    it('forwards retry attempts to the FSRS service with priorEncounterExists set so the state service can decide whether to re-grade or seed late', async () => {
       const payload = buildSubmitAttemptPayload();
 
       practiceRoomSessionService.getOwnedPracticeSessionOrThrow.mockResolvedValue(
@@ -582,9 +590,15 @@ describe('PracticeRoomService', () => {
         payload,
       );
 
-      expect(
-        dailyPracticeFsrsStateService.applyEncounter,
-      ).not.toHaveBeenCalled();
+      // The facade no longer gates the call; the state service uses priorEncounterExists to skip re-grading an already-seeded card while still allowing late-seed when the card does not yet exist.
+      expect(dailyPracticeFsrsStateService.applyEncounter).toHaveBeenCalledWith(
+        expect.objectContaining({
+          questionUnitId: payload.questionUnitId,
+          firstAttemptCorrect: true,
+          priorEncounterExists: true,
+        }),
+        prisma,
+      );
     });
   });
 
