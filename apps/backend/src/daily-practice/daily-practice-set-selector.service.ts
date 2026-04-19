@@ -4,6 +4,7 @@ import {
   DailyPracticeSelectionBucketValues,
   FsrsReviewGradeValues,
 } from '@scholarxp/api-contracts';
+import { PrismaService } from '../prisma/prisma.service';
 import { DailyPracticeCandidateReadService } from './daily-practice-candidate-read.service';
 import { DailyPracticeQuestionStateReadService } from './daily-practice-question-state-read.service';
 import { buildDailyPracticeSelectionPlan } from './daily-practice-set-sizing.policy';
@@ -15,7 +16,7 @@ import type {
   StudentQuestionStateRecord,
 } from './daily-practice.types';
 
-const MAX_QUESTIONS_PER_LESSON = 2;
+const MAX_QUESTIONS_PER_LESSON = 3;
 const RECENT_STRUGGLE_WINDOW_DAYS = 14;
 
 type BuildDailyPracticeSelectionParams = {
@@ -40,6 +41,7 @@ type CandidateWithSelectionMetadata = {
 @Injectable()
 export class DailyPracticeSetSelectorService {
   constructor(
+    private readonly prisma: PrismaService,
     private readonly candidateReadService: DailyPracticeCandidateReadService,
     private readonly questionStateReadService: DailyPracticeQuestionStateReadService,
   ) {}
@@ -48,22 +50,27 @@ export class DailyPracticeSetSelectorService {
   async selectQuestions(
     params: BuildDailyPracticeSelectionParams,
   ): Promise<DailyPracticeSelectionResult> {
-    const [candidates, states] = await Promise.all([
+    const [candidates, states, completedModuleUnitIds] = await Promise.all([
       this.candidateReadService.listModuleCandidateQuestions(params.moduleId),
       this.questionStateReadService.listStatesForModule(
         params.userId,
         params.moduleId,
       ),
+      this.loadCompletedModuleUnitIds(params.userId, params.moduleId),
     ]);
 
     const stateByQuestionId = new Map(
       states.map((state) => [state.questionUnitId, state]),
     );
-    const enrichedCandidates = candidates.map((candidate) => ({
-      candidate,
-      studentQuestionState:
-        stateByQuestionId.get(candidate.questionUnitId) ?? null,
-    }));
+    // Daily practice only surfaces questions from fully-mastered units so the student
+    // reinforces material they've already proven before being asked to review it daily.
+    const enrichedCandidates = candidates
+      .filter((candidate) => completedModuleUnitIds.has(candidate.moduleUnitId))
+      .map((candidate) => ({
+        candidate,
+        studentQuestionState:
+          stateByQuestionId.get(candidate.questionUnitId) ?? null,
+      }));
     const dueReviewCandidates = this.buildDueReviewCandidates(
       enrichedCandidates,
       params.now,
@@ -436,6 +443,27 @@ export class DailyPracticeSetSelectorService {
       candidate.candidate.moduleUnitId,
       (lessonCounts.get(candidate.candidate.moduleUnitId) ?? 0) + 1,
     );
+  }
+
+  // Completion is the hard eligibility gate for daily practice: questions from partially-mastered units never reach the set.
+  private async loadCompletedModuleUnitIds(
+    userId: number,
+    moduleId: number,
+  ): Promise<Set<number>> {
+    const progressRows = await this.prisma.moduleUnitUserProgress.findMany({
+      where: {
+        studentId: userId,
+        isCompleted: true,
+        moduleUnit: {
+          moduleId,
+        },
+      },
+      select: {
+        moduleUnitId: true,
+      },
+    });
+
+    return new Set(progressRows.map((row) => row.moduleUnitId));
   }
 
   private compareNullableNumbers(

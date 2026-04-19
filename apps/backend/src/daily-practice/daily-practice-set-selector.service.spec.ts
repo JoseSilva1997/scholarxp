@@ -4,6 +4,7 @@ import {
   DailyPracticeSelectionBucketValues,
   FsrsReviewGradeValues,
 } from '@scholarxp/api-contracts';
+import { PrismaService } from '../prisma/prisma.service';
 import { DailyPracticeCandidateReadService } from './daily-practice-candidate-read.service';
 import { DailyPracticeQuestionStateReadService } from './daily-practice-question-state-read.service';
 import { DailyPracticeSetSelectorService } from './daily-practice-set-selector.service';
@@ -20,6 +21,15 @@ describe('DailyPracticeSetSelectorService', () => {
   let questionStateReadService: {
     listStatesForModule: jest.Mock;
   };
+  let prismaService: {
+    moduleUnitUserProgress: { findMany: jest.Mock };
+  };
+
+  function mockCompletedUnits(moduleUnitIds: number[]): void {
+    prismaService.moduleUnitUserProgress.findMany.mockResolvedValue(
+      moduleUnitIds.map((moduleUnitId) => ({ moduleUnitId })),
+    );
+  }
 
   beforeEach(async () => {
     candidateReadService = {
@@ -28,10 +38,25 @@ describe('DailyPracticeSetSelectorService', () => {
     questionStateReadService = {
       listStatesForModule: jest.fn(),
     };
+    prismaService = {
+      moduleUnitUserProgress: {
+        // Default: every module unit referenced by test fixtures is completed so that
+        // each scenario can isolate the FSRS behavior it targets without repeating completion setup.
+        findMany: jest
+          .fn()
+          .mockResolvedValue(
+            [1, 2, 3, 4, 5].map((moduleUnitId) => ({ moduleUnitId })),
+          ),
+      },
+    };
 
     const moduleRef: TestingModule = await Test.createTestingModule({
       providers: [
         DailyPracticeSetSelectorService,
+        {
+          provide: PrismaService,
+          useValue: prismaService,
+        },
         {
           provide: DailyPracticeCandidateReadService,
           useValue: candidateReadService,
@@ -99,7 +124,7 @@ describe('DailyPracticeSetSelectorService', () => {
     ).toHaveLength(1);
   });
 
-  it('returns no set when fewer than three attempted questions exist', async () => {
+  it('returns no set when fewer than three eligible questions exist', async () => {
     const now = new Date('2026-03-17T12:00:00.000Z');
     candidateReadService.listModuleCandidateQuestions.mockResolvedValue([
       buildCandidate(101, 1, 1),
@@ -114,7 +139,8 @@ describe('DailyPracticeSetSelectorService', () => {
         fsrsDueAt: new Date('2026-03-20T12:00:00.000Z'),
         lastGrade: FsrsReviewGradeValues.good,
       }),
-      // Q202 has no state row → never attempted, not eligible for the review-only set.
+      // Q202 has no state row — completion is sticky so new questions added after a unit
+      // was completed won't have FSRS state yet and must stay out of the review-only set.
     ] satisfies StudentQuestionStateRecord[]);
 
     const result = await service.selectQuestions({
@@ -129,6 +155,80 @@ describe('DailyPracticeSetSelectorService', () => {
       reinforcementQuota: 0,
     });
     expect(result.selectedQuestions).toEqual([]);
+  });
+
+  it('returns no set when the student has not completed any module unit', async () => {
+    const now = new Date('2026-03-17T12:00:00.000Z');
+    candidateReadService.listModuleCandidateQuestions.mockResolvedValue([
+      buildCandidate(101, 1, 1),
+      buildCandidate(102, 1, 2),
+      buildCandidate(201, 2, 1),
+    ] satisfies DailyPracticeCandidateQuestionRecord[]);
+    questionStateReadService.listStatesForModule.mockResolvedValue([
+      buildState(101, 1, {
+        fsrsDueAt: new Date('2026-03-15T12:00:00.000Z'),
+      }),
+      buildState(102, 1, {
+        fsrsDueAt: new Date('2026-03-16T12:00:00.000Z'),
+      }),
+      buildState(201, 2, {
+        fsrsDueAt: new Date('2026-03-16T12:00:00.000Z'),
+      }),
+    ] satisfies StudentQuestionStateRecord[]);
+    mockCompletedUnits([]);
+
+    const result = await service.selectQuestions({
+      userId: 42,
+      moduleId: 7,
+      now,
+    });
+
+    expect(result.plan).toEqual({
+      targetQuestionCount: 0,
+      dueReviewQuota: 0,
+      reinforcementQuota: 0,
+    });
+    expect(result.selectedQuestions).toEqual([]);
+  });
+
+  it('excludes candidates whose module unit is not yet completed even when FSRS state qualifies them', async () => {
+    const now = new Date('2026-03-17T12:00:00.000Z');
+    candidateReadService.listModuleCandidateQuestions.mockResolvedValue([
+      buildCandidate(101, 1, 1),
+      buildCandidate(102, 1, 2),
+      buildCandidate(103, 1, 3),
+      // Unit 2 is still partially complete (e.g. 80% mastery) — none of its questions
+      // should appear in the set regardless of prior attempt history.
+      buildCandidate(201, 2, 1),
+      buildCandidate(202, 2, 2),
+    ] satisfies DailyPracticeCandidateQuestionRecord[]);
+    questionStateReadService.listStatesForModule.mockResolvedValue([
+      buildState(101, 1, { fsrsDueAt: new Date('2026-03-15T12:00:00.000Z') }),
+      buildState(102, 1, { fsrsDueAt: new Date('2026-03-15T13:00:00.000Z') }),
+      buildState(103, 1, { fsrsDueAt: new Date('2026-03-15T14:00:00.000Z') }),
+      buildState(201, 2, { fsrsDueAt: new Date('2026-03-15T15:00:00.000Z') }),
+      buildState(202, 2, {
+        lastGrade: FsrsReviewGradeValues.again,
+        lastSeenAt: new Date('2026-03-16T12:00:00.000Z'),
+        fsrsDueAt: new Date('2026-03-25T12:00:00.000Z'),
+      }),
+    ] satisfies StudentQuestionStateRecord[]);
+    mockCompletedUnits([1]);
+
+    const result = await service.selectQuestions({
+      userId: 42,
+      moduleId: 7,
+      now,
+    });
+
+    expect(
+      result.selectedQuestions.every((question) => question.moduleUnitId === 1),
+    ).toBe(true);
+    expect(
+      result.selectedQuestions.some((question) =>
+        [201, 202].includes(question.questionUnitId),
+      ),
+    ).toBe(false);
   });
 
   // --- Reinforcement bucket classification ---
