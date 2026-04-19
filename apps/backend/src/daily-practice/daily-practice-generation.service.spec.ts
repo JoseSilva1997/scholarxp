@@ -146,7 +146,6 @@ describe('DailyPracticeGenerationService', () => {
       plan: {
         targetQuestionCount: 0,
         dueReviewQuota: 0,
-        newSequenceQuota: 0,
         reinforcementQuota: 0,
       },
       selectedQuestions: [],
@@ -179,7 +178,6 @@ describe('DailyPracticeGenerationService', () => {
       plan: {
         targetQuestionCount: 3,
         dueReviewQuota: 2,
-        newSequenceQuota: 0,
         reinforcementQuota: 1,
       },
       selectedQuestions: [buildOrderedQuestion()],
@@ -229,7 +227,6 @@ describe('DailyPracticeGenerationService', () => {
       plan: {
         targetQuestionCount: 3,
         dueReviewQuota: 2,
-        newSequenceQuota: 0,
         reinforcementQuota: 1,
       },
       selectedQuestions: [buildOrderedQuestion()],

@@ -11,7 +11,6 @@ describe('daily-practice set sizing policy', () => {
       deriveDailyPracticeTargetQuestionCount({
         dueReviewCount: 2,
         reinforcementCount: 0,
-        newSequenceCount: 10,
       }),
     ).toBe(3);
   });
@@ -21,7 +20,6 @@ describe('daily-practice set sizing policy', () => {
       deriveDailyPracticeTargetQuestionCount({
         dueReviewCount: 16,
         reinforcementCount: 4,
-        newSequenceCount: 0,
       }),
     ).toBe(5);
   });
@@ -31,19 +29,8 @@ describe('daily-practice set sizing policy', () => {
       deriveDailyPracticeTargetQuestionCount({
         dueReviewCount: 40,
         reinforcementCount: 10,
-        newSequenceCount: 0,
       }),
     ).toBe(6);
-  });
-
-  it('does not inflate set size from new-sequence inventory', () => {
-    expect(
-      deriveDailyPracticeTargetQuestionCount({
-        dueReviewCount: 4,
-        reinforcementCount: 0,
-        newSequenceCount: 100,
-      }),
-    ).toBe(3);
   });
 
   it('returns a zero-plan when total eligible inventory is below the minimum floor', () => {
@@ -51,12 +38,10 @@ describe('daily-practice set sizing policy', () => {
       buildDailyPracticeSelectionPlan({
         dueReviewCount: 1,
         reinforcementCount: 0,
-        newSequenceCount: 1,
       }),
     ).toEqual({
       targetQuestionCount: 0,
       dueReviewQuota: 0,
-      newSequenceQuota: 0,
       reinforcementQuota: 0,
     });
   });
@@ -65,31 +50,26 @@ describe('daily-practice set sizing policy', () => {
     const inventory: DailyPracticeSelectionInventory = {
       dueReviewCount: 20,
       reinforcementCount: 5,
-      newSequenceCount: 5,
     };
 
     expect(buildDailyPracticeSelectionPlan(inventory, 3)).toEqual({
       targetQuestionCount: 3,
       dueReviewQuota: 2,
-      newSequenceQuota: 0,
       reinforcementQuota: 1,
     });
     expect(buildDailyPracticeSelectionPlan(inventory, 4)).toEqual({
       targetQuestionCount: 4,
-      dueReviewQuota: 2,
-      newSequenceQuota: 1,
+      dueReviewQuota: 3,
       reinforcementQuota: 1,
     });
     expect(buildDailyPracticeSelectionPlan(inventory, 5)).toEqual({
       targetQuestionCount: 5,
-      dueReviewQuota: 3,
-      newSequenceQuota: 1,
+      dueReviewQuota: 4,
       reinforcementQuota: 1,
     });
     expect(buildDailyPracticeSelectionPlan(inventory, 6)).toEqual({
       targetQuestionCount: 6,
-      dueReviewQuota: 4,
-      newSequenceQuota: 1,
+      dueReviewQuota: 5,
       reinforcementQuota: 1,
     });
   });

@@ -55,7 +55,6 @@ export type FsrsReviewGrade =
 // Bucket values are intentionally stable because they drive selector quotas and UI explanations.
 export const DailyPracticeSelectionBucketValues = {
   dueReview: 'due_review',
-  newSequence: 'new_sequence',
   reinforcement: 'reinforcement',
 } as const;
 

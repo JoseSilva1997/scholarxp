@@ -31,7 +31,6 @@ describe('QuestDailyPracticeAvailabilityService', () => {
           targetQuestionCount: 3,
           dueReviewQuota: 2,
           reinforcementQuota: 1,
-          newSequenceQuota: 0,
         },
         selectedQuestions: [{ questionUnitId: 101 }],
       }),
@@ -122,7 +121,6 @@ describe('QuestDailyPracticeAvailabilityService', () => {
         targetQuestionCount: 0,
         dueReviewQuota: 0,
         reinforcementQuota: 0,
-        newSequenceQuota: 0,
       },
       selectedQuestions: [],
     });

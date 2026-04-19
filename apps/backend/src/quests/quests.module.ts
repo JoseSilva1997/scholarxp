@@ -3,7 +3,6 @@ import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
 import { DailyPracticeCandidateReadService } from '../daily-practice/daily-practice-candidate-read.service';
 import { DailyPracticeEligibilityService } from '../daily-practice/daily-practice-eligibility.service';
-import { DailyPracticeModuleProgressReadService } from '../daily-practice/daily-practice-module-progress-read.service';
 import { DailyPracticeQuestionStateReadService } from '../daily-practice/daily-practice-question-state-read.service';
 import { DailyPracticeSetReadService } from '../daily-practice/daily-practice-set-read.service';
 import { DailyPracticeSetSelectorService } from '../daily-practice/daily-practice-set-selector.service';
@@ -25,7 +24,6 @@ import { QuestStreakService } from './quest-streak.service';
   providers: [
     DailyPracticeCandidateReadService,
     DailyPracticeEligibilityService,
-    DailyPracticeModuleProgressReadService,
     DailyPracticeQuestionStateReadService,
     DailyPracticeSetReadService,
     DailyPracticeSetSelectorService,

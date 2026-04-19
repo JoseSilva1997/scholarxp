@@ -8,13 +8,10 @@ export const MIN_DAILY_PRACTICE_QUESTION_COUNT = 3; // Minimum viable set size t
 export const MAX_DAILY_PRACTICE_QUESTION_COUNT = 6; // Cap on set size to maintain a consistent experience and avoid overwhelming learners.
 export const DAILY_PRACTICE_REVIEW_RATIO = 0.25; // Proportion of review-eligible questions to include in a set (e.g. if 10 question are eligible for review, the set will be 3 questions)
 export const REINFORCEMENT_RATIO = 0.2;
-export const NEW_SEQUENCE_MIN_TARGET = 4;
 
 export function hasMinimumEligibleInventory(
   inventory: DailyPracticeSelectionInventory,
 ): boolean {
-  // Eligibility uses total inventory, including new-sequence, because fallback rules may still form a valid set even when review pressure is low.
-  // Set sizing intentionally excludes new-sequence so lesson progression does not inflate the number of questions served for the day.
   return (
     getTotalEligibleQuestionCount(inventory) >=
     MIN_DAILY_PRACTICE_QUESTION_COUNT
@@ -30,7 +27,6 @@ export function buildDailyPracticeSelectionPlan(
     return {
       targetQuestionCount: 0,
       dueReviewQuota: 0,
-      newSequenceQuota: 0,
       reinforcementQuota: 0,
     };
   }
@@ -39,21 +35,16 @@ export function buildDailyPracticeSelectionPlan(
     inventory,
     requestedTargetQuestionCount,
   );
-  // A single forward-motion slot keeps new content secondary to review pressure while still allowing gentle progression on larger sets.
-  const newSequenceQuota =
-    targetQuestionCount >= NEW_SEQUENCE_MIN_TARGET ? 1 : 0;
   // Floor keeps the reinforcement slice stable for the current 3-6 range while still scaling upward if the max expands later.
   const reinforcementQuota = Math.max(
     1,
     Math.floor(targetQuestionCount * REINFORCEMENT_RATIO),
   );
-  const dueReviewQuota =
-    targetQuestionCount - reinforcementQuota - newSequenceQuota;
+  const dueReviewQuota = targetQuestionCount - reinforcementQuota;
 
   return {
     targetQuestionCount,
     dueReviewQuota,
-    newSequenceQuota,
     reinforcementQuota,
   };
 }
@@ -89,9 +80,5 @@ function clampDailyPracticeTargetQuestionCount(
 function getTotalEligibleQuestionCount(
   inventory: DailyPracticeSelectionInventory,
 ): number {
-  return (
-    inventory.dueReviewCount +
-    inventory.reinforcementCount +
-    inventory.newSequenceCount
-  );
+  return inventory.dueReviewCount + inventory.reinforcementCount;
 }

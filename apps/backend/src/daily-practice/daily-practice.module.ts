@@ -14,7 +14,6 @@ import { DailyPracticeGenerationService } from './daily-practice-generation.serv
 import { DailyPracticeInterleavingService } from './daily-practice-interleaving.service';
 import { DailyPracticeMapper } from './daily-practice.mapper';
 import { DailyPracticeMasteryExpService } from './daily-practice-mastery-exp.service';
-import { DailyPracticeModuleProgressReadService } from './daily-practice-module-progress-read.service';
 import { DailyPracticeReviewStateModule } from './daily-practice-review-state.module';
 import { DailyPracticeService } from './daily-practice.service';
 import { DailyPracticeSetSelectorService } from './daily-practice-set-selector.service';
@@ -40,7 +39,6 @@ import { DailyPracticeVariantResolverService } from './daily-practice-variant-re
     DailyPracticeMapper,
     DailyPracticeInterleavingService,
     DailyPracticeMasteryExpService,
-    DailyPracticeModuleProgressReadService,
     DailyPracticeService,
     DailyPracticeSetSelectorService,
     DailyPracticeSetReadService,
@@ -54,7 +52,6 @@ import { DailyPracticeVariantResolverService } from './daily-practice-variant-re
     DailyPracticeMapper,
     DailyPracticeInterleavingService,
     DailyPracticeMasteryExpService,
-    DailyPracticeModuleProgressReadService,
     DailyPracticeService,
     DailyPracticeSetSelectorService,
     DailyPracticeSetReadService,
