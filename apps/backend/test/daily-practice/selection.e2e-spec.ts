@@ -17,6 +17,7 @@ import {
   setAuthenticatedUserId,
 } from './helpers';
 import {
+  seedStudentCompletedAndNearlyCompletedLessonsScenario,
   seedCompletedLessonProgress,
   seedDueReviewStateForQuestions,
   seedLiveModuleUnitWithMcqQuestions,
@@ -86,6 +87,46 @@ describe('Daily practice selection rules (e2e)', () => {
       persistedSet?.items.every(
         (item) =>
           item.sourceBucket === DailyPracticeSelectionBucketValues.dueReview,
+      ),
+    ).toBe(true);
+  });
+
+  it('ignores a lesson that has 80 percent answered progress until the lesson is completed', async () => {
+    const base = await seedStudentModuleScenario(prisma);
+    setAuthenticatedUserId(base.studentId);
+    const scenario =
+      await seedStudentCompletedAndNearlyCompletedLessonsScenario(prisma, base);
+
+    const body = await fetchTodayDailyPractice(app, base.moduleId);
+
+    expect(body.questions).toHaveLength(3);
+    expect(
+      body.questions.every(
+        (question) =>
+          question.moduleUnitId === scenario.completedLesson.moduleUnitId,
+      ),
+    ).toBe(true);
+    expect(
+      body.questions.some(
+        (question) =>
+          question.moduleUnitId === scenario.nearlyCompletedLesson.moduleUnitId,
+      ),
+    ).toBe(false);
+
+    const persistedSet = await prisma.dailyPracticeSet.findUnique({
+      where: {
+        userId_moduleId_practiceDateUtc: {
+          userId: base.studentId,
+          moduleId: base.moduleId,
+          practiceDateUtc: new Date(body.practiceDateUtc),
+        },
+      },
+      include: { items: true },
+    });
+    expect(persistedSet?.items).toHaveLength(3);
+    expect(
+      persistedSet?.items.every(
+        (item) => item.moduleUnitId === scenario.completedLesson.moduleUnitId,
       ),
     ).toBe(true);
   });
@@ -162,7 +203,8 @@ describe('Daily practice selection rules (e2e)', () => {
   it('labels questions with the reinforcement bucket when they are not yet due but were recently struggled with', async () => {
     // seedStudentMixedHistoryScenario produces:
     //   - dueLesson: 4 due-review questions (all overdue)
-    //   - mixedLesson: 1 reinforcement candidate (hard grade, lapse, future due) + 2 unseen
+    //   - mixedLesson: 1 reinforcement candidate from another completed lesson
+    //                 (hard grade, lapse, future due) + 2 unseen
     // Review pressure = 4 due + 1 reinforcement = 5. Target size = 3 (floor).
     // Quota at 3: 2 due_review + 1 reinforcement. Unseen questions are never eligible.
     const base = await seedStudentModuleScenario(prisma);
@@ -194,7 +236,8 @@ describe('Daily practice selection rules (e2e)', () => {
   it('backfills a due-review shortfall with extra reinforcement candidates', async () => {
     // seedStudentDueShortfallScenario produces:
     //   - completedLesson: 1 due-review question
-    //   - startedLesson:   2 reinforcement candidates ('again' grade, not yet due)
+    //   - startedLesson:   2 reinforcement candidates from a second completed lesson
+    //                      ('again' grade, not yet due)
     // reviewEligible = 1 + 2 = 3 → Math.round(0.75) = 1 → clamped to MIN = 3.
     // Nominal quota at size 3: 2 due_review, 1 reinforcement.
     // Due shortfall = 1 → selector backfills with the second reinforcement candidate.

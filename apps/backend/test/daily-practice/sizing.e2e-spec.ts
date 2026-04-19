@@ -90,7 +90,8 @@ describe('Daily practice sizing boundaries (e2e)', () => {
 
   it('builds a six-question set when review pressure reaches the maximum ceiling', async () => {
     // seedStudentMaxPressureScenario seeds 21 due-review + 1 reinforcement candidate,
-    // giving reviewEligible=22. Math.round(22 * 0.25) = 6 = MAX_DAILY_PRACTICE_QUESTION_COUNT.
+    // all from completed lessons, giving reviewEligible=22.
+    // Math.round(22 * 0.25) = 6 = MAX_DAILY_PRACTICE_QUESTION_COUNT.
     // Expected quota at size 6: 5 due_review + 1 reinforcement.
     const base = await seedStudentModuleScenario(prisma);
     setAuthenticatedUserId(base.studentId);

@@ -3,7 +3,10 @@ import { INestApplication } from '@nestjs/common';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import request from 'supertest';
 import { PrismaService } from '../../src/prisma/prisma.service';
-import { DAILY_PRACTICE_GENERATION_CRON_NAME } from '../../src/daily-practice/daily-practice-generation-schedule.service';
+import {
+  DAILY_PRACTICE_GENERATION_CRON_NAME,
+  DailyPracticeGenerationScheduleService,
+} from '../../src/daily-practice/daily-practice-generation-schedule.service';
 import {
   assertSafeE2eDatabaseUrl,
   clearDailyPracticeE2eDatabase,
@@ -32,6 +35,10 @@ describe('Daily practice cron generation (e2e)', () => {
     await clearDailyPracticeE2eDatabase(prisma);
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   afterAll(async () => {
     await app.close();
   });
@@ -54,7 +61,18 @@ describe('Daily practice cron generation (e2e)', () => {
       }),
     ).toBe(0);
 
+    const scheduleService = app.get(DailyPracticeGenerationScheduleService);
+    jest
+      .spyOn(
+        scheduleService as DailyPracticeGenerationScheduleService & {
+          getCurrentTimestamp(): Date;
+        },
+        'getCurrentTimestamp',
+      )
+      .mockReturnValue(new Date('2026-04-19T00:05:00.000Z'));
+
     await fireDailyPracticeGenerationCronJob(app);
+
     await waitForDailyPracticeSetCount(prisma, {
       userId: base.studentId,
       moduleId: base.moduleId,

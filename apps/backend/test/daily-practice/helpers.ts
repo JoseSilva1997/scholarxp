@@ -17,6 +17,7 @@ import { AppModule } from '../../src/app.module';
 import { AuthorizationGuard } from '../../src/auth/guards/authorization.guard';
 import { SessionAuthGuard } from '../../src/auth/guards/session-auth.guard';
 import { DailyPracticeGenerationBatchService } from '../../src/daily-practice/daily-practice-generation-batch.service';
+import { DailyPracticeGenerationScheduleService } from '../../src/daily-practice/daily-practice-generation-schedule.service';
 import { DAILY_PRACTICE_GENERATION_CRON_NAME } from '../../src/daily-practice/daily-practice-generation-schedule.service';
 import { PrismaService } from '../../src/prisma/prisma.service';
 import { QuestGenerationStartupService } from '../../src/quests/quest-generation-startup.service';
@@ -59,6 +60,11 @@ class TestAuthorizationGuard implements CanActivate {
   }
 }
 
+class TestDailyPracticeGenerationScheduleService extends DailyPracticeGenerationScheduleService {
+  // E2E suites seed state after app boot, so suppress startup generation to avoid races with cleanup and assertions.
+  override onModuleInit() {}
+}
+
 export async function createDailyPracticeE2eApp(): Promise<{
   app: INestApplication;
   prisma: PrismaService;
@@ -70,6 +76,8 @@ export async function createDailyPracticeE2eApp(): Promise<{
     .useClass(TestSessionGuard)
     .overrideGuard(AuthorizationGuard)
     .useClass(TestAuthorizationGuard)
+    .overrideProvider(DailyPracticeGenerationScheduleService)
+    .useClass(TestDailyPracticeGenerationScheduleService)
     // Suppress the startup quest-generation batch so it cannot race against app.close()
     // in afterAll and hit the Prisma pool after it has been torn down.
     .overrideProvider(QuestGenerationStartupService)

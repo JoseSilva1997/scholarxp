@@ -28,6 +28,7 @@ export class DailyPracticeGenerationScheduleService implements OnModuleInit {
   @Cron('*/15 * * * *', {
     name: DAILY_PRACTICE_GENERATION_CRON_NAME,
     timeZone: 'UTC',
+    waitForCompletion: true,
   })
   async handleScheduledGenerationWindow() {
     await this.runGeneration('scheduled', true);
@@ -40,7 +41,7 @@ export class DailyPracticeGenerationScheduleService implements OnModuleInit {
     try {
       const result =
         await this.dailyPracticeGenerationBatchService.generateDailyPracticeSetsForAllStudents(
-          new Date(),
+          this.getCurrentTimestamp(),
           undefined,
           { onlyLocalMidnightWindow },
         );
@@ -53,5 +54,10 @@ export class DailyPracticeGenerationScheduleService implements OnModuleInit {
         error instanceof Error ? error.stack : undefined,
       );
     }
+  }
+
+  // Centralising time reads keeps scheduler tests deterministic without changing production generation paths.
+  protected getCurrentTimestamp(): Date {
+    return new Date();
   }
 }

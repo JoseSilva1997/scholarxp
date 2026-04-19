@@ -296,6 +296,11 @@ export async function seedStudentMixedHistoryScenario(
     dueAt: new Date(dayStartUtc.getTime() - 2 * 60 * 60 * 1000),
     lastSeenAt: completedAt,
   });
+  await seedCompletedLessonProgress(prisma, {
+    moduleUnitId: mixedLesson.moduleUnitId,
+    studentId: base.studentId,
+    completedAt,
+  });
   await seedStudentQuestionState(prisma, {
     studentId: base.studentId,
     moduleId: base.moduleId,
@@ -321,7 +326,7 @@ export async function seedStudentMixedHistoryScenario(
 // Seeds a scenario where the due-review bucket falls short of its quota and the selector must
 // backfill with extra reinforcement candidates.
 //
-// Inventory: 1 due-review question (completed lesson) + 2 reinforcement candidates (started lesson,
+// Inventory: 1 due-review question (completed lesson) + 2 reinforcement candidates (second completed lesson,
 // both seen with 'again' grade, not yet due).
 // reviewEligible = 1 + 2 = 3 → Math.round(3 × 0.25) = 1 → clamped to MIN = 3.
 // Nominal quota at size 3: 2 due_review, 1 reinforcement.
@@ -360,7 +365,7 @@ export async function seedStudentDueShortfallScenario(
     lastSeenAt: completedAt,
   });
 
-  // Started incomplete lesson: both questions are reinforcement candidates.
+  // Completed lesson: both questions are reinforcement candidates.
   const startedLesson = await seedLiveModuleUnitWithMcqQuestions(
     prisma,
     base.moduleId,
@@ -370,6 +375,11 @@ export async function seedStudentDueShortfallScenario(
       questionCount: 2,
     },
   );
+  await seedCompletedLessonProgress(prisma, {
+    moduleUnitId: startedLesson.moduleUnitId,
+    studentId: base.studentId,
+    completedAt,
+  });
 
   for (const question of startedLesson.questions) {
     await seedStudentQuestionState(prisma, {
@@ -392,6 +402,78 @@ export async function seedStudentDueShortfallScenario(
     ...base,
     completedLesson,
     startedLesson,
+    completedAt,
+  };
+}
+
+// This scenario pins the completion gate at the integration level: a lesson with strong prior
+// attempt coverage must still stay out of daily practice until its progress row is completed.
+export async function seedStudentCompletedAndNearlyCompletedLessonsScenario(
+  prisma: PrismaLike,
+  base: SeededStudentModuleScenario,
+) {
+  const completedLesson = await seedLiveModuleUnitWithMcqQuestions(
+    prisma,
+    base.moduleId,
+    {
+      title: 'Completed lesson',
+      sortOrder: 1,
+      questionCount: 3,
+    },
+  );
+  const nearlyCompletedLesson = await seedLiveModuleUnitWithMcqQuestions(
+    prisma,
+    base.moduleId,
+    {
+      title: 'Nearly completed lesson',
+      sortOrder: 2,
+      questionCount: 5,
+    },
+  );
+  const { dayStartUtc } = DateHelpers.getUtcDayBounds(new Date());
+  const completedAt = new Date(
+    dayStartUtc.getTime() - 24 * 60 * 60 * 1000 + 60 * 60 * 1000,
+  );
+
+  await seedCompletedLessonProgress(prisma, {
+    moduleUnitId: completedLesson.moduleUnitId,
+    studentId: base.studentId,
+    completedAt,
+  });
+  await seedDueReviewStateForQuestions(prisma, {
+    studentId: base.studentId,
+    moduleId: base.moduleId,
+    moduleUnitId: completedLesson.moduleUnitId,
+    questionIds: completedLesson.questions.map((q) => q.questionUnitId),
+    dueAt: new Date(dayStartUtc.getTime() - 2 * 60 * 60 * 1000),
+    lastSeenAt: completedAt,
+  });
+
+  await prisma.moduleUnitUserProgress.create({
+    data: {
+      moduleUnitId: nearlyCompletedLesson.moduleUnitId,
+      studentId: base.studentId,
+      currentMasteryScore: 0.8,
+      noOfCorrectAnswers: 4,
+      isCompleted: false,
+      lastPracticedAt: new Date(dayStartUtc.getTime() - 60 * 60 * 1000),
+    },
+  });
+  await seedDueReviewStateForQuestions(prisma, {
+    studentId: base.studentId,
+    moduleId: base.moduleId,
+    moduleUnitId: nearlyCompletedLesson.moduleUnitId,
+    questionIds: nearlyCompletedLesson.questions
+      .slice(0, 4)
+      .map((q) => q.questionUnitId),
+    dueAt: new Date(dayStartUtc.getTime() - 3 * 60 * 60 * 1000),
+    lastSeenAt: new Date(dayStartUtc.getTime() - 24 * 60 * 60 * 1000),
+  });
+
+  return {
+    ...base,
+    completedLesson,
+    nearlyCompletedLesson,
     completedAt,
   };
 }
@@ -437,7 +519,7 @@ export async function seedYesterdayDailyPracticeSet(
 }
 
 // Parameterised scenario for the sizing 3→4 boundary tests.
-// Seeds a completed lesson with exactly `dueReviewCount` due-review questions and an in-progress
+// Seeds a completed lesson with exactly `dueReviewCount` due-review questions and a second completed
 // lesson with one reinforcement candidate (Q0).
 //
 // reviewEligible = dueReviewCount + 1 reinforcement candidate.
@@ -477,7 +559,7 @@ export async function seedStudentSizingBoundaryScenario(
     lastSeenAt: completedAt,
   });
 
-  // Started incomplete lesson: Q0 is the reinforcement candidate (seen recently, 'again' grade, not yet due).
+  // Second completed lesson: Q0 is the reinforcement candidate (seen recently, 'again' grade, not yet due).
   const startedLesson = await seedLiveModuleUnitWithMcqQuestions(
     prisma,
     base.moduleId,
@@ -487,6 +569,11 @@ export async function seedStudentSizingBoundaryScenario(
       questionCount: 1,
     },
   );
+  await seedCompletedLessonProgress(prisma, {
+    moduleUnitId: startedLesson.moduleUnitId,
+    studentId: base.studentId,
+    completedAt,
+  });
 
   await seedStudentQuestionState(prisma, {
     studentId: base.studentId,
@@ -559,6 +646,11 @@ export async function seedStudentMaxPressureScenario(
       questionCount: 1,
     },
   );
+  await seedCompletedLessonProgress(prisma, {
+    moduleUnitId: progressLesson.moduleUnitId,
+    studentId: base.studentId,
+    completedAt,
+  });
 
   // 'again' grade + lapse means this question is a reinforcement candidate (not yet due).
   await seedStudentQuestionState(prisma, {
