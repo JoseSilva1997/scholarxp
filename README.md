@@ -4,7 +4,7 @@
 ## Project Title and Description
 ScholarXP is a full-stack study companion developed as a final-year computer science project. The system is designed to support regular academic revision through two main learning modes: structured module practice and automatically prepared daily revision sessions. Around these study flows, the project introduces lightweight gamification through daily quests, streak tracking, unlockable cosmetic rewards, and progress feedback.
 
-From an academic perspective, the project explores how a software system can encourage consistent study behaviour without rewarding cramming. Account progression is intentionally capped on a daily basis: users gain account XP through daily quests rather than through unlimited repeated activity. This design ties progression to regular return behaviour and directs attention toward the daily practice set, which acts as the system's primary revision routine.
+The project explores how a software system can encourage consistent study behaviour without rewarding cramming. Account progression is intentionally capped on a daily basis: users gain account XP through daily quests rather than through unlimited repeated activity. This design ties progression to regular return behaviour and directs attention toward the daily practice set, which acts as the system's primary revision routine.
 
 The daily practice set is also intended as a sequence learning mechanism. Rather than presenting revision as isolated one-off tasks, the application guides learners through recurring ordered practice over time so that repetition and spacing can contribute to stronger retention.
 
