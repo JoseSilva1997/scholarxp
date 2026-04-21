@@ -456,7 +456,7 @@ describe('DailyPracticeSetSelectorService', () => {
     ).toHaveLength(0);
   });
 
-  it('caps selections at two questions per lesson when alternatives exist', async () => {
+  it('caps selections at three questions per lesson when alternatives exist', async () => {
     const now = new Date('2026-03-17T12:00:00.000Z');
     candidateReadService.listModuleCandidateQuestions.mockResolvedValue([
       buildCandidate(101, 1, 1),
@@ -491,7 +491,7 @@ describe('DailyPracticeSetSelectorService', () => {
     );
 
     expect(result.plan.targetQuestionCount).toBe(5);
-    expect(lessonOneSelections).toHaveLength(2);
+    expect(lessonOneSelections).toHaveLength(3);
     expect(result.selectedQuestions).toHaveLength(5);
   });
 });

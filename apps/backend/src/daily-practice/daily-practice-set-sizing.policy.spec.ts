@@ -2,6 +2,7 @@
 import {
   buildDailyPracticeSelectionPlan,
   deriveDailyPracticeTargetQuestionCount,
+  MAX_DAILY_PRACTICE_QUESTION_COUNT,
 } from './daily-practice-set-sizing.policy';
 import type { DailyPracticeSelectionInventory } from './daily-practice.types';
 
@@ -30,7 +31,7 @@ describe('daily-practice set sizing policy', () => {
         dueReviewCount: 40,
         reinforcementCount: 10,
       }),
-    ).toBe(6);
+    ).toBe(MAX_DAILY_PRACTICE_QUESTION_COUNT);
   });
 
   it('returns a zero-plan when total eligible inventory is below the minimum floor', () => {
