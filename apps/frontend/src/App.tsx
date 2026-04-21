@@ -25,6 +25,7 @@ import RewardsPage from './routes/main/RewardsPage';
 import ProfilePage from './routes/main/ProfilePage';
 import AcceptInvite from './routes/main/AcceptInvite';
 import ModuleRosterPage from './routes/main/ModuleRosterPage';
+import Terms from './routes/Terms';
 
 function AppLayout() {
   const location = useLocation();
@@ -47,7 +48,7 @@ function AppLayout() {
   // Outside /main there is no sidebar instance, so the toggle acts as a shell shortcut for signed-in users.
   const shouldShowShellToggleShortcut = !!user && !isAuthRoute && !isShellRoute;
   // Sidebar shell needs the wider canvas so we reuse the auth width treatment.
-  const usesFullWidth = isAuthRoute || isShellRoute;
+  const usesFullWidth = isAuthRoute || isShellRoute || location.pathname === '/terms';
 
   useEffect(() => {
     if (!user || isLoading) return;
@@ -101,6 +102,7 @@ function AppLayout() {
                 )
               }
             />
+            <Route path="/terms" element={<Terms />} />
             <Route
               path="/register"
               element={user && !isLoading ? <Navigate to="/main" replace /> : <Register />}

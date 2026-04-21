@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import styles from './Footer.module.css';
 
 export default function Footer() {
@@ -9,9 +10,9 @@ export default function Footer() {
         <a className={styles.link} href="#" aria-label="Read the privacy policy">
           Privacy
         </a>
-        <a className={styles.link} href="#" aria-label="View terms of service">
+        <Link className={styles.link} to="/terms" aria-label="View terms of service">
           Terms
-        </a>
+        </Link>
       </div>
     </footer>
   );
