@@ -54,6 +54,13 @@ type RecordDailyPracticeSetProgressParams = {
   progressedAt: Date;
 };
 
+type UserLocalDayContext = {
+  timestamp: Date;
+  dayStartDb: Date;
+  dayStartUtc: Date;
+  nextDayStartUtc: Date;
+};
+
 type PersistedQuest = {
   id: number;
   userId: number;
@@ -87,9 +94,14 @@ export class QuestProgressService {
       prismaClient,
     );
 
-    const todaysQuests = await this.loadTodaysQuests(
+    const dayContext = await this.getUserLocalDayContext(
       params.userId,
       params.clickedAt,
+      prismaClient,
+    );
+    const todaysQuests = await this.loadTodaysQuests(
+      params.userId,
+      dayContext,
       prismaClient,
     );
     if (todaysQuests.length === 0) {
@@ -111,7 +123,7 @@ export class QuestProgressService {
       if (completed) {
         await this.completeMasterQuestIfEligible(
           params.userId,
-          params.clickedAt,
+          dayContext,
           prismaClient,
         );
       }
@@ -136,7 +148,7 @@ export class QuestProgressService {
     if (completed) {
       await this.completeMasterQuestIfEligible(
         params.userId,
-        params.clickedAt,
+        dayContext,
         prismaClient,
       );
     }
@@ -154,26 +166,28 @@ export class QuestProgressService {
       prismaClient,
     );
 
-    const todaysQuests = await this.loadTodaysQuests(
+    const dayContext = await this.getUserLocalDayContext(
       params.userId,
       params.completedAt,
+      prismaClient,
+    );
+    const todaysQuests = await this.loadTodaysQuests(
+      params.userId,
+      dayContext,
       prismaClient,
     );
     if (todaysQuests.length === 0) {
       return;
     }
 
-    const { dayStartUtc, nextDayStartUtc } = DateHelpers.getUtcDayBounds(
-      params.completedAt,
-    );
     const completionEvent = await prismaClient.expLedger.findFirst({
       where: {
         userId: params.userId,
         moduleId: params.moduleId,
         eventType: ExpLedgerEventTypes.COMPLETE_MODULE_UNIT,
         eventTimestamp: {
-          gte: dayStartUtc,
-          lt: nextDayStartUtc,
+          gte: dayContext.dayStartUtc,
+          lt: dayContext.nextDayStartUtc,
         },
       },
       select: {
@@ -202,7 +216,7 @@ export class QuestProgressService {
     if (completed) {
       await this.completeMasterQuestIfEligible(
         params.userId,
-        params.completedAt,
+        dayContext,
         prismaClient,
       );
     }
@@ -243,9 +257,14 @@ export class QuestProgressService {
       prismaClient,
     );
 
-    const todaysQuests = await this.loadTodaysQuests(
+    const dayContext = await this.getUserLocalDayContext(
       params.userId,
       params.attemptedAt,
+      prismaClient,
+    );
+    const todaysQuests = await this.loadTodaysQuests(
+      params.userId,
+      dayContext,
       prismaClient,
     );
     if (todaysQuests.length === 0) {
@@ -319,7 +338,7 @@ export class QuestProgressService {
     if (completed) {
       await this.completeMasterQuestIfEligible(
         params.userId,
-        params.attemptedAt,
+        dayContext,
         prismaClient,
       );
     }
@@ -337,24 +356,26 @@ export class QuestProgressService {
       prismaClient,
     );
 
-    const todaysQuests = await this.loadTodaysQuests(
+    const dayContext = await this.getUserLocalDayContext(
       params.userId,
       params.progressedAt,
+      prismaClient,
+    );
+    const todaysQuests = await this.loadTodaysQuests(
+      params.userId,
+      dayContext,
       prismaClient,
     );
     if (todaysQuests.length === 0) {
       return;
     }
 
-    const { dayStartUtc, nextDayStartUtc } = DateHelpers.getUtcDayBounds(
-      params.progressedAt,
-    );
     const todaysSet = await prismaClient.dailyPracticeSet.findUnique({
       where: {
         userId_moduleId_practiceDateUtc: {
           userId: params.userId,
           moduleId: params.moduleId,
-          practiceDateUtc: dayStartUtc,
+          practiceDateUtc: dayContext.dayStartDb,
         },
       },
       select: {
@@ -401,8 +422,8 @@ export class QuestProgressService {
             in: todaysSet.items.map((item) => item.questionUnitId),
           },
           attemptedAt: {
-            gte: dayStartUtc,
-            lt: nextDayStartUtc,
+            gte: dayContext.dayStartUtc,
+            lt: dayContext.nextDayStartUtc,
           },
           session: {
             moduleId: params.moduleId,
@@ -437,7 +458,7 @@ export class QuestProgressService {
     if (completedAnyQuest) {
       await this.completeMasterQuestIfEligible(
         params.userId,
-        params.progressedAt,
+        dayContext,
         prismaClient,
       );
     }
@@ -445,14 +466,13 @@ export class QuestProgressService {
 
   private async loadTodaysQuests(
     userId: number,
-    timestamp: Date,
+    dayContext: UserLocalDayContext,
     prismaClient: PrismaClientLike,
   ): Promise<PersistedQuest[]> {
-    const { dayStartUtc } = DateHelpers.getUtcDayBounds(timestamp);
     const quests = await prismaClient.dailyQuest.findMany({
       where: {
         userId,
-        questDateUtc: dayStartUtc,
+        questDateUtc: dayContext.dayStartDb,
       },
       orderBy: {
         id: 'asc',
@@ -468,12 +488,12 @@ export class QuestProgressService {
 
   private async completeMasterQuestIfEligible(
     userId: number,
-    timestamp: Date,
+    dayContext: UserLocalDayContext,
     prismaClient: PrismaClientLike,
   ): Promise<void> {
     const todaysQuests = await this.loadTodaysQuests(
       userId,
-      timestamp,
+      dayContext,
       prismaClient,
     );
     const dailyQuestCount = todaysQuests.filter(
@@ -498,7 +518,7 @@ export class QuestProgressService {
     const rewardState =
       await this.questStreakService.getRewardForNextMasterQuestCompletion(
         userId,
-        timestamp,
+        dayContext.timestamp,
         prismaClient,
       );
     const missingDailyQuestCount = Math.max(
@@ -507,10 +527,34 @@ export class QuestProgressService {
     );
     await this.completeQuest(
       masterQuest,
-      timestamp,
+      dayContext.timestamp,
       prismaClient,
       rewardState.awardedExp + missingDailyQuestCount * QUEST_COMPLETION_REWARD,
     );
+  }
+
+  private async getUserLocalDayContext(
+    userId: number,
+    timestamp: Date,
+    prismaClient: PrismaClientLike,
+  ): Promise<UserLocalDayContext> {
+    const userRecord = await prismaClient.user.findUnique({
+      where: { id: userId },
+      select: { timezone: true },
+    });
+    const timezone = userRecord?.timezone ?? 'UTC';
+    const localDateKey = DateHelpers.getLocalDateKey(timestamp, timezone);
+    const { dayStartUtc, nextDayStartUtc } = DateHelpers.getLocalDayBounds(
+      timestamp,
+      timezone,
+    );
+
+    return {
+      timestamp,
+      dayStartDb: new Date(`${localDateKey}T00:00:00.000Z`),
+      dayStartUtc,
+      nextDayStartUtc,
+    };
   }
 
   private async completeQuest(

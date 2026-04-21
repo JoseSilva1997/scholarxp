@@ -25,6 +25,7 @@ describe('StudentProfileService', () => {
     profilePictureUrl: 'https://example.com/avatar.png',
     globalRole: 'student',
     isVerified: true,
+    timezone: 'UTC',
   };
 
   beforeEach(async () => {
@@ -56,6 +57,7 @@ describe('StudentProfileService', () => {
   });
 
   afterEach(() => {
+    jest.useRealTimers();
     jest.resetAllMocks();
   });
 
@@ -107,6 +109,43 @@ describe('StudentProfileService', () => {
     expect(profile.questHistorySummary).toEqual({
       totalCompleted: 8,
       perfectDays: 1,
+    });
+  });
+
+  it('loads today quest progress from the student local day key instead of UTC midnight', async () => {
+    prisma.avatar.findUnique.mockResolvedValue({
+      id: 7,
+      totalExp: 180,
+    } as never);
+    prisma.dailyQuest.findMany.mockResolvedValue([
+      { isCompleted: true, type: 'complete_new_unit' },
+      { isCompleted: false, type: 'master_daily_quests' },
+    ] as never);
+    prisma.dailyQuest.count.mockResolvedValue(0);
+    prisma.dailyQuest.groupBy
+      .mockResolvedValueOnce([] as never)
+      .mockResolvedValueOnce([] as never);
+    questStreakService.getCurrentStreakStatus.mockResolvedValue({
+      currentStreak: 1,
+    });
+    dailyLessonXpTrackService.getTrackForUser.mockResolvedValue(null);
+    jest
+      .spyOn(service as never, 'buildModulesForStudent')
+      .mockResolvedValue([] as never);
+
+    jest.useFakeTimers().setSystemTime(new Date('2026-01-01T01:30:00.000Z'));
+
+    await service.getStudentProfile({
+      ...studentUser,
+      timezone: 'America/Los_Angeles',
+    });
+
+    expect(prisma.dailyQuest.findMany).toHaveBeenCalledWith({
+      where: {
+        userId: studentUser.id,
+        questDateUtc: new Date('2025-12-31T00:00:00.000Z'),
+      },
+      select: { isCompleted: true, type: true },
     });
   });
 });

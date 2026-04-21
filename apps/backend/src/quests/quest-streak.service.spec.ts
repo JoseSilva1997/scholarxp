@@ -97,6 +97,26 @@ describe('QuestStreakService', () => {
     });
   });
 
+  it('returns a streak of one when today is completed after missed days', async () => {
+    prisma.dailyQuest.findMany.mockResolvedValue([
+      { questDateUtc: new Date('2026-04-21T00:00:00.000Z') },
+      { questDateUtc: new Date('2026-04-16T00:00:00.000Z') },
+      { questDateUtc: new Date('2026-04-15T00:00:00.000Z') },
+      { questDateUtc: new Date('2026-04-13T00:00:00.000Z') },
+      { questDateUtc: new Date('2026-04-12T00:00:00.000Z') },
+    ] as never);
+
+    await expect(
+      service.getCurrentStreakStatus(35, new Date('2026-04-21T20:18:19.343Z')),
+    ).resolves.toEqual({
+      currentStreak: 1,
+      maxStreak: 5,
+      bonusPercent: 10,
+      bonusPercentPerStep: 10,
+      lastCompletedQuestDateUtc: '2026-04-21',
+    });
+  });
+
   it('normalizes persisted quest dates before comparing streak days', async () => {
     prisma.dailyQuest.findMany.mockResolvedValue([
       { questDateUtc: new Date('2026-03-14T13:42:00.000Z') },
@@ -111,6 +131,33 @@ describe('QuestStreakService', () => {
       bonusPercent: 20,
       bonusPercentPerStep: 10,
       lastCompletedQuestDateUtc: '2026-03-14',
+    });
+  });
+
+  it('queries completed rows by the stored local-date key instead of a DateTime boundary', async () => {
+    prisma.dailyQuest.findMany.mockResolvedValue([
+      { questDateUtc: new Date('2026-04-21T00:00:00.000Z') },
+    ] as never);
+
+    await service.getCurrentStreakStatus(
+      42,
+      new Date('2026-04-21T20:18:19.343Z'),
+    );
+
+    expect(prisma.dailyQuest.findMany).toHaveBeenCalledWith({
+      where: {
+        userId: 42,
+        type: 'master_daily_quests',
+        isCompleted: true,
+        questDateUtc: {
+          lte: new Date('2026-04-21T00:00:00.000Z'),
+        },
+      },
+      orderBy: [{ questDateUtc: 'desc' }, { id: 'desc' }],
+      select: {
+        questDateUtc: true,
+      },
+      take: 5,
     });
   });
 

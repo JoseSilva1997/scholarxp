@@ -60,7 +60,7 @@ export class StudentProfileService {
         this.questStreakService.getCurrentStreakStatus(user.id, now),
         this.dailyLessonXpTrackService.getTrackForUser(user.id, now),
         this.buildModulesForStudent(user.id),
-        this.buildQuestSummary(user.id, now),
+        this.buildQuestSummary(user.id, now, user.timezone),
       ]);
 
     return {
@@ -151,12 +151,13 @@ export class StudentProfileService {
     return 'not_available';
   }
 
-  private async buildQuestSummary(userId: number, now: Date) {
-    const { dayStartUtc } = DateHelpers.getUtcDayBounds(now);
+  private async buildQuestSummary(userId: number, now: Date, timezone: string) {
+    const localDateKey = DateHelpers.getLocalDateKey(now, timezone);
+    const dayStartDb = new Date(`${localDateKey}T00:00:00.000Z`);
 
-    // Today's quests: count completed vs total (excluding the master quest which is a meta-quest).
+    // Today's quests are keyed by the student's local calendar day, matching quest generation and streak reads.
     const todaysQuests = await this.prisma.dailyQuest.findMany({
-      where: { userId, questDateUtc: dayStartUtc },
+      where: { userId, questDateUtc: dayStartDb },
       select: { isCompleted: true, type: true },
     });
     // Master quest is excluded from the count because the UI shows individual quest progress.
