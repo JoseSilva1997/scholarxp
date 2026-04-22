@@ -48,7 +48,6 @@ export async function seedLiveModuleUnitWithMcqQuestions(
           correctOptionIndex: 0,
         },
         hint: `Hint ${index + 1}`,
-        difficultyScore: 1,
         source: 'seeded-daily-practice-e2e',
         isArchived: false,
       },

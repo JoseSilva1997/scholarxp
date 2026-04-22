@@ -16,7 +16,6 @@ export type RoomQuestionContent = {
   questionStem: string;
   questionData: QuestionData;
   hint: string | null;
-  difficultyScore: number;
 };
 
 export type RoomQuestion = {
@@ -42,7 +41,6 @@ export type LoadedModuleUnit = {
       questionStem: string;
       questionData: Prisma.JsonValue;
       hint: string | null;
-      difficultyScore: number;
     }[];
   }[];
 };

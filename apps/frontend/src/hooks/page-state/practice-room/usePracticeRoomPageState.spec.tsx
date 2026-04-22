@@ -71,7 +71,6 @@ function buildQuestionUnit(input: {
           correctOptionIndex: input.correctOptionIndex ?? 0,
         },
         hint: input.hint ?? null,
-        difficultyScore: 1,
       },
       lastAttempt: input.lastAttempt ?? null,
     },

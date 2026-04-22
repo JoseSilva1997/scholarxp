@@ -193,7 +193,6 @@ export class ModuleUnitService {
                     coreContent.questionData as unknown as QuestionData,
                   type: coreContent.type,
                   hint: coreContent.hint,
-                  difficultyScore: coreContent.difficultyScore,
                   source: coreContent.source as QuestionSource,
                   // Archive flag keeps the editor aligned with backend status simplification.
                   isArchived: coreContent.isArchived,
@@ -209,7 +208,6 @@ export class ModuleUnitService {
                 questionData: v.content.questionData as unknown as QuestionData,
                 type: v.content.type,
                 hint: v.content.hint,
-                difficultyScore: v.content.difficultyScore,
                 source: v.content.source as QuestionSource,
                 isArchived: v.content.isArchived,
               },

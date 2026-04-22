@@ -60,7 +60,6 @@ export class PracticeRoomMapper {
               questionStem: coreContent.questionStem,
               questionData: coreContent.questionData as QuestionData,
               hint: coreContent.hint,
-              difficultyScore: coreContent.difficultyScore,
             },
           },
         };

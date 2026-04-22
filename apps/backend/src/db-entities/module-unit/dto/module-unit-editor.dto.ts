@@ -48,7 +48,6 @@ export class ModuleUnitEditorContentDto implements ModuleUnitEditorContentRespon
   questionData: QuestionData;
   type: string;
   hint: string | null;
-  difficultyScore: number;
   source: QuestionSource;
   isArchived: boolean;
 }

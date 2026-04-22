@@ -121,7 +121,6 @@ export interface ModuleUnitEditorContentResponse {
   questionData: QuestionData;
   type: string;
   hint: string | null;
-  difficultyScore: number;
   // Keep editor content source aligned with question contracts to prevent frontend/backend drift.
   source: QuestionSource;
   isArchived: boolean;

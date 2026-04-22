@@ -130,7 +130,6 @@ function createQuestion(id: number, title: string, variants: unknown[] = [], cor
       hint: `Hint ${id}`,
       source: 'human',
       isArchived: false,
-      difficultyScore: 1,
     },
     variants,
   };
@@ -149,7 +148,6 @@ function createVariant(id: number, label: string, content = null) {
       hint: null,
       source: 'human',
       isArchived: false,
-      difficultyScore: 1,
     },
   };
 }
@@ -383,7 +381,6 @@ describe('useModuleUnitEditorPageState', () => {
                 hint: 'Loaded hint',
                 source: 'human',
                 isArchived: false,
-                difficultyScore: 1,
               }),
             ]),
           ],

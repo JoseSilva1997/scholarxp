@@ -38,7 +38,6 @@ export type DailyPracticeCandidateQuestionRecord = {
   questionGroupSortOrder: number | null;
   coreContentId: number;
   questionType: string;
-  questionDifficultyScore: number;
 };
 
 // Inventory counts stay explicit so sizing heuristics can change without coupling to bucket-building internals.

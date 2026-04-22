@@ -184,7 +184,6 @@ describe('DailyPracticeService', () => {
         questionStem: 'Variant stem',
         questionData: { correctOptionIndex: 0 },
         hint: 'Variant hint',
-        difficultyScore: 0.5,
         questionUnit: {
           id: 101,
           moduleUnit: {

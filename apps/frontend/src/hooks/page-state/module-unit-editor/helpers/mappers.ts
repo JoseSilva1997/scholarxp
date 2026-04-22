@@ -26,7 +26,6 @@ export const mapEditorGroupsToState = (
               questionData: variant.content.questionData,
               type: normalizeQuestionType(variant.content.type),
               hint: variant.content.hint ?? null,
-              difficultyScore: variant.content.difficultyScore,
               source: normalizeSource(variant.content.source),
               isArchived: Boolean(variant.content.isArchived),
             }
@@ -40,7 +39,6 @@ export const mapEditorGroupsToState = (
             questionData: question.coreContent.questionData,
             type: normalizeQuestionType(question.coreContent.type),
             hint: question.coreContent.hint ?? null,
-            difficultyScore: question.coreContent.difficultyScore,
             source: normalizeSource(question.coreContent.source),
             isArchived: Boolean(question.coreContent.isArchived),
           }

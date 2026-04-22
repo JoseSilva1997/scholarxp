@@ -103,7 +103,6 @@ function buildSelectedQuestion(
     questionGroupSortOrder: questionUnitId,
     coreContentId: questionUnitId * 10,
     questionType: 'multiple_choice',
-    questionDifficultyScore: 0.5,
     sourceBucket: DailyPracticeSelectionBucketValues.dueReview,
     selectionScore,
     selectionReason: 'Selected for testing.',

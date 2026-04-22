@@ -490,7 +490,6 @@ export class DailyPracticeService {
         questionStem: true,
         questionData: true,
         hint: true,
-        difficultyScore: true,
         questionUnit: {
           select: {
             id: true,
@@ -585,7 +584,6 @@ export class DailyPracticeService {
             questionData:
               questionContent.questionData as unknown as import('@scholarxp/question-type-dtos').QuestionData,
             hint: questionContent.hint,
-            difficultyScore: questionContent.difficultyScore,
           },
           lastAttempt:
             latestAttemptByQuestionId.get(item.questionUnitId) ?? null,

@@ -4,10 +4,7 @@ import {
   IsObject,
   IsOptional,
   IsString,
-  Max,
-  Min,
   IsIn,
-  IsNumber,
   IsBoolean,
 } from 'class-validator';
 import { QUESTION_TYPES } from '@scholarxp/question-type-dtos';
@@ -36,13 +33,6 @@ export class CreateVariantWithContentDto implements CreateVariantPayload {
   @IsOptional()
   @IsString()
   hint?: string | null;
-
-  // Variants share the same default baseline to keep initial calibration consistent.
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  @Max(1)
-  difficultyScore: number = 0.5;
 
   @IsString()
   @IsIn(['human', 'ai-generated'])

@@ -43,7 +43,6 @@ function buildMockQuestion(): PracticeQuestion {
     questionStem: 'What is 2 + 2?',
     questionData: { options: [{ optionText: 'A' }, { optionText: 'B' }] } as unknown as PracticeQuestion['questionData'],
     hint: null,
-    difficultyScore: 1,
   };
 }
 

@@ -41,7 +41,6 @@ function createMockQuestionUnit(
           correctOptionIndex: 0,
         } as unknown as PracticeQuestionUnit['coreQuestion']['questionContent']['questionData'],
         hint: null,
-        difficultyScore: 1,
       },
       lastAttempt: null,
     },

@@ -5,12 +5,10 @@ import type { QuestionType } from '../../../../components/ModuleUnitEditor/quest
 // Local editor content uses string ids so drafts and persisted records can share one state model.
 export type QuestionContent = Omit<
   ModuleUnitEditorContent,
-  'id' | 'questionUnitId' | 'difficultyScore'
+  'id' | 'questionUnitId'
 > & {
   id: string;
   questionUnitId: string;
-  // Backend defaults difficulty values, so local drafts can omit it until persisted.
-  difficultyScore?: number;
 };
 
 // Variants are authored locally first, then promoted to persisted records after save.

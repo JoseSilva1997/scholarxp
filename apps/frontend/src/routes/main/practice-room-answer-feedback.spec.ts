@@ -18,7 +18,6 @@ function buildMcqQuestion(): PracticeQuestion {
       correctOptionIndex: 2,
     },
     hint: null,
-    difficultyScore: 5,
   };
 }
 
@@ -32,7 +31,6 @@ function buildTrueFalseQuestion(): PracticeQuestion {
       falseOption: { isCorrect: false, explanation: 'False explanation' },
     },
     hint: null,
-    difficultyScore: 3,
   };
 }
 

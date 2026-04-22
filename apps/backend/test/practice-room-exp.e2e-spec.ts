@@ -457,7 +457,6 @@ async function seedModuleUnitWithMcqQuestions(
           correctOptionIndex: 0,
         },
         hint: null,
-        difficultyScore: 1,
         source: 'seeded-e2e',
         isArchived: false,
       },

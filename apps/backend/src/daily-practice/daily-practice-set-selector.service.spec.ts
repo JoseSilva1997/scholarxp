@@ -511,7 +511,6 @@ function buildCandidate(
     questionGroupSortOrder: questionOrder,
     coreContentId: questionUnitId * 10,
     questionType: 'multiple_choice',
-    questionDifficultyScore: 0.5,
   };
 }
 

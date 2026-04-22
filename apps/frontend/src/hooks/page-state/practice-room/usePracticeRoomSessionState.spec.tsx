@@ -35,7 +35,6 @@ function buildQuestion(
       correctOptionIndex: 0,
     } as PracticeQuestion['questionData'],
     hint: null,
-    difficultyScore: 1,
   };
 }
 

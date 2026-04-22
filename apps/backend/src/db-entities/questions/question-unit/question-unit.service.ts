@@ -125,8 +125,6 @@ export class QuestionUnitService {
           questionData: payload.questionData as Prisma.InputJsonValue,
           type: payload.type,
           hint: payload.hint ?? null,
-          // Guard against missing client fields so creation remains backwards compatible.
-          difficultyScore: payload.difficultyScore ?? 0.5,
           source: payload.source,
           // Treat missing flag as live to preserve legacy behavior while eliminating string status values.
           isArchived: payload.isArchived ?? false,
@@ -151,7 +149,6 @@ export class QuestionUnitService {
           .questionData as unknown as QuestionData,
         type: result.coreContent.type,
         hint: result.coreContent.hint,
-        difficultyScore: result.coreContent.difficultyScore,
         source: result.coreContent.source as QuestionSource,
         isArchived: result.coreContent.isArchived,
         isCore: result.coreContent.isCore,
@@ -201,8 +198,6 @@ export class QuestionUnitService {
           questionData: payload.questionData as Prisma.InputJsonValue,
           type: payload.type,
           hint: payload.hint ?? null,
-          // Keep variant creation resilient to older clients that do not send difficulty yet.
-          difficultyScore: payload.difficultyScore ?? 0.5,
           source: payload.source,
           // Variants inherit the same archived flag semantics as core content.
           isArchived: payload.isArchived ?? false,
@@ -235,7 +230,6 @@ export class QuestionUnitService {
             .questionData as unknown as QuestionData,
           type: variantResult.variant.content.type,
           hint: variantResult.variant.content.hint,
-          difficultyScore: variantResult.variant.content.difficultyScore,
           source: variantResult.variant.content.source as QuestionSource,
           isArchived: variantResult.variant.content.isArchived,
         },
@@ -434,7 +428,6 @@ export class QuestionUnitService {
       questionData: updatedContent.questionData as unknown as QuestionData,
       type: updatedContent.type,
       hint: updatedContent.hint,
-      difficultyScore: updatedContent.difficultyScore,
       source: updatedContent.source as QuestionSource,
       isArchived: updatedContent.isArchived,
     };

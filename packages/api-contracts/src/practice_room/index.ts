@@ -72,7 +72,6 @@ export interface PracticeQuestion {
   questionStem: string;
   questionData: QuestionData;
   hint: string | null;
-  difficultyScore: number;
 }
 
 // Union type for all possible student answer shapes, allowing for future question types to be added without breaking existing contracts.

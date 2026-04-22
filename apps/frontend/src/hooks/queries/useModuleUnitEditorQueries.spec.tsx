@@ -88,7 +88,6 @@ function makeEditor(): ModuleUnitEditorResponse {
     questionData: { options: [{ optionText: 'A' }, { optionText: 'B' }, { optionText: 'C' }, { optionText: 'D' }], correctOptionIndex: 0 },
     type: 'mcq',
     hint: null,
-    difficultyScore: 0.5,
     source: 'human',
     isArchived: false,
   };
@@ -184,7 +183,6 @@ describe('useModuleUnitEditorQueries', () => {
         questionData: { content: '' },
         type: 'multiple_choice',
         hint: null,
-        difficultyScore: 0.5,
         source: 'human',
         isArchived: false,
         isCore: true,

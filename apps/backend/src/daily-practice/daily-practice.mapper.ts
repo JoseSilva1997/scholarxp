@@ -48,7 +48,6 @@ type BuildTodayResponseInput = {
         questionStem: string;
         questionData: QuestionData;
         hint: string | null;
-        difficultyScore: number;
       };
       lastAttempt: DailyPracticeAttemptSnapshot | null;
     };
@@ -153,7 +152,6 @@ export class DailyPracticeMapper {
         questionStem: question.coreQuestion.questionContent.questionStem,
         questionData: question.coreQuestion.questionContent.questionData,
         hint: question.coreQuestion.questionContent.hint,
-        difficultyScore: question.coreQuestion.questionContent.difficultyScore,
       },
       lastAttempt: question.coreQuestion.lastAttempt
         ? {

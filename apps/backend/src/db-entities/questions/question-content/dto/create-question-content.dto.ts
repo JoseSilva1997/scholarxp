@@ -2,13 +2,10 @@ import {
   IsBoolean,
   IsInt,
   IsNotEmpty,
-  IsNumber,
   IsObject,
   IsOptional,
   IsString,
   IsIn,
-  Min,
-  Max,
 } from 'class-validator';
 import { QUESTION_TYPES } from '@scholarxp/question-type-dtos';
 import type { questionType, QuestionData } from '@scholarxp/question-type-dtos';
@@ -39,13 +36,6 @@ export class CreateQuestionContentDto implements QuestionContentPayload {
   @IsString()
   @IsOptional()
   hint?: string | null;
-
-  // Keep a stable default for direct content creation paths as well.
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  @Max(1)
-  difficultyScore: number = 0.5;
 
   @IsString()
   @IsIn(['human', 'ai-generated'])

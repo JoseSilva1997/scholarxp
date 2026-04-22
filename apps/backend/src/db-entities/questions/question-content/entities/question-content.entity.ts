@@ -8,7 +8,6 @@ export class QuestionContent {
   questionUnitId: number;
   isCore: boolean;
   hint: string | null;
-  difficultyScore: number;
   source: string;
   isArchived: boolean;
   createdAt: Date;
