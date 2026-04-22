@@ -1,11 +1,12 @@
 // Verifies Footer renders product identity and legal links for the public shell.
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import { renderWithProviders } from '../test/utils';
 import Footer from './Footer';
 
 describe('Footer', () => {
   it('renders brand and legal links', () => {
-    render(<Footer />);
+    renderWithProviders(<Footer />);
 
     expect(screen.getByText('ScholarXP™')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Read the privacy policy' })).toBeInTheDocument();

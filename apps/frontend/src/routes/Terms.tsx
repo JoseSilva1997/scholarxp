@@ -1,6 +1,5 @@
 // Simple Terms of Service page sourcing content from the license agreement
 import { RiFileTextLine } from 'react-icons/ri';
-import { Link } from 'react-router-dom';
 import styles from './Terms.module.css';
 
 export default function Terms() {
