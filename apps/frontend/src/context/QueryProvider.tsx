@@ -1,7 +1,7 @@
 // App-level TanStack Query provider so server-state behavior is consistent across screens.
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
-import { ApiError } from '../api/client';
+import { ApiError } from '@/shared/api/client';
 
 const queryClient = new QueryClient({
   defaultOptions: {

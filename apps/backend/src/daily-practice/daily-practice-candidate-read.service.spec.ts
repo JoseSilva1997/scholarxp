@@ -151,10 +151,7 @@ describe('DailyPracticeCandidateReadService', () => {
 
 // ── Builders ──────────────────────────────────────────────────────────────────
 
-function buildContent(
-  id: number,
-  type: string,
-): { id: number; type: string } {
+function buildContent(id: number, type: string): { id: number; type: string } {
   return { id, type };
 }
 

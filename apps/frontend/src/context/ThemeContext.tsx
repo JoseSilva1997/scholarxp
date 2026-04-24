@@ -21,7 +21,7 @@ import {
   type Theme,
   type ThemeRewardId,
   type ThemeVariant,
-} from './theme-context';
+} from '@/context/theme-context';
 
 type StoredThemeState = {
   theme: Theme;

@@ -10,12 +10,12 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AuthResponse } from '@scholarxp/api-contracts';
 import { getProgressWithinLevel } from '@scholarxp/progression';
-import { getCurrentUser, logout as apiLogout } from '../api/auth';
-import { clearCsrfToken, refreshCsrfToken } from '../api/client';
-import { updateTimezone } from '../api/users';
-import { queryKeys } from '../hooks/query-keys';
-import { logError } from '../utils/logger';
-import type { AuthUser } from '../types/auth';
+import { getCurrentUser, logout as apiLogout } from '@/Auth/api/auth';
+import { clearCsrfToken, refreshCsrfToken } from '@/shared/api/client';
+import { updateTimezone } from '@/Account/api/users';
+import { queryKeys } from '@/shared/hooks/query-keys';
+import { logError } from '@/utils/logger';
+import type { AuthUser } from '@/shared/types/auth';
 
 type AuthContextValue = {
   user: AuthUser | null;

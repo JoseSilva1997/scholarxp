@@ -1,7 +1,7 @@
 // Applies non-theme cosmetic selections as data-attributes on <html> so CSS can pick them up globally.
 // Runs as a null-renderer inside AuthProvider, sibling to CosmeticThemeSync.
 import { useEffect } from 'react';
-import { useCosmetics } from '@/rewards';
+import { useCosmetics } from '@/Rewards/cosmetics';
 
 // Data-attributes written to <html> for CSS consumption. Each maps to one cosmetic slot.
 const SYNCED_SLOTS = [

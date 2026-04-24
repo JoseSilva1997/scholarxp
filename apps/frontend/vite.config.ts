@@ -14,7 +14,7 @@ export default defineConfig({
   test: {
     // Use browser-like DOM APIs so page-state hooks and route-level units can execute realistically.
     environment: 'jsdom',
-    setupFiles: './src/test/setup.ts',
+    setupFiles: './src/shared/test/setup.ts',
     clearMocks: true,
     restoreMocks: true,
     // Using ‘forks’ pool instead of default ‘threads’ because MSW 2+ patching global fetch

@@ -3,7 +3,7 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { Outlet } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import App from './App';
+import App from '@/App';
 
 type MockUser = {
   globalRole: 'pending' | 'student' | 'admin';
@@ -17,22 +17,22 @@ const mockAuthState = {
   setUser: vi.fn(),
 };
 
-vi.mock('./context/AuthContext', () => ({
+vi.mock('@/context/AuthContext', () => ({
   AuthProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
   useAuth: () => mockAuthState,
 }));
 
 // CosmeticThemeSync depends on TanStack Query + cosmetics hooks; App routing tests don't care about
 // theme syncing, so we stub it out here to keep the test surface focused on route behavior.
-vi.mock('./context/CosmeticThemeSync', () => ({
+vi.mock('@/context/CosmeticThemeSync', () => ({
   CosmeticThemeSync: () => null,
 }));
 
-vi.mock('./context/CosmeticStyleSync', () => ({
+vi.mock('@/context/CosmeticStyleSync', () => ({
   CosmeticStyleSync: () => null,
 }));
 
-vi.mock('@/rewards', () => ({
+vi.mock('@/Rewards/cosmetics', () => ({
   useCosmetics: () => ({
     equipped: {},
     cosmetic: () => 'default',
@@ -42,23 +42,23 @@ vi.mock('@/rewards', () => ({
   }),
 }));
 
-vi.mock('./components/Rewards/ScholarBackground', () => ({
+vi.mock('@/Rewards/RewardsPage/components/ScholarBackground', () => ({
   default: () => null,
 }));
 
-vi.mock('./components/Header/Header', () => ({
+vi.mock('@/MainApp/Header/Header', () => ({
   default: () => <div>header</div>,
 }));
 
-vi.mock('./components/Footer', () => ({
+vi.mock('@/MainApp/Footer', () => ({
   default: () => <div>footer</div>,
 }));
 
-vi.mock('./components/RoleSelectorOverlay', () => ({
+vi.mock('@/MainApp/RoleSelectorOverlay', () => ({
   default: () => <div>role-selector-overlay</div>,
 }));
 
-vi.mock('./layouts/AuthedLayout', () => ({
+vi.mock('@/MainApp/AuthedLayout/AuthedLayout', () => ({
   default: () => (
     <div>
       authed-layout
@@ -67,18 +67,18 @@ vi.mock('./layouts/AuthedLayout', () => ({
   ),
 }));
 
-vi.mock('./routes/Landing', () => ({ default: () => <div>landing-page</div> }));
-vi.mock('./routes/Login', () => ({ default: () => <div>login-page</div> }));
-vi.mock('./routes/Register', () => ({ default: () => <div>register-page</div> }));
-vi.mock('./routes/VerifyEmail', () => ({ default: () => <div>verify-email-page</div> }));
-vi.mock('./routes/main/AcceptInvite', () => ({ default: () => <div>accept-invite-page</div> }));
-vi.mock('./routes/main/ModulesPage', () => ({ default: () => <div>modules-page</div> }));
-vi.mock('./routes/main/SingleModulePage', () => ({ default: () => <div>single-module-page</div> }));
-vi.mock('./routes/main/ModuleUnitEditor', () => ({ default: () => <div>module-unit-editor-page</div> }));
-vi.mock('./routes/main/DailyPracticePage', () => ({ default: () => <div>daily-practice-page</div> }));
-vi.mock('./routes/main/QuestsPage', () => ({ default: () => <div>quests-page</div> }));
-vi.mock('./routes/main/RewardsPage', () => ({ default: () => <div>rewards-page</div> }));
-vi.mock('./routes/main/ProfilePage', () => ({ default: () => <div>profile-page</div> }));
+vi.mock('@/Public/Landing/Landing', () => ({ default: () => <div>landing-page</div> }));
+vi.mock('@/Auth/Login/Login', () => ({ default: () => <div>login-page</div> }));
+vi.mock('@/Auth/Register/Register', () => ({ default: () => <div>register-page</div> }));
+vi.mock('@/Auth/Register/VerifyEmail', () => ({ default: () => <div>verify-email-page</div> }));
+vi.mock('@/Authoring/AcceptInvite/AcceptInvite', () => ({ default: () => <div>accept-invite-page</div> }));
+vi.mock('@/Authoring/Modules/ModulesPage', () => ({ default: () => <div>modules-page</div> }));
+vi.mock('@/Authoring/SingleModule/SingleModulePage', () => ({ default: () => <div>single-module-page</div> }));
+vi.mock('@/Authoring/ModuleUnitEditor/ModuleUnitEditor', () => ({ default: () => <div>module-unit-editor-page</div> }));
+vi.mock('@/DailyPractice/DailyPracticePage', () => ({ default: () => <div>daily-practice-page</div> }));
+vi.mock('@/Quests/QuestsPage', () => ({ default: () => <div>quests-page</div> }));
+vi.mock('@/Rewards/RewardsPage/RewardsPage', () => ({ default: () => <div>rewards-page</div> }));
+vi.mock('@/Account/Profile/ProfilePage', () => ({ default: () => <div>profile-page</div> }));
 
 function renderAt(pathname: string) {
   window.history.pushState({}, '', pathname);

@@ -1,9 +1,9 @@
 // Syncs the student-equipped theme family into ThemeProvider while leaving the local light/dark variant intact.
 import { useEffect, useEffectEvent } from 'react';
-import { useTheme } from './useTheme';
-import { useAuth } from './AuthContext';
-import { useCosmetics } from '@/rewards';
-import { isKnownThemeRewardId } from './theme-context';
+import { useTheme } from '@/context/useTheme';
+import { useAuth } from '@/context/AuthContext';
+import { useCosmetics } from '@/Rewards/cosmetics';
+import { isKnownThemeRewardId } from '@/context/theme-context';
 
 export function CosmeticThemeSync() {
   const { user } = useAuth();
