@@ -1,6 +1,6 @@
 // Modal prompting teachers to change lesson visibility; copy is supplied by caller.
 import { createPortal } from 'react-dom';
-import styles from '@/Authoring/SingleModule/ConfirmPublishModal.module.css';
+import styles from '@/Authoring/SingleModule/components/ConfirmPublishModal.module.css';
 
 type ConfirmPublishModalProps = {
   isOpen: boolean;

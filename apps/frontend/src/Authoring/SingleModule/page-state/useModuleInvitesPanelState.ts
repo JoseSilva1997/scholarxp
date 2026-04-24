@@ -9,7 +9,7 @@ import {
   useDeleteModuleInviteMutation,
   useModuleInvitesQuery,
   useUpdateModuleInviteMutation,
-} from '@/Authoring/SingleModule/useModuleInvitesQueries';
+} from '@/Authoring/SingleModule/queries/useModuleInvitesQueries';
 import type { ModuleInvite, ModuleSummary } from '@/shared/types/module';
 
 // parameters passed in from the panel component; they drive whether we

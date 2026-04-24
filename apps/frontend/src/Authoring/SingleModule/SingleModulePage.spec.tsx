@@ -85,7 +85,7 @@ vi.mock('@/context/AuthContext', () => ({
   useAuth: () => authState,
 }));
 
-vi.mock('@/Authoring/SingleModule/useSingleModulePageState', () => ({
+vi.mock('@/Authoring/SingleModule/page-state/useSingleModulePageState', () => ({
   useSingleModulePageState: () => ({
     ...pageState,
     setIsStudentViewEnabled: mocks.setIsStudentViewEnabled,
@@ -103,7 +103,7 @@ vi.mock('@/MainApp/MainSection/MainSection', () => ({
   default: ({ children }: { children: React.ReactNode }) => <section>{children}</section>,
 }));
 
-vi.mock('@/Authoring/SingleModule/ModuleSettingsPanel', () => ({
+vi.mock('@/Authoring/SingleModule/components/ModuleSettingsPanel', () => ({
   default: ({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => void }) => (
     <div>
       <span>settings-open:{String(isOpen)}</span>
@@ -112,13 +112,13 @@ vi.mock('@/Authoring/SingleModule/ModuleSettingsPanel', () => ({
   ),
 }));
 
-vi.mock('@/Authoring/SingleModule/CreateModuleUnitCard', () => ({
+vi.mock('@/Authoring/SingleModule/components/CreateModuleUnitCard', () => ({
   default: ({ onClick }: { onClick: () => void }) => (
     <button onClick={onClick}>open-create-unit</button>
   ),
 }));
 
-vi.mock('@/Authoring/SingleModule/CreateModuleUnitModal', () => ({
+vi.mock('@/Authoring/SingleModule/components/CreateModuleUnitModal', () => ({
   default: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => (
     <div>
       <span>create-unit-open:{String(isOpen)}</span>
@@ -127,13 +127,13 @@ vi.mock('@/Authoring/SingleModule/CreateModuleUnitModal', () => ({
   ),
 }));
 
-vi.mock('@/Authoring/SingleModule/ModuleUnitCard', () => ({
+vi.mock('@/Authoring/SingleModule/components/ModuleUnitCard', () => ({
   default: ({ unit, onChangeStatus }: { unit: MockUnit; onChangeStatus: (id: number, status: MockUnit['status']) => void }) => (
     <button onClick={() => onChangeStatus(unit.id, 'archived')}>module-unit-{unit.id}</button>
   ),
 }));
 
-vi.mock('@/Authoring/SingleModule/StudentModuleUnitCard', () => ({
+vi.mock('@/Authoring/SingleModule/components/StudentModuleUnitCard', () => ({
   default: ({ unit }: { unit: MockUnit }) => <div>student-unit-{unit.id}</div>,
 }));
 

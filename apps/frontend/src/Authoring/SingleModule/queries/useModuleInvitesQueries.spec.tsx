@@ -9,7 +9,7 @@ import {
   useDeleteModuleInviteMutation,
   useRedeemInviteMutation,
   useUpdateModuleInviteMutation,
-} from '@/Authoring/SingleModule/useModuleInvitesQueries';
+} from '@/Authoring/SingleModule/queries/useModuleInvitesQueries';
 import { queryKeys } from '@/shared/hooks/query-keys';
 
 const apiMocks = vi.hoisted(() => ({

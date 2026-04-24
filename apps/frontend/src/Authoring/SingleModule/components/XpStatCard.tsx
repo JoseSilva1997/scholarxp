@@ -1,6 +1,6 @@
 // RS-style XP card for displaying individual XP categories with progress bars.
 import React from 'react';
-import styles from '@/Authoring/SingleModule/XpStatCard.module.css';
+import styles from '@/Authoring/SingleModule/components/XpStatCard.module.css';
 
 interface XpStatCardProps {
   label: string;

@@ -2,6 +2,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAcceptInvitePageState } from '@/Authoring/AcceptInvite/page-state/useAcceptInvitePageState';
+import { ApiError } from '@/shared/api/client';
 
 const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
@@ -28,7 +29,7 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-vi.mock('@/Authoring/SingleModule/useModuleInvitesQueries', () => ({
+vi.mock('@/Authoring/SingleModule/queries/useModuleInvitesQueries', () => ({
   useRedeemInviteQuery: () => ({
     ...mutationState,
   }),
@@ -128,6 +129,30 @@ describe('useAcceptInvitePageState', () => {
 
     expect(mocks.logError).not.toHaveBeenCalled();
     expect(result.current.errorMessage).toBe('Cannot redeem invite.');
+  });
+
+  it('replaces the generic invite permission error with graceful copy', () => {
+    tokenValue = 'invite-abc';
+    mutationState = {
+      isPending: false,
+      isSuccess: false,
+      isError: true,
+      error: new ApiError({
+        message: 'Insufficient permissions',
+        status: 403,
+        code: 'FORBIDDEN',
+        data: { message: 'Insufficient permissions' },
+      }),
+      data: undefined,
+    };
+    mocks.shouldLogApiError.mockReturnValue(false);
+
+    const { result } = renderHook(() => useAcceptInvitePageState());
+
+    expect(mocks.getDisplayErrorMessage).not.toHaveBeenCalled();
+    expect(result.current.errorMessage).toBe(
+      'This invite link can only be used from an eligible student account. If you are a teacher, ask the module owner to share access another way.',
+    );
   });
 
   it('navigates to modules page after successful redemption delay', () => {

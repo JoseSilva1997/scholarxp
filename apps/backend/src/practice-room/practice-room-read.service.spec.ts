@@ -29,7 +29,7 @@ describe('PracticeRoomReadService', () => {
     toLatestAttemptMap: jest.Mock;
   };
   let practiceRoomSessionService: {
-    resolveRoomSession: jest.Mock;
+    resolveOwnedSessionByType: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -39,7 +39,7 @@ describe('PracticeRoomReadService', () => {
       toLatestAttemptMap: jest.fn(),
     };
     practiceRoomSessionService = {
-      resolveRoomSession: jest.fn(),
+      resolveOwnedSessionByType: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -67,7 +67,9 @@ describe('PracticeRoomReadService', () => {
       prisma.moduleUnitUserProgress.findFirst.mockResolvedValue({
         isCompleted: false,
       } as never);
-      practiceRoomSessionService.resolveRoomSession.mockResolvedValue(session);
+      practiceRoomSessionService.resolveOwnedSessionByType.mockResolvedValue(
+        session,
+      );
       practiceRoomMapper.toQuestionUnitDrafts.mockReturnValue(drafts);
 
       const result = await service.loadRoomContext(
@@ -77,7 +79,7 @@ describe('PracticeRoomReadService', () => {
       );
 
       expect(
-        practiceRoomSessionService.resolveRoomSession,
+        practiceRoomSessionService.resolveOwnedSessionByType,
       ).toHaveBeenCalledWith(
         TEST_MODULE_ID,
         TEST_STUDENT_ID,
@@ -106,7 +108,9 @@ describe('PracticeRoomReadService', () => {
       prisma.moduleUnitUserProgress.findFirst.mockResolvedValue({
         isCompleted: true,
       } as never);
-      practiceRoomSessionService.resolveRoomSession.mockResolvedValue(session);
+      practiceRoomSessionService.resolveOwnedSessionByType.mockResolvedValue(
+        session,
+      );
       practiceRoomMapper.toQuestionUnitDrafts.mockReturnValue(drafts);
 
       const result = await service.loadRoomContext(
@@ -117,7 +121,7 @@ describe('PracticeRoomReadService', () => {
       );
 
       expect(
-        practiceRoomSessionService.resolveRoomSession,
+        practiceRoomSessionService.resolveOwnedSessionByType,
       ).toHaveBeenCalledWith(
         TEST_MODULE_ID,
         TEST_STUDENT_ID,
@@ -126,6 +130,56 @@ describe('PracticeRoomReadService', () => {
       );
       expect(result.isReadOnly).toBe(false);
       expect(result.session.sessionType).toBe(PracticeSessionTypeValues.retry);
+    });
+
+    it('ignores stale session ids that belong to a different room mode after completion', async () => {
+      const moduleUnit = buildLoadedModuleUnit();
+      const drafts = [buildQuestionUnitDraft()];
+      const viewAnswersSession = buildOwnedPracticeSession({
+        id: '22222222-2222-4222-8222-222222222222',
+        sessionType: PracticeSessionTypeValues.viewAnswers,
+      });
+
+      prisma.moduleUnit.findFirst.mockResolvedValue(moduleUnit as never);
+      prisma.moduleUnitUserProgress.findFirst.mockResolvedValue({
+        isCompleted: true,
+      } as never);
+      practiceRoomSessionService.resolveOwnedSessionByType
+        .mockRejectedValueOnce(
+          new ForbiddenException(
+            'This session does not belong to the requested practice flow.',
+          ),
+        )
+        .mockResolvedValueOnce(viewAnswersSession);
+      practiceRoomMapper.toQuestionUnitDrafts.mockReturnValue(drafts);
+
+      const result = await service.loadRoomContext(
+        TEST_MODULE_ID,
+        TEST_MODULE_UNIT_ID,
+        TEST_STUDENT_ID,
+        undefined,
+        '11111111-1111-4111-8111-111111111111',
+      );
+
+      expect(
+        practiceRoomSessionService.resolveOwnedSessionByType,
+      ).toHaveBeenNthCalledWith(
+        1,
+        TEST_MODULE_ID,
+        TEST_STUDENT_ID,
+        PracticeSessionTypeValues.viewAnswers,
+        '11111111-1111-4111-8111-111111111111',
+      );
+      expect(
+        practiceRoomSessionService.resolveOwnedSessionByType,
+      ).toHaveBeenNthCalledWith(
+        2,
+        TEST_MODULE_ID,
+        TEST_STUDENT_ID,
+        PracticeSessionTypeValues.viewAnswers,
+      );
+      expect(result.isReadOnly).toBe(true);
+      expect(result.session).toBe(viewAnswersSession);
     });
   });
 

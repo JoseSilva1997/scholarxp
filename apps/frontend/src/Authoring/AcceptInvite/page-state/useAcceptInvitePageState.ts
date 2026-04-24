@@ -1,12 +1,29 @@
 // Encapsulates AcceptInvite route orchestration so the page only renders status and actions.
 import { useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ApiError } from '@/shared/api/client';
 import {
   getDisplayErrorMessage,
   shouldLogApiError,
 } from '@/shared/api/get-display-error';
 import { logError } from '@/utils/logger';
-import { useRedeemInviteQuery } from '@/Authoring/SingleModule/useModuleInvitesQueries';
+import { useRedeemInviteQuery } from '@/Authoring/SingleModule/queries/useModuleInvitesQueries';
+
+const INVITE_REDEEM_PERMISSION_MESSAGE =
+  'This invite link can only be used from an eligible student account. If you are a teacher, ask the module owner to share access another way.';
+
+function getInviteRedeemErrorMessage(error: unknown): string | null {
+  // Keep the graceful override narrowly scoped so other invite failures still use backend-owned copy.
+  if (
+    error instanceof ApiError &&
+    error.status === 403 &&
+    error.message === 'Insufficient permissions'
+  ) {
+    return INVITE_REDEEM_PERMISSION_MESSAGE;
+  }
+
+  return null;
+}
 
 // Main hook for AcceptInvite page state
 // Handles all logic for redeeming an invite link, error handling, and redirecting after success.
@@ -48,10 +65,12 @@ export function useAcceptInvitePageState() {
 
   // --- Error message logic ---
   // Determines the appropriate error message to show based on token presence and API errors.
+  const inviteRedeemPermissionMessage = getInviteRedeemErrorMessage(error);
   const errorMessage = !hasToken
     ? 'This invite link is missing a token.'
     : isError
-      ? getDisplayErrorMessage(error, {
+      ? inviteRedeemPermissionMessage ??
+        getDisplayErrorMessage(error, {
           fallbackMessage:
             'We could not redeem this invite. Please ask your instructor for a new link.',
         })

@@ -2,7 +2,7 @@
 // Tests branch coverage for status select, publish-step confirmations, edit warnings, and question group display.
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import ModuleUnitCard from '@/Authoring/SingleModule/ModuleUnitCard';
+import ModuleUnitCard from '@/Authoring/SingleModule/components/ModuleUnitCard';
 
 const navigateMock = vi.fn();
 type MockConfirmPublishModalProps = {
@@ -25,7 +25,7 @@ vi.mock('react-router-dom', async () => {
 });
 
 const mockModalInstances: MockConfirmPublishModalProps[] = [];
-vi.mock('@/Authoring/SingleModule/ConfirmPublishModal', () => ({
+vi.mock('@/Authoring/SingleModule/components/ConfirmPublishModal', () => ({
   default: (props: MockConfirmPublishModalProps) => {
     mockModalInstances.push({ ...props });
     return props.isOpen ? (

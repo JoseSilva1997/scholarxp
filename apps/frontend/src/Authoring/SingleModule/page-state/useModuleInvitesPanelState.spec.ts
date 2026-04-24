@@ -4,7 +4,7 @@ import { act, renderHook } from '@testing-library/react';
 import type { FormEvent } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/shared/api/client';
-import { useModuleInvitesPanelState } from '@/Authoring/SingleModule/useModuleInvitesPanelState';
+import { useModuleInvitesPanelState } from '@/Authoring/SingleModule/page-state/useModuleInvitesPanelState';
 import type { ModuleInvite } from '@/shared/types/module';
 
 const mocks = vi.hoisted(() => ({
@@ -31,7 +31,7 @@ vi.mock('@/utils/logger', () => ({
   logError: mocks.logError,
 }));
 
-vi.mock('@/Authoring/SingleModule/useModuleInvitesQueries', () => ({
+vi.mock('@/Authoring/SingleModule/queries/useModuleInvitesQueries', () => ({
   useModuleInvitesQuery: () => invitesQueryState,
   useCreateModuleInviteMutation: () => ({
     mutateAsync: mocks.createMutateAsync,

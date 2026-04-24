@@ -2,8 +2,8 @@
 import { useMemo, useState, useEffect } from 'react';
 import { RiEditLine, RiCheckLine, RiCloseLine, RiArrowDownSLine } from "react-icons/ri";
 import { FaCheck } from "react-icons/fa6";
-import styles from '@/Authoring/SingleModule/ModuleUnitCard.module.css';
-import ConfirmPublishModal from '@/Authoring/SingleModule/ConfirmPublishModal';
+import styles from '@/Authoring/SingleModule/components/ModuleUnitCard.module.css';
+import ConfirmPublishModal from '@/Authoring/SingleModule/components/ConfirmPublishModal';
 import { useNavigate } from 'react-router-dom';
 import type { ModuleUnitStatus, QuestionAttemptResult } from '@scholarxp/api-contracts';
 

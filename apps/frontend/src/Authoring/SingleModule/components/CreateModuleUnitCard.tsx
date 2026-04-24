@@ -2,7 +2,7 @@
 import type { MouseEventHandler } from 'react';
 import { FaCirclePlus } from 'react-icons/fa6';
 import { IconContext } from 'react-icons';
-import styles from '@/Authoring/SingleModule/CreateModuleUnitCard.module.css';
+import styles from '@/Authoring/SingleModule/components/CreateModuleUnitCard.module.css';
 
 type CreateModuleUnitCardProps = {
   // Callback allows host pages to wire the CTA without locking this component to a specific flow yet.

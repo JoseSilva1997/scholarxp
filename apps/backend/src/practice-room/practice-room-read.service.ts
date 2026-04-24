@@ -50,12 +50,12 @@ export class PracticeRoomReadService {
       isCompleted,
       requestedSessionType,
     );
-    const session = await this.practiceRoomSessionService.resolveRoomSession(
+    const session = await this.resolveRoomSessionForEntry({
       moduleId,
       studentId,
-      resolvedSessionType,
+      sessionType: resolvedSessionType,
       existingSessionId,
-    );
+    });
 
     return {
       moduleUnit,
@@ -366,5 +366,36 @@ export class PracticeRoomReadService {
     }
 
     return PracticeSessionTypeValues.viewAnswers;
+  }
+
+  // Completion can refetch the room while the URL still carries the old
+  // practice-room session id, so mismatched session ids must not override the
+  // newly required room mode.
+  private async resolveRoomSessionForEntry(input: {
+    moduleId: number;
+    studentId: number;
+    sessionType: PracticeSessionType;
+    existingSessionId?: string;
+  }) {
+    try {
+      return await this.practiceRoomSessionService.resolveOwnedSessionByType(
+        input.moduleId,
+        input.studentId,
+        input.sessionType,
+        input.existingSessionId,
+      );
+    } catch (error) {
+      if (
+        error instanceof ForbiddenException &&
+        input.existingSessionId !== undefined
+      ) {
+        return this.practiceRoomSessionService.resolveOwnedSessionByType(
+          input.moduleId,
+          input.studentId,
+          input.sessionType,
+        );
+      }
+      throw error;
+    }
   }
 }

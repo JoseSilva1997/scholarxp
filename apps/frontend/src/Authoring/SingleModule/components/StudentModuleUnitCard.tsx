@@ -1,11 +1,11 @@
 // Student-facing module unit card; shows neutral badge and start practice CTA without edit or authoring controls.
 import { useState } from 'react';
-import styles from '@/Authoring/SingleModule/StudentModuleUnitCard.module.css';
+import styles from '@/Authoring/SingleModule/components/StudentModuleUnitCard.module.css';
 import { useCompletionMedal } from '@/Rewards/cosmetics/useCompletionMedal';
 import { FaCheck, FaMinus, FaXmark, FaBolt, FaFire, FaGraduationCap } from 'react-icons/fa6';
 import { TbTargetArrow } from "react-icons/tb";
 import { IoMdLock } from "react-icons/io"
-import XpStatCard from '@/Authoring/SingleModule/XpStatCard';
+import XpStatCard from '@/Authoring/SingleModule/components/XpStatCard';
 import type { QuestionAttemptResult } from '@scholarxp/api-contracts';
 import {
   MASTERY_TOTAL_EXP,
@@ -14,7 +14,7 @@ import {
   STREAK_BONUS_EXP_PER_DELTA,
 } from '@scholarxp/constants';
 
-import type { ModuleUnit } from '@/Authoring/SingleModule/ModuleUnitCard';
+import type { ModuleUnit } from '@/Authoring/SingleModule/components/ModuleUnitCard';
 import DebugMeta from '@/MainApp/DebugMeta';
 
 type StudentModuleUnitCardProps = {

@@ -1,6 +1,6 @@
 // Modal to capture a new module unit title; intentionally simple until backend wiring exists.
 import { useEffect, useRef, useState } from 'react';
-import styles from '@/Authoring/SingleModule/CreateModuleUnitModal.module.css';
+import styles from '@/Authoring/SingleModule/components/CreateModuleUnitModal.module.css';
 
 type CreateModuleUnitModalProps = {
   isOpen: boolean;

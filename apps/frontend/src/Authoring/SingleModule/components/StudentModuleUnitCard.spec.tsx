@@ -8,7 +8,7 @@ vi.mock('@/Rewards/cosmetics/useCompletionMedal', () => ({
   useCompletionMedal: () => 'test-medal.png',
 }));
 
-import StudentModuleUnitCard from '@/Authoring/SingleModule/StudentModuleUnitCard';
+import StudentModuleUnitCard from '@/Authoring/SingleModule/components/StudentModuleUnitCard';
 import {
   MASTERY_TOTAL_EXP,
   MAXIMUM_FIRST_ATTEMPT_BONUS_EXP,

@@ -1,7 +1,7 @@
 // Verifies create-unit modal validation and submit/cancel behavior.
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import CreateModuleUnitModal from '@/Authoring/SingleModule/CreateModuleUnitModal';
+import CreateModuleUnitModal from '@/Authoring/SingleModule/components/CreateModuleUnitModal';
 
 describe('CreateModuleUnitModal', () => {
   it('does not render when closed', () => {

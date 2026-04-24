@@ -1,7 +1,7 @@
 // Verifies confirm-publish modal control flow and submit state copy.
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import ConfirmPublishModal from '@/Authoring/SingleModule/ConfirmPublishModal';
+import ConfirmPublishModal from '@/Authoring/SingleModule/components/ConfirmPublishModal';
 
 describe('ConfirmPublishModal', () => {
   it('does not render when closed', () => {

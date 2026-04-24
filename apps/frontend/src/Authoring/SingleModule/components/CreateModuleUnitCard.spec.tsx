@@ -1,7 +1,7 @@
 // Verifies CreateModuleUnitCard CTA wiring so hosts can trigger unit creation from card UI.
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import CreateModuleUnitCard from '@/Authoring/SingleModule/CreateModuleUnitCard';
+import CreateModuleUnitCard from '@/Authoring/SingleModule/components/CreateModuleUnitCard';
 
 describe('CreateModuleUnitCard', () => {
   it('calls onClick when create button is pressed', () => {

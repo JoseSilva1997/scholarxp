@@ -2,7 +2,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PracticeSessionTypeValues, type AuthUser } from '@scholarxp/api-contracts';
-import { useSingleModulePageState } from '@/Authoring/SingleModule/useSingleModulePageState';
+import { useSingleModulePageState } from '@/Authoring/SingleModule/page-state/useSingleModulePageState';
 import { features } from '@scholarxp/permissions';
 
 const mocks = vi.hoisted(() => ({
