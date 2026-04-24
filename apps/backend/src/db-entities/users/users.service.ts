@@ -16,7 +16,7 @@ import { randomUUID } from 'crypto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from '../../prisma/prisma.service';
-import { StorageService } from '../../storage/storage.service';
+import { StorageService } from '../../file-storage/storage.service';
 
 // Magic-byte signatures for the three image formats we accept; checked alongside the declared MIME type
 // so a client cannot smuggle a non-image by setting the Content-Type header.

@@ -2,7 +2,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { GlobalRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { StorageService } from '../../storage/storage.service';
+import { StorageService } from '../../file-storage/storage.service';
 import { createPrismaMock, PrismaMock } from '../../test/test-helpers';
 import { UsersService } from './users.service';
 
