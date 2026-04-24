@@ -594,5 +594,31 @@ describe('AuthController', () => {
       );
       expect(mockRes.redirect).not.toHaveBeenCalled();
     });
+
+    it('should ignore auth-route session redirects and fall back to /main', async () => {
+      const mockReq = {
+        user: mockGoogleProfile,
+        session: { postAuthRedirect: '/login?next=%2Fmain%2Fmodules' },
+      } as unknown as Request;
+      const mockRes = { redirect: jest.fn() } as unknown as Response;
+
+      authService.loginWithGoogle.mockResolvedValue(mockAuthUser);
+      authService.loginUser.mockResolvedValue(undefined);
+
+      process.env.CORS_ORIGIN = 'https://app.example.com';
+
+      await controller.googleCallback(mockReq, mockRes);
+
+      expect(authService.loginUser).toHaveBeenCalledWith(
+        mockReq,
+        mockAuthUser,
+        {
+          persistSession: { postAuthRedirect: '/login?next=%2Fmain%2Fmodules' },
+        },
+      );
+      expect(mockRes.redirect).toHaveBeenCalledWith(
+        'https://app.example.com/main',
+      );
+    });
   });
 });

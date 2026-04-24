@@ -16,17 +16,22 @@ const PROVIDERS: { key: Provider; label: string; icon: string }[] = [
   },
 ];
 
+function isAuthRoute(pathname: string) {
+  return pathname === '/login' || pathname === '/register' || pathname === '/verify-email';
+}
+
 export function SocialAuthButtons({ context }: SocialAuthButtonsProps) {
   const apiBase = import.meta.env.VITE_API_URL;
   const disabled = !apiBase;
 
   const handleRedirect = (provider: Provider) => {
     if (!apiBase) return;
+    const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    const fallbackRedirect = isAuthRoute(window.location.pathname) ? '/main' : currentPath;
     // Persist the intended post-auth path so the backend can restore it after OAuth round-trips.
-    // Prefer the invite/main target captured by login flow; fall back to current location for safety.
+    // Auth entry routes should never be the fallback target because they cause a visible bounce after OAuth.
     const pendingRedirect =
-      sessionStorage.getItem('postAuthRedirect') ??
-      `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      sessionStorage.getItem('postAuthRedirect') ?? fallbackRedirect;
     const redirectParam = encodeURIComponent(pendingRedirect);
     // Use full-page redirect so OAuth flow can set cookies on the API domain.
     const target = `${apiBase}/auth/oauth/${provider}?intent=${context}&redirect=${redirectParam}`;

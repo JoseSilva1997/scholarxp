@@ -34,4 +34,28 @@ describe('SocialAuthButtons', () => {
       'http://api.test/auth/oauth/google?intent=register&redirect=%2Fmain%2Fmodules%3Ftab%3D1%23x',
     );
   });
+
+  it('falls back to /main instead of the login route when no post-auth redirect is stored', () => {
+    vi.stubEnv('VITE_API_URL', 'http://api.test');
+
+    const assign = vi.fn();
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: {
+        ...window.location,
+        pathname: '/login',
+        search: '',
+        hash: '',
+        assign,
+      },
+    });
+
+    render(<SocialAuthButtons context="login" />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in with Google' }));
+
+    expect(assign).toHaveBeenCalledWith(
+      'http://api.test/auth/oauth/google?intent=login&redirect=%2Fmain',
+    );
+  });
 });

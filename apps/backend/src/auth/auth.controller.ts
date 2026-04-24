@@ -191,9 +191,7 @@ export class AuthController {
     // Some deployments provide a comma-separated list for CORS; pick the first and ensure we land on /main.
     const primaryOrigin = baseOrigin.split(',')[0]?.trim() ?? baseOrigin;
     const cleanedSessionRedirect =
-      sessionRedirect && sessionRedirect.startsWith('/')
-        ? sessionRedirect
-        : null;
+      this.normalizeOAuthRedirectPath(sessionRedirect);
     try {
       const fallback = new URL('/main', primaryOrigin).toString();
       if (cleanedSessionRedirect) {
@@ -208,6 +206,31 @@ export class AuthController {
       }
       return base;
     }
+  }
+
+  private normalizeOAuthRedirectPath(
+    sessionRedirect?: string | null,
+  ): string | null {
+    if (!sessionRedirect?.startsWith('/')) {
+      return null;
+    }
+    try {
+      const redirectUrl = new URL(sessionRedirect, 'https://scholarxp.local');
+      if (this.isAuthRoute(redirectUrl.pathname)) {
+        return null;
+      }
+      return `${redirectUrl.pathname}${redirectUrl.search}${redirectUrl.hash}`;
+    } catch {
+      return null;
+    }
+  }
+
+  private isAuthRoute(pathname: string): boolean {
+    return (
+      pathname === '/login' ||
+      pathname === '/register' ||
+      pathname === '/verify-email'
+    );
   }
 
   // Keep runtime validation local so AuthService can accept a strongly-typed profile.
