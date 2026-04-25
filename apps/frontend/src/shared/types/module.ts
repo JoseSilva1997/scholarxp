@@ -1,5 +1,6 @@
 import type { 
   ModuleSummaryResponse as ModuleSummary,
+  ModuleDeletionImpactResponse as ModuleDeletionImpact,
   ModuleUnitResponse,
   ModuleUnitStatus,
   ModuleUnitGroupResponse as ModuleUnitGroup,
@@ -14,6 +15,7 @@ import type {
 
 export type { 
   ModuleSummary, 
+  ModuleDeletionImpact,
   ModuleUnitResponse, 
   ModuleUnitStatus, 
   ModuleUnitGroup, 

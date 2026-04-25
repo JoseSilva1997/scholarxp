@@ -1,10 +1,12 @@
 // Verifies modules API helpers call apiFetch with the correct endpoint and payload contracts.
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  archiveModule,
   closePracticeRoomSession,
   createModule,
   createModuleUnit,
   getModuleById,
+  getModuleDeletionImpact,
   getModuleUnitEditor,
   getModuleUnits,
   getPracticeRoom,
@@ -71,6 +73,22 @@ describe('modules api', () => {
     expect(clientMocks.apiFetch).toHaveBeenCalledWith('/module/9', {
       method: 'PATCH',
       body: JSON.stringify(payload),
+    });
+  });
+
+  it('gets module deletion impact with GET /module/:id/deletion-impact', async () => {
+    await getModuleDeletionImpact(9);
+
+    expect(clientMocks.apiFetch).toHaveBeenCalledWith('/module/9/deletion-impact', {
+      method: 'GET',
+    });
+  });
+
+  it('archives module with DELETE /module/:id', async () => {
+    await archiveModule(9);
+
+    expect(clientMocks.apiFetch).toHaveBeenCalledWith('/module/9', {
+      method: 'DELETE',
     });
   });
 

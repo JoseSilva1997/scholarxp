@@ -7,6 +7,7 @@ import type {
   UpdateModuleUnitStatusPayload,
   CreateModuleUnitQuestionGroupPayload,
   UpdateModuleUnitQuestionGroupNamePayload,
+  ModuleDeletionImpactResponse,
   ModuleSummaryResponse,
   ModuleUnitResponse,
   ModuleUnitEditorResponse,
@@ -30,6 +31,14 @@ export async function getModuleById(id: number): Promise<ModuleSummaryResponse> 
   });
 }
 
+export async function getModuleDeletionImpact(
+  id: number,
+): Promise<ModuleDeletionImpactResponse> {
+  return apiFetch<ModuleDeletionImpactResponse>(`/module/${id}/deletion-impact`, {
+    method: 'GET',
+  });
+}
+
 export async function createModule(
   payload: CreateModulePayload,
 ): Promise<ModuleSummaryResponse> {
@@ -46,6 +55,12 @@ export async function updateModule(
   return apiFetch<ModuleSummaryResponse>(`/module/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(payload),
+  });
+}
+
+export async function archiveModule(id: number): Promise<ModuleSummaryResponse> {
+  return apiFetch<ModuleSummaryResponse>(`/module/${id}`, {
+    method: 'DELETE',
   });
 }
 

@@ -38,6 +38,13 @@ export default function SingleModulePage() {
     canToggleStudentView,
     canManageModuleContent,
     canManageInvites,
+    canDeleteModule,
+    isArchiveConfirmOpen,
+    archiveImpact,
+    archiveImpactError,
+    isArchiveImpactLoading,
+    isArchivingModule,
+    archiveModuleError,
     isStudentViewEnabled,
     setIsStudentViewEnabled,
     showCreateUnit,
@@ -58,9 +65,18 @@ export default function SingleModulePage() {
     handleChangeUnitStatus,
     handleUpdateUnitTitle,
     handleModuleSaved,
+    handleRequestArchiveModule,
+    handleCancelArchiveModule,
+    handleConfirmArchiveModule,
   } = useSingleModulePageState({ moduleIdParam: moduleId, user });
 
   const canViewRoster = useMemo(() => canUserAccess(features.modules.roster, user), [user]);
+  const handleToggleSettings = () => {
+    if (isSettingsOpen) {
+      handleCancelArchiveModule();
+    }
+    setIsSettingsOpen((open) => !open);
+  };
 
   return (
     <>
@@ -148,7 +164,7 @@ export default function SingleModulePage() {
                         aria-label="Module settings"
                         title="Module settings"
                         aria-expanded={isSettingsOpen}
-                        onClick={() => setIsSettingsOpen((open) => !open)}
+                        onClick={handleToggleSettings}
                       >
                         <IconContext.Provider value={{ className: styles.settingsIcon }}>
                           <IoSettingsSharp aria-hidden="true" />
@@ -270,9 +286,21 @@ export default function SingleModulePage() {
         <ModuleSettingsPanel
           module={module}
           isOpen={isSettingsOpen}
-          onToggle={() => setIsSettingsOpen((open) => !open)}
+          onToggle={handleToggleSettings}
           onSaved={handleModuleSaved}
           canManageInvites={canManageInvites}
+          canDeleteModule={canDeleteModule}
+          isArchiveConfirmOpen={isArchiveConfirmOpen}
+          archiveImpact={archiveImpact}
+          archiveImpactError={archiveImpactError}
+          isArchiveImpactLoading={isArchiveImpactLoading}
+          isArchivingModule={isArchivingModule}
+          archiveModuleError={archiveModuleError}
+          onRequestArchiveModule={handleRequestArchiveModule}
+          onCancelArchiveModule={handleCancelArchiveModule}
+          onConfirmArchiveModule={() => {
+            void handleConfirmArchiveModule();
+          }}
         />
       ) : null}
       <CreateModuleUnitModal

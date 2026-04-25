@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   CreateModulePayload,
   CreateModuleUnitMinimalPayload,
+  ModuleDeletionImpactResponse,
   ModuleSummaryResponse,
   ModuleUnitResponse,
   UpdateModulePayload,
@@ -10,9 +11,11 @@ import type {
   UpdateModuleUnitStatusPayload,
 } from '@scholarxp/api-contracts';
 import {
+  archiveModule,
   createModule,
   createModuleUnit,
   getModuleById,
+  getModuleDeletionImpact,
   getModuleUnits,
   listModules,
   updateModule,
@@ -95,6 +98,52 @@ export function useModuleDetailQuery(moduleId: number | null) {
     // Avoid module fetches until routing params are validated.
     enabled: moduleId !== null,
     staleTime: 30_000,
+  });
+}
+
+export function useModuleDeletionImpactQuery(moduleId: number | null, enabled: boolean) {
+  return useQuery<ModuleDeletionImpactResponse>({
+    queryKey: moduleId
+      ? queryKeys.modules.deletionImpact(moduleId)
+      : queryKeys.modules.deletionImpact(0),
+    queryFn: () => getModuleDeletionImpact(moduleId!),
+    // Impact is only needed once the tutor is considering the destructive action.
+    enabled: moduleId !== null && enabled,
+    staleTime: 10_000,
+  });
+}
+
+export function useArchiveModuleMutation(moduleId: number | null) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => {
+      if (moduleId === null) {
+        throw new Error('Missing module id for module archive.');
+      }
+      return archiveModule(moduleId);
+    },
+    onSuccess: (archivedModule) => {
+      if (moduleId === null) return;
+      queryClient.setQueryData<ModuleSummaryResponse[]>(
+        queryKeys.modules.all,
+        (previousModules) => {
+          if (!previousModules) return previousModules;
+          return previousModules.filter((module) => module.id !== archivedModule.id);
+        },
+      );
+      queryClient.removeQueries({ queryKey: queryKeys.modules.detail(moduleId) });
+      queryClient.removeQueries({ queryKey: queryKeys.modules.units(moduleId) });
+      queryClient.removeQueries({ queryKey: queryKeys.modules.invites(moduleId) });
+      queryClient.removeQueries({ queryKey: queryKeys.modules.deletionImpact(moduleId) });
+    },
+    onSettled: async () => {
+      if (moduleId === null) return;
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.modules.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.profile.tutorAll }),
+      ]);
+    },
   });
 }
 

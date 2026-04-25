@@ -1,13 +1,14 @@
 // Encapsulates SingleModulePage orchestration so the route component can stay mostly presentational.
 import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import {
   PracticeSessionTypeValues,
   type AuthUser,
   type ModuleUnitStatus,
   type PracticeSessionType,
 } from '@scholarxp/api-contracts';
-import type { ModuleSummary } from '@/shared/types/module';
+import type { ModuleDeletionImpact, ModuleSummary } from '@/shared/types/module';
 import { MODULE_UNIT_BASELINE_EXP } from '@scholarxp/constants';
 import { features } from '@scholarxp/permissions';
 import type { ModuleUnit } from '@/Authoring/SingleModule/components/ModuleUnitCard';
@@ -18,7 +19,9 @@ import {
 import { logError } from '@/utils/logger';
 import { canUserAccess } from '@/shared/permissions/permission';
 import {
+  useArchiveModuleMutation,
   useCreateModuleUnitMutation,
+  useModuleDeletionImpactQuery,
   useModuleDetailQuery,
   useModuleUnitsQuery,
   useUpdateModuleUnitMutation,
@@ -41,6 +44,13 @@ type UseSingleModulePageStateResult = {
   canToggleStudentView: boolean;
   canManageModuleContent: boolean;
   canManageInvites: boolean;
+  canDeleteModule: boolean;
+  isArchiveConfirmOpen: boolean;
+  archiveImpact: ModuleDeletionImpact | null;
+  archiveImpactError: string | null;
+  isArchiveImpactLoading: boolean;
+  isArchivingModule: boolean;
+  archiveModuleError: string | null;
   isStudentViewEnabled: boolean;
   setIsStudentViewEnabled: Dispatch<SetStateAction<boolean>>;
   showCreateUnit: boolean;
@@ -61,6 +71,9 @@ type UseSingleModulePageStateResult = {
   handleChangeUnitStatus: (unitId: string, status: ModuleUnitStatus) => Promise<void>;
   handleUpdateUnitTitle: (unitId: string, title: string) => Promise<void>;
   handleModuleSaved: (updated: ModuleSummary) => void;
+  handleRequestArchiveModule: () => void;
+  handleCancelArchiveModule: () => void;
+  handleConfirmArchiveModule: () => Promise<void>;
 };
 
 export function useSingleModulePageState({
@@ -68,10 +81,13 @@ export function useSingleModulePageState({
   user,
 }: UseSingleModulePageStateParams): UseSingleModulePageStateResult {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [actionError, setActionError] = useState<string | null>(null);
+  const [archiveModuleError, setArchiveModuleError] = useState<string | null>(null);
   const [isStudentViewEnabled, setIsStudentViewEnabled] = useState(false);
   const [showCreateUnit, setShowCreateUnit] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
 
   // normalize the route parameter into a valid numeric id or null.
   // we memoize to avoid recalculating on every render and ensure
@@ -87,6 +103,7 @@ export function useSingleModulePageState({
   const createModuleUnitMutation = useCreateModuleUnitMutation(parsedId);
   const updateModuleUnitMutation = useUpdateModuleUnitMutation(parsedId);
   const updateModuleUnitStatusMutation = useUpdateModuleUnitStatusMutation(parsedId);
+  const archiveModuleMutation = useArchiveModuleMutation(parsedId);
 
   // permission checks are memoized to avoid re-evaluating the
   // shared matrix on every render. user object is primary dependency.
@@ -100,6 +117,11 @@ export function useSingleModulePageState({
     [user],
   );
   const canManageInvites = useMemo(() => canUserAccess(features.modules.invitations, user), [user]);
+  const canDeleteModule = useMemo(() => canUserAccess(features.modules.delete, user), [user]);
+  const archiveImpactQuery = useModuleDeletionImpactQuery(
+    parsedId,
+    isArchiveConfirmOpen && canDeleteModule,
+  );
 
   // log any unexpected errors from the detail query for monitoring.
   useEffect(() => {
@@ -116,6 +138,17 @@ export function useSingleModulePageState({
       logError(moduleUnitsQuery.error, { feature: 'module-unit', action: 'list', moduleId: parsedId });
     }
   }, [moduleUnitsQuery.error, parsedId]);
+
+  useEffect(() => {
+    if (!archiveImpactQuery.error) return;
+    if (shouldLogApiError(archiveImpactQuery.error)) {
+      logError(archiveImpactQuery.error, {
+        feature: 'modules',
+        action: 'deletion-impact',
+        moduleId: parsedId,
+      });
+    }
+  }, [archiveImpactQuery.error, parsedId]);
 
   const module = moduleQuery.data ?? null;
 
@@ -370,6 +403,43 @@ export function useSingleModulePageState({
     queryClient.setQueryData(queryKeys.modules.detail(parsedId), updated);
   };
 
+  const archiveImpactError = archiveImpactQuery.error
+    ? getDisplayErrorMessage(archiveImpactQuery.error, {
+        fallbackMessage: 'Could not check module impact right now. Please try again.',
+      })
+    : null;
+
+  const handleRequestArchiveModule = () => {
+    setArchiveModuleError(null);
+    setIsArchiveConfirmOpen(true);
+  };
+
+  const handleCancelArchiveModule = () => {
+    if (archiveModuleMutation.isPending) return;
+    setArchiveModuleError(null);
+    setIsArchiveConfirmOpen(false);
+  };
+
+  const handleConfirmArchiveModule = async () => {
+    if (!module || parsedId === null) return;
+    setArchiveModuleError(null);
+    try {
+      await archiveModuleMutation.mutateAsync();
+      setIsArchiveConfirmOpen(false);
+      setIsSettingsOpen(false);
+      navigate('/main/modules');
+    } catch (error) {
+      setArchiveModuleError(
+        getDisplayErrorMessage(error, {
+          fallbackMessage: 'Could not archive this module. Please try again.',
+        }),
+      );
+      if (shouldLogApiError(error)) {
+        logError(error, { feature: 'modules', action: 'archive', moduleId: parsedId });
+      }
+    }
+  };
+
   return {
     parsedId,
     module,
@@ -380,6 +450,13 @@ export function useSingleModulePageState({
     canToggleStudentView,
     canManageModuleContent,
     canManageInvites,
+    canDeleteModule,
+    isArchiveConfirmOpen,
+    archiveImpact: archiveImpactQuery.data ?? null,
+    archiveImpactError,
+    isArchiveImpactLoading: Boolean(archiveImpactQuery.isFetching),
+    isArchivingModule: archiveModuleMutation.isPending,
+    archiveModuleError,
     isStudentViewEnabled,
     setIsStudentViewEnabled,
     showCreateUnit,
@@ -400,5 +477,8 @@ export function useSingleModulePageState({
     handleChangeUnitStatus,
     handleUpdateUnitTitle,
     handleModuleSaved,
+    handleRequestArchiveModule,
+    handleCancelArchiveModule,
+    handleConfirmArchiveModule,
   };
 }

@@ -894,6 +894,110 @@ describe('ModuleSettingsPanel', () => {
     });
   });
 
+  describe('archive module section', () => {
+    it('hides archive controls when delete permission is unavailable', () => {
+      render(
+        <ModuleSettingsPanel
+          module={mockModule}
+          isOpen={true}
+          onToggle={mockOnToggle}
+          onSaved={mockOnSaved}
+          canManageInvites={true}
+          canDeleteModule={false}
+        />
+      );
+
+      expect(screen.queryByRole('button', { name: /Archive module/i })).not.toBeInTheDocument();
+    });
+
+    it('requests archive confirmation from the archive button', async () => {
+      const onRequestArchiveModule = vi.fn();
+
+      render(
+        <ModuleSettingsPanel
+          module={mockModule}
+          isOpen={true}
+          onToggle={mockOnToggle}
+          onSaved={mockOnSaved}
+          canManageInvites={true}
+          canDeleteModule={true}
+          onRequestArchiveModule={onRequestArchiveModule}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button', { name: /Archive module/i }));
+
+      expect(onRequestArchiveModule).toHaveBeenCalledTimes(1);
+    });
+
+    it('renders impact counts and confirms archive from confirmation state', async () => {
+      const onConfirmArchiveModule = vi.fn();
+
+      render(
+        <ModuleSettingsPanel
+          module={mockModule}
+          isOpen={true}
+          onToggle={mockOnToggle}
+          onSaved={mockOnSaved}
+          canManageInvites={true}
+          canDeleteModule={true}
+          isArchiveConfirmOpen={true}
+          archiveImpact={{
+            moduleId: 1,
+            isArchived: false,
+            willArchive: true,
+            isPurgeableArchivedModule: false,
+            purgeEligibleAt: null,
+            counts: {
+              studentEnrollments: 3,
+              attempts: 12,
+              expLedgerEntries: 4,
+              moduleUnitProgress: 5,
+              studentQuestionStates: 6,
+              dailyPracticeSets: 2,
+              dailyPracticeSetItems: 7,
+              dailyQuests: 1,
+              invites: 0,
+              moduleUnits: 8,
+              questions: 9,
+            },
+          }}
+          onConfirmArchiveModule={onConfirmArchiveModule}
+        />
+      );
+
+      expect(screen.getByText('Student enrollments')).toBeInTheDocument();
+      expect(screen.getByText('3')).toBeInTheDocument();
+      expect(screen.getByText('Practice attempts')).toBeInTheDocument();
+      expect(screen.getByText('12')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', { name: /Confirm archive/i }));
+
+      expect(onConfirmArchiveModule).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows archive impact errors and disables confirmation while checking impact', () => {
+      render(
+        <ModuleSettingsPanel
+          module={mockModule}
+          isOpen={true}
+          onToggle={mockOnToggle}
+          onSaved={mockOnSaved}
+          canManageInvites={true}
+          canDeleteModule={true}
+          isArchiveConfirmOpen={true}
+          isArchiveImpactLoading={true}
+          archiveImpactError="Could not check module impact right now. Please try again."
+        />
+      );
+
+      expect(
+        screen.getByText('Could not check module impact right now. Please try again.'),
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Confirm archive/i })).toBeDisabled();
+    });
+  });
+
   describe('edge cases - multiple state combinations', () => {
     it('handles multiple invites with different statuses', () => {
       // Mock formatExpiry to return appropriate values based on invite state

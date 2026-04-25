@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   createMutateAsync: vi.fn(),
   updateMutateAsync: vi.fn(),
   updateStatusMutateAsync: vi.fn(),
+  archiveMutateAsync: vi.fn(),
   setQueryData: vi.fn(),
   assign: vi.fn(),
 }));
@@ -38,11 +39,22 @@ let moduleUnitsQueryState: {
   error: null,
 };
 
+let deletionImpactQueryState: {
+  data: unknown;
+  isFetching: boolean;
+  error: unknown;
+} = {
+  data: null,
+  isFetching: false,
+  error: null,
+};
+
 let permissionByKey: Record<string, boolean> = {
   [features.modules.settings]: true,
   [features.modules.toggleStudentView]: true,
   [features.modules.manageContent]: true,
   [features.modules.invitations]: true,
+  [features.modules.delete]: true,
 };
 
 const mockUser = { id: 7 } as unknown as AuthUser;
@@ -83,8 +95,13 @@ vi.mock('@/utils/logger', () => ({
 vi.mock('@/Authoring/queries/useModulesQueries', () => ({
   useModuleDetailQuery: () => moduleQueryState,
   useModuleUnitsQuery: () => moduleUnitsQueryState,
+  useModuleDeletionImpactQuery: () => deletionImpactQueryState,
   useCreateModuleUnitMutation: () => ({
     mutateAsync: mocks.createMutateAsync,
+    isPending: false,
+  }),
+  useArchiveModuleMutation: () => ({
+    mutateAsync: mocks.archiveMutateAsync,
     isPending: false,
   }),
   // Mirror the real hook dependencies so this spec validates behavior instead of failing on missing exports.
@@ -101,11 +118,13 @@ describe('useSingleModulePageState', () => {
   beforeEach(() => {
     moduleQueryState = { data: null, isPending: false, error: null };
     moduleUnitsQueryState = { data: [], isPending: false, error: null };
+    deletionImpactQueryState = { data: null, isFetching: false, error: null };
     permissionByKey = {
       [features.modules.settings]: true,
       [features.modules.toggleStudentView]: true,
       [features.modules.manageContent]: true,
       [features.modules.invitations]: true,
+      [features.modules.delete]: true,
     };
 
     mocks.navigate.mockReset();
@@ -116,6 +135,7 @@ describe('useSingleModulePageState', () => {
     mocks.createMutateAsync.mockReset();
     mocks.updateMutateAsync.mockReset();
     mocks.updateStatusMutateAsync.mockReset();
+    mocks.archiveMutateAsync.mockReset();
     mocks.setQueryData.mockReset();
     mocks.assign.mockReset();
 
@@ -199,7 +219,18 @@ describe('useSingleModulePageState', () => {
       },
     ]);
     expect(result.current.canManageInvites).toBe(false);
+    expect(result.current.canDeleteModule).toBe(true);
     expect(result.current.expPercent).toBe(50);
+  });
+
+  it('gates module archive action from delete permission', () => {
+    permissionByKey[features.modules.delete] = false;
+
+    const { result } = renderHook(() =>
+      useSingleModulePageState({ moduleIdParam: '22', user: mockUser }),
+    );
+
+    expect(result.current.canDeleteModule).toBe(false);
   });
 
   it('creates a unit', async () => {
@@ -223,6 +254,117 @@ describe('useSingleModulePageState', () => {
 
     expect(mocks.createMutateAsync).toHaveBeenCalledWith({ title: 'Chapter 1' });
     expect(result.current.showCreateUnit).toBe(false);
+  });
+
+  it('opens and cancels the archive confirmation state', async () => {
+    moduleQueryState = {
+      data: {
+        id: 9,
+        title: 'Biology',
+      },
+      isPending: false,
+      error: null,
+    };
+
+    const { result } = renderHook(() =>
+      useSingleModulePageState({ moduleIdParam: '9', user: mockUser }),
+    );
+
+    act(() => {
+      result.current.setIsSettingsOpen(true);
+    });
+    act(() => {
+      result.current.handleRequestArchiveModule();
+    });
+
+    expect(result.current.isArchiveConfirmOpen).toBe(true);
+
+    act(() => {
+      result.current.handleCancelArchiveModule();
+    });
+
+    expect(result.current.isArchiveConfirmOpen).toBe(false);
+  });
+
+  it('archives module and navigates back to the module list', async () => {
+    moduleQueryState = {
+      data: {
+        id: 9,
+        title: 'Biology',
+      },
+      isPending: false,
+      error: null,
+    };
+    deletionImpactQueryState = {
+      data: {
+        moduleId: 9,
+        isArchived: false,
+        willArchive: true,
+        isPurgeableArchivedModule: false,
+        purgeEligibleAt: null,
+        counts: {},
+      },
+      isFetching: false,
+      error: null,
+    };
+    mocks.archiveMutateAsync.mockResolvedValue({
+      id: 9,
+      title: 'Biology',
+      archivedAt: '2026-04-25T12:00:00.000Z',
+    });
+
+    const { result } = renderHook(() =>
+      useSingleModulePageState({ moduleIdParam: '9', user: mockUser }),
+    );
+
+    act(() => {
+      result.current.setIsSettingsOpen(true);
+      result.current.handleRequestArchiveModule();
+    });
+    await act(async () => {
+      await result.current.handleConfirmArchiveModule();
+    });
+
+    expect(mocks.archiveMutateAsync).toHaveBeenCalledTimes(1);
+    expect(result.current.isArchiveConfirmOpen).toBe(false);
+    expect(result.current.isSettingsOpen).toBe(false);
+    expect(mocks.navigate).toHaveBeenCalledWith('/main/modules');
+  });
+
+  it('maps archive failures to panel error and logs unexpected errors', async () => {
+    const archiveError = new Error('archive failed');
+    moduleQueryState = {
+      data: {
+        id: 9,
+        title: 'Biology',
+      },
+      isPending: false,
+      error: null,
+    };
+    mocks.archiveMutateAsync.mockRejectedValue(archiveError);
+    mocks.getDisplayErrorMessage.mockReturnValue('Could not archive this module. Please try again.');
+
+    const { result } = renderHook(() =>
+      useSingleModulePageState({ moduleIdParam: '9', user: mockUser }),
+    );
+
+    act(() => {
+      result.current.setIsSettingsOpen(true);
+      result.current.handleRequestArchiveModule();
+    });
+    await act(async () => {
+      await result.current.handleConfirmArchiveModule();
+    });
+
+    expect(result.current.archiveModuleError).toBe(
+      'Could not archive this module. Please try again.',
+    );
+    expect(mocks.logError).toHaveBeenCalledWith(archiveError, {
+      feature: 'modules',
+      action: 'archive',
+      moduleId: 9,
+    });
+    expect(mocks.navigate).not.toHaveBeenCalled();
   });
 
   it('maps status-change mutation failures to page error and logs unexpected errors', async () => {

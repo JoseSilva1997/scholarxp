@@ -30,6 +30,7 @@ const mocks = vi.hoisted(() => ({
   handleCreateUnit: vi.fn(),
   handleChangeUnitStatus: vi.fn(),
   handleModuleSaved: vi.fn(),
+  handleCancelArchiveModule: vi.fn(),
 }));
 
 let routeParams: { moduleId?: string } = { moduleId: '10' };
@@ -96,6 +97,7 @@ vi.mock('@/Authoring/SingleModule/page-state/useSingleModulePageState', () => ({
     handleCreateUnit: mocks.handleCreateUnit,
     handleChangeUnitStatus: mocks.handleChangeUnitStatus,
     handleModuleSaved: mocks.handleModuleSaved,
+    handleCancelArchiveModule: mocks.handleCancelArchiveModule,
   }),
 }));
 
@@ -171,6 +173,7 @@ describe('SingleModulePage route', () => {
     mocks.handleCreateUnit.mockReset();
     mocks.handleChangeUnitStatus.mockReset();
     mocks.handleModuleSaved.mockReset();
+    mocks.handleCancelArchiveModule.mockReset();
   });
 
   it('renders loading and error branches', () => {

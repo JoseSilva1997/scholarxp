@@ -502,6 +502,95 @@
   background: var(--color-error-deep);
 }
 
+.dangerSection {
+  border-top: 1px solid var(--color-error-border);
+  padding-top: 24px;
+}
+
+.archiveIntro {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.archiveButton {
+  align-self: flex-start;
+  background: var(--color-error-dark);
+  color: var(--color-text-on-dark);
+  border: 1px solid var(--color-error-dark);
+  border-radius: var(--radius-md);
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: var(--font-sans);
+}
+
+.archiveButton:hover:not(:disabled) {
+  background: var(--color-error-deep);
+  border-color: var(--color-error-deep);
+  transform: translateY(-1px);
+}
+
+.archiveButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.archiveConfirmBox {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--color-error-light);
+  border: 1px solid var(--color-error-border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+}
+
+.archiveWarning {
+  margin: 0;
+  color: var(--color-error-dark);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.impactGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.impactItem {
+  background: var(--color-surface);
+  border: 1px solid var(--color-error-border);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+}
+
+.impactItem dt {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.impactItem dd {
+  color: var(--color-text);
+  font-size: 18px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.archivePurgeStatus {
+  margin: 0;
+  color: var(--color-error-dark);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .inviteHint {
   font-size: 11px;
   color: var(--color-text-muted);

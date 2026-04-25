@@ -1,7 +1,7 @@
 // Component that renders the collapsible module settings rail so the module page stays lean.
 import { useEffect, useMemo } from 'react';
 import styles from '@/Authoring/SingleModule/components/ModuleSettingsPanel.module.css';
-import type { ModuleInvite, ModuleSummary } from '@/shared/types/module';
+import type { ModuleDeletionImpact, ModuleInvite, ModuleSummary } from '@/shared/types/module';
 import { FaRegCopy, FaXmark } from "react-icons/fa6";
 import { IconContext } from 'react-icons';
 import { useModuleInvitesPanelState } from '@/Authoring/SingleModule/page-state/useModuleInvitesPanelState';
@@ -13,6 +13,16 @@ type ModuleSettingsPanelProps = {
   onToggle: () => void;
   onSaved: (updated: ModuleSummary) => void;
   canManageInvites: boolean;
+  canDeleteModule?: boolean;
+  isArchiveConfirmOpen?: boolean;
+  archiveImpact?: ModuleDeletionImpact | null;
+  archiveImpactError?: string | null;
+  isArchiveImpactLoading?: boolean;
+  isArchivingModule?: boolean;
+  archiveModuleError?: string | null;
+  onRequestArchiveModule?: () => void;
+  onCancelArchiveModule?: () => void;
+  onConfirmArchiveModule?: () => void;
 };
 
 export default function ModuleSettingsPanel({
@@ -21,6 +31,16 @@ export default function ModuleSettingsPanel({
   onToggle,
   onSaved,
   canManageInvites,
+  canDeleteModule = false,
+  isArchiveConfirmOpen = false,
+  archiveImpact = null,
+  archiveImpactError = null,
+  isArchiveImpactLoading = false,
+  isArchivingModule = false,
+  archiveModuleError = null,
+  onRequestArchiveModule = () => undefined,
+  onCancelArchiveModule = () => undefined,
+  onConfirmArchiveModule = () => undefined,
 }: ModuleSettingsPanelProps) {
   // Prevent body scroll when settings panel is open to avoid layout shift from scrollbar.
   useEffect(() => {
@@ -122,6 +142,17 @@ export default function ModuleSettingsPanel({
       </div>
     );
   }
+
+  const archiveImpactRows: [string, number][] = archiveImpact
+    ? [
+        ['Student enrollments', archiveImpact.counts.studentEnrollments],
+        ['Practice attempts', archiveImpact.counts.attempts],
+        ['XP records', archiveImpact.counts.expLedgerEntries],
+        ['Progress records', archiveImpact.counts.moduleUnitProgress],
+        ['Daily practice sets', archiveImpact.counts.dailyPracticeSets],
+        ['Incomplete quests', archiveImpact.counts.dailyQuests],
+      ]
+    : [];
 
   return (
     <>
@@ -342,6 +373,81 @@ export default function ModuleSettingsPanel({
             </p>
           )}
         </section>
+        {canDeleteModule ? (
+          <section className={`${styles.settingsSection} ${styles.dangerSection}`}>
+            <header className={styles.settingsSectionHeader}>
+              <h3 className={styles.settingsSectionTitle}>Archive Module</h3>
+            </header>
+            {archiveModuleError ? (
+              <div className={styles.inlineError} role="alert">
+                {archiveModuleError}
+              </div>
+            ) : null}
+            {!isArchiveConfirmOpen ? (
+              <div className={styles.archiveIntro}>
+                <p className={styles.settingsSectionCopy}>
+                  Archive this module to remove it from tutor and student module lists.
+                </p>
+                <button
+                  type="button"
+                  className={styles.archiveButton}
+                  onClick={onRequestArchiveModule}
+                  disabled={!module}
+                >
+                  Archive module
+                </button>
+              </div>
+            ) : (
+              <div className={styles.archiveConfirmBox}>
+                <p className={styles.archiveWarning}>
+                  This hides the module immediately. Student activity stays preserved but students will not be able to interact with or see this module.
+                </p>
+                {archiveImpactError ? (
+                  <div className={styles.inlineError} role="alert">
+                    {archiveImpactError}
+                  </div>
+                ) : null}
+                {isArchiveImpactLoading ? (
+                  <p className={styles.settingsSectionCopy}>Checking module impact...</p>
+                ) : archiveImpact ? (
+                  <>
+                    <dl className={styles.impactGrid}>
+                      {archiveImpactRows.map(([label, value]) => (
+                        <div key={label} className={styles.impactItem}>
+                          <dt>{label}</dt>
+                          <dd>{value}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                    <p className={styles.archivePurgeStatus}>
+                      {archiveImpact.isPurgeableArchivedModule
+                        ? 'No student interaction found. This Module will be permanently removed after 30 days archived.'
+                        : 'Student activity exists, this module will remain archived so student data is preserved.'}
+                    </p>
+                  </>
+                ) : null}
+                <div className={styles.actions}>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={onCancelArchiveModule}
+                    disabled={isArchivingModule}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.archiveButton}
+                    onClick={onConfirmArchiveModule}
+                    disabled={isArchivingModule || isArchiveImpactLoading}
+                  >
+                    {isArchivingModule ? 'Archiving...' : 'Confirm archive'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </section>
+        ) : null}
       </div>
     </aside>
     </>

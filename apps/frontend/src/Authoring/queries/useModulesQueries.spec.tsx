@@ -5,8 +5,10 @@ import type { ReactNode } from 'react';
 import type { ModuleSummaryResponse, ModuleUnitResponse } from '@scholarxp/api-contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  useArchiveModuleMutation,
   useCreateModuleUnitMutation,
   useCreateModuleMutation,
+  useModuleDeletionImpactQuery,
   useModuleDetailQuery,
   useModuleUnitsQuery,
   useModulesListQuery,
@@ -18,10 +20,12 @@ import { queryKeys } from '@/shared/hooks/query-keys';
 const apiMocks = vi.hoisted(() => ({
   listModules: vi.fn(),
   getModuleById: vi.fn(),
+  getModuleDeletionImpact: vi.fn(),
   getModuleUnits: vi.fn(),
   createModuleUnit: vi.fn(),
   createModule: vi.fn(),
   updateModule: vi.fn(),
+  archiveModule: vi.fn(),
   updateModuleUnitStatus: vi.fn(),
 }));
 
@@ -31,10 +35,12 @@ vi.mock('@/Authoring/api/modules', async () => {
     ...actual,
     listModules: apiMocks.listModules,
     getModuleById: apiMocks.getModuleById,
+    getModuleDeletionImpact: apiMocks.getModuleDeletionImpact,
     getModuleUnits: apiMocks.getModuleUnits,
     createModuleUnit: apiMocks.createModuleUnit,
     createModule: apiMocks.createModule,
     updateModule: apiMocks.updateModule,
+    archiveModule: apiMocks.archiveModule,
     updateModuleUnitStatus: apiMocks.updateModuleUnitStatus,
   };
 });
@@ -73,10 +79,12 @@ describe('useModulesQueries mutations', () => {
   beforeEach(() => {
     apiMocks.listModules.mockReset();
     apiMocks.getModuleById.mockReset();
+    apiMocks.getModuleDeletionImpact.mockReset();
     apiMocks.getModuleUnits.mockReset();
     apiMocks.createModuleUnit.mockReset();
     apiMocks.createModule.mockReset();
     apiMocks.updateModule.mockReset();
+    apiMocks.archiveModule.mockReset();
     apiMocks.updateModuleUnitStatus.mockReset();
   });
 
@@ -163,6 +171,50 @@ describe('useModulesQueries mutations', () => {
     expect(apiMocks.getModuleUnits).not.toHaveBeenCalled();
   });
 
+  it('loads deletion impact only when enabled and moduleId is present', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    apiMocks.getModuleDeletionImpact.mockResolvedValue({
+      moduleId: 12,
+      isArchived: false,
+      willArchive: true,
+      isPurgeableArchivedModule: false,
+      purgeEligibleAt: null,
+      counts: {
+        studentEnrollments: 1,
+        attempts: 2,
+        expLedgerEntries: 3,
+        moduleUnitProgress: 4,
+        studentQuestionStates: 5,
+        dailyPracticeSets: 6,
+        dailyPracticeSetItems: 7,
+        dailyQuests: 8,
+        invites: 9,
+        moduleUnits: 10,
+        questions: 11,
+      },
+    });
+
+    const enabledResult = renderHook(() => useModuleDeletionImpactQuery(12, true), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await waitFor(() => {
+      expect(enabledResult.result.current.isSuccess).toBe(true);
+    });
+    expect(apiMocks.getModuleDeletionImpact).toHaveBeenCalledWith(12);
+
+    apiMocks.getModuleDeletionImpact.mockClear();
+    renderHook(() => useModuleDeletionImpactQuery(12, false), {
+      wrapper: createWrapper(queryClient),
+    });
+    renderHook(() => useModuleDeletionImpactQuery(null, true), {
+      wrapper: createWrapper(queryClient),
+    });
+    expect(apiMocks.getModuleDeletionImpact).not.toHaveBeenCalled();
+  });
+
   it('updates detail + list cache entries and invalidates both after update', async () => {
     const moduleId = 4;
     const queryClient = new QueryClient({
@@ -197,6 +249,49 @@ describe('useModulesQueries mutations', () => {
     ]);
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.modules.detail(moduleId) });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.modules.all });
+  });
+
+  it('archives module by removing stale module caches and invalidating summaries', async () => {
+    const moduleId = 4;
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    const invalidateSpy = vi
+      .spyOn(queryClient, 'invalidateQueries')
+      .mockResolvedValue(undefined);
+    const removeSpy = vi.spyOn(queryClient, 'removeQueries');
+
+    queryClient.setQueryData(queryKeys.modules.all, [
+      makeModule({ id: moduleId, title: 'Archive me' }),
+      makeModule({ id: 8, title: 'Other' }),
+    ]);
+    queryClient.setQueryData(queryKeys.modules.detail(moduleId), makeModule({ id: moduleId }));
+    queryClient.setQueryData(queryKeys.modules.units(moduleId), [makeUnit({ moduleId })]);
+
+    apiMocks.archiveModule.mockResolvedValue(
+      makeModule({ id: moduleId, archivedAt: '2026-04-25T12:00:00.000Z' }),
+    );
+
+    const { result } = renderHook(() => useArchiveModuleMutation(moduleId), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync();
+    });
+
+    expect(apiMocks.archiveModule).toHaveBeenCalledWith(moduleId);
+    expect(queryClient.getQueryData(queryKeys.modules.all)).toEqual([
+      makeModule({ id: 8, title: 'Other' }),
+    ]);
+    expect(removeSpy).toHaveBeenCalledWith({ queryKey: queryKeys.modules.detail(moduleId) });
+    expect(removeSpy).toHaveBeenCalledWith({ queryKey: queryKeys.modules.units(moduleId) });
+    expect(removeSpy).toHaveBeenCalledWith({ queryKey: queryKeys.modules.invites(moduleId) });
+    expect(removeSpy).toHaveBeenCalledWith({
+      queryKey: queryKeys.modules.deletionImpact(moduleId),
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.modules.all });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.profile.tutorAll });
   });
 
   it('patches module unit status in cache and invalidates units query', async () => {
@@ -289,5 +384,20 @@ describe('useModulesQueries mutations', () => {
       'Missing module id for unit creation.',
     );
     expect(apiMocks.createModuleUnit).not.toHaveBeenCalled();
+  });
+
+  it('throws a clear error when archiving without module id', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+
+    const { result } = renderHook(() => useArchiveModuleMutation(null), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await expect(result.current.mutateAsync()).rejects.toThrow(
+      'Missing module id for module archive.',
+    );
+    expect(apiMocks.archiveModule).not.toHaveBeenCalled();
   });
 });
