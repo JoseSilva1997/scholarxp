@@ -1,6 +1,7 @@
 // Unit tests for AuthService covering happy path scenarios for each public method
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
+import { UnauthorizedException } from '@nestjs/common';
 import { AuthProvider, GlobalRole } from '@prisma/client';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import bcrypt from 'bcryptjs';
@@ -25,6 +26,7 @@ describe('AuthService', () => {
     profilePictureUrl: 'https://example.com/pic.jpg',
     globalRole: GlobalRole.student,
     isVerified: true,
+    timezone: 'UTC',
     createdAt: new Date(),
     updatedAt: new Date(),
     pendingRole: null,
@@ -32,7 +34,10 @@ describe('AuthService', () => {
 
   const mockAvatar = {
     id: 1,
+    userId: 1,
     totalExp: 1000,
+    equippedCosmetics: {},
+    createdAt: new Date(),
   };
 
   const mockAvatarProgress = {
@@ -43,6 +48,7 @@ describe('AuthService', () => {
     nextLevelExpRequired: 318,
     xpToNextLevel: 118,
     progressPercent: (200 / 318) * 100,
+    equippedCosmetics: {},
   };
 
   const mockVerificationToken = {
@@ -127,6 +133,7 @@ describe('AuthService', () => {
         profilePictureUrl: 'https://example.com/pic.jpg',
         globalRole: GlobalRole.student,
         isVerified: true,
+        timezone: 'UTC',
         requiresEmailVerification: false,
         avatar: null,
         institutionIds: [],
@@ -160,6 +167,7 @@ describe('AuthService', () => {
         profilePictureUrl: 'https://example.com/pic.jpg',
         globalRole: GlobalRole.student,
         isVerified: true,
+        timezone: 'UTC',
         requiresEmailVerification: false,
         avatar: null,
         institutionIds: [],
@@ -645,6 +653,7 @@ describe('AuthService', () => {
   describe('loginWithGoogle', () => {
     it('should login user with new Google account', async () => {
       const googleProfile = {
+        provider: 'google' as const,
         providerUserId: 'google-123',
         email: 'newgoogle@example.com',
         firstName: 'Google',
@@ -685,6 +694,7 @@ describe('AuthService', () => {
 
     it('should login existing Google user and refresh profile', async () => {
       const googleProfile = {
+        provider: 'google' as const,
         providerUserId: 'google-123',
         email: 'updated@example.com',
         firstName: 'UpdatedFirst',
@@ -736,6 +746,7 @@ describe('AuthService', () => {
 
     it('should throw UnauthorizedException if Google account has no email', async () => {
       const googleProfile = {
+        provider: 'google' as const,
         providerUserId: 'google-123',
         email: null,
         firstName: 'Google',
@@ -750,6 +761,7 @@ describe('AuthService', () => {
 
     it('should link Google identity to existing user when email matches', async () => {
       const googleProfile = {
+        provider: 'google' as const,
         providerUserId: 'google-456',
         email: 'john@example.com',
         firstName: 'John',
@@ -795,6 +807,7 @@ describe('AuthService', () => {
 
     it('should not update profile if values are unchanged', async () => {
       const googleProfile = {
+        provider: 'google' as const,
         providerUserId: 'google-123',
         email: 'john@example.com',
         firstName: 'John',
@@ -953,6 +966,7 @@ describe('AuthService', () => {
         profilePictureUrl: 'https://example.com/pic.jpg',
         globalRole: GlobalRole.student,
         isVerified: true,
+        timezone: 'UTC',
         requiresEmailVerification: false,
         avatar: mockAvatarProgress,
         institutionIds: [1],
@@ -977,6 +991,7 @@ describe('AuthService', () => {
         profilePictureUrl: 'https://example.com/jane.jpg',
         globalRole: GlobalRole.teacher,
         isVerified: true,
+        timezone: 'UTC',
         requiresEmailVerification: false,
         avatar: null,
         institutionIds: [1, 2],
@@ -1004,6 +1019,7 @@ describe('AuthService', () => {
         profilePictureUrl: 'https://example.com/pending.jpg',
         globalRole: GlobalRole.pending,
         isVerified: false,
+        timezone: 'UTC',
         requiresEmailVerification: true,
         avatar: null,
         institutionIds: [],
@@ -1017,6 +1033,190 @@ describe('AuthService', () => {
       expect(result).toHaveProperty('capabilities');
       expect(Array.isArray(result.capabilities)).toBe(true);
       expect(result.institutionIds).toHaveLength(0);
+    });
+  });
+
+  describe('tryGenerateCsrfToken', () => {
+    it('should return a token when session is available', () => {
+      const mockReq = { session: {} } as unknown as Request;
+
+      expect(typeof service.tryGenerateCsrfToken(mockReq)).toBe('string');
+    });
+
+    it('should return null when csrf-sync cannot mint a token', () => {
+      const mockReq = {} as unknown as Request;
+
+      expect(service.tryGenerateCsrfToken(mockReq)).toBeNull();
+    });
+  });
+
+  describe('attachCsrfHeader', () => {
+    it('should set x-csrf-token header and return the token', () => {
+      const mockReq = { session: {} } as unknown as Request;
+      const setHeader = jest.fn();
+      const mockRes = { setHeader } as unknown as Response;
+
+      const token = service.attachCsrfHeader(mockReq, mockRes);
+
+      expect(typeof token).toBe('string');
+      expect(setHeader).toHaveBeenCalledWith('x-csrf-token', token);
+    });
+
+    it('should skip header and return null when token unavailable', () => {
+      const mockReq = {} as unknown as Request;
+      const setHeader = jest.fn();
+      const mockRes = { setHeader } as unknown as Response;
+
+      const token = service.attachCsrfHeader(mockReq, mockRes);
+
+      expect(token).toBeNull();
+      expect(setHeader).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('validateGoogleProfile', () => {
+    it('should return profile when shape is valid', () => {
+      const profile = {
+        provider: 'google',
+        providerUserId: 'g-1',
+        email: 'g@example.com',
+        firstName: 'G',
+        lastName: 'User',
+      };
+
+      expect(service.validateGoogleProfile(profile)).toEqual(profile);
+    });
+
+    it('should throw UnauthorizedException when value is null', () => {
+      expect(() => service.validateGoogleProfile(null)).toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('should throw UnauthorizedException when provider does not match', () => {
+      expect(() =>
+        service.validateGoogleProfile({
+          provider: 'github',
+          providerUserId: 'g-1',
+        }),
+      ).toThrow(UnauthorizedException);
+    });
+
+    it('should throw UnauthorizedException when providerUserId is missing', () => {
+      expect(() =>
+        service.validateGoogleProfile({ provider: 'google' }),
+      ).toThrow(UnauthorizedException);
+    });
+  });
+
+  describe('handleGoogleCallback', () => {
+    const validProfile = {
+      provider: 'google' as const,
+      providerUserId: 'g-handle-1',
+      email: 'handle@example.com',
+      firstName: 'Handle',
+      lastName: 'User',
+      picture: 'https://example.com/handle.jpg',
+    };
+
+    function setupGoogleLinkMocks() {
+      // New identity, new user path: forces $transaction → user.create + authIdentity.create.
+      prisma.authIdentity.findUnique.mockResolvedValue(null);
+      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.$transaction.mockImplementation(async (cb) => {
+        const tx = {
+          user: {
+            create: jest
+              .fn()
+              .mockResolvedValue({ ...mockUser, email: validProfile.email }),
+          },
+          authIdentity: { create: jest.fn() },
+        };
+        return cb(tx as any);
+      });
+      prisma.avatar.findUnique.mockResolvedValue(null);
+      prisma.ltiIdentity.findMany.mockResolvedValue([]);
+    }
+
+    afterEach(() => {
+      delete process.env.CORS_ORIGIN;
+    });
+
+    it('should login the profile and redirect to /main when no session redirect set', async () => {
+      setupGoogleLinkMocks();
+      process.env.CORS_ORIGIN = 'https://app.example.com';
+
+      const mockReq = {
+        user: validProfile,
+        session: {
+          regenerate: jest.fn((cb) => cb(null)),
+        },
+        login: jest.fn((_user, cb) => cb(null)),
+      } as unknown as Request;
+      const redirect = jest.fn();
+      const mockRes = { redirect } as unknown as Response;
+
+      await service.handleGoogleCallback(mockReq, mockRes);
+
+      expect(redirect).toHaveBeenCalledWith('https://app.example.com/main');
+    });
+
+    it('should honor a safe session redirect path and clear it after consumption', async () => {
+      setupGoogleLinkMocks();
+      process.env.CORS_ORIGIN = 'https://app.example.com';
+
+      const session: Record<string, unknown> = {
+        regenerate: jest.fn((cb: (err: unknown) => void) => cb(null)),
+        postAuthRedirect: '/main/modules',
+      };
+      const mockReq = {
+        user: validProfile,
+        session,
+        login: jest.fn((_user, cb) => cb(null)),
+      } as unknown as Request;
+      const redirect = jest.fn();
+      const mockRes = { redirect } as unknown as Response;
+
+      await service.handleGoogleCallback(mockReq, mockRes);
+
+      expect(redirect).toHaveBeenCalledWith(
+        'https://app.example.com/main/modules',
+      );
+      expect(session.postAuthRedirect).toBeUndefined();
+    });
+
+    it('should fall back to /main when the session redirect targets an auth route', async () => {
+      setupGoogleLinkMocks();
+      process.env.CORS_ORIGIN = 'https://app.example.com';
+
+      const mockReq = {
+        user: validProfile,
+        session: {
+          regenerate: jest.fn((cb) => cb(null)),
+          postAuthRedirect: '/login?next=%2Fmain',
+        },
+        login: jest.fn((_user, cb) => cb(null)),
+      } as unknown as Request;
+      const redirect = jest.fn();
+      const mockRes = { redirect } as unknown as Response;
+
+      await service.handleGoogleCallback(mockReq, mockRes);
+
+      expect(redirect).toHaveBeenCalledWith('https://app.example.com/main');
+    });
+
+    it('should throw UnauthorizedException and not redirect when req.user is invalid', async () => {
+      const mockReq = {
+        user: null,
+        session: {},
+      } as unknown as Request;
+      const redirect = jest.fn();
+      const mockRes = { redirect } as unknown as Response;
+
+      await expect(
+        service.handleGoogleCallback(mockReq, mockRes),
+      ).rejects.toThrow(UnauthorizedException);
+      expect(redirect).not.toHaveBeenCalled();
     });
   });
 });

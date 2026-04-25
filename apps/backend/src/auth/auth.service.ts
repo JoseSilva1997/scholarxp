@@ -11,6 +11,7 @@ import { ConfigService } from '@nestjs/config';
 import { AuthProvider, GlobalRole, Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import type { Request, Response } from 'express';
+import type { Session, SessionData } from 'express-session';
 import {
   listCapabilities,
   type FeatureKey,
@@ -20,6 +21,7 @@ import {
   getProgressWithinLevel,
   sanitizeEquippedCosmetics,
 } from '@scholarxp/progression';
+import { FRONTEND_URL } from '@scholarxp/constants';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailVerificationTokenService } from '../db-entities/email-verification-token/email-verification-token.service';
 import { MailDeliveryError, MailerService } from '../mailer/mailer.service';
@@ -282,6 +284,120 @@ export class AuthService {
       hasInstitutionMembership: user.hasInstitutionMembership,
     });
     return { ...user, capabilities };
+  }
+
+  // --- CSRF ---
+  // Surface a fresh CSRF token without writing to the response. Used by GET endpoints that hand the
+  // token to anonymous clients in the body so they can post credentials.
+  tryGenerateCsrfToken(req: Request): string | null {
+    try {
+      return generateToken(req);
+    } catch {
+      return null;
+    }
+  }
+
+  // Set the rotating CSRF header on responses where the session may have been regenerated; returns
+  // the token so callers can also include it in the body when convenient.
+  attachCsrfHeader(req: Request, res: Response): string | null {
+    const token = this.tryGenerateCsrfToken(req);
+    if (token) {
+      res.setHeader('x-csrf-token', token);
+    }
+    return token;
+  }
+
+  // --- Google OAuth callback orchestration ---
+  // Narrow the passport-supplied req.user into our domain profile shape. Throw if the strategy
+  // produced an unexpected payload so the controller never has to do runtime type checks.
+  validateGoogleProfile(value: unknown): GoogleProfile {
+    if (!value || typeof value !== 'object') {
+      throw new UnauthorizedException('Google authentication failed');
+    }
+    const candidate = value as Partial<GoogleProfile>;
+    if (
+      candidate.provider !== 'google' ||
+      typeof candidate.providerUserId !== 'string'
+    ) {
+      throw new UnauthorizedException('Google authentication failed');
+    }
+    return candidate as GoogleProfile;
+  }
+
+  async handleGoogleCallback(req: Request, res: Response): Promise<void> {
+    // Capture redirect before login regenerates the session.
+    const session = req.session as
+      | (Session & Partial<SessionData> & { postAuthRedirect?: string })
+      | undefined;
+    const sessionRedirect =
+      typeof session?.postAuthRedirect === 'string'
+        ? session.postAuthRedirect
+        : null;
+
+    const profile = this.validateGoogleProfile(req.user);
+    const user = await this.loginWithGoogle(profile);
+    await this.loginUser(req, user, {
+      persistSession: sessionRedirect
+        ? { postAuthRedirect: sessionRedirect }
+        : {},
+    });
+    if (session && 'postAuthRedirect' in session) {
+      delete session.postAuthRedirect;
+    }
+    const redirectTarget = this.resolveOAuthRedirectTarget(
+      process.env.CORS_ORIGIN ?? FRONTEND_URL,
+      sessionRedirect,
+    );
+    res.redirect(redirectTarget);
+  }
+
+  private resolveOAuthRedirectTarget(
+    baseOrigin: string,
+    sessionRedirect?: string | null,
+  ): string {
+    // Some deployments provide a comma-separated list for CORS; pick the first and ensure we land on /main.
+    const primaryOrigin = baseOrigin.split(',')[0]?.trim() ?? baseOrigin;
+    const cleanedSessionRedirect =
+      this.normalizeOAuthRedirectPath(sessionRedirect);
+    try {
+      const fallback = new URL('/main', primaryOrigin).toString();
+      if (cleanedSessionRedirect) {
+        return new URL(cleanedSessionRedirect, primaryOrigin).toString();
+      }
+      return fallback;
+    } catch {
+      // If the origin is malformed, fall back to a safe string concatenation while still targeting /main.
+      const base = `${primaryOrigin.replace(/\/$/, '')}/main`;
+      if (cleanedSessionRedirect) {
+        return `${primaryOrigin.replace(/\/$/, '')}${cleanedSessionRedirect}`;
+      }
+      return base;
+    }
+  }
+
+  private normalizeOAuthRedirectPath(
+    sessionRedirect?: string | null,
+  ): string | null {
+    if (!sessionRedirect?.startsWith('/')) {
+      return null;
+    }
+    try {
+      const redirectUrl = new URL(sessionRedirect, 'https://scholarxp.local');
+      if (this.isAuthRoute(redirectUrl.pathname)) {
+        return null;
+      }
+      return `${redirectUrl.pathname}${redirectUrl.search}${redirectUrl.hash}`;
+    } catch {
+      return null;
+    }
+  }
+
+  private isAuthRoute(pathname: string): boolean {
+    return (
+      pathname === '/login' ||
+      pathname === '/register' ||
+      pathname === '/verify-email'
+    );
   }
 
   // --- Helpers ---

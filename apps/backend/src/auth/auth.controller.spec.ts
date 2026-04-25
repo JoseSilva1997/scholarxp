@@ -12,13 +12,6 @@ import type { AuthUser } from '../types/auth-user.type';
 import type { Request, Response } from 'express';
 import { GlobalRole } from '@prisma/client';
 import type { FeatureKey } from '@scholarxp/permissions';
-import { FRONTEND_URL } from '@scholarxp/constants';
-import { generateToken } from '../common/security/csrf';
-import type { GoogleProfile } from './strategies/google.strategy';
-
-jest.mock('../common/security/csrf', () => ({
-  generateToken: jest.fn(),
-}));
 
 // Comprehensive unit tests for AuthController with happy path, unhappy path, and basis path coverage
 describe('AuthController', () => {
@@ -43,29 +36,17 @@ describe('AuthController', () => {
       nextLevelExpRequired: 232,
       xpToNextLevel: 32,
       progressPercent: 86.2,
+      equippedCosmetics: {},
     },
     institutionIds: [1],
     hasInstitutionMembership: true,
     ltiIdentities: [{ institutionId: 1, ltiUserId: 'lti-user-1' }],
     hasLtiIdentity: true,
-  };
-
-  // Keep a dedicated OAuth profile mock so callback tests reflect passport-google payload shape.
-  const mockGoogleProfile: GoogleProfile = {
-    provider: 'google',
-    providerUserId: 'google-user-1',
-    email: 'john@example.com',
-    firstName: 'John',
-    lastName: 'Doe',
-    picture: 'https://example.com/google-pic.jpg',
+    timezone: 'America/New_York',
   };
 
   // attachCapabilities returns the same user object with computed capabilities array
   const mockCapabilities: FeatureKey[] = [];
-  const _mockUserWithCapabilities = {
-    ...mockAuthUser,
-    capabilities: mockCapabilities,
-  };
 
   beforeEach(async () => {
     // Create mocks for AuthService
@@ -73,11 +54,13 @@ describe('AuthController', () => {
       register: jest.fn(),
       regenerateSession: jest.fn(),
       attachCapabilities: jest.fn(),
+      attachCsrfHeader: jest.fn(),
+      tryGenerateCsrfToken: jest.fn(),
       loginUser: jest.fn(),
       verifyEmail: jest.fn(),
       resendVerification: jest.fn(),
       logout: jest.fn(),
-      loginWithGoogle: jest.fn(),
+      handleGoogleCallback: jest.fn(),
     };
 
     // Mock guards to avoid dependency resolution issues (ThrottlerGuard and AuthenticatedGuard require external modules)
@@ -132,6 +115,10 @@ describe('AuthController', () => {
 
       expect(authService.register).toHaveBeenCalledWith(registerDto);
       expect(authService.regenerateSession).toHaveBeenCalledWith(mockReq);
+      expect(authService.attachCsrfHeader).toHaveBeenCalledWith(
+        mockReq,
+        mockRes,
+      );
       expect(result.pendingEmailVerification).toBe(true);
       expect(result.user.email).toBe(unverifiedUser.email);
     });
@@ -182,12 +169,8 @@ describe('AuthController', () => {
       const mockReq = {
         user: mockAuthUser,
         headers: {},
-        csrfToken: jest.fn(() => 'csrf-token-123'),
       } as unknown as Request;
-      const mockRes = {
-        setHeader: jest.fn(),
-        getHeader: jest.fn(),
-      } as unknown as Response;
+      const mockRes = {} as unknown as Response;
 
       authService.loginUser.mockResolvedValue(undefined);
       authService.attachCapabilities.mockReturnValue({
@@ -198,6 +181,10 @@ describe('AuthController', () => {
       const result = await controller.login(mockReq, mockRes);
 
       expect(authService.loginUser).toHaveBeenCalledWith(mockReq, mockAuthUser);
+      expect(authService.attachCsrfHeader).toHaveBeenCalledWith(
+        mockReq,
+        mockRes,
+      );
       expect(authService.attachCapabilities).toHaveBeenCalledWith(mockAuthUser);
       expect(result.user.id).toBe(mockAuthUser.id);
       expect(result.user.email).toBe(mockAuthUser.email);
@@ -208,12 +195,8 @@ describe('AuthController', () => {
       const mockReq = {
         user: mockAuthUser,
         headers: {},
-        csrfToken: jest.fn(() => 'csrf-token-123'),
       } as unknown as Request;
-      const mockRes = {
-        setHeader: jest.fn(),
-        getHeader: jest.fn(),
-      } as unknown as Response;
+      const mockRes = {} as unknown as Response;
 
       authService.loginUser.mockRejectedValue(new Error('Session error'));
 
@@ -238,17 +221,14 @@ describe('AuthController', () => {
         hasInstitutionMembership: false,
         ltiIdentities: [],
         hasLtiIdentity: false,
+        timezone: 'America/New_York',
       };
 
       const mockReq = {
         user: minimalUser,
         headers: {},
-        csrfToken: jest.fn(() => 'csrf-token-123'),
       } as unknown as Request;
-      const mockRes = {
-        setHeader: jest.fn(),
-        getHeader: jest.fn(),
-      } as unknown as Response;
+      const mockRes = {} as unknown as Response;
 
       authService.loginUser.mockResolvedValue(undefined);
       authService.attachCapabilities.mockReturnValue({
@@ -286,6 +266,10 @@ describe('AuthController', () => {
 
       expect(authService.verifyEmail).toHaveBeenCalledWith(verifyDto.token);
       expect(authService.loginUser).toHaveBeenCalledWith(mockReq, verifiedUser);
+      expect(authService.attachCsrfHeader).toHaveBeenCalledWith(
+        mockReq,
+        mockRes,
+      );
       expect(result.user.isVerified).toBe(true);
     });
 
@@ -479,19 +463,18 @@ describe('AuthController', () => {
     // ===== HAPPY PATH =====
     it('should return CSRF token when available', () => {
       const csrfToken = 'csrf-token-xyz';
-      (generateToken as jest.Mock).mockReturnValueOnce(csrfToken);
+      authService.tryGenerateCsrfToken.mockReturnValueOnce(csrfToken);
       const mockReq = {} as Request;
 
       const result = controller.csrf(mockReq);
 
+      expect(authService.tryGenerateCsrfToken).toHaveBeenCalledWith(mockReq);
       expect(result.csrfToken).toBe(csrfToken);
     });
 
     // ===== UNHAPPY PATH =====
     it('should return null when csrfToken is not available', () => {
-      (generateToken as jest.Mock).mockImplementationOnce(() => {
-        throw new Error('fail');
-      });
+      authService.tryGenerateCsrfToken.mockReturnValueOnce(null);
       const mockReq = {} as Request;
 
       const result = controller.csrf(mockReq);
@@ -511,113 +494,31 @@ describe('AuthController', () => {
 
   describe('googleCallback', () => {
     // ===== HAPPY PATH =====
-    it('should login user and redirect to frontend on successful Google auth', async () => {
-      const mockReq = { user: mockGoogleProfile } as unknown as Request;
-      const mockRes = { redirect: jest.fn() } as unknown as Response;
+    it('should delegate to AuthService.handleGoogleCallback', async () => {
+      const mockReq = {} as unknown as Request;
+      const mockRes = {} as unknown as Response;
 
-      authService.loginWithGoogle.mockResolvedValue(mockAuthUser);
-      authService.loginUser.mockResolvedValue(undefined);
-
-      process.env.CORS_ORIGIN = 'https://app.example.com';
+      authService.handleGoogleCallback.mockResolvedValue(undefined);
 
       await controller.googleCallback(mockReq, mockRes);
 
-      expect(authService.loginWithGoogle).toHaveBeenCalledWith(
-        mockGoogleProfile,
-      );
-      // loginUser is called with req, user, and options object for session persistence.
-      expect(authService.loginUser).toHaveBeenCalledWith(
+      expect(authService.handleGoogleCallback).toHaveBeenCalledWith(
         mockReq,
-        mockAuthUser,
-        { persistSession: {} },
-      );
-      expect(mockRes.redirect).toHaveBeenCalledWith(
-        'https://app.example.com/main',
+        mockRes,
       );
     });
 
     // ===== UNHAPPY PATH =====
-    it('should not redirect if loginWithGoogle fails', async () => {
-      const mockReq = { user: mockGoogleProfile } as unknown as Request;
-      const mockRes = { redirect: jest.fn() } as unknown as Response;
+    it('should propagate errors from handleGoogleCallback', async () => {
+      const mockReq = {} as unknown as Request;
+      const mockRes = {} as unknown as Response;
 
-      authService.loginWithGoogle.mockRejectedValue(
-        new Error('Google authentication failed'),
+      authService.handleGoogleCallback.mockRejectedValue(
+        new UnauthorizedException('Google authentication failed'),
       );
-
-      await expect(controller.googleCallback(mockReq, mockRes)).rejects.toThrow(
-        'Google authentication failed',
-      );
-      expect(mockRes.redirect).not.toHaveBeenCalled();
-    });
-
-    it('should throw unauthorized when req.user is not a Google profile', async () => {
-      const mockReq = { user: mockAuthUser } as unknown as Request;
-      const mockRes = { redirect: jest.fn() } as unknown as Response;
 
       await expect(controller.googleCallback(mockReq, mockRes)).rejects.toThrow(
         UnauthorizedException,
-      );
-      expect(authService.loginWithGoogle).not.toHaveBeenCalled();
-      expect(mockRes.redirect).not.toHaveBeenCalled();
-    });
-
-    // ===== BASIS PATH =====
-    it('should redirect to default FRONTEND_URL when CORS_ORIGIN is not set', async () => {
-      const mockReq = { user: mockGoogleProfile } as unknown as Request;
-      const mockRes = { redirect: jest.fn() } as unknown as Response;
-
-      authService.loginWithGoogle.mockResolvedValue(mockAuthUser);
-      authService.loginUser.mockResolvedValue(undefined);
-
-      delete process.env.CORS_ORIGIN;
-
-      await controller.googleCallback(mockReq, mockRes);
-
-      // Should redirect to FRONTEND_URL constant
-      expect(mockRes.redirect).toHaveBeenCalled();
-      const redirectUrl = (mockRes.redirect as jest.Mock).mock.calls[0][0];
-      expect(redirectUrl).toBe(`${FRONTEND_URL}/main`);
-    });
-
-    it('should handle loginUser error and not redirect', async () => {
-      const mockReq = { user: mockGoogleProfile } as unknown as Request;
-      const mockRes = { redirect: jest.fn() } as unknown as Response;
-
-      authService.loginWithGoogle.mockResolvedValue(mockAuthUser);
-      authService.loginUser.mockRejectedValue(
-        new Error('Google authentication failed'),
-      );
-
-      await expect(controller.googleCallback(mockReq, mockRes)).rejects.toThrow(
-        'Google authentication failed',
-      );
-      expect(mockRes.redirect).not.toHaveBeenCalled();
-    });
-
-    it('should ignore auth-route session redirects and fall back to /main', async () => {
-      const mockReq = {
-        user: mockGoogleProfile,
-        session: { postAuthRedirect: '/login?next=%2Fmain%2Fmodules' },
-      } as unknown as Request;
-      const mockRes = { redirect: jest.fn() } as unknown as Response;
-
-      authService.loginWithGoogle.mockResolvedValue(mockAuthUser);
-      authService.loginUser.mockResolvedValue(undefined);
-
-      process.env.CORS_ORIGIN = 'https://app.example.com';
-
-      await controller.googleCallback(mockReq, mockRes);
-
-      expect(authService.loginUser).toHaveBeenCalledWith(
-        mockReq,
-        mockAuthUser,
-        {
-          persistSession: { postAuthRedirect: '/login?next=%2Fmain%2Fmodules' },
-        },
-      );
-      expect(mockRes.redirect).toHaveBeenCalledWith(
-        'https://app.example.com/main',
       );
     });
   });
