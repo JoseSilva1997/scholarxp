@@ -26,7 +26,6 @@ describe('useModuleSettingsForm', () => {
     id: 10,
     title: 'Module A',
     description: 'Original description',
-    variantContext: 'course-1',
   };
 
   beforeEach(() => {
@@ -43,7 +42,6 @@ describe('useModuleSettingsForm', () => {
 
       expect(result.current.title).toBe('Module A');
       expect(result.current.description).toBe('Original description');
-      expect(result.current.variantContext).toBe('course-1');
       expect(result.current.error).toBe(null);
       expect(result.current.status).toBe(null);
     });
@@ -57,7 +55,6 @@ describe('useModuleSettingsForm', () => {
       // Should initialize with empty strings
       expect(result.current.title).toBe('');
       expect(result.current.description).toBe('');
-      expect(result.current.variantContext).toBe('');
     });
 
     it('clears error and status when module updates', () => {
@@ -107,7 +104,6 @@ describe('useModuleSettingsForm', () => {
       act(() => {
         result.current.setTitle('Changed Title');
         result.current.setDescription('Changed Desc');
-        result.current.setVariantContext('changed-context');
       });
 
       act(() => {
@@ -116,7 +112,6 @@ describe('useModuleSettingsForm', () => {
 
       expect(result.current.title).toBe('Module A');
       expect(result.current.description).toBe('Original description');
-      expect(result.current.variantContext).toBe('course-1');
       expect(result.current.error).toBe(null);
       expect(result.current.status).toBe(null);
     });
@@ -141,7 +136,6 @@ describe('useModuleSettingsForm', () => {
         id: 1,
         title: undefined,
         description: undefined,
-        variantContext: undefined,
       } as unknown as ModuleSummary;
 
       const { result } = renderHook(() =>
@@ -150,7 +144,6 @@ describe('useModuleSettingsForm', () => {
 
       expect(result.current.title).toBe('');
       expect(result.current.description).toBe('');
-      expect(result.current.variantContext).toBe('');
     });
   });
 
@@ -173,9 +166,9 @@ describe('useModuleSettingsForm', () => {
       expect(mocks.updateMutateAsync).not.toHaveBeenCalled();
     });
 
-    it('trims title and converts empty description/variantContext to null', async () => {
+    it('trims title and converts empty description to null', async () => {
       const onSaved = vi.fn();
-      const updated = { ...baseModule, title: 'Trimmed', description: null, variantContext: null };
+      const updated = { ...baseModule, title: 'Trimmed', description: null };
       mocks.updateMutateAsync.mockResolvedValue(updated);
 
       const { result } = renderHook(() =>
@@ -185,7 +178,6 @@ describe('useModuleSettingsForm', () => {
       act(() => {
         result.current.setTitle('  Trimmed  ');
         result.current.setDescription('   ');
-        result.current.setVariantContext('   ');
       });
 
       await act(async () => {
@@ -195,11 +187,10 @@ describe('useModuleSettingsForm', () => {
       expect(mocks.updateMutateAsync).toHaveBeenCalledWith({
         title: 'Trimmed',
         description: null,
-        variantContext: null,
       });
     });
 
-    it('includes trimmed description and variantContext when provided', async () => {
+    it('includes trimmed description when provided', async () => {
       const onSaved = vi.fn();
       const updated = { ...baseModule };
       mocks.updateMutateAsync.mockResolvedValue(updated);
@@ -211,7 +202,6 @@ describe('useModuleSettingsForm', () => {
       act(() => {
         result.current.setTitle('  Title  ');
         result.current.setDescription('  New description  ');
-        result.current.setVariantContext('  new-context  ');
       });
 
       await act(async () => {
@@ -221,7 +211,6 @@ describe('useModuleSettingsForm', () => {
       expect(mocks.updateMutateAsync).toHaveBeenCalledWith({
         title: 'Title',
         description: 'New description',
-        variantContext: 'new-context',
       });
     });
 
@@ -456,12 +445,10 @@ describe('useModuleSettingsForm', () => {
       act(() => {
         result.current.setTitle('New Title');
         result.current.setDescription('New Desc');
-        result.current.setVariantContext('new-context');
       });
 
       expect(result.current.title).toBe('New Title');
       expect(result.current.description).toBe('New Desc');
-      expect(result.current.variantContext).toBe('new-context');
     });
 
     it('maintains isSaving=true during async submission', async () => {
@@ -498,7 +485,6 @@ describe('useModuleSettingsForm', () => {
       expect(result.current).toBeDefined();
       expect(typeof result.current.title).toBe('string');
       expect(typeof result.current.description).toBe('string');
-      expect(typeof result.current.variantContext).toBe('string');
       expect(typeof result.current.isSaving).toBe('boolean');
       expect(typeof result.current.error).toMatch(/string|object/); // string | null
       expect(typeof result.current.status).toMatch(/string|object/); // string | null

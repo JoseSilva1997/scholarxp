@@ -676,7 +676,6 @@
   color: var(--color-text-muted);
 }
 
-.variantInstructions textarea,
 .label textarea,
 .label input,
 .optionInput,
@@ -691,12 +690,6 @@
   font-weight: 600; /* Bolder */
   background: var(--color-surface);
   margin-bottom: 8px;
-}
-
-.variantInstructions textarea {
-  height: 142px; /* 10 lines of 10px text (13px line-height) + 12px vertical padding */
-  resize: none;
-  overflow-y: auto;
 }
 
 .label {
@@ -919,13 +912,6 @@
     padding: 10px 14px;
     font-size: 14px;
   }
-}
-
-.variantInstructions {
-  margin-top: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
 }
 
 .variantColumn {

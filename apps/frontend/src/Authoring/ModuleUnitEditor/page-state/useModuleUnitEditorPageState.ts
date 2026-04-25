@@ -34,7 +34,6 @@ import {
   useDeleteQuestionMutation,
   useDeleteVariantMutation,
   useModuleUnitEditorDataQuery,
-  useUpdateModuleUnitMutation,
   useUpdateQuestionContentMutation,
   useUpdateQuestionGroupNameMutation,
 } from '@/Authoring/ModuleUnitEditor/queries/useModuleUnitEditorQueries';
@@ -56,7 +55,6 @@ import { mapEditorGroupsToState } from '@/Authoring/ModuleUnitEditor/page-state/
 import { coreCacheKey, variantCacheKey } from '@/Authoring/ModuleUnitEditor/page-state/helpers/cacheKeys';
 import {
   getClientSafeErrorMessage,
-  isClientError,
   logModuleUnitEditorError,
 } from '@/Authoring/ModuleUnitEditor/page-state/helpers/errorHandling';
 import { toPersistedId } from '@/Authoring/ModuleUnitEditor/page-state/helpers/idParsers';
@@ -116,7 +114,6 @@ export function useModuleUnitEditorPageState({
   const updateQuestionContentMutation = useUpdateQuestionContentMutation(editorScope);
   const deleteQuestionMutation = useDeleteQuestionMutation(editorScope);
   const deleteVariantMutation = useDeleteVariantMutation(editorScope);
-  const updateModuleUnitMutation = useUpdateModuleUnitMutation(editorScope);
 
   const isLoading =
     parsedModuleId !== null && parsedUnitId !== null && editorDataQuery.isPending;
@@ -133,12 +130,10 @@ export function useModuleUnitEditorPageState({
   // All local UI state is managed here, so the page can respond to user actions and keep everything in sync.
   // This includes form state, selection, expanded/collapsed groups, and error banners.
   const [unitTitle, setUnitTitle] = useState('');
-  const [variantInstructions, setVariantInstructions] = useState('');
   const [groups, setGroups] = useState<QuestionGroup[]>([]);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSavingQuestion, setIsSavingQuestion] = useState(false);
   const [isSavingVariant, setIsSavingVariant] = useState(false);
-  const [isSavingVariantInstructions, setIsSavingVariantInstructions] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -726,7 +721,7 @@ export function useModuleUnitEditorPageState({
     }));
   };
 
-  // --- Save Logic: orchestrate saving questions, variants, and instructions ---
+  // --- Save Logic: orchestrate saving questions and variants ---
   // This logic is kept in a separate hook for testability and separation of concerns.
   const { handleSaveQuestion } = useModuleUnitEditorSaveFlow({
     parsedModuleId,
@@ -750,28 +745,6 @@ export function useModuleUnitEditorPageState({
     updateQuestionContentMutation,
   });
 
-  const handleSaveVariantInstructions = async () => {
-    if (!parsedUnitId || !editorScope) return;
-
-    setIsSavingVariantInstructions(true);
-    setSaveError(null);
-
-    try {
-      await updateModuleUnitMutation.mutateAsync({
-        variantContext: variantInstructions,
-      });
-    } catch (err) {
-      if (isClientError(err)) {
-        setSaveError(err.message ?? 'Could not save variant generation settings.');
-      } else {
-        setSaveError('Could not save variant generation settings. Please try again.');
-        logModuleUnitEditorError(err, 'module-unit', 'save-variant-context', parsedUnitId);
-      }
-    } finally {
-      setIsSavingVariantInstructions(false);
-    }
-  };
-
   // ===== Effects =====
   // Effects keep the local state in sync with server data and selection changes.
   // This ensures the editor always reflects the latest backend state and user actions.
@@ -785,7 +758,6 @@ export function useModuleUnitEditorPageState({
     setIsUnitLive(currentUnit?.status === 'live');
 
     setUnitTitle(unit.title);
-    setVariantInstructions(unit.variantContext ?? '');
 
     const mappedGroups = mapEditorGroupsToState(unit.questionGroups);
 
@@ -865,8 +837,6 @@ export function useModuleUnitEditorPageState({
     isLoading,
     error,
     unitTitle,
-    variantInstructions,
-    setVariantInstructions,
     groups,
     expandedGroups,
     selected,
@@ -887,7 +857,6 @@ export function useModuleUnitEditorPageState({
     saveError,
     isSavingQuestion,
     isSavingVariant,
-    isSavingVariantInstructions,
     editingGroupId,
     editingGroupTitle,
     setEditingGroupTitle,
@@ -911,7 +880,6 @@ export function useModuleUnitEditorPageState({
     setCorrectOption,
     handleTypeChange,
     handleSaveQuestion,
-    handleSaveVariantInstructions,
     handleConfirmDelete,
   };
 }

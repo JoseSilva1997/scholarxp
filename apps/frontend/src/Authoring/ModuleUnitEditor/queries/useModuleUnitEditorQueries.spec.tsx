@@ -68,7 +68,6 @@ function makeModuleUnit(partial: Partial<ModuleUnitResponse> = {}): ModuleUnitRe
   return {
     id: 1,
     moduleId: 10,
-    variantContext: 'default',
     title: 'Unit',
     questionCount: 1,
     isCompleted: false,
@@ -96,7 +95,6 @@ function makeEditor(): ModuleUnitEditorResponse {
     id: 10,
     moduleId: 2,
     title: 'Editor Unit',
-    variantContext: 'default',
     questionGroups: [
       {
         id: 1,

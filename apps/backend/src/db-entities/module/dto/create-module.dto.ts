@@ -21,11 +21,6 @@ export class CreateModuleDto implements CreateModulePayload {
   resourceLinkId?: string;
 
   @IsString()
-  @IsOptional()
-  @MaxLength(255)
-  variantContext?: string;
-
-  @IsString()
   @IsNotEmpty()
   @MaxLength(60)
   title: string;

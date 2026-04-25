@@ -50,7 +50,6 @@ describe('useModuleInvitesPanelState', () => {
     id: 10,
     title: 'Biology',
     description: null,
-    variantContext: null,
   };
 
   const invite = {
@@ -240,7 +239,7 @@ describe('useModuleInvitesPanelState', () => {
       const { result, rerender } = renderHook(
         ({ moduleId }) =>
           useModuleInvitesPanelState({
-            module: moduleId ? { id: moduleId, title: 'Test', description: null, variantContext: null } : null,
+            module: moduleId ? { id: moduleId, title: 'Test', description: null } : null,
             isOpen: true,
             canShowInvites: true,
           }),

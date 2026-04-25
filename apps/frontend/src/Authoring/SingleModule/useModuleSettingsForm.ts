@@ -22,8 +22,6 @@ type UseModuleSettingsFormResult = {
   setTitle: (value: string) => void;
   description: string;
   setDescription: (value: string) => void;
-  variantContext: string;
-  setVariantContext: (value: string) => void;
   isSaving: boolean;
   error: string | null;
   status: string | null;
@@ -40,7 +38,6 @@ export function useModuleSettingsForm({
   // changes so the form always reflects the latest persisted state.
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [variantContext, setVariantContext] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -55,7 +52,6 @@ export function useModuleSettingsForm({
     // Re-initialize form values when the panel opens or when module data gets refreshed externally.
     setTitle(module.title ?? '');
     setDescription(module.description ?? '');
-    setVariantContext(module.variantContext ?? '');
     setError(null);
     setStatus(null);
   }, [module, isOpen]);
@@ -68,7 +64,6 @@ export function useModuleSettingsForm({
     // Reset back to last persisted module snapshot instead of just clearing fields.
     setTitle(module.title ?? '');
     setDescription(module.description ?? '');
-    setVariantContext(module.variantContext ?? '');
     setError(null);
     setStatus(null);
   }, [module]);
@@ -90,11 +85,9 @@ export function useModuleSettingsForm({
       const payload: {
         title: string;
         description?: string | null;
-        variantContext?: string | null;
       } = { title: trimmedTitle };
 
       payload.description = description.trim() ? description.trim() : null;
-      payload.variantContext = variantContext.trim() ? variantContext.trim() : null;
 
       setIsSaving(true);
       setError(null);
@@ -120,7 +113,7 @@ export function useModuleSettingsForm({
         setIsSaving(false);
       }
     },
-    [description, isSaving, module, onSaved, title, updateModuleMutation, variantContext],
+    [description, isSaving, module, onSaved, title, updateModuleMutation],
   );
 
   return {
@@ -128,8 +121,6 @@ export function useModuleSettingsForm({
     setTitle,
     description,
     setDescription,
-    variantContext,
-    setVariantContext,
     isSaving,
     error,
     status,

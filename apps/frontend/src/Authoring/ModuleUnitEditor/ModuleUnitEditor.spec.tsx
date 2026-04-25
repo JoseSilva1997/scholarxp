@@ -18,7 +18,6 @@ type EditorGroup = {
 };
 
 const mocks = vi.hoisted(() => ({
-  setVariantInstructions: vi.fn(),
   setSelected: vi.fn(),
   setForm: vi.fn(),
   setDeleteTarget: vi.fn(),
@@ -37,7 +36,6 @@ const mocks = vi.hoisted(() => ({
   setCorrectOption: vi.fn(),
   handleTypeChange: vi.fn(),
   handleSaveQuestion: vi.fn(),
-  handleSaveVariantInstructions: vi.fn(),
   handleConfirmDelete: vi.fn(),
 }));
 
@@ -52,7 +50,6 @@ let pageState = {
   isLoading: false,
   error: null as string | null,
   unitTitle: 'Unit 1',
-  variantInstructions: 'Keep same concept',
   groups: [
     {
       id: 1,
@@ -98,7 +95,6 @@ let pageState = {
   saveError: null as string | null,
   isSavingQuestion: false,
   isSavingVariant: false,
-  isSavingVariantInstructions: false,
   editingGroupId: null as number | null,
   editingGroupTitle: '',
   renamingGroupId: null as number | null,
@@ -120,7 +116,6 @@ vi.mock('react-router-dom', async () => {
 vi.mock('@/Authoring/ModuleUnitEditor/page-state/useModuleUnitEditorPageState', () => ({
   useModuleUnitEditorPageState: () => ({
     ...pageState,
-    setVariantInstructions: mocks.setVariantInstructions,
     setSelected: mocks.setSelected,
     setForm: mocks.setForm,
     setDeleteTarget: mocks.setDeleteTarget,
@@ -139,7 +134,6 @@ vi.mock('@/Authoring/ModuleUnitEditor/page-state/useModuleUnitEditorPageState', 
     setCorrectOption: mocks.setCorrectOption,
     handleTypeChange: mocks.handleTypeChange,
     handleSaveQuestion: mocks.handleSaveQuestion,
-    handleSaveVariantInstructions: mocks.handleSaveVariantInstructions,
     handleConfirmDelete: mocks.handleConfirmDelete,
   }),
 }));
@@ -186,7 +180,6 @@ describe('ModuleUnitEditor route', () => {
       isLoading: false,
       error: null,
       unitTitle: 'Unit 1',
-      variantInstructions: 'Keep same concept',
       groups: [
         {
           id: 1,
@@ -225,7 +218,6 @@ describe('ModuleUnitEditor route', () => {
       saveError: null,
       isSavingQuestion: false,
       isSavingVariant: false,
-      isSavingVariantInstructions: false,
       editingGroupId: null,
       editingGroupTitle: '',
       renamingGroupId: null,
@@ -281,10 +273,7 @@ describe('ModuleUnitEditor route', () => {
   });
 
   it('wires key editor actions to page-state handlers', { timeout: 10_000 }, () => {
-    const alertMock = vi.fn();
-    vi.stubGlobal('alert', alertMock);
-
-    const { rerender } = render(
+    render(
       <MemoryRouter>
         <ModuleUnitEditor />
       </MemoryRouter>,
@@ -316,40 +305,8 @@ describe('ModuleUnitEditor route', () => {
     });
     expect(mocks.setForm).toHaveBeenCalled();
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Variant generation settings' }),
-    );
-    fireEvent.change(
-      screen.getByPlaceholderText(
-        'Concepts, constraints, difficulty level, or any context to help the AI generate relevant variants...',
-      ),
-      { target: { value: 'New instructions' } },
-    );
-    expect(mocks.setVariantInstructions).toHaveBeenCalledWith('New instructions');
-
     fireEvent.click(screen.getByRole('button', { name: 'Save Question' }));
     expect(mocks.handleSaveQuestion).toHaveBeenCalled();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Save Settings' }));
-    expect(mocks.handleSaveVariantInstructions).toHaveBeenCalled();
-
-    // Verify saving state in UI
-    pageState.isSavingVariantInstructions = true;
-    rerender(
-      <MemoryRouter>
-        <ModuleUnitEditor />
-      </MemoryRouter>
-    );
-    expect(screen.getByRole('button', { name: 'Saving...' })).toBeDisabled();
-    pageState.isSavingVariantInstructions = false;
-    rerender(
-      <MemoryRouter>
-        <ModuleUnitEditor />
-      </MemoryRouter>
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: /Generate Variant/i }));
-    expect(alertMock).toHaveBeenCalledWith('Coming Soon! 😎');
 
     fireEvent.click(screen.getByText('cancel-delete'));
     expect(mocks.setDeleteTarget).toHaveBeenCalledWith(null);

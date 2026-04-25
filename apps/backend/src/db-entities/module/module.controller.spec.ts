@@ -45,7 +45,7 @@ describe('ModuleController', () => {
   afterEach(() => jest.resetAllMocks());
 
   it('create forwards dto and user', async () => {
-    const dto = { title: 'X', variantContext: 'vc' } as any;
+    const dto = { title: 'X' } as any;
     const expected = { id: 10 };
     service.create.mockResolvedValue(expected);
 

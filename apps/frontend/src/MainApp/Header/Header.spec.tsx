@@ -51,7 +51,7 @@ describe('Header', () => {
   <Header user={null} />,
 );
 
-      expect(screen.getByRole('link', { name: 'Login' })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Log in' })).toBeInTheDocument();
       expect(screen.getByRole('link', { name: 'Sign up' })).toBeInTheDocument();
       expect(screen.queryByTestId('user-badge')).not.toBeInTheDocument();
     });
@@ -61,7 +61,7 @@ describe('Header', () => {
   <Header />,
 );
 
-      expect(screen.getByRole('link', { name: 'Login' })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Log in' })).toBeInTheDocument();
       expect(screen.getByRole('link', { name: 'Sign up' })).toBeInTheDocument();
       expect(screen.queryByTestId('user-badge')).not.toBeInTheDocument();
     });
@@ -101,7 +101,7 @@ describe('Header', () => {
       expect(screen.getByTestId('student-quest-header-status')).toHaveTextContent(
         'student-quest-header-status:1',
       );
-      expect(screen.queryByRole('link', { name: 'Login' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'Log in' })).not.toBeInTheDocument();
     });
 
     it('passes student avatar data to UserBadge through user prop', () => {
@@ -279,7 +279,7 @@ describe('Header', () => {
   <Header />,
 );
 
-      const loginLink = screen.getByRole('link', { name: 'Login' });
+      const loginLink = screen.getByRole('link', { name: 'Log in' });
       expect(loginLink).toHaveAttribute('href', '/login');
     });
 

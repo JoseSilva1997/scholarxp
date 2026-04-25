@@ -52,7 +52,6 @@ function makeUnit(partial: Partial<ModuleUnitResponse> = {}): ModuleUnitResponse
   return {
     id: 11,
     moduleId: 1,
-    variantContext: 'default',
     title: 'Unit 1',
     questionCount: 0,
     isCompleted: false,

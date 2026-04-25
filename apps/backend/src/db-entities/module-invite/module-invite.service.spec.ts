@@ -39,7 +39,6 @@ describe('ModuleInviteService', () => {
     institutionId: null,
     createdAt: new Date(),
     createdByUserId: 1,
-    variantContext: null,
     ltiContextId: null,
     resourceLinkId: null,
     description: null,

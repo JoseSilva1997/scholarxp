@@ -70,8 +70,6 @@ export default function ModuleSettingsPanel({
     setTitle,
     description,
     setDescription,
-    variantContext,
-    setVariantContext,
     isSaving,
     error,
     status,
@@ -206,21 +204,6 @@ export default function ModuleSettingsPanel({
                   onChange={(e) => setDescription(e.target.value)}
                   maxLength={500}
                   rows={3}
-                />
-              </label>
-
-              <label className={styles.field}>
-                <div>
-                  <span className={styles.fieldLabel}>Variant context</span>
-                  <span className={styles.hint}>(Optional)</span>
-                </div>
-                
-                <textarea
-                  className={styles.textarea}
-                  value={variantContext}
-                  onChange={(e) => setVariantContext(e.target.value)}
-                  maxLength={255}
-                  placeholder="Give instructions to the AI question generator about how to tailor questions for this module."
                 />
               </label>
 

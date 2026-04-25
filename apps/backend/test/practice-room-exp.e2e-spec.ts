@@ -428,7 +428,6 @@ async function seedModuleUnitWithMcqQuestions(
   const moduleUnit = await prisma.moduleUnit.create({
     data: {
       moduleId,
-      variantContext: 'default',
       title: input.title,
       questionCount: input.questionCount,
       status: ModuleUnitStatus.live,

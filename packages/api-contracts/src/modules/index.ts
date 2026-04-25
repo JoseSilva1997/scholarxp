@@ -11,7 +11,6 @@ export interface ModuleSummaryResponse {
   institutionId?: number | null;
   ltiContextId?: string | null;
   resourceLinkId?: string | null;
-  variantContext?: string | null;
   title: string;
   description?: string | null;
   createdByUserId?: number | null;
@@ -71,7 +70,6 @@ export interface ModuleUnitExpEarned {
 export interface ModuleUnitResponse {
   id: number;
   moduleId: number | null;
-  variantContext: string;
   title: string;
   questionCount: number;
   isCompleted: boolean;
@@ -87,7 +85,6 @@ export interface CreateModulePayload {
   institutionId?: number;
   ltiContextId?: string;
   resourceLinkId?: string;
-  variantContext?: string | null;
   title: string;
   description?: string | null;
   createdByUserId?: number;
@@ -101,7 +98,6 @@ export interface CreateModuleUnitMinimalPayload {
 
 export interface CreateModuleUnitPayload {
   moduleId: number;
-  variantContext: string;
   title: string;
   questionCount: number;
   status: ModuleUnitStatus;
@@ -153,6 +149,5 @@ export interface ModuleUnitEditorResponse {
   id: number;
   moduleId: number | null;
   title: string;
-  variantContext: string | null;
   questionGroups: ModuleUnitEditorGroupResponse[];
 }

@@ -9,10 +9,6 @@ export class CreateModuleUnitDto implements CreateModuleUnitPayload {
 
   @IsString()
   @IsNotEmpty()
-  variantContext: string;
-
-  @IsString()
-  @IsNotEmpty()
   title: string;
 
   @IsInt()

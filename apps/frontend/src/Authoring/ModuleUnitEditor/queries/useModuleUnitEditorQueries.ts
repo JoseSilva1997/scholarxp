@@ -8,14 +8,12 @@ import type {
   ModuleUnitResponse,
   UpdateQuestionContentPayload,
   UpdateModuleUnitQuestionGroupNamePayload,
-  UpdateModuleUnitPayload,
 } from '@scholarxp/api-contracts';
 import {
   createModuleUnitQuestionGroup,
   deleteModuleUnitQuestionGroup,
   getModuleUnitEditor,
   getModuleUnits,
-  updateModuleUnit,
   updateModuleUnitQuestionGroupName,
 } from '@/Authoring/api/modules';
 import {
@@ -191,24 +189,6 @@ export function useDeleteVariantMutation(scope: ScopedEditorIds | null) {
     },
     onSettled: async () => {
       if (!scope) return;
-      await invalidateModuleUnitsCache(queryClient, scope.moduleId);
-    },
-  });
-}
-
-export function useUpdateModuleUnitMutation(scope: ScopedEditorIds | null) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (payload: UpdateModuleUnitPayload) => {
-      if (!scope) throw new Error('Missing module/unit scope for module unit update.');
-      return updateModuleUnit(scope.unitId, payload);
-    },
-    onSettled: async () => {
-      if (!scope) return;
-      // Also invalidate module-unit editor cache so local state can refresh if needed.
-      await queryClient.invalidateQueries({
-        queryKey: ['module-unit-editor', scope.moduleId, scope.unitId],
-      });
       await invalidateModuleUnitsCache(queryClient, scope.moduleId);
     },
   });

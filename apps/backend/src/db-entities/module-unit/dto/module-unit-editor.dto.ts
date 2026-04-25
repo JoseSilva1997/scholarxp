@@ -14,7 +14,6 @@ export class ModuleUnitEditorDto implements ModuleUnitEditorResponse {
   id: number;
   moduleId: number | null;
   title: string;
-  variantContext: string | null;
   questionGroups: ModuleUnitEditorGroupDto[];
 }
 

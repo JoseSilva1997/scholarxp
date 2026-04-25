@@ -83,7 +83,6 @@ export class ModuleUnitService {
       return {
         id: unit.id,
         moduleId: unit.moduleId,
-        variantContext: unit.variantContext,
         title: unit.title,
         // Derive count from active questions at read time to avoid stale denormalized values.
         questionCount: unit.questionUnits.length,
@@ -228,7 +227,6 @@ export class ModuleUnitService {
       id: record.id,
       moduleId: record.moduleId,
       title: record.title,
-      variantContext: record.variantContext,
       questionGroups: groupedQuestions,
     };
   }
@@ -275,7 +273,6 @@ export class ModuleUnitService {
         const createdUnit = await tx.moduleUnit.create({
           data: {
             moduleId,
-            variantContext: '',
             title,
             questionCount: 0,
             status: ModuleUnitStatus.draft,

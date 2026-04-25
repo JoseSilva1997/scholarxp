@@ -45,7 +45,6 @@ describe('ModuleService', () => {
     prisma.ltiIdentity.findFirst.mockResolvedValue({ id: 1 } as any);
     const dto = {
       institutionId: 5,
-      variantContext: 'ctx',
       title: 'Title',
     };
     prisma.module.create.mockResolvedValue({
@@ -67,7 +66,7 @@ describe('ModuleService', () => {
   });
 
   it('rejects institution_admin creation without institutionId', async () => {
-    const dto = { variantContext: 'ctx', title: 'X' };
+    const dto = { title: 'X' };
 
     await expect(
       service.create(dto as any, instAdmin as any),

@@ -7,10 +7,8 @@ import {
   FiEdit2,
   FiTrash2,
   FiX,
-  FiSettings,
   FiInfo,
 } from 'react-icons/fi';
-import { VscSparkleFilled } from 'react-icons/vsc';
 import {
   FaCirclePlus,
   FaCircleChevronLeft,
@@ -25,7 +23,6 @@ import {
 } from '@/Authoring/ModuleUnitEditor/components/question-types/QuestionTypeRegistry';
 import { useModuleUnitEditorPageState } from '@/Authoring/ModuleUnitEditor/page-state/useModuleUnitEditorPageState';
 import ConfirmDeleteModal from '@/Authoring/ModuleUnitEditor/components/ConfirmDeleteModal';
-import VariantSettingsModal from '@/Authoring/ModuleUnitEditor/VariantSettingsModal';
 import QuestionStructureGuide from '@/Authoring/ModuleUnitEditor/components/QuestionStructureGuide';
 import styles from '@/Authoring/ModuleUnitEditor/ModuleUnitEditor.module.css';
 
@@ -39,8 +36,6 @@ export default function ModuleUnitEditor() {
     isLoading,
     error,
     unitTitle,
-    variantInstructions,
-    setVariantInstructions,
     groups,
     expandedGroups,
     selected,
@@ -61,7 +56,6 @@ export default function ModuleUnitEditor() {
     saveError,
     isSavingQuestion,
     isSavingVariant,
-    isSavingVariantInstructions,
     editingGroupId,
     editingGroupTitle,
     setEditingGroupTitle,
@@ -85,7 +79,6 @@ export default function ModuleUnitEditor() {
     setCorrectOption,
     handleTypeChange,
     handleSaveQuestion,
-    handleSaveVariantInstructions,
     handleConfirmDelete,
   } = useModuleUnitEditorPageState({
     moduleIdParam: moduleId,
@@ -93,7 +86,6 @@ export default function ModuleUnitEditor() {
     initialQuestionIdParam,
   });
 
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [hintPopoverOpen, setHintPopoverOpen] = useState(false);
   const hintPopoverRef = useRef<HTMLSpanElement>(null);
 
@@ -108,11 +100,6 @@ export default function ModuleUnitEditor() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [hintPopoverOpen]);
   const activeQuestionType = normalizeQuestionType(form.type);
-
-  const handleGenerateVariant = () => {
-    // Generation flow is intentionally stubbed while API/UX contracts are finalized.
-    alert('Coming Soon! 😎');
-  };
 
   if (!parsedUnitId || !parsedModuleId) {
     return (
@@ -150,14 +137,6 @@ export default function ModuleUnitEditor() {
                 <h2>Questions</h2>
                 <div className={styles.sectionHeaderActions}>
                   <QuestionStructureGuide />
-                  <button
-                    type="button"
-                    className={styles.iconButton}
-                    aria-label="Variant generation settings"
-                    onClick={() => setIsSettingsOpen(true)}
-                  >
-                    <FiSettings aria-hidden />
-                  </button>
                 </div>
               </div>
 
@@ -574,16 +553,7 @@ export default function ModuleUnitEditor() {
                       {saveError}
                     </div>
                   ) : null}
-                  {/*TODO: Generate variant button is currently hidden until generate variants is implemented.*/}
                   <div className={styles.formActions}>
-                    <button
-                      type="button"
-                      className={styles.secondaryButton}
-                      onClick={handleGenerateVariant}
-                    >
-                      Generate Variant
-                      <VscSparkleFilled className={styles.aiSparkle} />
-                    </button>
                     <button
                       type="button"
                       className={styles.saveQuestionButton}
@@ -599,14 +569,6 @@ export default function ModuleUnitEditor() {
           </div>
         </>
       )}
-      <VariantSettingsModal
-        isOpen={isSettingsOpen}
-        variantInstructions={variantInstructions}
-        isSaving={isSavingVariantInstructions}
-        onChangeInstructions={setVariantInstructions}
-        onSave={handleSaveVariantInstructions}
-        onClose={() => setIsSettingsOpen(false)}
-      />
       <ConfirmDeleteModal
         isOpen={Boolean(deleteTarget)}
         title={deleteCopy.title}

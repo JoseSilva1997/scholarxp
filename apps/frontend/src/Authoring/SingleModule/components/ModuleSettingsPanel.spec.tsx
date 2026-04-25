@@ -31,8 +31,6 @@ const { mockUseModuleInvitesPanelState, mockUseModuleSettingsForm, mockInvitesPa
     setTitle: vi.fn(),
     description: 'Test description',
     setDescription: vi.fn(),
-    variantContext: 'Test context',
-    setVariantContext: vi.fn(),
     isSaving: false,
     error: null as string | null,
     status: null as string | null,
@@ -56,7 +54,6 @@ const mockModule: ModuleSummary = {
   id: 1,
   title: 'Test Module',
   description: 'Test description',
-  variantContext: 'Test context',
   institutionId: null, // Allows invites
 };
 

@@ -87,7 +87,6 @@ model Module {
   institutionId         Int?                   @map("institution_id")
   ltiContextId          String?                @map("lti_context_id")
   resourceLinkId        String?                @map("resource_link_id")
-  variantContext        String?                @map("variant_context")
   title                 String
   description           String?
   createdByUserId       Int?                   @map("created_by_user_id")
@@ -196,7 +195,6 @@ model PracticeSession {
 model ModuleUnit {
   id                    Int                       @id @default(autoincrement())
   moduleId              Int?                      @map("module_id")
-  variantContext        String                    @map("variant_context")
   title                 String
   questionCount         Int                       @map("question_count")
   status                ModuleUnitStatus          @default(draft)
