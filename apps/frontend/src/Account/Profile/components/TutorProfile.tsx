@@ -29,7 +29,7 @@ function TeachingOverview({ profile }: { profile: TutorProfileResponse }) {
     { label: 'Total Students', value: profile.totalEnrolledStudents, icon: <BsPeople /> },
     { label: 'Active (7 Days)', value: profile.studentsActiveLast7Days, icon: <BsLightning /> },
     {
-      label: 'Pending Invites',
+      label: 'Active Invitation Links',
       value: profile.pendingInvites,
       icon: <BsSend />,
       accent: profile.pendingInvites > 0,

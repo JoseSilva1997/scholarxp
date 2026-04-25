@@ -60,7 +60,7 @@ export default function Header({
         ) : (
           <div className={styles.actions}>
             <Link className={`${styles.btn} ${styles.btnGhost}`} to="/login">
-              Login
+              Log in
             </Link>
             <Link className={`${styles.btn} ${styles.btnPrimary}`} to="/register">
               Sign up
