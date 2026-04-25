@@ -7,9 +7,9 @@ export default function Footer() {
       <span className={styles.brand}>ScholarXP™</span>
       <div className={styles.meta}>
         <span>Helping students stay consistent.</span>
-        <a className={styles.link} href="#" aria-label="Read the privacy policy">
+        <Link className={styles.link} to="/privacy" aria-label="Read the privacy policy">
           Privacy
-        </a>
+        </Link>
         <Link className={styles.link} to="/terms" aria-label="View terms of service">
           Terms
         </Link>

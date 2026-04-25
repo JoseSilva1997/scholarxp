@@ -11,7 +11,7 @@ export default function Terms() {
             <RiFileTextLine className={styles.titleIcon} />
             <h1>Terms of Service</h1>
           </div>
-          <p className={styles.subtitle}>Last updated: April 21, 2026</p>
+          <p className={styles.subtitle}>Last updated: April 04, 2026</p>
         </header>
 
         <div className={styles.content}>
