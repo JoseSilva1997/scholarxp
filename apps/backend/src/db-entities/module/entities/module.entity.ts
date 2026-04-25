@@ -7,4 +7,5 @@ export class Module {
   description: string | null;
   createdByUserId: number | null;
   createdAt: Date;
+  archivedAt: Date | null;
 }

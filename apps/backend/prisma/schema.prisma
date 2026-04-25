@@ -91,6 +91,7 @@ model Module {
   description           String?
   createdByUserId       Int?                   @map("created_by_user_id")
   createdAt             DateTime               @default(now()) @map("created_at")
+  archivedAt            DateTime?              @map("archived_at")
   institution           Institution?           @relation(fields: [institutionId], references: [id], onDelete: SetNull)
   createdBy             User?                  @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
   // Module-scoped daily-practice sets stay tied to the module because daily practice is never global.
@@ -200,7 +201,7 @@ model ModuleUnit {
   status                ModuleUnitStatus          @default(draft)
   sortOrder             Int                       @map("sort_order")
   createdAt             DateTime                  @default(now()) @map("created_at")
-  module                Module?                   @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+  module                Module?                   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   // Persisted daily-practice items keep their lesson linkage so interleaving can avoid same-lesson adjacency.
   dailyPracticeSetItems DailyPracticeSetItem[]
   questionGroups        ModuleUnitQuestionGroup[]

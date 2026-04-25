@@ -10,6 +10,7 @@ export const features = {
     setInstitution: 'modules_set_institution',
     toggleStudentView: 'modules_toggle_student_view',
     settings: 'modules_settings',
+    delete: 'modules_delete',
     invitations: 'modules_invitations',
     invitationsRedemption: 'modules_invitations_redemption',
     manageContent: 'modules_manage_content',

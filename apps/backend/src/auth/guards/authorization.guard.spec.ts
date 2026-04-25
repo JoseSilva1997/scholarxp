@@ -121,6 +121,63 @@ describe('AuthorizationGuard', () => {
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
+  it('hides archived modules from normal module-scoped routes', async () => {
+    (reflector.getAllAndOverride as jest.Mock).mockReturnValue({
+      capability: features.navigation.modules,
+      scope: 'module',
+    } as AuthorizationRule);
+    (prisma.module.findUnique as jest.Mock).mockResolvedValue({
+      id: 77,
+      institutionId: null,
+      createdByUserId: 1,
+      archivedAt: new Date('2026-04-01T00:00:00.000Z'),
+      userModules: [{ roleInModule: 'teacher' }],
+    });
+
+    await expect(
+      guard.canActivate(
+        contextFor({
+          user: {
+            id: 1,
+            globalRole: GlobalRole.teacher,
+            hasInstitutionMembership: false,
+          } as any,
+          params: { moduleId: '77' },
+        }),
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(authorizationService.canActivate).not.toHaveBeenCalled();
+  });
+
+  it('allows archive/delete routes to authorize already archived modules', async () => {
+    (reflector.getAllAndOverride as jest.Mock).mockReturnValue({
+      capability: features.modules.delete,
+      scope: 'module',
+      allowArchived: true,
+    } as AuthorizationRule);
+    (prisma.module.findUnique as jest.Mock).mockResolvedValue({
+      id: 77,
+      institutionId: null,
+      createdByUserId: 1,
+      archivedAt: new Date('2026-04-01T00:00:00.000Z'),
+      userModules: [{ roleInModule: 'teacher' }],
+    });
+    (authorizationService.canActivate as jest.Mock).mockReturnValue(true);
+
+    await expect(
+      guard.canActivate(
+        contextFor({
+          user: {
+            id: 1,
+            globalRole: GlobalRole.teacher,
+            hasInstitutionMembership: false,
+          } as any,
+          params: { moduleId: '77' },
+        }),
+      ),
+    ).resolves.toBe(true);
+  });
+
   it('resolves module context from user-module id when requested', async () => {
     (reflector.getAllAndOverride as jest.Mock).mockReturnValue({
       capability: features.modules.settings,
@@ -134,6 +191,7 @@ describe('AuthorizationGuard', () => {
       id: 55,
       institutionId: null,
       createdByUserId: 1,
+      archivedAt: null,
       userModules: [{ roleInModule: 'teacher' }],
     });
     (authorizationService.canActivate as jest.Mock).mockReturnValue(true);
@@ -161,6 +219,7 @@ describe('AuthorizationGuard', () => {
         id: true,
         institutionId: true,
         createdByUserId: true,
+        archivedAt: true,
         userModules: {
           where: { userId: 1 },
           select: { roleInModule: true },
@@ -225,6 +284,7 @@ describe('AuthorizationGuard', () => {
       id: 44,
       institutionId: null,
       createdByUserId: 1,
+      archivedAt: null,
       userModules: [{ roleInModule: 'teacher' }],
     });
     (authorizationService.canActivate as jest.Mock).mockReturnValue(true);
@@ -252,6 +312,7 @@ describe('AuthorizationGuard', () => {
         id: true,
         institutionId: true,
         createdByUserId: true,
+        archivedAt: true,
         userModules: {
           where: { userId: 1 },
           select: { roleInModule: true },

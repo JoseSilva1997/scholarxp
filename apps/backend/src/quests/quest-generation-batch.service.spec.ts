@@ -48,6 +48,7 @@ describe('QuestGenerationBatchService', () => {
     expect(prisma.userModule.findMany).toHaveBeenNthCalledWith(1, {
       where: {
         roleInModule: 'student',
+        module: { archivedAt: null },
       },
       select: {
         userId: true,
@@ -61,6 +62,7 @@ describe('QuestGenerationBatchService', () => {
     expect(prisma.userModule.findMany).toHaveBeenNthCalledWith(2, {
       where: {
         roleInModule: 'student',
+        module: { archivedAt: null },
         userId: {
           gt: 9,
         },
@@ -131,6 +133,7 @@ describe('QuestGenerationBatchService', () => {
     expect(prisma.userModule.findMany).toHaveBeenCalledWith({
       where: {
         roleInModule: 'student',
+        module: { archivedAt: null },
       },
       select: {
         userId: true,

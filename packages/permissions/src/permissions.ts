@@ -78,6 +78,12 @@ export const permissionMatrix: PermissionMatrix = {
     'teacher.independent',
     'teacher.institutional',
   ],
+  [features.modules.delete]: [
+    'admin',
+    'institution_admin',
+    'teacher.independent',
+    'teacher.institutional',
+  ],
   [features.modules.manageContent]: [
     'admin',
     'institution_admin',

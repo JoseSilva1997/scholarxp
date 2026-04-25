@@ -14,10 +14,32 @@ export interface ModuleSummaryResponse {
   title: string;
   description?: string | null;
   createdByUserId?: number | null;
+  archivedAt?: string | null;
   userModuleLevel?: number;
   currentExp?: number;
   expMax?: number;
   dailyPractice?: DailyPracticeStatusSummary;
+}
+
+export interface ModuleDeletionImpactResponse {
+  moduleId: number;
+  isArchived: boolean;
+  willArchive: true;
+  isPurgeableArchivedModule: boolean;
+  purgeEligibleAt: string | null;
+  counts: {
+    studentEnrollments: number;
+    attempts: number;
+    expLedgerEntries: number;
+    moduleUnitProgress: number;
+    studentQuestionStates: number;
+    dailyPracticeSets: number;
+    dailyPracticeSetItems: number;
+    dailyQuests: number;
+    invites: number;
+    moduleUnits: number;
+    questions: number;
+  };
 }
 
 export type ModuleUnitStatus = 'draft' | 'live' | 'locked' | 'archived';

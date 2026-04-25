@@ -46,7 +46,7 @@ export class AuthorizationGuard implements CanActivate {
 
     const moduleContext =
       rule.scope === 'module'
-        ? await this.loadModuleContext(req, user, rule.moduleContextSource)
+        ? await this.loadModuleContext(req, user, rule)
         : undefined;
     const selfTargetUserId =
       rule.scope === 'self'
@@ -71,8 +71,9 @@ export class AuthorizationGuard implements CanActivate {
   private async loadModuleContext(
     req: Request,
     user: AuthUser,
-    source: AuthorizationRule['moduleContextSource'] = 'module',
+    rule: AuthorizationRule,
   ): Promise<ModuleAuthorizationContext> {
+    const source = rule.moduleContextSource ?? 'module';
     const moduleId =
       source === 'user_module'
         ? await this.resolveModuleIdFromUserModule(req)
@@ -89,6 +90,7 @@ export class AuthorizationGuard implements CanActivate {
         id: true,
         institutionId: true,
         createdByUserId: true,
+        archivedAt: true,
         userModules: {
           where: { userId: user.id },
           select: { roleInModule: true },
@@ -97,6 +99,9 @@ export class AuthorizationGuard implements CanActivate {
     });
 
     if (!module) {
+      throw new NotFoundException('Module not found');
+    }
+    if (module.archivedAt && !rule.allowArchived) {
       throw new NotFoundException('Module not found');
     }
 
@@ -128,6 +133,7 @@ export class AuthorizationGuard implements CanActivate {
       moduleId: module.id,
       moduleInstitutionId: module.institutionId,
       moduleCreatedByUserId: module.createdByUserId,
+      moduleArchivedAt: module.archivedAt,
       roleInModule,
       hasInstitutionMatch,
     };

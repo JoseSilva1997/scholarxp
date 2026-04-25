@@ -23,6 +23,7 @@ export class TutorProfileService {
     // Load all modules owned by this tutor (via createdByUserId or teacher role in UserModule).
     const tutorModules = await this.prisma.module.findMany({
       where: {
+        archivedAt: null,
         OR: [
           { createdByUserId: user.id },
           {
@@ -110,6 +111,7 @@ export class TutorProfileService {
     const invites = await this.prisma.moduleInvite.findMany({
       where: {
         createdByUserId: userId,
+        module: { archivedAt: null },
         revokedAt: null,
         OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
       },

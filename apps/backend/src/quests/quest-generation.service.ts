@@ -307,6 +307,7 @@ export class QuestGenerationService {
       where: {
         userId,
         roleInModule: 'student',
+        module: { archivedAt: null },
       },
       orderBy: {
         moduleId: 'asc',

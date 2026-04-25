@@ -39,6 +39,12 @@ export class ModuleController {
     return this.moduleService.findAll(req.user as AuthUser);
   }
 
+  @Get(':id/deletion-impact')
+  @Authorize({ capability: features.modules.delete, scope: 'module' })
+  getDeletionImpact(@Param('id', ParseIntPipe) id: number) {
+    return this.moduleService.getDeletionImpact(id);
+  }
+
   @Get(':id')
   @Authorize({ capability: features.navigation.modules, scope: 'module' })
   findOne(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
@@ -56,7 +62,11 @@ export class ModuleController {
   }
 
   @Delete(':id')
-  @Authorize({ capability: features.modules.settings, scope: 'module' })
+  @Authorize({
+    capability: features.modules.delete,
+    scope: 'module',
+    allowArchived: true,
+  })
   remove(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
     return this.moduleService.remove(id, req.user as AuthUser);
   }

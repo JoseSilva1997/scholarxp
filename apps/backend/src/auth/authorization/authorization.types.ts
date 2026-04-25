@@ -12,6 +12,8 @@ export type AuthorizationRule = {
   scope?: AuthorizationScope;
   // For module-scoped checks, this tells the guard where to find the related module context (which related entity to read).
   moduleContextSource?: 'module' | 'user_module' | 'module_unit';
+  // Archive/delete routes opt in because archived modules are hidden from normal app flows.
+  allowArchived?: boolean;
   // When using `self` scope, the target user id is read from the request (route/body/query). Default key is `id`.
   selfUserIdParam?: 'id' | 'userId';
 };
@@ -21,6 +23,7 @@ export type ModuleAuthorizationContext = {
   moduleId: number;
   moduleInstitutionId: number | null;
   moduleCreatedByUserId: number | null;
+  moduleArchivedAt: Date | null;
   roleInModule: 'student' | 'teacher' | null;
   hasInstitutionMatch: boolean;
 };

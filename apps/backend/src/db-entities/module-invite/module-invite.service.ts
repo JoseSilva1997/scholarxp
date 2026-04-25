@@ -145,6 +145,9 @@ export class ModuleInviteService {
         'Invites are only available for non-institution modules.',
       );
     }
+    if (invite.module.archivedAt) {
+      throw new NotFoundException('Invite not found or expired');
+    }
 
     this.assertInviteIsActive(invite);
     return invite;
@@ -239,6 +242,9 @@ export class ModuleInviteService {
       throw new ForbiddenException(
         'Invites are only available for non-institution modules.',
       );
+    }
+    if (module.archivedAt) {
+      throw new NotFoundException(`Module ${moduleId} not found`);
     }
     return module;
   }

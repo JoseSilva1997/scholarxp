@@ -65,6 +65,7 @@ describe('DailyPracticeGenerationBatchService', () => {
     expect(prisma.userModule.findMany).toHaveBeenNthCalledWith(1, {
       where: {
         roleInModule: 'student',
+        module: { archivedAt: null },
       },
       select: {
         id: true,
@@ -84,6 +85,7 @@ describe('DailyPracticeGenerationBatchService', () => {
     expect(prisma.userModule.findMany).toHaveBeenNthCalledWith(2, {
       where: {
         roleInModule: 'student',
+        module: { archivedAt: null },
         id: {
           gt: 8,
         },
@@ -106,6 +108,7 @@ describe('DailyPracticeGenerationBatchService', () => {
     expect(prisma.userModule.findMany).toHaveBeenNthCalledWith(3, {
       where: {
         roleInModule: 'student',
+        module: { archivedAt: null },
         id: {
           gt: 12,
         },
@@ -187,6 +190,7 @@ describe('DailyPracticeGenerationBatchService', () => {
     expect(prisma.userModule.findMany).toHaveBeenCalledWith({
       where: {
         roleInModule: 'student',
+        module: { archivedAt: null },
       },
       select: {
         id: true,

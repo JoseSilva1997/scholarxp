@@ -83,7 +83,11 @@ export class StudentProfileService {
     userId: number,
   ): Promise<StudentProfileModule[]> {
     const enrollments = await this.prisma.userModule.findMany({
-      where: { userId, roleInModule: 'student' },
+      where: {
+        userId,
+        roleInModule: 'student',
+        module: { archivedAt: null },
+      },
       select: {
         moduleId: true,
         userModuleLevel: true,

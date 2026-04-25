@@ -14,6 +14,7 @@ describe('ModuleController', () => {
     findOne: jest.Mock;
     update: jest.Mock;
     remove: jest.Mock;
+    getDeletionImpact: jest.Mock;
   };
 
   const req = {
@@ -27,6 +28,7 @@ describe('ModuleController', () => {
       findOne: jest.fn(),
       update: jest.fn(),
       remove: jest.fn(),
+      getDeletionImpact: jest.fn(),
     };
 
     const moduleRef: TestingModule = await Test.createTestingModule({
@@ -81,6 +83,15 @@ describe('ModuleController', () => {
 
     expect(service.update).toHaveBeenCalledWith(2, dto, req.user);
     expect(result).toEqual({ id: 2 });
+  });
+
+  it('getDeletionImpact delegates to service', async () => {
+    service.getDeletionImpact.mockResolvedValue({ moduleId: 2 });
+
+    const result = await controller.getDeletionImpact(2);
+
+    expect(service.getDeletionImpact).toHaveBeenCalledWith(2);
+    expect(result).toEqual({ moduleId: 2 });
   });
 
   it('remove delegates to service', async () => {

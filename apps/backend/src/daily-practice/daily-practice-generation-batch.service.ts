@@ -52,6 +52,7 @@ export class DailyPracticeGenerationBatchService {
       const studentMemberships = (await this.prisma.userModule.findMany({
         where: {
           roleInModule: 'student',
+          module: { archivedAt: null },
           ...(lastMembershipId === null
             ? {}
             : { id: { gt: lastMembershipId } }),

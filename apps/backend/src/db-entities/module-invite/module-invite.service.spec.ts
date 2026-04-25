@@ -87,6 +87,17 @@ describe('ModuleInviteService', () => {
     );
   });
 
+  it('rejects create when module is archived', async () => {
+    prisma.module.findUnique.mockResolvedValue({
+      ...module,
+      archivedAt: new Date('2026-04-01T00:00:00.000Z'),
+    } as any);
+
+    await expect(service.create(module.id, {}, teacher)).rejects.toThrow(
+      `Module ${module.id} not found`,
+    );
+  });
+
   it('finds all invites with module scoping and sanitizes token hash', async () => {
     prisma.module.findUnique.mockResolvedValue(module as any);
     prisma.moduleInvite.findMany.mockResolvedValue([
@@ -251,6 +262,24 @@ describe('ModuleInviteService', () => {
 
     await expect(service.redeem({ token }, student)).rejects.toThrow(
       ForbiddenException,
+    );
+  });
+
+  it('rejects redeem when module is archived', async () => {
+    const token = 'archived-redeem';
+    const tokenHash = createHash('sha256').update(token).digest('hex');
+    prisma.moduleInvite.findFirst.mockResolvedValue({
+      id: 12,
+      moduleId: module.id,
+      tokenHash,
+      module: {
+        ...module,
+        archivedAt: new Date('2026-04-01T00:00:00.000Z'),
+      },
+    } as any);
+
+    await expect(service.redeem({ token }, student)).rejects.toThrow(
+      'Invite not found or expired',
     );
   });
 });
