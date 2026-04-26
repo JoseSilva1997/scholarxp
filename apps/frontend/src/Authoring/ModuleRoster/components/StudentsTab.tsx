@@ -55,23 +55,12 @@ function formatDate(iso: string | null): string {
   });
 }
 
-function formatDailyPracticeStatus(status: string): string {
-  const labels: Record<string, string> = {
-    locked: 'Locked',
-    no_set: 'No Set',
-    available: 'Available',
-    in_progress: 'In Progress',
-    completed: 'Completed',
-  };
-  return labels[status] ?? status;
-}
-
 function SkeletonRows() {
   return (
     <>
       {Array.from({ length: 5 }, (_, i) => (
         <tr key={i} className={styles.skeletonRow} aria-hidden="true">
-          {Array.from({ length: 10 }, (_, j) => (
+          {Array.from({ length: 7 }, (_, j) => (
             <td key={j}>
               <div className={styles.skeletonCell} />
             </td>
@@ -125,7 +114,6 @@ export default function StudentsTab({
                 <th className={`${styles.th} ${styles.thWrap}`}>Experience Points</th>
                 <th className={styles.th}>Lessons</th>
                 <th className={styles.th}>Mastery</th>
-                <th className={styles.th}>Daily Practice</th>
                 <th className={styles.th}>Last DP Completed</th>
                 <th className={styles.th}>Last Activity</th>
               </tr>
@@ -135,7 +123,7 @@ export default function StudentsTab({
                 <SkeletonRows />
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className={styles.emptyCell}>
+                  <td colSpan={7} className={styles.emptyCell}>
                     No students match the current filter.
                   </td>
                 </tr>
@@ -178,9 +166,6 @@ export default function StudentsTab({
                       {student.completedLessons}/{student.totalLiveLessons}
                     </td>
                     <td className={styles.td}>{Math.round(student.averageMastery)}%</td>
-                    <td className={styles.td}>
-                      {formatDailyPracticeStatus(student.dailyPracticeStatus)}
-                    </td>
                     <td className={styles.td}>{formatDate(student.lastDailyPracticeCompletedAt)}</td>
                     <td className={styles.td}>{formatDate(student.lastActivityAt)}</td>
                   </tr>
