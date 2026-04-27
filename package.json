@@ -1,5 +1,5 @@
 {
-  "name": "lti-mvp",
+  "name": "scholar-xp-mvp",
   "private": true,
   "workspaces": [
     "apps/*",
