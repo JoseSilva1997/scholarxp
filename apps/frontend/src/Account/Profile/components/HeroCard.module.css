@@ -162,11 +162,6 @@
   color: var(--color-text-on-dark);
 }
 
-.institutionLabel {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-}
-
 .verifiedBadge {
   display: inline-flex;
   color: var(--color-secondary);

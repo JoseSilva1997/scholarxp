@@ -177,7 +177,6 @@ function ProfileDetails({
   const fields = [
     { label: 'Full Name', value: details.name },
     { label: 'Email', value: details.email },
-    { label: 'Institution', value: details.institution },
     { label: 'Role', value: details.role },
     { label: 'Bio', value: details.bio, placeholder: 'Add a bio...' },
   ];

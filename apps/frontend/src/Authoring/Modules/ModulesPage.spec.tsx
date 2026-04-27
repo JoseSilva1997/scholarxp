@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => ({
 
 let mockState = {
   user: { globalRole: 'admin' },
-  modules: [] as Array<{ id: number; title: string; description: string | null; institutionId?: number | null }>,
+  modules: [] as Array<{ id: number; title: string; description: string | null }>,
   isLoading: false,
   listErrorMessage: null as string | null,
   canCreateModules: true,
@@ -80,8 +80,8 @@ describe('ModulesPage route', () => {
 
   it('renders module cards and delegates open action', () => {
     mockState.modules = [
-      { id: 10, title: 'Biology', description: 'Intro', institutionId: 1 },
-      { id: 11, title: 'Chemistry', description: null, institutionId: null },
+      { id: 10, title: 'Biology', description: 'Intro' },
+      { id: 11, title: 'Chemistry', description: null },
     ];
 
     render(<ModulesPage />);

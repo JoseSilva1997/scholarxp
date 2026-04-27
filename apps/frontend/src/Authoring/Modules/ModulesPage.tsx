@@ -99,9 +99,8 @@ export default function ModulesPage() {
                   {moduleSummary.description ?? 'No description provided.'}
                 </p>
                 <div className={styles.meta}>
-                  {moduleSummary.institutionId ? (
+                  {moduleSummary ? (
                     <span className={styles.metaItem}>
-                      Institution #{moduleSummary.institutionId}
                     </span>
                   ) : (
                     <span className={styles.metaItem}>No institution</span>

@@ -12,8 +12,6 @@ function toUserContext(user: AuthUser | null | undefined): UserContext | null {
   if (!user) return null;
   return {
     role: user.globalRole,
-    hasInstitutionMembership:
-      user.hasInstitutionMembership ?? Boolean(user.institutionIds?.length),
   };
 }
 
@@ -26,11 +24,8 @@ export function canUserAccess(feature: FeatureKey, user: AuthUser | null | undef
   return evaluateAccess(feature, toUserContext(user));
 }
 
-export function listRolePermissions(role: AuthUser['globalRole'], hasInstitution = false): FeatureKey[] {
-  return listCapabilities({
-    role,
-    hasInstitutionMembership: hasInstitution,
-  });
+export function listRolePermissions(role: AuthUser['globalRole']): FeatureKey[] {
+  return listCapabilities({ role });
 }
 
-export { permissionMatrix};
+export { permissionMatrix };

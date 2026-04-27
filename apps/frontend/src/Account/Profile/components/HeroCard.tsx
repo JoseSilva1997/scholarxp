@@ -52,7 +52,6 @@ export default function HeroCard({
 
   const canEditPicture = canAccess(features.users.updateOwnProfilePicture, {
     role: user.globalRole,
-    hasInstitutionMembership: user.hasInstitutionMembership,
   });
 
   const avatarSrc =
@@ -207,10 +206,6 @@ export default function HeroCard({
           <span className={`${styles.rolePill} ${isStudent ? styles.rolePillStudent : styles.rolePillTutor}`}>
             {isStudent ? 'Student' : 'Teacher'}
           </span>
-
-          {user.hasInstitutionMembership ? (
-            <span className={styles.institutionLabel}>Institution linked</span>
-          ) : null}
 
           {user.isVerified ? (
             <span className={styles.verifiedBadge} title="Email verified">

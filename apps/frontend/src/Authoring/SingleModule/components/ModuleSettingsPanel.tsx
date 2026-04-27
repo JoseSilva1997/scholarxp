@@ -55,13 +55,9 @@ export default function ModuleSettingsPanel({
   }, [isOpen]);
 
   const isReady = useMemo(() => Boolean(module), [module]);
-  const isInviteEnabled = useMemo(
-    () => Boolean(module && module.institutionId === null),
-    [module],
-  );
   const canShowInvites = useMemo(
-    () => Boolean(canManageInvites && isInviteEnabled),
-    [canManageInvites, isInviteEnabled],
+    () => Boolean(canManageInvites && module),
+    [canManageInvites, module],
   );
   const {
     invites,
@@ -254,14 +250,11 @@ export default function ModuleSettingsPanel({
             </form>
           )}
         </section>
-        {/* 
-        Invites & membership section 
-        */}
-        <section className={styles.settingsSection}>
-          <header className={styles.settingsSectionHeader}>
-            <h3 className={styles.settingsSectionTitle}>Invites & Membership</h3>
-          </header>
-          {isInviteEnabled ? (
+        {canShowInvites ? (
+          <section className={styles.settingsSection}>
+            <header className={styles.settingsSectionHeader}>
+              <h3 className={styles.settingsSectionTitle}>Invites & Membership</h3>
+            </header>
             <>
               {inviteError ? (
                 <div className={styles.inlineError} role="alert">
@@ -366,13 +359,8 @@ export default function ModuleSettingsPanel({
                 </ul>
               )}
             </>
-          ) : (
-            <p className={styles.settingsSectionCopy}>
-              Invites are available only for modules created outside an institution. This module is
-              institution-managed, so roster changes must happen through the LMS.
-            </p>
-          )}
-        </section>
+          </section>
+        ) : null}
         {canDeleteModule ? (
           <section className={`${styles.settingsSection} ${styles.dangerSection}`}>
             <header className={styles.settingsSectionHeader}>

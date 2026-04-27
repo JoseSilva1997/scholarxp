@@ -2,9 +2,6 @@
 import { useState } from 'react';
 import type { CreateModulePayload } from '@scholarxp/api-contracts';
 import styles from '@/Authoring/Modules/components/ModuleCreateModal.module.css';
-import { useAuth } from '@/context/AuthContext';
-import { canUserAccess } from '@/shared/permissions/permission';
-import { features } from '@scholarxp/permissions';
 
 type ModuleCreateModalProps = {
   onClose: () => void;
@@ -19,13 +16,8 @@ export default function ModuleCreateModal({
   isSaving,
   error,
 }: ModuleCreateModalProps) {
-  const { user } = useAuth();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [institutionId, setInstitutionId] = useState('');
-
-  // Teachers can create modules but only admins/institution admins can bind to an institution.
-  const canSetInstitution = canUserAccess(features.modules.setInstitution, user);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -35,9 +27,6 @@ export default function ModuleCreateModal({
       title: title.trim(),
       description: description.trim() || undefined,
     };
-    if (canSetInstitution && institutionId.trim()) {
-      payload.institutionId = Number(institutionId.trim());
-    }
 
     await onCreate(payload);
   }
@@ -77,19 +66,6 @@ export default function ModuleCreateModal({
               maxLength={500}
             />
           </label>
-          {canSetInstitution ? (
-            <label className={styles.label}>
-              Institution ID (required for institution admins)
-              <input
-                className={styles.input}
-                value={institutionId}
-                onChange={(e) => setInstitutionId(e.target.value)}
-                inputMode="numeric"
-                pattern="[0-9]*"
-                required={user?.globalRole === 'institution_admin'}
-              />
-            </label>
-          ) : null}
           <div className={styles.actions}>
             <button type="button" className={styles.secondary} onClick={onClose} disabled={isSaving}>
               Cancel
@@ -107,4 +83,3 @@ export default function ModuleCreateModal({
     </div>
   );
 }
-

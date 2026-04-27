@@ -20,7 +20,7 @@ export async function createModuleInvite(
 }
 
 export async function listModuleInvites(moduleId: number): Promise<ModuleInviteResponse[]> {
-  // Listing stays scoped to a module to respect backend gating for institution-less modules.
+  // Listing stays scoped to a module so invite reads use the same authorization path as writes.
   return apiFetch<ModuleInviteResponse[]>(`/modules/${moduleId}/invites`, {
     method: 'GET',
   });

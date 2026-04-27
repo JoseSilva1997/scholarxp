@@ -54,12 +54,6 @@ const mockModule: ModuleSummary = {
   id: 1,
   title: 'Test Module',
   description: 'Test description',
-  institutionId: null, // Allows invites
-};
-
-const mockInstitutionModule: ModuleSummary = {
-  ...mockModule,
-  institutionId: 1, // Disables invites
 };
 
 const mockInvite: ModuleInvite = {
@@ -457,8 +451,8 @@ describe('ModuleSettingsPanel', () => {
     });
   });
 
-  describe('invites section - invite-enabled module', () => {
-    it('displays invite form for non-institution modules', () => {
+  describe('invites section', () => {
+    it('displays invite form when invite management is allowed', () => {
       render(
         <ModuleSettingsPanel
           module={mockModule}
@@ -471,21 +465,6 @@ describe('ModuleSettingsPanel', () => {
 
       expect(screen.getByDisplayValue('24')).toBeInTheDocument();
       expect(screen.getByDisplayValue('10')).toBeInTheDocument();
-    });
-
-    it('does not display invite form for institution modules', () => {
-      render(
-        <ModuleSettingsPanel
-          module={mockInstitutionModule}
-          isOpen={true}
-          onToggle={mockOnToggle}
-          onSaved={mockOnSaved}
-          canManageInvites={true}
-        />
-      );
-
-      // Institution module should not show invites section
-      expect(screen.queryByText(/Expiry \(hours\)/i)).not.toBeInTheDocument();
     });
 
     it('displays invite error when present', () => {
@@ -528,35 +507,19 @@ describe('ModuleSettingsPanel', () => {
     });
   });
 
-  describe('invites section - disabled when invites not allowed', () => {
-    it('hides invite section when invites disabled for institution', () => {
+  describe('invites section - disabled when permission is unavailable', () => {
+    it('hides invite section when canManageInvites is false', () => {
       render(
         <ModuleSettingsPanel
-          module={mockInstitutionModule}
+          module={mockModule}
           isOpen={true}
           onToggle={mockOnToggle}
           onSaved={mockOnSaved}
-          canManageInvites={true}
+          canManageInvites={false}
         />
       );
 
       expect(screen.queryByText(/Active invites/i)).not.toBeInTheDocument();
-    });
-
-    it('hides invite section when canManageInvites is false', () => {
-      // Note: The invite section visibility is actually controlled by module type (institutionId),
-      // not by canManageInvites. An institution module will hide the invite section.
-      render(
-        <ModuleSettingsPanel
-          module={mockInstitutionModule}
-          isOpen={true}
-          onToggle={mockOnToggle}
-          onSaved={mockOnSaved}
-          canManageInvites={true}
-        />
-      );
-
-      expect(screen.queryByText(/Expiry \(hours\)/i)).not.toBeInTheDocument();
     });
   });
 
@@ -877,19 +840,17 @@ describe('ModuleSettingsPanel', () => {
       expect(screen.getByDisplayValue('10')).toBeInTheDocument();
     });
 
-    it('hides invite form when canManageInvites is false and module is institutional', () => {
-      // Note: The component hides invites based on institutionId, not canManageInvites alone
+    it('hides invite form when canManageInvites is false', () => {
       render(
         <ModuleSettingsPanel
-          module={mockInstitutionModule}
+          module={mockModule}
           isOpen={true}
           onToggle={mockOnToggle}
           onSaved={mockOnSaved}
-          canManageInvites={true}
+          canManageInvites={false}
         />
       );
 
-      // Invite form should not be visible for institutional modules
       expect(screen.queryByDisplayValue('24')).not.toBeInTheDocument();
     });
   });
