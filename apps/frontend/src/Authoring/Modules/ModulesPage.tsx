@@ -99,12 +99,9 @@ export default function ModulesPage() {
                   {moduleSummary.description ?? 'No description provided.'}
                 </p>
                 <div className={styles.meta}>
-                  {moduleSummary ? (
-                    <span className={styles.metaItem}>
-                    </span>
-                  ) : (
-                    <span className={styles.metaItem}>No institution</span>
-                  )}
+                  <span className={styles.metaItem}>
+                    {moduleSummary.createdByName ?? 'Unknown author'}
+                  </span>
                 </div>
               </article>
             );

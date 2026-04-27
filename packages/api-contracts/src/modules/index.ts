@@ -11,6 +11,7 @@ export interface ModuleSummaryResponse {
   title: string;
   description?: string | null;
   createdByUserId?: number | null;
+  createdByName?: string | null;
   archivedAt?: string | null;
   userModuleLevel?: number;
   currentExp?: number;

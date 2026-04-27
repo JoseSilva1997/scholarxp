@@ -31,9 +31,17 @@ export class ModuleService {
 
   async findAll(user: AuthUser) {
     const filter = this.getModuleAccessFilter(user);
-    return this.prisma.module.findMany({
+    const modules = await this.prisma.module.findMany({
       where: this.withActiveModuleFilter(filter),
+      include: { createdBy: { select: { firstName: true, lastName: true } } },
     });
+
+    return modules.map(({ createdBy, ...module }) => ({
+      ...module,
+      createdByName: createdBy
+        ? `${createdBy.firstName} ${createdBy.lastName}`
+        : null,
+    }));
   }
 
   async findOne(id: number, user?: AuthUser) {

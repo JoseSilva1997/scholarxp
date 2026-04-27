@@ -1,8 +1,30 @@
 // Verifies achievement cards explain their unlock requirements without forcing the section to render all detail copy inline.
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import type { HTMLAttributes, ReactNode } from 'react';
 import type { StudentProfileResponse } from '@scholarxp/api-contracts';
 import AchievementsSection from '@/Account/Profile/components/StudentProfile/AchievementsSection';
+
+type MotionDivProps = HTMLAttributes<HTMLDivElement> & {
+  animate?: unknown;
+  exit?: unknown;
+  initial?: unknown;
+  transition?: unknown;
+};
+
+vi.mock('motion/react', () => ({
+  AnimatePresence: ({ children }: { children: ReactNode }) => <>{children}</>,
+  motion: {
+    div: ({ children, ...props }: MotionDivProps) => {
+      delete props.animate;
+      delete props.exit;
+      delete props.initial;
+      delete props.transition;
+
+      return <div {...props}>{children}</div>;
+    },
+  },
+}));
 
 const baseProfile: StudentProfileResponse = {
   accountLevel: 3,

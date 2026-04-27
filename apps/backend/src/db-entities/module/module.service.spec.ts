@@ -77,19 +77,24 @@ describe('ModuleService', () => {
     });
   });
 
-  it('findAll returns all for admin', async () => {
-    prisma.module.findMany.mockResolvedValue([{ id: 1 }] as any);
+  it('findAll returns all for admin with author name resolved', async () => {
+    prisma.module.findMany.mockResolvedValue([
+      { id: 1, createdBy: { firstName: 'Ada', lastName: 'Lovelace' } },
+    ] as any);
 
     const result = await service.findAll(admin as any);
 
-    expect(result).toEqual([{ id: 1 }]);
+    expect(result).toEqual([{ id: 1, createdByName: 'Ada Lovelace' }]);
     expect(prisma.module.findMany).toHaveBeenCalledWith({
       where: { archivedAt: null },
+      include: { createdBy: { select: { firstName: true, lastName: true } } },
     });
   });
 
-  it('findAll filters for student membership', async () => {
-    prisma.module.findMany.mockResolvedValue([{ id: 2 }] as any);
+  it('findAll filters for student membership and falls back when author is missing', async () => {
+    prisma.module.findMany.mockResolvedValue([
+      { id: 2, createdBy: null },
+    ] as any);
 
     const result = await service.findAll(student as any);
 
@@ -104,8 +109,9 @@ describe('ModuleService', () => {
           { archivedAt: null },
         ],
       },
+      include: { createdBy: { select: { firstName: true, lastName: true } } },
     });
-    expect(result).toEqual([{ id: 2 }]);
+    expect(result).toEqual([{ id: 2, createdByName: null }]);
   });
 
   it('updates module fields after confirming the module exists', async () => {
