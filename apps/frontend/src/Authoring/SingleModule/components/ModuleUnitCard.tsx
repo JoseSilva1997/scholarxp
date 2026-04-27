@@ -1,5 +1,5 @@
 // Displays a module unit with status, title, edit, and dropdown for question groups; keeps interactions local for now.
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { RiEditLine, RiCheckLine, RiCloseLine, RiArrowDownSLine } from "react-icons/ri";
 import { FaCheck } from "react-icons/fa6";
 import styles from '@/Authoring/SingleModule/components/ModuleUnitCard.module.css';
@@ -64,6 +64,7 @@ const VALID_TRANSITIONS: Record<ModuleUnitStatus, Set<ModuleUnitStatus>> = {
 export default function ModuleUnitCard({ unit, onChangeStatus, onUpdateTitle }: ModuleUnitCardProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
+  const statusDropdownRef = useRef<HTMLDivElement>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState(unit.title);
   const [isSavingTitle, setIsSavingTitle] = useState(false);
@@ -77,6 +78,17 @@ export default function ModuleUnitCard({ unit, onChangeStatus, onUpdateTitle }: 
       setEditedTitle(unit.title);
     }
   }, [unit.title, isEditingTitle]);
+
+  useEffect(() => {
+    if (!isStatusMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(e.target as Node)) {
+        setIsStatusMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isStatusMenuOpen]);
 
   const [showEditWarningModal, setShowEditWarningModal] = useState(false);
   const [pendingQuestionId, setPendingQuestionId] = useState<string | null>(null);
@@ -286,14 +298,7 @@ export default function ModuleUnitCard({ unit, onChangeStatus, onUpdateTitle }: 
                 Edit
               </button>
                             {/* Status dropdown — grouped with Edit so all controls are on the right */}
-              <div className={styles.statusDropdown}>
-                {isStatusMenuOpen && (
-                  <div
-                    className={styles.statusMenuBackdrop}
-                    onClick={() => setIsStatusMenuOpen(false)}
-                    aria-hidden="true"
-                  />
-                )}
+              <div className={styles.statusDropdown} ref={statusDropdownRef}>
                 <button
                   type="button"
                   className={styles.statusTrigger}

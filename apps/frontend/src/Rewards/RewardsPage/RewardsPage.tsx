@@ -12,9 +12,8 @@ export default function RewardsPage() {
       <div className={styles.header}>
         <h1 className={styles.title}>Rewards</h1>
         <p className={styles.subtitle}>
-          Your progression roadmap — every cosmetic you can unlock on the journey to level 100.
+          Your progression roadmap - every cosmetic you can unlock on the journey to level 100.
         </p>
-        <span className={styles.levelChip}>Level {level}</span>
       </div>
 
       <RewardsTimeline level={level} timelineItems={timelineItems} />

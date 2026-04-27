@@ -41,7 +41,7 @@ function AppLayout() {
   const { user, isLoading, logout, setUser } = useAuth();
   const { cosmetic } = useCosmetics();
   // Public landing at '/' needs full-width, no padding — its own sections manage layout.
-  const isLandingRoute = location.pathname === '/' && !user && !isLoading;
+  const isLandingRoute = location.pathname === '/';
   const shouldShowRoleSelector =
     !isAuthRoute && !isLoading && user?.isVerified && user.globalRole === 'pending';
   // Shell renders its own header; we skip the global one to avoid double bars.
@@ -88,7 +88,7 @@ function AppLayout() {
             <Route
               path="/login"
               element={
-                user && !isLoading ? (
+                isLoading ? null : user ? (
                   // If user hit login while unauthenticated, send them back to their intended page post-login.
                   <Navigate
                     to={
@@ -107,12 +107,12 @@ function AppLayout() {
             <Route path="/privacy" element={<Privacy />} />
             <Route
               path="/register"
-              element={user && !isLoading ? <Navigate to="/main" replace /> : <Register />}
+              element={isLoading ? null : user ? <Navigate to="/main" replace /> : <Register />}
             />
             <Route
               path="/"
               element={
-                user && !isLoading ? (
+                isLoading ? null : user ? (
                   // Signed-in users should land inside the shell so sidebar/navigation remains available.
                   <Navigate to="/main/landing" replace />
                 ) : (

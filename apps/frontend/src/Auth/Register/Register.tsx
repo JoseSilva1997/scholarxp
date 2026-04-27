@@ -179,7 +179,7 @@ export default function Register() {
               ) : null}
 
               <div className={styles.actions}>
-                <button className={styles.primaryBtn} type="submit" disabled={isSubmitting}>
+                <button className={styles.primaryBtn} type="submit" disabled={isSubmitting} onMouseDown={(e) => e.preventDefault()}>
                   {isSubmitting ? 'Creating account…' : 'Create account'}
                 </button>
                 <span className={styles.inlineHelper}>
