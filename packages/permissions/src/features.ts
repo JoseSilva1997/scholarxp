@@ -4,6 +4,7 @@ export const features = {
     selectOwnRole: 'users_select_own_role',
     updateOwnTimezone: 'users_update_own_timezone',
     updateOwnProfilePicture: 'users_update_own_profile_picture',
+    updateOwnName: 'users_update_own_name',
   },
   modules: {
     create: 'modules_create',

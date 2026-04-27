@@ -1,5 +1,5 @@
 // Profile hero banner: shared by student and tutor roles with role-specific visual additions.
-import { useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import type { AuthUser } from '@/shared/types/auth';
 import {
   PROFILE_PICTURE_ALLOWED_MIME_TYPES,
@@ -8,10 +8,19 @@ import {
   type ProfilePictureMimeType,
 } from '@scholarxp/api-contracts';
 import { canAccess, features } from '@scholarxp/permissions';
+import {
+  NAME_MAX_LENGTH,
+  NAME_REGEX,
+  NAME_REGEX_MESSAGE,
+} from '@scholarxp/constants';
 import { FaFire } from 'react-icons/fa6';
 import defaultAvatar from '@/assets/default-profile-pic.png';
 import { useAuth } from '@/context/AuthContext';
-import { removeProfilePicture, uploadProfilePicture } from '@/Account/api/users';
+import {
+  removeProfilePicture,
+  updateName,
+  uploadProfilePicture,
+} from '@/Account/api/users';
 import { cropImageToSquare } from '@/utils/cropImageToSquare';
 import { logError } from '@/utils/logger';
 import styles from '@/Account/Profile/components/HeroCard.module.css';
@@ -53,6 +62,24 @@ export default function HeroCard({
   const canEditPicture = canAccess(features.users.updateOwnProfilePicture, {
     role: user.globalRole,
   });
+  const canEditName = canAccess(features.users.updateOwnName, {
+    role: user.globalRole,
+  });
+
+  const [firstNameDraft, setFirstNameDraft] = useState(user.firstName);
+  const [lastNameDraft, setLastNameDraft] = useState(user.lastName);
+  const [isSavingName, setIsSavingName] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
+
+  // Reset drafts whenever the user exits edit mode or the canonical user changes,
+  // so re-entering edit shows the latest persisted name and discards unsaved input.
+  useEffect(() => {
+    if (!isEditingProfile) {
+      setFirstNameDraft(user.firstName);
+      setLastNameDraft(user.lastName);
+      setNameError(null);
+    }
+  }, [isEditingProfile, user.firstName, user.lastName]);
 
   const avatarSrc =
     user.profilePictureUrl && user.profilePictureUrl.startsWith('http')
@@ -87,6 +114,41 @@ export default function HeroCard({
       setPictureError('Failed to update profile picture. Please try again.');
     } finally {
       setIsMutating(false);
+    }
+  }
+
+  async function handleNameSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const firstName = firstNameDraft.trim();
+    const lastName = lastNameDraft.trim();
+
+    if (!firstName || !lastName) {
+      setNameError('First and last name are required.');
+      return;
+    }
+    if (firstName.length > NAME_MAX_LENGTH || lastName.length > NAME_MAX_LENGTH) {
+      setNameError(`Each name must be at most ${NAME_MAX_LENGTH} characters.`);
+      return;
+    }
+    if (!NAME_REGEX.test(firstName) || !NAME_REGEX.test(lastName)) {
+      setNameError(NAME_REGEX_MESSAGE);
+      return;
+    }
+    if (firstName === user.firstName && lastName === user.lastName) {
+      setNameError(null);
+      return;
+    }
+
+    setNameError(null);
+    setIsSavingName(true);
+    try {
+      const refreshed = await updateName(user.id, firstName, lastName);
+      setUser(refreshed);
+    } catch (err) {
+      logError(err, { source: 'HeroCard.updateName' });
+      setNameError('Failed to update name. Please try again.');
+    } finally {
+      setIsSavingName(false);
     }
   }
 
@@ -200,7 +262,44 @@ export default function HeroCard({
       </div>
 
       <div className={styles.info}>
-        <h1 className={styles.name}>{name}</h1>
+        {isEditingProfile && canEditName ? (
+          <form className={styles.nameForm} onSubmit={handleNameSubmit}>
+            <div className={styles.nameInputs}>
+              <input
+                type="text"
+                className={styles.nameInput}
+                aria-label="First name"
+                value={firstNameDraft}
+                onChange={(e) => setFirstNameDraft(e.target.value)}
+                maxLength={NAME_MAX_LENGTH}
+                disabled={isSavingName}
+                placeholder="First name"
+              />
+              <input
+                type="text"
+                className={styles.nameInput}
+                aria-label="Last name"
+                value={lastNameDraft}
+                onChange={(e) => setLastNameDraft(e.target.value)}
+                maxLength={NAME_MAX_LENGTH}
+                disabled={isSavingName}
+                placeholder="Last name"
+              />
+            </div>
+            <button
+              type="submit"
+              className={styles.saveNameButton}
+              disabled={isSavingName}
+            >
+              {isSavingName ? 'Saving...' : 'Save name'}
+            </button>
+            {nameError ? (
+              <p className={styles.nameError} role="alert">{nameError}</p>
+            ) : null}
+          </form>
+        ) : (
+          <h1 className={styles.name}>{name}</h1>
+        )}
 
         <div className={styles.metaRow}>
           <span className={`${styles.rolePill} ${isStudent ? styles.rolePillStudent : styles.rolePillTutor}`}>

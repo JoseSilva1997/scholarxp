@@ -177,6 +177,34 @@ describe('UsersService', () => {
     });
   });
 
+  describe('updateName', () => {
+    it('throws NotFoundException when user does not exist', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.updateName(baseUser.id, 'New', 'Name'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('persists the new first and last name', async () => {
+      prisma.user.findUnique.mockResolvedValue(baseUser);
+      prisma.user.update.mockResolvedValue({
+        ...baseUser,
+        firstName: 'New',
+        lastName: 'Name',
+      });
+
+      const result = await service.updateName(baseUser.id, 'New', 'Name');
+
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: baseUser.id },
+        data: { firstName: 'New', lastName: 'Name' },
+      });
+      expect(result.firstName).toBe('New');
+      expect(result.lastName).toBe('Name');
+    });
+  });
+
   describe('updateProfilePicture', () => {
     // PNG signature: 89 50 4E 47 0D 0A 1A 0A
     const pngBuffer = Buffer.from([

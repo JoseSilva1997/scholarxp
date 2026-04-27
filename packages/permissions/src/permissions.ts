@@ -31,6 +31,11 @@ export const permissionMatrix: PermissionMatrix = {
     'teacher',
     'student',
   ],
+  [features.users.updateOwnName]: [
+    'admin',
+    'teacher',
+    'student',
+  ],
 
   // ====MODULES====
   [features.modules.create]: ['admin', 'teacher'],

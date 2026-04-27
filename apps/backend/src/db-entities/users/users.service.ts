@@ -132,6 +132,14 @@ export class UsersService {
     });
   }
 
+  async updateName(id: number, firstName: string, lastName: string) {
+    await this.getUserOrThrow(id);
+    return this.prisma.user.update({
+      where: { id },
+      data: { firstName, lastName },
+    });
+  }
+
   async updateTimezone(id: number, timezone: string) {
     await this.getUserOrThrow(id);
     return this.prisma.user.update({

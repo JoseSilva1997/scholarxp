@@ -4,6 +4,8 @@ import {
   PROFILE_PICTURE_UPLOAD_FIELD,
   type AuthUser,
   type GlobalRole,
+  type UpdateNamePayload,
+  type UpdateNameResponse,
   type UpdateProfilePictureResponse,
   type UpdateTimezonePayload,
   type UpdateUserRolePayload,
@@ -12,6 +14,18 @@ import {
 export async function updateUserRole(userId: number, globalRole: Exclude<GlobalRole, 'pending'>) {
   const payload: UpdateUserRolePayload = { globalRole };
   return apiFetch<AuthUser>(`/users/${userId}/role`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateName(
+  userId: number,
+  firstName: string,
+  lastName: string,
+) {
+  const payload: UpdateNamePayload = { firstName, lastName };
+  return apiFetch<UpdateNameResponse>(`/users/${userId}/name`, {
     method: 'PATCH',
     body: JSON.stringify(payload),
   });

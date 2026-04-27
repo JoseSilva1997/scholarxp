@@ -16,6 +16,7 @@ import 'multer';
 import { UsersService } from './users.service';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 import { UpdateTimezoneDto } from './dto/update-timezone.dto';
+import { UpdateNameDto } from './dto/update-name.dto';
 import { AuthService } from '../../auth/auth.service';
 import { SessionAuthGuard } from '../../auth/guards/session-auth.guard';
 import { AuthorizationGuard } from '../../auth/guards/authorization.guard';
@@ -46,6 +47,21 @@ export class UsersController {
   ) {
     return this.usersService
       .updateRole(id, updateUserRoleDto.globalRole)
+      .then(() => this.authService.getUserById(id));
+  }
+
+  @Patch(':id/name')
+  @Authorize({
+    capability: features.users.updateOwnName,
+    scope: 'self',
+    selfUserIdParam: 'id',
+  })
+  updateName(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateNameDto,
+  ) {
+    return this.usersService
+      .updateName(id, dto.firstName, dto.lastName)
       .then(() => this.authService.getUserById(id));
   }
 
