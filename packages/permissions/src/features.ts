@@ -7,7 +7,6 @@ export const features = {
   },
   modules: {
     create: 'modules_create',
-    setInstitution: 'modules_set_institution',
     toggleStudentView: 'modules_toggle_student_view',
     settings: 'modules_settings',
     delete: 'modules_delete',

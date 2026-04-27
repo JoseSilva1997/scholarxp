@@ -56,7 +56,6 @@ export interface TutorActivityItem {
 export interface TutorProfileDetails {
   name: string;
   email: string | null;
-  institution: string | null;
   role: string;
   bio: string | null;
 }

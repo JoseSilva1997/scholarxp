@@ -2,141 +2,68 @@
 import { features, type FeatureKey } from './features';
 export { features, type FeatureKey } from './features';
 
-export type Role = 'pending' | 'admin' | 'institution_admin' | 'teacher' | 'student';
+export type Role = 'pending' | 'admin' | 'teacher' | 'student';
 
-export type RoleKey =
-  | 'pending'
-  | 'admin'
-  | 'institution_admin'
-  | 'teacher.independent'
-  | 'teacher.institutional'
-  | 'student.independent'
-  | 'student.institutional';
+export type RoleKey = Role;
 
 export type UserContext = {
   role: Role;
-  hasInstitutionMembership?: boolean;
 };
 
 export function toRoleKey(user: UserContext): RoleKey {
-  const hasInstitution = Boolean(user.hasInstitutionMembership);
-  if (user.role === 'teacher') {
-    return hasInstitution ? 'teacher.institutional' : 'teacher.independent';
-  }
-  if (user.role === 'student') {
-    return hasInstitution ? 'student.institutional' : 'student.independent';
-  }
-  return user.role as RoleKey;
+  return user.role;
 }
 
 export type PermissionMatrix = Record<FeatureKey, RoleKey[]>;
 
 // Single source of truth for feature permissions across the application.
 export const permissionMatrix: PermissionMatrix = {
-
   // ====USERS====
-  [features.users.selectOwnRole]: [
-    'pending'
-  ],
+  [features.users.selectOwnRole]: ['pending'],
   [features.users.updateOwnTimezone]: [
     'pending',
     'admin',
-    'institution_admin',
-    'teacher.independent',
-    'teacher.institutional',
-    'student.independent',
-    'student.institutional',
+    'teacher',
+    'student',
   ],
   [features.users.updateOwnProfilePicture]: [
     'admin',
-    'institution_admin',
-    'teacher.independent',
-    'teacher.institutional',
-    'student.independent',
-    'student.institutional',
+    'teacher',
+    'student',
   ],
 
   // ====MODULES====
-  [features.modules.create]: [
-    'admin', 
-    'institution_admin', 
-    'teacher.independent'
-  ],
-  [features.modules.setInstitution]: [
-    'admin', 
-    'institution_admin'
-  ],
+  [features.modules.create]: ['admin', 'teacher'],
   [features.modules.toggleStudentView]: [
     'admin',
-    'institution_admin',
-    'teacher.independent',
-    'teacher.institutional',
+    'teacher',
   ],
-  [features.modules.settings]: [
-    'admin',
-    'institution_admin',
-    'teacher.independent',
-    'teacher.institutional',
-  ],
-  [features.modules.delete]: [
-    'admin',
-    'institution_admin',
-    'teacher.independent',
-    'teacher.institutional',
-  ],
+  [features.modules.settings]: ['admin', 'teacher'],
+  [features.modules.delete]: ['admin', 'teacher'],
   [features.modules.manageContent]: [
     'admin',
-    'institution_admin',
-    'teacher.independent',
-    'teacher.institutional',
+    'teacher',
   ],
-  [features.modules.invitations]: [
-    'admin', 
-    'teacher.independent'
-  ],
-  [features.modules.invitationsRedemption]: [
-    'admin',
-    'student.independent'
-  ],
-  [features.modules.roster]: [
-    'admin',
-    'institution_admin',
-    'teacher.independent',
-    'teacher.institutional',
-  ],
+  [features.modules.invitations]: ['admin', 'teacher'],
+  [features.modules.invitationsRedemption]: ['admin', 'student'],
+  [features.modules.roster]: ['admin', 'teacher'],
 
   // ====NAVIGATION====
   [features.navigation.modules]: [
     'admin',
-    'institution_admin',
-    'teacher.independent',
-    'teacher.institutional',
-    'student.independent',
-    'student.institutional',
+    'teacher',
+    'student',
   ],
-  [features.navigation.quests]: [
-    'admin',
-    'student.independent',
-    'student.institutional',
-  ],
+  [features.navigation.quests]: ['admin', 'student'],
   [features.navigation.profile]: [
     'admin',
-    'institution_admin',
-    'teacher.independent',
-    'teacher.institutional',
-    'student.independent',
-    'student.institutional',
+    'teacher',
+    'student',
   ],
   // Rewards are avatar-driven cosmetics, and only students have avatars, so the feature is student-only
   // on both the sidebar entry and the equip mutation.
-  [features.navigation.rewards]: [
-    'student.independent',
-    'student.institutional',
-  ],
-  [features.rewards.equip]: [
-    'student.independent',
-    'student.institutional',
-  ],
+  [features.navigation.rewards]: ['student'],
+  [features.rewards.equip]: ['student'],
 };
 
 // Evaluates a feature against the provided user context; designed for both server and client use.
@@ -150,7 +77,9 @@ export function canAccess(
   return rules.includes(toRoleKey(user));
 }
 
-export function listCapabilities(user: UserContext | null | undefined): FeatureKey[] {
+export function listCapabilities(
+  user: UserContext | null | undefined,
+): FeatureKey[] {
   if (!user) return [];
 
   const roleKey = toRoleKey(user);

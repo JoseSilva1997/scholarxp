@@ -8,9 +8,6 @@ import type { DailyPracticeStatusSummary } from '../daily_practice';
 
 export interface ModuleSummaryResponse {
   id: number;
-  institutionId?: number | null;
-  ltiContextId?: string | null;
-  resourceLinkId?: string | null;
   title: string;
   description?: string | null;
   createdByUserId?: number | null;
@@ -104,9 +101,6 @@ export interface ModuleUnitResponse {
 }
 
 export interface CreateModulePayload {
-  institutionId?: number;
-  ltiContextId?: string;
-  resourceLinkId?: string;
   title: string;
   description?: string | null;
   createdByUserId?: number;

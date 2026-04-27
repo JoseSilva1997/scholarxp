@@ -94,7 +94,7 @@ export class TutorProfileService {
         email: dbUser?.email ?? user.email,
         role: 'Teacher',
         bio: null,
-      } as TutorProfileResponse['profile'],
+      },
     };
   }
 

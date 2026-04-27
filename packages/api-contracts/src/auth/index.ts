@@ -4,7 +4,7 @@ import type { FeatureKey } from '@scholarxp/permissions';
  * Auth domain contracts for ScholarXP
  */
 
-export type GlobalRole = 'pending' | 'admin' | 'institution_admin' | 'teacher' | 'student';
+export type GlobalRole = 'pending' | 'admin' | 'teacher' | 'student';
 
 // Account progression view derived from canonical totalExp.
 export interface AccountProgress {
@@ -29,10 +29,6 @@ export interface AuthUser {
   globalRole: GlobalRole;
   isVerified: boolean;
   timezone: string;
-  institutionIds?: number[];
-  hasInstitutionMembership?: boolean;
-  ltiIdentities?: { institutionId: number; ltiUserId: string }[];
-  hasLtiIdentity?: boolean;
   requiresEmailVerification?: boolean;
   avatar?: AccountProgress | null;
   capabilities?: FeatureKey[];
