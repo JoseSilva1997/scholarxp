@@ -1,5 +1,5 @@
 // Targeted tests for ModuleInviteService enforcing capability checks and CRUD behavior.
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 import { GlobalRole, InviteType, Prisma } from '@prisma/client';
 import { createHash } from 'crypto';
 import { ModuleInviteService } from './module-invite.service';
@@ -17,7 +17,6 @@ describe('ModuleInviteService', () => {
     profilePictureUrl: 'https://example.com/avatar.png',
     globalRole: GlobalRole.teacher,
     isVerified: true,
-    hasInstitutionMembership: false,
   };
   const student: any = {
     ...teacher,
@@ -36,11 +35,8 @@ describe('ModuleInviteService', () => {
   const module = {
     id: 1,
     title: 'Test Module',
-    institutionId: null,
     createdAt: new Date(),
     createdByUserId: 1,
-    ltiContextId: null,
-    resourceLinkId: null,
     description: null,
   };
 
@@ -74,17 +70,6 @@ describe('ModuleInviteService', () => {
     expect(result.invite.id).toBe(createResult.id);
     expect(result.token).toBeDefined();
     expect(result.url).toContain(result.token);
-  });
-
-  it('rejects create when module is institution linked', async () => {
-    prisma.module.findUnique.mockResolvedValue({
-      ...module,
-      institutionId: 9,
-    } as any);
-
-    await expect(service.create(module.id, {}, teacher)).rejects.toThrow(
-      ForbiddenException,
-    );
   });
 
   it('rejects create when module is archived', async () => {
@@ -245,24 +230,6 @@ describe('ModuleInviteService', () => {
       BadRequestException,
     );
     expect(prisma.moduleInvite.updateMany).not.toHaveBeenCalled();
-  });
-
-  it('rejects redeem when module is institution linked', async () => {
-    const token = 'inst-redeem';
-    const tokenHash = createHash('sha256').update(token).digest('hex');
-    prisma.moduleInvite.findFirst.mockResolvedValue({
-      id: 11,
-      moduleId: module.id,
-      tokenHash,
-      module: {
-        ...module,
-        institutionId: 100,
-      },
-    } as any);
-
-    await expect(service.redeem({ token }, student)).rejects.toThrow(
-      ForbiddenException,
-    );
   });
 
   it('rejects redeem when module is archived', async () => {

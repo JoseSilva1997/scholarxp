@@ -9,7 +9,6 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { GlobalRole } from '@prisma/client';
 import type { Request } from 'express';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { AuthUser } from '../../types/auth-user.type';
@@ -88,7 +87,6 @@ export class AuthorizationGuard implements CanActivate {
       where: { id: moduleId },
       select: {
         id: true,
-        institutionId: true,
         createdByUserId: true,
         archivedAt: true,
         userModules: {
@@ -105,21 +103,6 @@ export class AuthorizationGuard implements CanActivate {
       throw new NotFoundException('Module not found');
     }
 
-    let hasInstitutionMatch = false;
-    if (
-      user.globalRole === GlobalRole.institution_admin &&
-      module.institutionId !== null
-    ) {
-      const membership = await this.prisma.ltiIdentity.findFirst({
-        where: {
-          userId: user.id,
-          institutionId: module.institutionId,
-        },
-        select: { id: true },
-      });
-      hasInstitutionMatch = Boolean(membership);
-    }
-
     const membership = module.userModules[0];
 
     // membership.roleInModule comes from the DB as a plain string. Narrow it
@@ -131,11 +114,9 @@ export class AuthorizationGuard implements CanActivate {
 
     return {
       moduleId: module.id,
-      moduleInstitutionId: module.institutionId,
       moduleCreatedByUserId: module.createdByUserId,
       moduleArchivedAt: module.archivedAt,
       roleInModule,
-      hasInstitutionMatch,
     };
   }
 

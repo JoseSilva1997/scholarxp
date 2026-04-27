@@ -149,7 +149,7 @@ export class AuthService {
     });
     await this.safeSendVerification(email, token.token);
 
-    return this.toAuthUser(user, null, undefined, true);
+    return this.toAuthUser(user, null, true);
   }
 
   async validateLocal(email: string, password: string): Promise<AuthUser> {
@@ -178,8 +178,7 @@ export class AuthService {
     }
 
     const avatar = await this.loadAvatarIfStudent(user);
-    const membership = await this.loadInstitutionMembership(user.id);
-    return this.toAuthUser(user, avatar, membership);
+    return this.toAuthUser(user, avatar);
   }
 
   async verifyEmail(token: string): Promise<AuthUser> {
@@ -189,8 +188,7 @@ export class AuthService {
       data: { isVerified: true },
     });
     const avatar = await this.loadAvatarIfStudent(user);
-    const membership = await this.loadInstitutionMembership(user.id);
-    return this.toAuthUser(user, avatar, membership);
+    return this.toAuthUser(user, avatar);
   }
 
   async resendVerification(email: string) {
@@ -245,8 +243,7 @@ export class AuthService {
         },
       );
       const avatar = await this.loadAvatarIfStudent(refreshed);
-      const membership = await this.loadInstitutionMembership(refreshed.id);
-      return this.toAuthUser(refreshed, avatar, membership);
+      return this.toAuthUser(refreshed, avatar);
     }
 
     const existingUser = await this.prisma.user.findUnique({
@@ -261,8 +258,7 @@ export class AuthService {
     });
 
     const avatar = await this.loadAvatarIfStudent(user);
-    const membership = await this.loadInstitutionMembership(user.id);
-    return this.toAuthUser(user, avatar, membership);
+    return this.toAuthUser(user, avatar);
   }
 
   // --- User loading and projection ---
@@ -272,8 +268,7 @@ export class AuthService {
       throw new UnauthorizedException('Session invalid');
     }
     const avatar = await this.loadAvatarIfStudent(user);
-    const membership = await this.loadInstitutionMembership(user.id);
-    return this.toAuthUser(user, avatar, membership);
+    return this.toAuthUser(user, avatar);
   }
 
   attachCapabilities(
@@ -281,7 +276,6 @@ export class AuthService {
   ): AuthUser & { capabilities: FeatureKey[] } {
     const capabilities = listCapabilities({
       role: user.globalRole as PermissionRole,
-      hasInstitutionMembership: user.hasInstitutionMembership,
     });
     return { ...user, capabilities };
   }
@@ -485,24 +479,6 @@ export class AuthService {
     return updates;
   }
 
-  private async loadInstitutionMembership(userId: number) {
-    const ltiIdentities = await this.prisma.ltiIdentity.findMany({
-      where: { userId },
-      select: { institutionId: true, ltiUserId: true },
-    });
-
-    const institutionIds = Array.from(
-      new Set(ltiIdentities.map((identity) => identity.institutionId)),
-    );
-
-    return {
-      institutionIds,
-      hasInstitutionMembership: institutionIds.length > 0,
-      ltiIdentities,
-      hasLtiIdentity: ltiIdentities.length > 0,
-    };
-  }
-
   private async loadAvatarIfStudent(user: {
     id: number;
     globalRole: GlobalRole;
@@ -532,12 +508,6 @@ export class AuthService {
       totalExp: number;
       equippedCosmetics?: unknown;
     } | null,
-    membership?: {
-      institutionIds?: number[];
-      hasInstitutionMembership?: boolean;
-      ltiIdentities?: { institutionId: number; ltiUserId: string }[];
-      hasLtiIdentity?: boolean;
-    },
     requireVerification?: boolean,
   ): AuthUser {
     // Sanitize the persisted JSON blob against the user's current level so stale or tampered entries
@@ -569,10 +539,6 @@ export class AuthService {
       requiresEmailVerification:
         requireVerification || !(user.isVerified ?? false),
       avatar: mappedAvatar,
-      institutionIds: membership?.institutionIds ?? [],
-      hasInstitutionMembership: membership?.hasInstitutionMembership ?? false,
-      ltiIdentities: membership?.ltiIdentities ?? [],
-      hasLtiIdentity: membership?.hasLtiIdentity ?? false,
     } as AuthUser;
   }
 

@@ -8,18 +8,6 @@ import {
 import { CreateModulePayload } from '@scholarxp/api-contracts';
 
 export class CreateModuleDto implements CreateModulePayload {
-  @IsInt()
-  @IsOptional()
-  institutionId?: number;
-
-  @IsString()
-  @IsOptional()
-  ltiContextId?: string;
-
-  @IsString()
-  @IsOptional()
-  resourceLinkId?: string;
-
   @IsString()
   @IsNotEmpty()
   @MaxLength(60)

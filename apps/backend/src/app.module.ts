@@ -3,9 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PrismaModule } from './prisma/prisma.module';
 import { TestController } from './test/test.controller';
-import { InstitutionModule } from './db-entities/institution/institution.module';
 import { UsersModule } from './db-entities/users/users.module';
-import { LtiIdentityModule } from './db-entities/lti-identity/lti-identity.module';
 import { AuthIdentityModule } from './db-entities/auth-identity/auth-identity.module';
 import { AvatarModule } from './db-entities/avatar/avatar.module';
 import { ModuleModule } from './db-entities/module/module.module';
@@ -44,9 +42,7 @@ const appControllers =
     }),
     ScheduleModule.forRoot(),
     PrismaModule,
-    InstitutionModule,
     UsersModule,
-    LtiIdentityModule,
     AuthIdentityModule,
     AvatarModule,
     ModuleModule,

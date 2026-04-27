@@ -14,7 +14,6 @@ export class AuthorizationService {
     const { user, rule } = input;
     const allowedByCapability = canAccess(rule.capability, {
       role: user.globalRole,
-      hasInstitutionMembership: user.hasInstitutionMembership,
     });
     if (!allowedByCapability) {
       return false;
@@ -27,7 +26,7 @@ export class AuthorizationService {
     if (rule.scope === 'module') {
       return this.canAccessModuleScope(
         user.id,
-        user.globalRole,
+        user.globalRole as GlobalRole,
         input.moduleContext,
       );
     }
@@ -51,13 +50,6 @@ export class AuthorizationService {
 
     if (role === GlobalRole.admin) {
       return true;
-    }
-
-    if (role === GlobalRole.institution_admin) {
-      return (
-        moduleContext.moduleInstitutionId !== null &&
-        moduleContext.hasInstitutionMatch
-      );
     }
 
     if (role === GlobalRole.teacher) {

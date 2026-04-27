@@ -38,10 +38,6 @@ describe('AuthController', () => {
       progressPercent: 86.2,
       equippedCosmetics: {},
     },
-    institutionIds: [1],
-    hasInstitutionMembership: true,
-    ltiIdentities: [{ institutionId: 1, ltiUserId: 'lti-user-1' }],
-    hasLtiIdentity: true,
     timezone: 'America/New_York',
   };
 
@@ -217,10 +213,6 @@ describe('AuthController', () => {
         isVerified: false,
         requiresEmailVerification: true,
         avatar: null,
-        institutionIds: [],
-        hasInstitutionMembership: false,
-        ltiIdentities: [],
-        hasLtiIdentity: false,
         timezone: 'America/New_York',
       };
 

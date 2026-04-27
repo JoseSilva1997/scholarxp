@@ -75,12 +75,6 @@ export class TutorProfileService {
         firstName: true,
         lastName: true,
         email: true,
-        ltiIdentities: {
-          select: {
-            institution: { select: { name: true } },
-          },
-          take: 1,
-        },
       },
     });
 
@@ -98,10 +92,9 @@ export class TutorProfileService {
           ? `${dbUser.firstName} ${dbUser.lastName}`.trim()
           : user.firstName + ' ' + user.lastName,
         email: dbUser?.email ?? user.email,
-        institution: dbUser?.ltiIdentities?.[0]?.institution?.name ?? null,
         role: 'Teacher',
         bio: null,
-      },
+      } as TutorProfileResponse['profile'],
     };
   }
 

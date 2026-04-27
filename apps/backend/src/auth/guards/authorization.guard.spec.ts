@@ -22,7 +22,6 @@ describe('AuthorizationGuard', () => {
     module: { findUnique: jest.fn() },
     userModule: { findUnique: jest.fn() },
     moduleUnit: { findUnique: jest.fn() },
-    ltiIdentity: { findFirst: jest.fn() },
   } as unknown as PrismaService;
 
   const authorizationService = {
@@ -74,7 +73,6 @@ describe('AuthorizationGuard', () => {
           user: {
             id: 1,
             globalRole: GlobalRole.teacher,
-            hasInstitutionMembership: false,
           } as any,
         }),
       ),
@@ -93,7 +91,6 @@ describe('AuthorizationGuard', () => {
           user: {
             id: 1,
             globalRole: GlobalRole.teacher,
-            hasInstitutionMembership: false,
           } as any,
         }),
       ),
@@ -113,7 +110,6 @@ describe('AuthorizationGuard', () => {
           user: {
             id: 1,
             globalRole: GlobalRole.teacher,
-            hasInstitutionMembership: false,
           } as any,
           params: { moduleId: '77' },
         }),
@@ -128,7 +124,6 @@ describe('AuthorizationGuard', () => {
     } as AuthorizationRule);
     (prisma.module.findUnique as jest.Mock).mockResolvedValue({
       id: 77,
-      institutionId: null,
       createdByUserId: 1,
       archivedAt: new Date('2026-04-01T00:00:00.000Z'),
       userModules: [{ roleInModule: 'teacher' }],
@@ -140,7 +135,6 @@ describe('AuthorizationGuard', () => {
           user: {
             id: 1,
             globalRole: GlobalRole.teacher,
-            hasInstitutionMembership: false,
           } as any,
           params: { moduleId: '77' },
         }),
@@ -157,7 +151,6 @@ describe('AuthorizationGuard', () => {
     } as AuthorizationRule);
     (prisma.module.findUnique as jest.Mock).mockResolvedValue({
       id: 77,
-      institutionId: null,
       createdByUserId: 1,
       archivedAt: new Date('2026-04-01T00:00:00.000Z'),
       userModules: [{ roleInModule: 'teacher' }],
@@ -170,7 +163,6 @@ describe('AuthorizationGuard', () => {
           user: {
             id: 1,
             globalRole: GlobalRole.teacher,
-            hasInstitutionMembership: false,
           } as any,
           params: { moduleId: '77' },
         }),
@@ -189,7 +181,6 @@ describe('AuthorizationGuard', () => {
     });
     (prisma.module.findUnique as jest.Mock).mockResolvedValue({
       id: 55,
-      institutionId: null,
       createdByUserId: 1,
       archivedAt: null,
       userModules: [{ roleInModule: 'teacher' }],
@@ -202,7 +193,6 @@ describe('AuthorizationGuard', () => {
           user: {
             id: 1,
             globalRole: GlobalRole.teacher,
-            hasInstitutionMembership: false,
           } as any,
           params: { id: '9' },
         }),
@@ -217,7 +207,6 @@ describe('AuthorizationGuard', () => {
       where: { id: 55 },
       select: {
         id: true,
-        institutionId: true,
         createdByUserId: true,
         archivedAt: true,
         userModules: {
@@ -241,7 +230,6 @@ describe('AuthorizationGuard', () => {
           user: {
             id: 1,
             globalRole: GlobalRole.teacher,
-            hasInstitutionMembership: false,
           } as any,
           params: { id: 'abc' },
         }),
@@ -263,7 +251,6 @@ describe('AuthorizationGuard', () => {
           user: {
             id: 1,
             globalRole: GlobalRole.teacher,
-            hasInstitutionMembership: false,
           } as any,
           params: { id: '9' },
         }),
@@ -282,7 +269,6 @@ describe('AuthorizationGuard', () => {
     });
     (prisma.module.findUnique as jest.Mock).mockResolvedValue({
       id: 44,
-      institutionId: null,
       createdByUserId: 1,
       archivedAt: null,
       userModules: [{ roleInModule: 'teacher' }],
@@ -295,7 +281,6 @@ describe('AuthorizationGuard', () => {
           user: {
             id: 1,
             globalRole: GlobalRole.teacher,
-            hasInstitutionMembership: false,
           } as any,
           params: { id: '12' },
         }),
@@ -310,7 +295,6 @@ describe('AuthorizationGuard', () => {
       where: { id: 44 },
       select: {
         id: true,
-        institutionId: true,
         createdByUserId: true,
         archivedAt: true,
         userModules: {
@@ -334,7 +318,6 @@ describe('AuthorizationGuard', () => {
           user: {
             id: 1,
             globalRole: GlobalRole.teacher,
-            hasInstitutionMembership: false,
           } as any,
           params: { id: 'abc' },
         }),
@@ -356,7 +339,6 @@ describe('AuthorizationGuard', () => {
           user: {
             id: 1,
             globalRole: GlobalRole.teacher,
-            hasInstitutionMembership: false,
           } as any,
           params: { id: '12' },
         }),
@@ -378,7 +360,6 @@ describe('AuthorizationGuard', () => {
           user: {
             id: 1,
             globalRole: GlobalRole.pending,
-            hasInstitutionMembership: false,
           } as any,
           params: { id: '1' },
         }),
@@ -405,7 +386,6 @@ describe('AuthorizationGuard', () => {
           user: {
             id: 1,
             globalRole: GlobalRole.pending,
-            hasInstitutionMembership: false,
           } as any,
           params: { id: 'not-a-number' },
         }),

@@ -129,7 +129,7 @@ export class ModuleInviteService {
     };
   }
 
-  // Finds the invite by token hash and validates it's active and for a non-institution module.
+  // Finds the invite by token hash and validates it is still active for module-based enrollment.
   private async findAndValidateInvite(tokenHash: string) {
     const invite = await this.prisma.moduleInvite.findFirst({
       where: { tokenHash },
@@ -140,11 +140,6 @@ export class ModuleInviteService {
       throw new NotFoundException('Invite not found or expired');
     }
 
-    if (invite.module.institutionId !== null) {
-      throw new ForbiddenException(
-        'Invites are only available for non-institution modules.',
-      );
-    }
     if (invite.module.archivedAt) {
       throw new NotFoundException('Invite not found or expired');
     }
@@ -237,11 +232,6 @@ export class ModuleInviteService {
     });
     if (!module) {
       throw new NotFoundException(`Module ${moduleId} not found`);
-    }
-    if (module.institutionId !== null) {
-      throw new ForbiddenException(
-        'Invites are only available for non-institution modules.',
-      );
     }
     if (module.archivedAt) {
       throw new NotFoundException(`Module ${moduleId} not found`);

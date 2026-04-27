@@ -21,11 +21,9 @@ export type AuthorizationRule = {
 // Data about a module that policies need to evaluate permissions. Only includes necessary fields.
 export type ModuleAuthorizationContext = {
   moduleId: number;
-  moduleInstitutionId: number | null;
   moduleCreatedByUserId: number | null;
   moduleArchivedAt: Date | null;
   roleInModule: 'student' | 'teacher' | null;
-  hasInstitutionMatch: boolean;
 };
 
 // The shape of data passed into authorization evaluators so guards orchestrate data gathering,

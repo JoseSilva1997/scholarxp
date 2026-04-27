@@ -566,7 +566,5 @@ async function clearDatabase(prisma: PrismaService) {
   await prisma.userPassword.deleteMany();
   await prisma.authIdentity.deleteMany();
   await prisma.emailVerificationToken.deleteMany();
-  await prisma.ltiIdentity.deleteMany();
   await prisma.user.deleteMany();
-  await prisma.institution.deleteMany();
 }
