@@ -159,6 +159,36 @@
   font-size: 0.875rem;
 }
 
+/* Inline action button used for destructive row actions like removing a student. */
+.rowActionButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.rowActionButton:hover:not(:disabled) {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.rowActionButton:focus-visible {
+  outline: 2px solid var(--color-danger);
+  outline-offset: 2px;
+}
+
+.rowActionButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Skeleton rows */
 .skeletonRow td {
   padding: 12px;

@@ -52,6 +52,7 @@ export const permissionMatrix: PermissionMatrix = {
   [features.modules.invitations]: ['admin', 'teacher'],
   [features.modules.invitationsRedemption]: ['admin', 'student'],
   [features.modules.roster]: ['admin', 'teacher'],
+  [features.modules.removeStudent]: ['admin', 'teacher'],
 
   // ====NAVIGATION====
   [features.navigation.modules]: [

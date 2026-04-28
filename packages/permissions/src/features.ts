@@ -15,6 +15,7 @@ export const features = {
     invitationsRedemption: 'modules_invitations_redemption',
     manageContent: 'modules_manage_content',
     roster: 'modules_roster',
+    removeStudent: 'modules_remove_student',
   },
   navigation: {
     modules: 'navigation_modules',

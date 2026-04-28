@@ -18,6 +18,7 @@ import {
   useRosterLessonsQuery,
   useRosterStudentDetailQuery,
   useRosterLessonDrilldownQuery,
+  useRemoveRosterStudentMutation,
 } from '@/Authoring/ModuleRoster/queries/useRosterQueries';
 import {
   getDisplayErrorMessage,
@@ -88,6 +89,15 @@ type UseModuleRosterPageStateResult = {
   lessonDrilldown: ReturnType<typeof useRosterLessonDrilldownQuery>['data'] | undefined;
   isLessonDrilldownLoading: boolean;
   lessonDrilldownError: string | null;
+
+  // Remove-student flow
+  canRemoveStudents: boolean;
+  studentPendingRemoval: RosterStudentRow | null;
+  requestRemoveStudent: (student: RosterStudentRow) => void;
+  cancelRemoveStudent: () => void;
+  confirmRemoveStudent: () => void;
+  isRemovingStudent: boolean;
+  removeStudentError: string | null;
 };
 
 export function useModuleRosterPageState({
@@ -102,6 +112,10 @@ export function useModuleRosterPageState({
 
   const canViewRoster = useMemo(
     () => canUserAccess(features.modules.roster, user),
+    [user],
+  );
+  const canRemoveStudents = useMemo(
+    () => canUserAccess(features.modules.removeStudent, user),
     [user],
   );
 
@@ -123,6 +137,12 @@ export function useModuleRosterPageState({
 
   // Lesson drill-down
   const [selectedLessonId, setSelectedLessonId] = useState<number | null>(null);
+
+  // Remove-student flow — pending row drives the confirmation modal so cancel can clear local error state.
+  const [studentPendingRemoval, setStudentPendingRemoval] =
+    useState<RosterStudentRow | null>(null);
+  const [removeStudentError, setRemoveStudentError] = useState<string | null>(null);
+  const removeStudentMutation = useRemoveRosterStudentMutation(parsedId);
 
   // Queries
   const summaryQuery = useRosterSummaryQuery(parsedId);
@@ -217,6 +237,45 @@ export function useModuleRosterPageState({
     setSelectedStudentId(null);
   }, []);
 
+  const requestRemoveStudent = useCallback((student: RosterStudentRow) => {
+    setStudentPendingRemoval(student);
+    setRemoveStudentError(null);
+  }, []);
+
+  const cancelRemoveStudent = useCallback(() => {
+    if (removeStudentMutation.isPending) return;
+    setStudentPendingRemoval(null);
+    setRemoveStudentError(null);
+  }, [removeStudentMutation.isPending]);
+
+  const confirmRemoveStudent = useCallback(() => {
+    if (!studentPendingRemoval) return;
+    const studentId = studentPendingRemoval.studentId;
+    setRemoveStudentError(null);
+    removeStudentMutation.mutate(studentId, {
+      onSuccess: () => {
+        // Close drill-down if the removed student was being inspected so stale detail data doesn't linger.
+        setSelectedStudentId((prev) => (prev === studentId ? null : prev));
+        setStudentPendingRemoval(null);
+      },
+      onError: (error: unknown) => {
+        if (shouldLogApiError(error)) {
+          logError(error, {
+            feature: 'roster',
+            action: 'remove-student',
+            moduleId: parsedId,
+            studentId,
+          });
+        }
+        setRemoveStudentError(
+          getDisplayErrorMessage(error, {
+            fallbackMessage: 'Could not remove the student. Please try again.',
+          }),
+        );
+      },
+    });
+  }, [studentPendingRemoval, removeStudentMutation, parsedId]);
+
   const selectLesson = useCallback((lessonId: number | null) => {
     setSelectedLessonId((prev) => {
       if (lessonId === null) return null;
@@ -303,5 +362,13 @@ export function useModuleRosterPageState({
           fallbackMessage: 'Could not load lesson details.',
         })
       : null,
+
+    canRemoveStudents,
+    studentPendingRemoval,
+    requestRemoveStudent,
+    cancelRemoveStudent,
+    confirmRemoveStudent,
+    isRemovingStudent: removeStudentMutation.isPending,
+    removeStudentError,
   };
 }

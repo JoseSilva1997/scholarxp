@@ -1,4 +1,5 @@
 // Students tab: primary roster table showing per-student enrollment and progress metrics.
+import { FiTrash2 } from 'react-icons/fi';
 import type {
   RosterStudentRow,
   RosterStudentFilter,
@@ -44,6 +45,8 @@ type StudentsTabProps = {
   onSearchChange: (value: string) => void;
   selectedStudentId: number | null;
   onSelectStudent: (studentId: number) => void;
+  canRemoveStudents: boolean;
+  onRequestRemoveStudent: (student: RosterStudentRow) => void;
 };
 
 function formatDate(iso: string | null): string {
@@ -55,12 +58,12 @@ function formatDate(iso: string | null): string {
   });
 }
 
-function SkeletonRows() {
+function SkeletonRows({ columnCount }: { columnCount: number }) {
   return (
     <>
       {Array.from({ length: 5 }, (_, i) => (
         <tr key={i} className={styles.skeletonRow} aria-hidden="true">
-          {Array.from({ length: 7 }, (_, j) => (
+          {Array.from({ length: columnCount }, (_, j) => (
             <td key={j}>
               <div className={styles.skeletonCell} />
             </td>
@@ -85,7 +88,10 @@ export default function StudentsTab({
   onSearchChange,
   selectedStudentId,
   onSelectStudent,
+  canRemoveStudents,
+  onRequestRemoveStudent,
 }: StudentsTabProps) {
+  const columnCount = canRemoveStudents ? 8 : 7;
   return (
     <div className={styles.tabContent}>
       <RosterTableToolbar
@@ -116,14 +122,17 @@ export default function StudentsTab({
                 <th className={styles.th}>Mastery</th>
                 <th className={styles.th}>Last DP Completed</th>
                 <th className={styles.th}>Last Activity</th>
+                {canRemoveStudents ? (
+                  <th className={styles.th} aria-label="Actions" />
+                ) : null}
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <SkeletonRows />
+                <SkeletonRows columnCount={columnCount} />
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className={styles.emptyCell}>
+                  <td colSpan={columnCount} className={styles.emptyCell}>
                     No students match the current filter.
                   </td>
                 </tr>
@@ -168,6 +177,23 @@ export default function StudentsTab({
                     <td className={styles.td}>{Math.round(student.averageMastery)}%</td>
                     <td className={styles.td}>{formatDate(student.lastDailyPracticeCompletedAt)}</td>
                     <td className={styles.td}>{formatDate(student.lastActivityAt)}</td>
+                    {canRemoveStudents ? (
+                      <td className={styles.td}>
+                        <button
+                          type="button"
+                          className={styles.rowActionButton}
+                          aria-label={`Remove ${student.fullName} from module`}
+                          title="Remove from module"
+                          onClick={(e) => {
+                            // Stop propagation so the row click handler does not also toggle the drill-down.
+                            e.stopPropagation();
+                            onRequestRemoveStudent(student);
+                          }}
+                        >
+                          <FiTrash2 aria-hidden />
+                        </button>
+                      </td>
+                    ) : null}
                   </tr>
                 ))
               )}

@@ -55,6 +55,7 @@ export const queryKeys = {
     equipCosmetic: ['rewards', 'equip-cosmetic'] as const,
   },
   roster: {
+    all: ['roster'] as const,
     summary: (moduleId: number) => ['roster', 'summary', moduleId] as const,
     students: (moduleId: number) => ['roster', 'students', moduleId] as const,
     lessons: (moduleId: number) => ['roster', 'lessons', moduleId] as const,

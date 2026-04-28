@@ -1,6 +1,7 @@
 // Coordinates focused roster analytics services so controllers depend on one stable backend entrypoint.
 import { Injectable } from '@nestjs/common';
 import type {
+  RemoveRosterStudentResponse,
   RosterLessonsQuery,
   RosterLessonsResponse,
   RosterStudentDetailResponse,
@@ -44,6 +45,18 @@ export class RosterService {
     studentId: number,
   ): Promise<RosterStudentDetailResponse> {
     return this.studentAnalytics.getStudentDetail(moduleId, studentId);
+  }
+
+  async removeStudent(
+    moduleId: number,
+    studentId: number,
+    requesterUserId: number,
+  ): Promise<RemoveRosterStudentResponse> {
+    return this.studentAnalytics.removeStudent(
+      moduleId,
+      studentId,
+      requesterUserId,
+    );
   }
 
   async getLessonDrilldown(

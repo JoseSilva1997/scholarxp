@@ -32,6 +32,8 @@ type RosterDetailsPanelProps = {
   onStudentSortDirectionChange: (d: SortDirection) => void;
   studentSearch: string;
   onStudentSearchChange: (v: string) => void;
+  canRemoveStudents: boolean;
+  onRequestRemoveStudent: (student: RosterStudentRow) => void;
 
   // Lessons
   lessonRows: RosterLessonRow[];
@@ -76,6 +78,8 @@ export default function RosterDetailsPanel({
   onStudentSortDirectionChange,
   studentSearch,
   onStudentSearchChange,
+  canRemoveStudents,
+  onRequestRemoveStudent,
   lessonRows,
   isLessonsLoading,
   lessonsError,
@@ -134,6 +138,8 @@ export default function RosterDetailsPanel({
             onSearchChange={onStudentSearchChange}
             selectedStudentId={selectedStudentId}
             onSelectStudent={onSelectStudent}
+            canRemoveStudents={canRemoveStudents}
+            onRequestRemoveStudent={onRequestRemoveStudent}
           />
         )}
         {activeTab === 'lessons' && (

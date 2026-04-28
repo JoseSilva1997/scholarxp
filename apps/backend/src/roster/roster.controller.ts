@@ -1,9 +1,19 @@
 // Exposes module-scoped roster endpoints for tutors; keeps request handling thin and delegates all aggregation to RosterService.
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import type { Request } from 'express';
 import { features } from '@scholarxp/permissions';
 import { Authorize } from '../auth/decorators/authorize.decorator';
 import { AuthorizationGuard } from '../auth/guards/authorization.guard';
 import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
+import type { AuthUser } from '../types/auth-user.type';
 import {
   RosterLessonParamsDto,
   RosterModuleParamsDto,
@@ -50,6 +60,20 @@ export class RosterController {
     return this.rosterService.getStudentDetail(
       params.moduleId,
       params.studentId,
+    );
+  }
+
+  @Delete('students/:studentId')
+  @Authorize({ capability: features.modules.removeStudent, scope: 'module' })
+  removeStudent(
+    @Param() params: RosterStudentParamsDto,
+    @Req() req: Request,
+  ) {
+    const requester = req.user as AuthUser;
+    return this.rosterService.removeStudent(
+      params.moduleId,
+      params.studentId,
+      requester.id,
     );
   }
 

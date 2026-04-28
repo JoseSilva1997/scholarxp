@@ -1,8 +1,10 @@
 // Query hooks for module-scoped roster data: summary cards, student/lesson lists, and student drill-down.
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   RosterStudentsQuery,
   RosterLessonsQuery,
+  RosterStudentsResponse,
+  RosterSummaryResponse,
 } from '@scholarxp/api-contracts';
 import {
   getRosterSummary,
@@ -10,6 +12,7 @@ import {
   getRosterLessons,
   getRosterStudentDetail,
   getLessonDrilldown,
+  removeRosterStudent,
 } from '@/Authoring/ModuleRoster/api/roster';
 import { queryKeys } from '@/shared/hooks/query-keys';
 
@@ -65,6 +68,88 @@ export function useRosterStudentDetailQuery(
     // Only fetch when both ids are present — prevents premature requests before drill-down selection.
     enabled: moduleId !== null && studentId !== null,
     staleTime: 30_000,
+  });
+}
+
+// Optimistic snapshot used to roll back student/summary caches if the delete request fails.
+type RemoveStudentMutationContext = {
+  studentSnapshots: Array<[readonly unknown[], RosterStudentsResponse | undefined]>;
+  summarySnapshot: RosterSummaryResponse | undefined;
+};
+
+// Optimistic update: drop the row from every cached student-list variant (filter/sort permutations)
+// and decrement the summary count immediately so the UI reflects the action without waiting for refetch.
+// Lesson coverage still requires a server roundtrip — invalidated in onSettled.
+export function useRemoveRosterStudentMutation(moduleId: number | null) {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    Awaited<ReturnType<typeof removeRosterStudent>>,
+    unknown,
+    number,
+    RemoveStudentMutationContext
+  >({
+    mutationFn: (studentId: number) => {
+      if (moduleId === null) {
+        throw new Error('Missing module id for student removal.');
+      }
+      return removeRosterStudent(moduleId, studentId);
+    },
+    onMutate: async (studentId) => {
+      if (moduleId === null) {
+        return { studentSnapshots: [], summarySnapshot: undefined };
+      }
+
+      const studentsKey = queryKeys.roster.students(moduleId);
+      const summaryKey = queryKeys.roster.summary(moduleId);
+
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: studentsKey }),
+        queryClient.cancelQueries({ queryKey: summaryKey }),
+      ]);
+
+      const studentSnapshots = queryClient.getQueriesData<RosterStudentsResponse>({
+        queryKey: studentsKey,
+      });
+      const summarySnapshot = queryClient.getQueryData<RosterSummaryResponse>(summaryKey);
+
+      queryClient.setQueriesData<RosterStudentsResponse>(
+        { queryKey: studentsKey },
+        (old) => {
+          if (!old) return old;
+          return { ...old, rows: old.rows.filter((row) => row.studentId !== studentId) };
+        },
+      );
+
+      if (summarySnapshot) {
+        queryClient.setQueryData<RosterSummaryResponse>(summaryKey, {
+          ...summarySnapshot,
+          studentsEnrolled: Math.max(0, summarySnapshot.studentsEnrolled - 1),
+        });
+      }
+
+      return { studentSnapshots, summarySnapshot };
+    },
+    onError: (_error, _studentId, context) => {
+      if (moduleId === null || !context) return;
+      for (const [key, data] of context.studentSnapshots) {
+        queryClient.setQueryData(key, data);
+      }
+      if (context.summarySnapshot) {
+        queryClient.setQueryData(
+          queryKeys.roster.summary(moduleId),
+          context.summarySnapshot,
+        );
+      }
+    },
+    onSettled: async () => {
+      if (moduleId === null) return;
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.roster.summary(moduleId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.roster.students(moduleId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.roster.lessons(moduleId) }),
+      ]);
+    },
   });
 }
 

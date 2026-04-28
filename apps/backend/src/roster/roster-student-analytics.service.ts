@@ -1,7 +1,12 @@
 // Groups student-centric roster aggregation so roster list and detail views share one source of truth.
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import type {
   DailyPracticeStatus,
+  RemoveRosterStudentResponse,
   RosterStudentDetailResponse,
   RosterStudentRow,
   RosterStudentsQuery,
@@ -225,6 +230,31 @@ export class RosterStudentAnalyticsService {
       lessonProgress,
       recentPerformance: this.computeRecentPerformance(recentAttempts),
     };
+  }
+
+  // Hard-deletes the membership row; cascades remove derived state. Self-removal is blocked because
+  // staff with roster permissions should not be able to silently revoke their own access here.
+  async removeStudent(
+    moduleId: number,
+    studentId: number,
+    requesterUserId: number,
+  ): Promise<RemoveRosterStudentResponse> {
+    if (studentId === requesterUserId) {
+      throw new BadRequestException('You cannot remove yourself from the module.');
+    }
+
+    const enrollment = await this.prisma.userModule.findUnique({
+      where: { moduleId_userId: { moduleId, userId: studentId } },
+      select: { id: true, roleInModule: true },
+    });
+
+    if (!enrollment || enrollment.roleInModule !== 'student') {
+      throw new NotFoundException('Student not found in this module.');
+    }
+
+    await this.prisma.userModule.delete({ where: { id: enrollment.id } });
+
+    return { removedStudentId: studentId };
   }
 
   private async getLiveLessonIds(moduleId: number): Promise<number[]> {

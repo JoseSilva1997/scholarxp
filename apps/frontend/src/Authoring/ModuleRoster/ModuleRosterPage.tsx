@@ -4,6 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import MainSection from '@/MainApp/MainSection/MainSection';
 import RosterSummaryCards from '@/Authoring/ModuleRoster/components/RosterSummaryCards';
 import RosterDetailsPanel from '@/Authoring/ModuleRoster/components/RosterDetailsPanel';
+import ConfirmRemoveStudentModal from '@/Authoring/ModuleRoster/components/ConfirmRemoveStudentModal';
 import { useModuleRosterPageState } from '@/Authoring/ModuleRoster/page-state/useModuleRosterPageState';
 import styles from '@/Authoring/ModuleRoster/ModuleRosterPage.module.css';
 
@@ -76,6 +77,8 @@ export default function ModuleRosterPage() {
             onStudentSortDirectionChange={state.setStudentSortDirection}
             studentSearch={state.studentSearch}
             onStudentSearchChange={state.setStudentSearch}
+            canRemoveStudents={state.canRemoveStudents}
+            onRequestRemoveStudent={state.requestRemoveStudent}
             // Lessons
             lessonRows={state.lessonRows}
             isLessonsLoading={state.isLessonsLoading}
@@ -97,6 +100,15 @@ export default function ModuleRosterPage() {
             studentDetail={state.studentDetail}
             isStudentDetailLoading={state.isStudentDetailLoading}
             studentDetailError={state.studentDetailError}
+          />
+
+          <ConfirmRemoveStudentModal
+            isOpen={state.studentPendingRemoval !== null}
+            studentName={state.studentPendingRemoval?.fullName ?? ''}
+            isSubmitting={state.isRemovingStudent}
+            errorMessage={state.removeStudentError}
+            onConfirm={state.confirmRemoveStudent}
+            onCancel={state.cancelRemoveStudent}
           />
         </>
       )}
