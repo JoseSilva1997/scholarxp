@@ -19,6 +19,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
+    "test:cov:domains": "jest --coverage && node scripts/coverage-domains.mjs",
+    "coverage:domains": "node scripts/coverage-domains.mjs",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "NODE_ENV=test E2E_TEST_RUN=true jest --config ./test/jest-e2e.json",
     "test:e2e:reset": "pnpm run reset:test && pnpm run test:e2e",
@@ -113,7 +115,11 @@
       "^.+\\.(t|j)s$": "ts-jest"
     },
     "collectCoverageFrom": [
-      "**/*.(t|j)s"
+      "**/*.(t|j)s",
+      "!**/*.d.ts",
+      "!**/*.test-helpers.ts",
+      "!test/**",
+      "!scripts/**"
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",
