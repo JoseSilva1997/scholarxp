@@ -7,6 +7,8 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { AuthenticatedGuard } from './guards/authenticated.guard';
 import type { AuthUser } from '../types/auth-user.type';
 import type { Request, Response } from 'express';
@@ -55,6 +57,8 @@ describe('AuthController', () => {
       loginUser: jest.fn(),
       verifyEmail: jest.fn(),
       resendVerification: jest.fn(),
+      requestPasswordReset: jest.fn(),
+      resetPassword: jest.fn(),
       logout: jest.fn(),
       handleGoogleCallback: jest.fn(),
     };
@@ -357,6 +361,64 @@ describe('AuthController', () => {
       await expect(
         controller.resendVerification(resendDto, mockReq, mockRes),
       ).rejects.toThrow('User not found');
+    });
+  });
+
+  describe('forgotPassword', () => {
+    it('delegates to AuthService and refreshes the CSRF header', async () => {
+      const dto = { email: 'john@example.com' } as ForgotPasswordDto;
+      const mockReq = {} as Request;
+      const mockRes = {} as Response;
+      authService.requestPasswordReset.mockResolvedValue({ sent: true });
+
+      const result = await controller.forgotPassword(dto, mockReq, mockRes);
+
+      expect(authService.requestPasswordReset).toHaveBeenCalledWith(dto.email);
+      expect(authService.attachCsrfHeader).toHaveBeenCalledWith(
+        mockReq,
+        mockRes,
+      );
+      expect(result).toEqual({ sent: true });
+    });
+  });
+
+  describe('resetPassword', () => {
+    it('delegates to AuthService.resetPassword', async () => {
+      const dto = {
+        token: '123456',
+        password: 'NewPassword123!',
+      } as ResetPasswordDto;
+      const mockReq = {} as Request;
+      const mockRes = {} as Response;
+      authService.resetPassword.mockResolvedValue({ ok: true });
+
+      const result = await controller.resetPassword(dto, mockReq, mockRes);
+
+      expect(authService.resetPassword).toHaveBeenCalledWith(
+        dto.token,
+        dto.password,
+      );
+      expect(authService.attachCsrfHeader).toHaveBeenCalledWith(
+        mockReq,
+        mockRes,
+      );
+      expect(result).toEqual({ ok: true });
+    });
+
+    it('propagates BadRequestException for an expired or wrong-reason token', async () => {
+      const dto = {
+        token: '999999',
+        password: 'NewPassword123!',
+      } as ResetPasswordDto;
+      const mockReq = {} as Request;
+      const mockRes = {} as Response;
+      authService.resetPassword.mockRejectedValue(
+        new Error('Invalid or expired verification code.'),
+      );
+
+      await expect(
+        controller.resetPassword(dto, mockReq, mockRes),
+      ).rejects.toThrow('Invalid or expired verification code.');
     });
   });
 

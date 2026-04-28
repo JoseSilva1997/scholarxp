@@ -8,6 +8,8 @@ import Landing from '@/Public/Landing/Landing';
 import Login from '@/Auth/Login/Login';
 import Register from '@/Auth/Register/Register';
 import VerifyEmail from '@/Auth/Register/VerifyEmail';
+import ForgotPassword from '@/Auth/ForgotPassword/ForgotPassword';
+import ResetPassword from '@/Auth/ForgotPassword/ResetPassword';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { CosmeticThemeSync } from '@/context/CosmeticThemeSync';
 import { CosmeticStyleSync } from '@/context/CosmeticStyleSync';
@@ -35,7 +37,9 @@ function AppLayout() {
   const isAuthRoute =
     location.pathname === '/login' ||
     location.pathname === '/register' ||
-    location.pathname === '/verify-email';
+    location.pathname === '/verify-email' ||
+    location.pathname === '/forgot-password' ||
+    location.pathname === '/reset-password';
   const isShellRoute = location.pathname.startsWith('/main');
 
   const { user, isLoading, logout, setUser } = useAuth();
@@ -121,6 +125,8 @@ function AppLayout() {
               }
             />
             <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route element={<ProtectedRoute isLoading={isLoading} isAuthed={!!user} />}>
               {/* Invite redemption sits outside the shell so it can stay focused and load without sidebar chrome. */}
               <Route path="/invite" element={<AcceptInvite />} />

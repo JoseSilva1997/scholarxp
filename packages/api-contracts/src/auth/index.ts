@@ -72,6 +72,26 @@ export interface ResendVerificationResponse {
   reason?: 'already_verified';
 }
 
+export interface ForgotPasswordPayload {
+  email: string;
+}
+
+// `sent: true` covers both "we emailed a link" and "we hid the absence of an account" so the
+// client cannot tell the two apart. `sent: false` with `reason: 'no_password'` is returned only
+// for OAuth-only accounts so the user gets a clear explanation that they need Google sign-in.
+export type ForgotPasswordResponse =
+  | { sent: true }
+  | { sent: false; reason: 'no_password' };
+
+export interface ResetPasswordPayload {
+  token: string;
+  password: string;
+}
+
+export interface ResetPasswordResponse {
+  ok: true;
+}
+
 export interface UpdateUserRolePayload {
   globalRole: Exclude<GlobalRole, 'pending'>;
 }

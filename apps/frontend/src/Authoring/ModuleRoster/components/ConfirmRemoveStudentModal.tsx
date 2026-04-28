@@ -31,8 +31,8 @@ export default function ConfirmRemoveStudentModal({
           <div>
             <h2 className={styles.title}>Remove {studentName} from this module?</h2>
             <p className={styles.body}>
-              This permanently deletes their enrollment, XP, level, and progress for this module.
-              They will lose access immediately and this cannot be undone.
+              This will permanently delete their module progress and they will lose
+              access to the module. This action cannot be undone.
             </p>
           </div>
         </div>

@@ -5,7 +5,8 @@ import { useLoginPageState } from '@/Auth/Login/page-state/useLoginPageState';
 import styles from '@/Auth/Login/Login.module.css';
 
 export default function Login() {
-  const { form, error, isSubmitting, handleChange, handleSubmit } = useLoginPageState();
+  const { form, error, info, isSubmitting, handleChange, handleSubmit } =
+    useLoginPageState();
 
   return (
     <div className={styles.authShell}>
@@ -53,11 +54,17 @@ export default function Login() {
               </div>
 
               {error ? <div className={styles.error}>{error}</div> : null}
+              {info ? <div className={styles.helperCard}>{info}</div> : null}
 
               <div className={styles.actions}>
                 <button className={styles.primaryBtn} type="submit" disabled={isSubmitting}>
                   {isSubmitting ? 'Logging in…' : 'Log in'}
                 </button>
+                <span className={styles.inlineHelper}>
+                  <Link className={styles.helperLink} to="/forgot-password">
+                    Forgot password?
+                  </Link>
+                </span>
                 <span className={styles.inlineHelper}>
                   <span>New here? </span>
                   <Link className={styles.helperLink} to="/register">

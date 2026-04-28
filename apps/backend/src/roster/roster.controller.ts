@@ -65,10 +65,7 @@ export class RosterController {
 
   @Delete('students/:studentId')
   @Authorize({ capability: features.modules.removeStudent, scope: 'module' })
-  removeStudent(
-    @Param() params: RosterStudentParamsDto,
-    @Req() req: Request,
-  ) {
+  removeStudent(@Param() params: RosterStudentParamsDto, @Req() req: Request) {
     const requester = req.user as AuthUser;
     return this.rosterService.removeStudent(
       params.moduleId,

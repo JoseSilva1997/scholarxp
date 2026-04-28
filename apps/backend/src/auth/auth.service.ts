@@ -191,6 +191,71 @@ export class AuthService {
     return this.toAuthUser(user, avatar);
   }
 
+  // --- Password reset ---
+  // Issue a one-time reset link for the email when a local-auth account exists.
+  // - Unknown email: respond { sent: true } so attackers can't enumerate accounts.
+  // - OAuth-only account (no password row): respond { sent: false, reason: 'no_password' } so
+  //   the user gets a clear explanation that they need to sign in via Google instead. This is a
+  //   deliberate, narrow disclosure the product owner accepted: it tells users why no email arrived.
+  async requestPasswordReset(
+    email: string,
+  ): Promise<{ sent: true } | { sent: false; reason: 'no_password' }> {
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await this.prisma.user.findUnique({
+      where: { email: normalizedEmail },
+    });
+    if (!user) {
+      return { sent: true };
+    }
+    const passwordRow = await this.prisma.userPassword.findUnique({
+      where: { userId: user.id },
+    });
+    if (!passwordRow) {
+      return { sent: false, reason: 'no_password' };
+    }
+
+    // Reuse an active token to avoid spamming the inbox if the user re-submits the form.
+    const token = await this.emailTokens.issueToken({
+      userId: user.id,
+      reason: 'password_reset',
+      reuseExisting: true,
+      ttlMinutes: 30,
+      tokenStyle: 'url',
+    });
+    const link = this.buildPasswordResetLink(token.token);
+    await this.safeSendPasswordReset(normalizedEmail, link);
+    return { sent: true };
+  }
+
+  // Reset link points at the public frontend; CORS_ORIGIN wins so deployed envs link to the
+  // right host even when the constants package fallback is wrong.
+  private buildPasswordResetLink(token: string): string {
+    const baseOrigin = process.env.CORS_ORIGIN ?? FRONTEND_URL;
+    const primaryOrigin = baseOrigin.split(',')[0]?.trim() ?? baseOrigin;
+    try {
+      const url = new URL('/reset-password', primaryOrigin);
+      url.searchParams.set('token', token);
+      return url.toString();
+    } catch {
+      return `${primaryOrigin.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(token)}`;
+    }
+  }
+
+  async resetPassword(
+    token: string,
+    newPassword: string,
+  ): Promise<{ ok: true }> {
+    // Reason filter prevents a signup verification code from being reused as a password reset.
+    const record = await this.emailTokens.consumeToken(token, 'password_reset');
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await this.prisma.userPassword.upsert({
+      where: { userId: record.userId },
+      create: { userId: record.userId, passwordHash },
+      update: { passwordHash },
+    });
+    return { ok: true };
+  }
+
   async resendVerification(email: string) {
     const normalizedEmail = email.trim().toLowerCase();
     const user = await this.prisma.user.findUnique({
@@ -540,6 +605,30 @@ export class AuthService {
         requireVerification || !(user.isVerified ?? false),
       avatar: mappedAvatar,
     } as AuthUser;
+  }
+
+  // Mirror safeSendVerification so password-reset transport errors stay internal and don't
+  // leak account existence or SMTP details back to clients.
+  private async safeSendPasswordReset(email: string, link: string) {
+    try {
+      await this.mailer.sendPasswordResetLink(email, link);
+    } catch (error) {
+      if (error instanceof MailDeliveryError) {
+        this.logger.warn('Password reset email delivery failed', {
+          reason: 'MailDeliveryError',
+          details: error.details,
+          email,
+          timestamp: new Date().toISOString(),
+        });
+      } else {
+        this.logger.error('Unexpected password reset email failure', {
+          reason: (error as Error)?.message,
+          stack: (error as Error)?.stack,
+          email,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    }
   }
 
   // Wrap verification email dispatch to catch transport failures and log them internally

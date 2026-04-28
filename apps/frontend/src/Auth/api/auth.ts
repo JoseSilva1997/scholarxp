@@ -1,12 +1,16 @@
-import type { 
-  AuthResponse, 
-  LoginPayload, 
+import type {
+  AuthResponse,
+  LoginPayload,
   VerifyEmailPayload,
   ResendVerificationPayload,
   ResendVerificationResponse,
-  RegisterPayload, 
+  RegisterPayload,
   RegisterResponse,
-  LogoutResponse
+  LogoutResponse,
+  ForgotPasswordPayload,
+  ForgotPasswordResponse,
+  ResetPasswordPayload,
+  ResetPasswordResponse
 } from '@scholarxp/api-contracts';
 import { ApiError, apiFetch } from '@/shared/api/client';
 
@@ -49,6 +53,25 @@ export async function resendVerification(
 ): Promise<ResendVerificationResponse> {
   const payload: ResendVerificationPayload = { email };
   return apiFetch<ResendVerificationResponse>('/auth/resend-verification', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function forgotPassword(
+  email: string,
+): Promise<ForgotPasswordResponse> {
+  const payload: ForgotPasswordPayload = { email };
+  return apiFetch<ForgotPasswordResponse>('/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function resetPassword(
+  payload: ResetPasswordPayload,
+): Promise<ResetPasswordResponse> {
+  return apiFetch<ResetPasswordResponse>('/auth/reset-password', {
     method: 'POST',
     body: JSON.stringify(payload),
   });

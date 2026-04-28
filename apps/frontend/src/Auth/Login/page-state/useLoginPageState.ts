@@ -18,6 +18,10 @@ export function useLoginPageState() {
   const loginMutation = useLoginMutation();
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState<string | null>(null);
+  // Surface a positive notice when arriving here after a successful flow elsewhere (e.g., password reset).
+  const initialMessage =
+    (location.state as { message?: string } | null)?.message ?? null;
+  const [info, setInfo] = useState<string | null>(initialMessage);
   // Store where the user was headed before login, so we can redirect them after authentication.
   const redirectFrom = (location.state as { from?: Location } | null)?.from;
 
@@ -50,6 +54,7 @@ export function useLoginPageState() {
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
+    setInfo(null);
 
     try {
       // Always refresh CSRF token before submitting to avoid backend rejections.
@@ -107,6 +112,7 @@ export function useLoginPageState() {
   return {
     form,
     error,
+    info,
     isSubmitting: loginMutation.isPending,
     handleChange,
     handleSubmit,

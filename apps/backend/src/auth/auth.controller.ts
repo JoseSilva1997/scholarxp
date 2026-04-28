@@ -16,6 +16,8 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import type { AuthUser } from '../types/auth-user.type';
 import { CaptureRedirectGuard } from './guards/capture-redirect.guard';
 
@@ -81,6 +83,31 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.authService.resendVerification(dto.email);
+    this.authService.attachCsrfHeader(req, res);
+    return result;
+  }
+
+  @Post('forgot-password')
+  async forgotPassword(
+    @Body() dto: ForgotPasswordDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.requestPasswordReset(dto.email);
+    this.authService.attachCsrfHeader(req, res);
+    return result;
+  }
+
+  @Post('reset-password')
+  async resetPassword(
+    @Body() dto: ResetPasswordDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.resetPassword(
+      dto.token,
+      dto.password,
+    );
     this.authService.attachCsrfHeader(req, res);
     return result;
   }

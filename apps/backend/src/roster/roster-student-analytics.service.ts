@@ -240,7 +240,9 @@ export class RosterStudentAnalyticsService {
     requesterUserId: number,
   ): Promise<RemoveRosterStudentResponse> {
     if (studentId === requesterUserId) {
-      throw new BadRequestException('You cannot remove yourself from the module.');
+      throw new BadRequestException(
+        'You cannot remove yourself from the module.',
+      );
     }
 
     const enrollment = await this.prisma.userModule.findUnique({
