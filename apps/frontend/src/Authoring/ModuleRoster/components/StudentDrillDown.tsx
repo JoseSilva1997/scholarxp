@@ -103,10 +103,6 @@ export default function StudentDrillDown({
             <span className={styles.statValue}>{formatDate(student.enrolledAt)}</span>
           </div>
           <div className={styles.statItem}>
-            <span className={styles.statLabel}>Enrolled Via</span>
-            <span className={styles.statValue}>{student.enrolledVia}</span>
-          </div>
-          <div className={styles.statItem}>
             <span className={styles.statLabel}>Proficiency Level</span>
             <span className={styles.statValue}>{student.moduleLevel}</span>
           </div>
