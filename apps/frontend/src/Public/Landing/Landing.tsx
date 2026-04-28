@@ -13,6 +13,7 @@ import {
   RiCheckLine,
   RiGroupLine,
   RiLineChartLine,
+  RiBuilding2Line,
 } from 'react-icons/ri';
 import styles from '@/Public/Landing/Landing.module.css';
 
@@ -47,7 +48,7 @@ const tutorSteps = [
 
 const studentSteps = [
   { icon: <RiGraduationCapLine />, label: 'Enrol in your tutor\'s module and work through the lessons' },
-  { icon: <RiCalendarCheckLine />, label: 'Each day receive a short personalised set of 3–6 questions' },
+  { icon: <RiCalendarCheckLine />, label: 'Each day receive a short personalised set of 3–10 questions' },
   { icon: <RiStarLine />, label: 'Watch your proficiency grow as spaced repetition strengthens memory' },
   { icon: <RiFireLine />, label: 'Complete daily quests, build your streak, and earn bonus XP' },
 ];
@@ -62,7 +63,7 @@ const features = [
   {
     icon: <RiCalendarCheckLine />,
     title: 'Daily sets sized to real review pressure',
-    body: '3–6 questions per module per day. Light days are intentionally light. The system respects your schedule and keeps practice sustainable.',
+    body: '3–10 questions per module per day. Light days are intentionally light. The system respects your schedule and keeps practice sustainable.',
     color: 'secondary',
   },
   {
@@ -85,32 +86,11 @@ const features = [
   },
 ];
 
-const testimonials = [
-  {
-    quote:
-      'My students used to cram the night before. Now they check in for five minutes a day - and their test scores have genuinely improved.',
-    name: 'Sarah K.',
-    role: 'A-Level Biology Tutor',
-  },
-  {
-    quote:
-      'The daily quests make it feel like a game, but what I actually get is real retention. Five minutes a day and I\'m keeping up effortlessly.',
-    name: 'Tariq M.',
-    role: 'Year 13 Student',
-  },
-  {
-    quote:
-      'I set up the module once and the system handles the rest. Students get the right questions at the right time. I just review the results.',
-    name: 'Claire B.',
-    role: 'GCSE Maths Tutor',
-  },
-];
-
 export default function Landing() {
   const howRef = useReveal();
   const featuresRef = useReveal();
   const philosophyRef = useReveal();
-  const testimonialRef = useReveal();
+  const fitRef = useReveal();
   const ctaRef = useReveal();
 
   return (
@@ -119,7 +99,7 @@ export default function Landing() {
       <section className={styles.hero}>
         <div className={styles.heroInner}>
           <div className={styles.heroContent}>
-            <p className={styles.heroEyebrow}>Study companion · Built for daily habits</p>
+            <p className={styles.heroEyebrow}>Study companion · Works alongside your curriculum</p>
             <h1 className={styles.heroTitle}>
               Practice a little every day.
               <br />
@@ -127,7 +107,7 @@ export default function Landing() {
             </h1>
             <p className={styles.heroSubtitle}>
               ScholarXP uses spaced repetition and daily quests to build genuine long-term memory - not last-minute
-              cramming. Tutors build the content. Students build the habit.
+              cramming. Tutors build the content. Students build the habit. Sits alongside your curriculum.
             </p>
             <div className={styles.heroCtas}>
               <Link to="/register" className={styles.ctaPrimary}>
@@ -138,7 +118,7 @@ export default function Landing() {
               </a>
             </div>
             <div className={styles.heroPills}>
-              <span className={styles.pill}>3–6 questions a day</span>
+              <span className={styles.pill}>3–10 questions a day</span>
               <span className={styles.pill}>FSRS spaced repetition</span>
               <span className={styles.pill}>Daily quests &amp; streaks</span>
             </div>
@@ -215,6 +195,10 @@ export default function Landing() {
           <p className={`${styles.sectionLabel} ${styles.sectionLabelLight}`}>The philosophy</p>
           <h2 className={styles.philosophyTitle}>Cramming feels productive, but isn&apos;t.</h2>
           <p className={styles.philosophyBody}>
+            ScholarXP is a companion to formal teaching - not a replacement. Students keep what they learn in class
+            instead of forgetting it before the next lesson, and tutors get a structured way to reinforce their own curriculum.
+          </p>
+          <p className={styles.philosophyBody}>
             Memory research is clear: spreading practice over time beats massing it into one session. ScholarXP is built
             around this. The daily cap isn&apos;t a limitation - it&apos;s the mechanism. Someone who practices 10 minutes
             every day for a week retains far more than someone who spends an hour the night before.
@@ -229,7 +213,7 @@ export default function Landing() {
               <span className={styles.philosophyStatLabel}>one focused practice session per day, per module - no grind required</span>
             </div>
             <div className={styles.philosophyStat}>
-              <span className={styles.philosophyStatNumber}>3–6</span>
+              <span className={styles.philosophyStatNumber}>3–10</span>
               <span className={styles.philosophyStatLabel}>questions per day - sized to keep practice sustainable</span>
             </div>
             <div className={styles.philosophyStat}>
@@ -240,24 +224,25 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── SOCIAL PROOF ────────────────────────────────────────── */}
-      <section className={styles.testimonialSection}>
-        <div className={styles.sectionInner} ref={testimonialRef}>
-          <p className={styles.sectionLabel}>What people say</p>
-          <h2 className={styles.sectionTitle}>Built by educators, for educators</h2>
-          <div className={styles.testimonialGrid}>
-            {testimonials.map((t) => (
-              <blockquote key={t.name} className={styles.testimonialCard}>
-                <p className={styles.testimonialQuote}>&ldquo;{t.quote}&rdquo;</p>
-                <footer className={styles.testimonialFooter}>
-                  <div className={styles.testimonialAvatar}>{t.name.charAt(0)}</div>
-                  <div>
-                    <cite className={styles.testimonialName}>{t.name}</cite>
-                    <span className={styles.testimonialRole}>{t.role}</span>
-                  </div>
-                </footer>
-              </blockquote>
-            ))}
+      {/* ── FIT BAND (SOCIAL PROOF REPLACEMENT) ──────────────────── */}
+      {/* Positions ScholarXP as a curriculum supplement, not a replacement - reassurance for institutional buyers. */}
+      <section className={styles.fitBand} ref={fitRef}>
+        <div className={styles.fitBandInner}>
+          <div className={styles.fitBandCard}>
+            <div className={styles.fitBandIcons} aria-hidden="true">
+              <span className={`${styles.fitBandIcon} ${styles.fitBandIconClass}`}>
+                <RiBuilding2Line />
+              </span>
+              <span className={styles.fitBandPlus}>+</span>
+              <span className={`${styles.fitBandIcon} ${styles.fitBandIconTutor}`}>
+                <RiBookOpenLine />
+              </span>
+            </div>
+            <p className={styles.fitBandEyebrow}>For schools, tutors &amp; institutions</p>
+            <h2 className={styles.fitBandTitle}>A companion to your curriculum</h2>
+            <p className={styles.fitBandSubtext}>
+              Built to support classrooms and tutors. Reinforcing classroom lessons, never replacing them.
+            </p>
           </div>
         </div>
       </section>
