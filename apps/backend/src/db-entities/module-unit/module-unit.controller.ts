@@ -186,7 +186,7 @@ export class ModuleUnitController {
   }
 
   @Get('module/:moduleId/unit/:unitId/editor')
-  @Authorize({ capability: features.navigation.modules, scope: 'module' })
+  @Authorize({ capability: features.modules.manageContent, scope: 'module' })
   async getEditorPayload(
     @Param('moduleId', ParseIntPipe) moduleId: number,
     @Param('unitId', ParseIntPipe) unitId: number,

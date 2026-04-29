@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import type { Location } from 'react-router-dom';
-import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import '@/App.css';
 import Header from '@/MainApp/Header/Header';
 import Footer from '@/MainApp/Footer/Footer';
@@ -29,6 +29,8 @@ import AcceptInvite from '@/Authoring/AcceptInvite/AcceptInvite';
 import ModuleRosterPage from '@/Authoring/ModuleRoster/ModuleRosterPage';
 import Terms from '@/Public/Terms/Terms';
 import Privacy from '@/Public/Privacy/Privacy';
+import { features, type FeatureKey } from '@scholarxp/permissions';
+import { canUserAccess } from '@/shared/permissions/permission';
 
 function AppLayout() {
   const location = useLocation();
@@ -135,8 +137,22 @@ function AppLayout() {
                 <Route path="/main/landing" element={<Landing />} />
                 <Route path="/main/modules" element={<ModulesPage />} />
                 <Route path="/main/modules/:moduleId" element={<SingleModulePage />} />
-                <Route path="/main/modules/:moduleId/roster" element={<ModuleRosterPage />} />
-                <Route path="/main/modules/:moduleId/:unitId/editor" element={<ModuleUnitEditor />} />
+                <Route
+                  path="/main/modules/:moduleId/roster"
+                  element={
+                    <RequireCapability capability={features.modules.roster}>
+                      <ModuleRosterPage />
+                    </RequireCapability>
+                  }
+                />
+                <Route
+                  path="/main/modules/:moduleId/:unitId/editor"
+                  element={
+                    <RequireCapability capability={features.modules.manageContent}>
+                      <ModuleUnitEditor />
+                    </RequireCapability>
+                  }
+                />
                 <Route path="/main/modules/:moduleId/:unitId/practice-room" element={<PracticeRoomPage />} />
                 <Route path="/main/modules/:moduleId/daily-practice" element={<DailyPracticePage />} />
                 <Route path="/main/quests" element={<QuestsPage />} />
@@ -156,6 +172,25 @@ type ProtectedRouteProps = {
   isLoading: boolean;
   isAuthed: boolean;
 };
+
+function RequireCapability({
+  capability,
+  children,
+}: {
+  capability: FeatureKey;
+  children: React.ReactNode;
+}) {
+  const { user, isLoading } = useAuth();
+  const params = useParams();
+  if (isLoading) return null;
+  if (!canUserAccess(capability, user)) {
+    const fallback = params.moduleId
+      ? `/main/modules/${params.moduleId}`
+      : '/main/modules';
+    return <Navigate to={fallback} replace />;
+  }
+  return <>{children}</>;
+}
 
 function ProtectedRoute({ isLoading, isAuthed }: ProtectedRouteProps) {
   const location = useLocation();
