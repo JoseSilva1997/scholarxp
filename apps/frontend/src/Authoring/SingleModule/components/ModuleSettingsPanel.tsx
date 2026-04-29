@@ -364,7 +364,7 @@ export default function ModuleSettingsPanel({
         {canDeleteModule ? (
           <section className={`${styles.settingsSection} ${styles.dangerSection}`}>
             <header className={styles.settingsSectionHeader}>
-              <h3 className={styles.settingsSectionTitle}>Archive Module</h3>
+              <h3 className={styles.settingsSectionTitle}>Delete Module</h3>
             </header>
             {archiveModuleError ? (
               <div className={styles.inlineError} role="alert">
@@ -374,7 +374,7 @@ export default function ModuleSettingsPanel({
             {!isArchiveConfirmOpen ? (
               <div className={styles.archiveIntro}>
                 <p className={styles.settingsSectionCopy}>
-                  Archive this module to remove it from tutor and student module lists.
+                  Delete this module to remove it from tutor and student module lists.
                 </p>
                 <button
                   type="button"
@@ -382,13 +382,13 @@ export default function ModuleSettingsPanel({
                   onClick={onRequestArchiveModule}
                   disabled={!module}
                 >
-                  Archive module
+                  Delete module
                 </button>
               </div>
             ) : (
               <div className={styles.archiveConfirmBox}>
                 <p className={styles.archiveWarning}>
-                  This hides the module immediately. Student activity stays preserved but students will not be able to interact with or see this module.
+                  This deletes the module immediately. Student activity stays preserved but students will not be able to interact with this module.
                 </p>
                 {archiveImpactError ? (
                   <div className={styles.inlineError} role="alert">

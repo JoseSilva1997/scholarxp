@@ -868,7 +868,7 @@ describe('ModuleSettingsPanel', () => {
         />
       );
 
-      expect(screen.queryByRole('button', { name: /Archive module/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Delete module/i })).not.toBeInTheDocument();
     });
 
     it('requests archive confirmation from the archive button', async () => {
@@ -886,7 +886,7 @@ describe('ModuleSettingsPanel', () => {
         />
       );
 
-      await userEvent.click(screen.getByRole('button', { name: /Archive module/i }));
+      await userEvent.click(screen.getByRole('button', { name: /Delete module/i }));
 
       expect(onRequestArchiveModule).toHaveBeenCalledTimes(1);
     });

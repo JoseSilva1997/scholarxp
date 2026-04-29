@@ -8,8 +8,12 @@ describe('ModuleCreateModal', () => {
     const onCreate = vi.fn().mockResolvedValue(undefined);
     render(<ModuleCreateModal onClose={vi.fn()} onCreate={onCreate} isSaving={false} error={null} />);
 
-    fireEvent.change(screen.getByLabelText('Title'), { target: { value: '  Module A  ' } });
-    fireEvent.change(screen.getByLabelText('Description (optional)'), { target: { value: '  Desc  ' } });
+    fireEvent.change(screen.getByRole('textbox', { name: /Title/i }), {
+      target: { value: '  Module A  ' },
+    });
+    fireEvent.change(screen.getByRole('textbox', { name: /Description \(optional\)/i }), {
+      target: { value: '  Desc  ' },
+    });
     fireEvent.submit(screen.getByRole('button', { name: 'Create module' }).closest('form')!);
 
     await waitFor(() => {
