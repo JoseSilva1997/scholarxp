@@ -54,8 +54,19 @@ export default function ModuleCreateModal({
               onChange={(e) => setTitle(e.target.value)}
               required
               minLength={2}
-              maxLength={120}
+              maxLength={60}
             />
+            <span
+              className={
+                title.length === 60
+                  ? styles.charCountMax
+                  : title.length >= 48
+                    ? styles.charCountNear
+                    : styles.charCount
+              }
+            >
+              {title.length}/60
+            </span>
           </label>
           <label className={styles.label}>
             Description (optional)
@@ -65,6 +76,17 @@ export default function ModuleCreateModal({
               onChange={(e) => setDescription(e.target.value)}
               maxLength={500}
             />
+            <span
+              className={
+                description.length === 500
+                  ? styles.charCountMax
+                  : description.length >= 400
+                    ? styles.charCountNear
+                    : styles.charCount
+              }
+            >
+              {description.length}/500
+            </span>
           </label>
           <div className={styles.actions}>
             <button type="button" className={styles.secondary} onClick={onClose} disabled={isSaving}>

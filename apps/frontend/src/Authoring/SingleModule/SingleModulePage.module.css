@@ -53,19 +53,16 @@
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 12px;
 }
 
-@media (min-width: 768px) {
-  .headerContent {
-    flex-direction: row;
-    align-items: flex-start;
-    justify-content: space-between;
-  }
-}
-
-.titleGroup {
-  flex: 1;
+.titleRow {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
 }
 
 .title {
@@ -80,6 +77,10 @@
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .subtitle {
@@ -87,8 +88,9 @@
   font-size: 1.25rem;
   color: var(--color-text-muted);
   font-weight: 500;
-  max-width: 600px;
   line-height: 1.6;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 /* Compact at-a-glance summary for educators: lesson count, question total, live count */

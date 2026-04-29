@@ -104,74 +104,75 @@ export default function SingleModulePage() {
           <>
             <header className={styles.header}>
               <div className={styles.headerContent}>
-                <div className={styles.titleGroup}>
+                <div className={styles.titleRow}>
                   <h1 className={styles.title}>{module.title}</h1>
-                  <p className={styles.subtitle}>
-                    {module.description}
-                  </p>
-                  {canManageModuleContent && moduleUnits.length > 0 && (
-                    <p className={styles.moduleSummary}>
-                      {moduleUnits.length} {moduleUnits.length === 1 ? 'lesson' : 'lessons'}
-                      {' · '}
-                      {moduleUnits.reduce((sum, u) => sum + u.questionCount, 0)} questions
-                      {' · '}
-                      {moduleUnits.filter((u) => u.status === 'live').length} live
-                    </p>
+
+                  {user && (canToggleStudentView || canEditSettings || canViewRoster) && (
+                    <div className={styles.actions}>
+                      {canViewRoster && moduleId && (
+                        <Link
+                          to={`/main/modules/${moduleId}/roster`}
+                          className={styles.rosterLink}
+                        >
+                          Manage Roster
+                        </Link>
+                      )}
+                      {canToggleStudentView ? (
+                        <button
+                          className={styles.toggleButton}
+                          type="button"
+                          aria-label={
+                            isStudentViewEnabled ? 'Disable student view' : 'Enable student view'
+                          }
+                          title={
+                            isStudentViewEnabled ? 'Disable student view' : 'Enable student view'
+                          }
+                          onClick={() => setIsStudentViewEnabled(!isStudentViewEnabled)}
+                        >
+                          <img
+                            src={
+                              isStudentViewEnabled
+                                ? resolvedTheme === 'dark'
+                                  ? untoggleStudentViewDarkIcon
+                                  : untoggleStudentViewIcon
+                                : resolvedTheme === 'dark'
+                                  ? toggleStudentViewDarkIcon
+                                  : toggleStudentViewIcon
+                            }
+                            alt=""
+                            aria-hidden="true"
+                          />
+                        </button>
+                      ) : null}
+                      {canEditSettings ? (
+                        <button
+                          className={styles.settingsButton}
+                          type="button"
+                          aria-label="Module settings"
+                          title="Module settings"
+                          aria-expanded={isSettingsOpen}
+                          onClick={handleToggleSettings}
+                        >
+                          <IconContext.Provider value={{ className: styles.settingsIcon }}>
+                            <IoSettingsSharp aria-hidden="true" />
+                          </IconContext.Provider>
+                        </button>
+                      ) : null}
+                    </div>
                   )}
                 </div>
 
-                {user && (canToggleStudentView || canEditSettings || canViewRoster) && (
-                  <div className={styles.actions}>
-                    {canViewRoster && moduleId && (
-                      <Link
-                        to={`/main/modules/${moduleId}/roster`}
-                        className={styles.rosterLink}
-                      >
-                        Manage Roster
-                      </Link>
-                    )}
-                    {canToggleStudentView ? (
-                      <button
-                        className={styles.toggleButton}
-                        type="button"
-                        aria-label={
-                          isStudentViewEnabled ? 'Disable student view' : 'Enable student view'
-                        }
-                        title={
-                          isStudentViewEnabled ? 'Disable student view' : 'Enable student view'
-                        }
-                        onClick={() => setIsStudentViewEnabled(!isStudentViewEnabled)}
-                      >
-                        <img
-                          src={
-                            isStudentViewEnabled
-                              ? resolvedTheme === 'dark'
-                                ? untoggleStudentViewDarkIcon
-                                : untoggleStudentViewIcon
-                              : resolvedTheme === 'dark'
-                                ? toggleStudentViewDarkIcon
-                                : toggleStudentViewIcon
-                          }
-                          alt=""
-                          aria-hidden="true"
-                        />
-                      </button>
-                    ) : null}
-                    {canEditSettings ? (
-                      <button
-                        className={styles.settingsButton}
-                        type="button"
-                        aria-label="Module settings"
-                        title="Module settings"
-                        aria-expanded={isSettingsOpen}
-                        onClick={handleToggleSettings}
-                      >
-                        <IconContext.Provider value={{ className: styles.settingsIcon }}>
-                          <IoSettingsSharp aria-hidden="true" />
-                        </IconContext.Provider>
-                      </button>
-                    ) : null}
-                  </div>
+                <p className={styles.subtitle}>
+                  {module.description}
+                </p>
+                {canManageModuleContent && moduleUnits.length > 0 && (
+                  <p className={styles.moduleSummary}>
+                    {moduleUnits.length} {moduleUnits.length === 1 ? 'lesson' : 'lessons'}
+                    {' · '}
+                    {moduleUnits.reduce((sum, u) => sum + u.questionCount, 0)} questions
+                    {' · '}
+                    {moduleUnits.filter((u) => u.status === 'live').length} live
+                  </p>
                 )}
               </div>
               <DebugMeta

@@ -106,6 +106,28 @@
   box-shadow: var(--shadow-lg);
 }
 
+.charCount,
+.charCountNear,
+.charCountMax {
+  display: block;
+  font-size: 12px;
+  font-weight: normal;
+  text-align: right;
+  margin-top: 4px;
+}
+
+.charCount {
+  color: var(--color-text-muted);
+}
+
+.charCountNear {
+  color: var(--color-warning, #d97706);
+}
+
+.charCountMax {
+  color: var(--color-error);
+}
+
 .error {
   color: var(--color-error);
   background: var(--color-error-light);
