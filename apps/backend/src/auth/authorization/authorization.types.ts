@@ -34,3 +34,9 @@ export type AuthorizationEvaluation = {
   moduleContext?: ModuleAuthorizationContext;
   selfTargetUserId?: number;
 };
+
+// Discriminated outcome so guards can map specific denials to user-facing copy.
+export type AuthorizationDenialReason = 'capability' | 'module_membership' | 'self';
+export type AuthorizationOutcome =
+  | { allowed: true }
+  | { allowed: false; reason: AuthorizationDenialReason };

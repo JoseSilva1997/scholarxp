@@ -65,7 +65,7 @@ describe('AuthorizationGuard', () => {
     (reflector.getAllAndOverride as jest.Mock).mockReturnValue({
       capability: features.modules.create,
     } as AuthorizationRule);
-    (authorizationService.canActivate as jest.Mock).mockReturnValue(false);
+    (authorizationService.canActivate as jest.Mock).mockReturnValue({ allowed: false, reason: 'capability' });
 
     await expect(
       guard.canActivate(
@@ -76,7 +76,41 @@ describe('AuthorizationGuard', () => {
           } as any,
         }),
       ),
-    ).rejects.toBeInstanceOf(ForbiddenException);
+    ).rejects.toMatchObject({
+      message: 'Insufficient permissions',
+      constructor: ForbiddenException,
+    });
+  });
+
+  it('uses module-membership copy when policy denies due to missing enrollment', async () => {
+    (reflector.getAllAndOverride as jest.Mock).mockReturnValue({
+      capability: features.modules.manageContent,
+      scope: 'module',
+    } as AuthorizationRule);
+    (prisma.module.findUnique as jest.Mock).mockResolvedValue({
+      id: 77,
+      createdByUserId: 99,
+      archivedAt: null,
+      userModules: [],
+    });
+    (authorizationService.canActivate as jest.Mock).mockReturnValue({
+      allowed: false,
+      reason: 'module_membership',
+    });
+
+    await expect(
+      guard.canActivate(
+        contextFor({
+          user: {
+            id: 1,
+            globalRole: GlobalRole.teacher,
+          } as any,
+          params: { moduleId: '77' },
+        }),
+      ),
+    ).rejects.toMatchObject({
+      message: "You don't have access to this module.",
+    });
   });
 
   it('throws bad request when module scope is missing module id', async () => {
@@ -155,7 +189,7 @@ describe('AuthorizationGuard', () => {
       archivedAt: new Date('2026-04-01T00:00:00.000Z'),
       userModules: [{ roleInModule: 'teacher' }],
     });
-    (authorizationService.canActivate as jest.Mock).mockReturnValue(true);
+    (authorizationService.canActivate as jest.Mock).mockReturnValue({ allowed: true });
 
     await expect(
       guard.canActivate(
@@ -185,7 +219,7 @@ describe('AuthorizationGuard', () => {
       archivedAt: null,
       userModules: [{ roleInModule: 'teacher' }],
     });
-    (authorizationService.canActivate as jest.Mock).mockReturnValue(true);
+    (authorizationService.canActivate as jest.Mock).mockReturnValue({ allowed: true });
 
     await expect(
       guard.canActivate(
@@ -273,7 +307,7 @@ describe('AuthorizationGuard', () => {
       archivedAt: null,
       userModules: [{ roleInModule: 'teacher' }],
     });
-    (authorizationService.canActivate as jest.Mock).mockReturnValue(true);
+    (authorizationService.canActivate as jest.Mock).mockReturnValue({ allowed: true });
 
     await expect(
       guard.canActivate(
@@ -352,7 +386,7 @@ describe('AuthorizationGuard', () => {
       scope: 'self',
       selfUserIdParam: 'id',
     } as AuthorizationRule);
-    (authorizationService.canActivate as jest.Mock).mockReturnValue(true);
+    (authorizationService.canActivate as jest.Mock).mockReturnValue({ allowed: true });
 
     await expect(
       guard.canActivate(

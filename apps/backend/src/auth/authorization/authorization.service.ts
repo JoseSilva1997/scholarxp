@@ -4,38 +4,43 @@ import { GlobalRole } from '@prisma/client';
 import { canAccess } from '@scholarxp/permissions';
 import type {
   AuthorizationEvaluation,
+  AuthorizationOutcome,
   ModuleAuthorizationContext,
 } from './authorization.types';
 
 @Injectable()
 export class AuthorizationService {
-  // Returns true/false so the guard remains the single place that translates policy failures to HTTP errors.
-  canActivate(input: AuthorizationEvaluation): boolean {
+  // Returns a discriminated outcome so the guard can map specific denial reasons to user-facing copy.
+  canActivate(input: AuthorizationEvaluation): AuthorizationOutcome {
     const { user, rule } = input;
     const allowedByCapability = canAccess(rule.capability, {
       role: user.globalRole,
     });
     if (!allowedByCapability) {
-      return false;
+      return { allowed: false, reason: 'capability' };
     }
 
     if (!rule.scope || rule.scope === 'global') {
-      return true;
+      return { allowed: true };
     }
 
     if (rule.scope === 'module') {
-      return this.canAccessModuleScope(
+      const allowed = this.canAccessModuleScope(
         user.id,
         user.globalRole as GlobalRole,
         input.moduleContext,
       );
+      return allowed
+        ? { allowed: true }
+        : { allowed: false, reason: 'module_membership' };
     }
 
     if (rule.scope === 'self') {
-      return this.canSelfScope(user.id, input.selfTargetUserId);
+      const allowed = this.canSelfScope(user.id, input.selfTargetUserId);
+      return allowed ? { allowed: true } : { allowed: false, reason: 'self' };
     }
 
-    return false;
+    return { allowed: false, reason: 'capability' };
   }
 
   // Module scope rules enforce ownership/membership boundaries after capability checks pass.

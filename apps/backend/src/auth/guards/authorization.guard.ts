@@ -52,18 +52,29 @@ export class AuthorizationGuard implements CanActivate {
         ? this.extractSelfTargetUserId(req, rule.selfUserIdParam ?? 'id')
         : undefined;
 
-    const allowed = this.authorizationService.canActivate({
+    const outcome = this.authorizationService.canActivate({
       user,
       rule,
       moduleContext,
       selfTargetUserId,
     });
 
-    if (!allowed) {
-      throw new ForbiddenException('Insufficient permissions');
+    if (!outcome.allowed) {
+      throw new ForbiddenException(this.denialMessage(outcome.reason));
     }
 
     return true;
+  }
+
+  // Maps denial reasons to user-facing copy. Capability fallback preserves the legacy string
+  // because some clients (e.g. AcceptInvite) still match on it to render context-specific copy.
+  private denialMessage(
+    reason: 'capability' | 'module_membership' | 'self',
+  ): string {
+    if (reason === 'module_membership') {
+      return "You don't have access to this module.";
+    }
+    return 'Insufficient permissions';
   }
 
   // Resource loading stays in the guard so policy evaluation remains pure and unit-testable.

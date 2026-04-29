@@ -16,7 +16,7 @@ describe('AuthorizationService', () => {
       rule: { capability: features.modules.create },
     });
 
-    expect(allowed).toBe(true);
+    expect(allowed.allowed).toBe(true);
   });
 
   it('denies immediately when the shared capability matrix disallows the role', () => {
@@ -28,7 +28,7 @@ describe('AuthorizationService', () => {
       rule: { capability: features.modules.create },
     });
 
-    expect(allowed).toBe(false);
+    expect(allowed.allowed).toBe(false);
   });
 
   it('allows module scope for teacher when creator', () => {
@@ -43,7 +43,7 @@ describe('AuthorizationService', () => {
       },
     });
 
-    expect(allowed).toBe(true);
+    expect(allowed.allowed).toBe(true);
   });
 
   it('allows module scope for admins even without membership', () => {
@@ -61,7 +61,7 @@ describe('AuthorizationService', () => {
       },
     });
 
-    expect(allowed).toBe(true);
+    expect(allowed.allowed).toBe(true);
   });
 
   it('allows module scope for teacher membership even when not creator', () => {
@@ -76,7 +76,7 @@ describe('AuthorizationService', () => {
       },
     });
 
-    expect(allowed).toBe(true);
+    expect(allowed.allowed).toBe(true);
   });
 
   it('allows module scope for enrolled students with a student capability', () => {
@@ -94,7 +94,7 @@ describe('AuthorizationService', () => {
       },
     });
 
-    expect(allowed).toBe(true);
+    expect(allowed.allowed).toBe(true);
   });
 
   it('denies unsupported authorization scopes', () => {
@@ -106,7 +106,7 @@ describe('AuthorizationService', () => {
       },
     });
 
-    expect(allowed).toBe(false);
+    expect(allowed.allowed).toBe(false);
   });
 
   it('denies module scope when context is missing', () => {
@@ -115,7 +115,7 @@ describe('AuthorizationService', () => {
       rule: { capability: features.modules.settings, scope: 'module' },
     });
 
-    expect(allowed).toBe(false);
+    expect(allowed.allowed).toBe(false);
   });
 
   it('allows self scope when user id matches target id', () => {
@@ -128,7 +128,7 @@ describe('AuthorizationService', () => {
       selfTargetUserId: 21,
     });
 
-    expect(allowed).toBe(true);
+    expect(allowed.allowed).toBe(true);
   });
 
   it('denies self scope when user id does not match target id', () => {
@@ -141,7 +141,7 @@ describe('AuthorizationService', () => {
       selfTargetUserId: 99,
     });
 
-    expect(allowed).toBe(false);
+    expect(allowed.allowed).toBe(false);
   });
 
   it('denies self scope when no target id was resolved', () => {
@@ -153,6 +153,6 @@ describe('AuthorizationService', () => {
       rule: { capability: features.users.selectOwnRole, scope: 'self' },
     });
 
-    expect(allowed).toBe(false);
+    expect(allowed.allowed).toBe(false);
   });
 });
