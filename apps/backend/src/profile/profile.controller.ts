@@ -9,8 +9,6 @@ import type { AuthUser } from '../types/auth-user.type';
 import { StudentProfileService } from './student-profile.service';
 import { TutorProfileService } from './tutor-profile.service';
 
-type ProfileRequest = Request & { user?: AuthUser };
-
 @Controller('profile')
 @UseGuards(SessionAuthGuard, AuthorizationGuard)
 export class ProfileController {
@@ -21,7 +19,7 @@ export class ProfileController {
 
   @Get('student')
   @Authorize({ capability: features.navigation.profile, scope: 'global' })
-  getStudentProfile(@Req() request: ProfileRequest) {
+  getStudentProfile(@Req() request: Request & { user?: AuthUser }) {
     return this.studentProfileService.getStudentProfile(
       request.user as AuthUser,
     );
@@ -29,7 +27,7 @@ export class ProfileController {
 
   @Get('tutor')
   @Authorize({ capability: features.navigation.profile, scope: 'global' })
-  getTutorProfile(@Req() request: ProfileRequest) {
+  getTutorProfile(@Req() request: Request & { user?: AuthUser }) {
     return this.tutorProfileService.getTutorProfile(request.user as AuthUser);
   }
 }

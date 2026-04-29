@@ -3,7 +3,7 @@ import { Logger } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import nodemailer from 'nodemailer';
-import { MailerService } from './mailer.service';
+import { MailDeliveryError, MailerService } from './mailer.service';
 import { FRONTEND_URL } from '@scholarxp/constants';
 
 jest.mock('nodemailer');
@@ -208,6 +208,123 @@ describe('MailerService', () => {
       secure: false,
       auth: undefined, // No auth provided
     });
+  });
+
+  it('falls back to EMAIL_FROM and development log mode when explicit mailer config is absent', async () => {
+    const loggerSpy = jest
+      .spyOn(Logger.prototype, 'log')
+      .mockImplementation(() => {});
+    const config = {
+      get: jest.fn((key: string) => {
+        const values: Record<string, string | undefined> = {
+          EMAIL_FROM: 'legacy@test.dev',
+          NODE_ENV: 'development',
+        };
+        return values[key];
+      }),
+    } as unknown as ConfigService;
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [MailerService, { provide: ConfigService, useValue: config }],
+    }).compile();
+
+    const service = module.get<MailerService>(MailerService);
+    await service.sendMail({ to: 'user@test.dev', subject: 'Fallback' });
+
+    expect(loggerSpy).toHaveBeenCalledWith(
+      expect.stringContaining('"from":"legacy@test.dev"'),
+    );
+  });
+
+  it('normalizes recipient verification transport errors', async () => {
+    const sendMail = jest.fn().mockRejectedValue(
+      Object.assign(new Error('Message rejected'), {
+        response: 'Email address is not verified.',
+      }),
+    );
+    mockedNodemailer.createTransport.mockReturnValue({ sendMail } as any);
+    const config = {
+      get: jest.fn((key: string) => {
+        const values: Record<string, string | number | undefined> = {
+          MAILER_EMAIL: 'from@test.dev',
+          SMTP_HOST: 'smtp.test.dev',
+          SMTP_PORT: 2525,
+        };
+        return values[key];
+      }),
+    } as unknown as ConfigService;
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [MailerService, { provide: ConfigService, useValue: config }],
+    }).compile();
+
+    const service = module.get<MailerService>(MailerService);
+
+    await expect(
+      service.sendMail({ to: 'user@test.dev', subject: 'Hello' }),
+    ).rejects.toMatchObject({
+      reason: 'recipient_unverified',
+      details: 'Message rejected',
+    } satisfies Partial<MailDeliveryError>);
+  });
+
+  it('normalizes generic transport errors', async () => {
+    const sendMail = jest.fn().mockRejectedValue(new Error('socket closed'));
+    mockedNodemailer.createTransport.mockReturnValue({ sendMail } as any);
+    const config = {
+      get: jest.fn((key: string) => {
+        const values: Record<string, string | number | undefined> = {
+          MAILER_EMAIL: 'from@test.dev',
+          SMTP_HOST: 'smtp.test.dev',
+          SMTP_PORT: 2525,
+        };
+        return values[key];
+      }),
+    } as unknown as ConfigService;
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [MailerService, { provide: ConfigService, useValue: config }],
+    }).compile();
+
+    const service = module.get<MailerService>(MailerService);
+
+    await expect(
+      service.sendMail({ to: 'user@test.dev', subject: 'Hello' }),
+    ).rejects.toMatchObject({
+      reason: 'transport_error',
+      details: 'socket closed',
+    } satisfies Partial<MailDeliveryError>);
+  });
+
+  it('sends password reset links with text and HTML variants', async () => {
+    const sendMail = jest.fn();
+    mockedNodemailer.createTransport.mockReturnValue({ sendMail } as any);
+    const config = {
+      get: jest.fn((key: string) => {
+        const values: Record<string, string | number | undefined> = {
+          MAILER_EMAIL: 'noreply@test.dev',
+          SMTP_HOST: 'smtp.test.dev',
+          SMTP_PORT: 2525,
+        };
+        return values[key];
+      }),
+    } as unknown as ConfigService;
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [MailerService, { provide: ConfigService, useValue: config }],
+    }).compile();
+
+    const service = module.get<MailerService>(MailerService);
+    await service.sendPasswordResetLink(
+      'user@test.dev',
+      'https://app.test/reset-password?token=abc',
+    );
+
+    const call = sendMail.mock.calls[0][0];
+    expect(call.subject).toBe('Reset your ScholarXP password');
+    expect(call.text).toContain('https://app.test/reset-password?token=abc');
+    expect(call.html).toContain('Reset password');
+    expect(call.html).toContain('https://app.test/reset-password?token=abc');
   });
 
   it('sends verification code with correct URL and HTML template', async () => {

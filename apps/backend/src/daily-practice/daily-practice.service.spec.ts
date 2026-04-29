@@ -37,6 +37,7 @@ describe('DailyPracticeService', () => {
   };
   let dailyPracticeEligibilityService: {
     assertEligibleForToday: jest.Mock;
+    checkEligibilityForToday: jest.Mock;
   };
   let dailyPracticeMapper: {
     buildTodayResponse: jest.Mock;
@@ -95,6 +96,9 @@ describe('DailyPracticeService', () => {
     };
     dailyPracticeEligibilityService = {
       assertEligibleForToday: jest.fn().mockResolvedValue(undefined),
+      checkEligibilityForToday: jest.fn().mockResolvedValue({
+        eligible: true,
+      }),
     };
     dailyPracticeMapper = {
       buildTodayResponse: jest.fn(),
@@ -257,6 +261,147 @@ describe('DailyPracticeService', () => {
       'Daily practice unlocks tomorrow after you complete your first lesson in this module.',
     );
     expect(dailyPracticeSetReadService.findSetForUtcDay).not.toHaveBeenCalled();
+  });
+
+  it('summarizes daily practice status for locked, no-set, completed, available, and in-progress days', async () => {
+    dailyPracticeEligibilityService.checkEligibilityForToday
+      .mockResolvedValueOnce({
+        eligible: false,
+        message: 'Daily practice unlocks tomorrow.',
+      })
+      .mockResolvedValue({ eligible: true });
+
+    await expect(service.getDailyPracticeStatus(7, 42)).resolves.toEqual({
+      status: 'locked',
+      message: 'Daily practice unlocks tomorrow.',
+    });
+
+    dailyPracticeSetReadService.findSetForUtcDay.mockResolvedValueOnce(null);
+    await expect(service.getDailyPracticeStatus(7, 42)).resolves.toEqual({
+      status: 'no_set',
+      message: 'No daily practice questions are available for this module yet.',
+    });
+
+    const completedSet = {
+      ...buildPersistedSet(),
+      completedAt: new Date('2026-03-20T10:00:00.000Z'),
+    };
+    dailyPracticeSetReadService.findSetForUtcDay.mockResolvedValueOnce(
+      completedSet,
+    );
+    await expect(service.getDailyPracticeStatus(7, 42)).resolves.toEqual({
+      status: 'completed',
+      progress: {
+        totalQuestions: 1,
+        answeredQuestions: 1,
+        completedAt: completedSet.completedAt.toISOString(),
+      },
+    });
+
+    dailyPracticeSetReadService.findSetForUtcDay.mockResolvedValueOnce(
+      buildPersistedSet(),
+    );
+    prisma.questionAttempt.findMany.mockResolvedValueOnce([] as never);
+    await expect(service.getDailyPracticeStatus(7, 42)).resolves.toMatchObject({
+      status: 'available',
+      progress: { totalQuestions: 1, answeredQuestions: 0 },
+    });
+
+    dailyPracticeSetReadService.findSetForUtcDay.mockResolvedValueOnce(
+      buildPersistedSet(),
+    );
+    prisma.questionAttempt.findMany.mockResolvedValueOnce([
+      { questionId: 101 },
+    ] as never);
+    await expect(service.getDailyPracticeStatus(7, 42)).resolves.toMatchObject({
+      status: 'in_progress',
+      progress: { totalQuestions: 1, answeredQuestions: 1 },
+    });
+  });
+
+  it('throws when persisted daily-practice content can no longer be hydrated', async () => {
+    dailyPracticeSetReadService.findSetForUtcDay.mockResolvedValue(
+      buildPersistedSet(),
+    );
+    practiceRoomSessionService.resolveOwnedSessionByType.mockResolvedValue({
+      id: 'session-1',
+      sessionType: PracticeSessionTypeValues.dailyPractice,
+      endTime: null,
+    });
+    prisma.questionContent.findMany.mockResolvedValue([] as never);
+    prisma.questionAttempt.findMany.mockResolvedValue([] as never);
+
+    await expect(service.getTodayDailyPractice(7, 42)).rejects.toThrow(
+      'Daily practice question content is no longer available.',
+    );
+  });
+
+  it('closes a daily-practice session and returns the latest hydrated progress', async () => {
+    const persistedSet = buildPersistedSet();
+    const closedAt = new Date('2026-03-20T10:00:00.000Z');
+    practiceRoomSessionService.closeOwnedSession.mockResolvedValue({
+      sessionId: 'session-1',
+      closedAt,
+    });
+    dailyPracticeSetReadService.findSetForUtcDay.mockResolvedValue(
+      persistedSet,
+    );
+    prisma.questionContent.findMany.mockResolvedValue([
+      {
+        id: 601,
+        questionUnitId: 101,
+        type: 'mcq',
+        questionStem: 'Variant stem',
+        questionData: { correctOptionIndex: 0 },
+        hint: null,
+        questionUnit: {
+          id: 101,
+          moduleUnit: { id: 11, title: 'Lesson 1' },
+        },
+      },
+    ] as never);
+    prisma.questionAttempt.findMany.mockResolvedValue([
+      {
+        questionId: 101,
+        studentAnswer: { selectedOptionIndex: 0 },
+        isCorrect: true,
+        attemptedAt: closedAt,
+        hintsUsed: 0,
+      },
+    ] as never);
+    dailyPracticeMapper.buildCloseResponse.mockReturnValue({
+      sessionId: 'session-1',
+    });
+
+    const result = await service.closeSession(7, 42, 'session-1');
+
+    expect(practiceRoomSessionService.closeOwnedSession).toHaveBeenCalledWith(
+      7,
+      42,
+      'session-1',
+    );
+    expect(dailyPracticeMapper.buildCloseResponse).toHaveBeenCalledWith({
+      sessionId: 'session-1',
+      closedAt,
+      progress: {
+        totalQuestions: 1,
+        answeredQuestions: 1,
+        completedAt: null,
+      },
+    });
+    expect(result).toEqual({ sessionId: 'session-1' });
+  });
+
+  it('rejects close when the module has no daily-practice set today', async () => {
+    practiceRoomSessionService.closeOwnedSession.mockResolvedValue({
+      sessionId: 'session-1',
+      closedAt: new Date(),
+    });
+    dailyPracticeSetReadService.findSetForUtcDay.mockResolvedValue(null);
+
+    await expect(service.closeSession(7, 42, 'session-1')).rejects.toThrow(
+      'Daily practice set not found for this module.',
+    );
   });
 
   it('submits the first daily attempt, updates FSRS once, and syncs set progress', async () => {
@@ -522,6 +667,91 @@ describe('DailyPracticeService', () => {
     expect(
       practiceRoomAttemptService.computeIsCorrectForPayload,
     ).not.toHaveBeenCalled();
+  });
+
+  it('rejects submits when the set or item is not owned by the module/student', async () => {
+    dailyPracticeSetReadService.findOwnedSetById.mockResolvedValueOnce(null);
+    await expect(
+      service.submitAttempt(7, 42, {
+        setId: 'missing-set',
+        moduleUnitId: 11,
+        questionUnitId: 101,
+        questionContentId: 601,
+        sessionId: 'session-1',
+        timeTakenMs: 9000,
+        hintUnlocked: false,
+        studentAnswer: { selectedOptionIndex: 0 },
+      }),
+    ).rejects.toThrow('Daily practice set not found for this module.');
+
+    dailyPracticeSetReadService.findOwnedSetById.mockResolvedValueOnce(
+      buildPersistedSet(),
+    );
+    await expect(
+      service.submitAttempt(7, 42, {
+        setId: buildPersistedSet().id,
+        moduleUnitId: 999,
+        questionUnitId: 101,
+        questionContentId: 601,
+        sessionId: 'session-1',
+        timeTakenMs: 9000,
+        hintUnlocked: false,
+        studentAnswer: { selectedOptionIndex: 0 },
+      }),
+    ).rejects.toThrow("Question not found in today's daily practice set.");
+  });
+
+  it('preserves completedAt and skips redundant progress writes for already-completed sets', async () => {
+    const completedAt = new Date('2026-03-20T10:00:00.000Z');
+    const persistedSet = { ...buildPersistedSet(), completedAt };
+    const tx = createPrismaMock();
+    dailyPracticeSetReadService.findOwnedSetById.mockResolvedValue(
+      persistedSet,
+    );
+    practiceRoomSessionService.getOwnedPracticeSessionOrThrow.mockResolvedValue(
+      {
+        id: 'session-1',
+        sessionType: PracticeSessionTypeValues.dailyPractice,
+        endTime: null,
+      },
+    );
+    practiceRoomAttemptService.computeIsCorrectForPayload.mockResolvedValue(
+      false,
+    );
+    dailyPracticeFsrsGradeService.mapEncounterToGrade.mockReturnValue(
+      FsrsReviewGradeValues.again,
+    );
+    practiceRoomAttemptService.createAttemptRecord.mockResolvedValue({ id: 1 });
+    dailyPracticeFsrsStateService.applyEncounter.mockResolvedValue(null);
+    tx.questionAttempt.findFirst
+      .mockResolvedValueOnce({ id: 1 } as never)
+      .mockResolvedValueOnce({ id: 2 } as never);
+    tx.questionAttempt.findMany.mockResolvedValue([
+      { questionId: 101, isCorrect: false, hintsUsed: 1 },
+    ] as never);
+    prisma.$transaction.mockImplementation(async (callback) => callback(tx));
+    dailyPracticeMapper.buildSubmitResponse.mockReturnValue({
+      completedAt,
+    });
+
+    await service.submitAttempt(7, 42, {
+      setId: persistedSet.id,
+      moduleUnitId: 11,
+      questionUnitId: 101,
+      questionContentId: 601,
+      sessionId: 'session-1',
+      timeTakenMs: 9000,
+      hintUnlocked: true,
+      studentAnswer: { selectedOptionIndex: 1 },
+    });
+
+    expect(tx.dailyPracticeSet.update).not.toHaveBeenCalled();
+    expect(dailyPracticeMapper.buildSubmitResponse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        hasCorrectAttempt: true,
+        progress: expect.objectContaining({ completedAt }),
+      }),
+    );
   });
 });
 

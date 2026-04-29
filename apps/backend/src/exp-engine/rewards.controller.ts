@@ -5,13 +5,9 @@ import type { Request } from 'express';
 import { Authorize } from '../auth/decorators/authorize.decorator';
 import { AuthorizationGuard } from '../auth/guards/authorization.guard';
 import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
-import type { AuthUser } from '../types/auth-user.type';
 import { DailyLessonXpTrackResponseDto } from './dto/daily-lesson-xp-track-response.dto';
 import { DailyLessonXpTrackService } from './daily-lesson-xp-track.service';
-
-type RewardsRequest = Request & {
-  user?: AuthUser;
-};
+import type { AuthUser } from '../types/auth-user.type';
 
 @Controller('rewards')
 @UseGuards(SessionAuthGuard, AuthorizationGuard)
@@ -23,7 +19,7 @@ export class RewardsController {
   @Get('daily-lesson-xp-track')
   @Authorize({ capability: features.navigation.profile, scope: 'global' })
   getMyDailyLessonXpTrack(
-    @Req() request: RewardsRequest,
+    @Req() request: Request & { user?: AuthUser },
   ): Promise<DailyLessonXpTrackResponseDto> {
     // Reward pacing is global student state, so the controller only forwards the authenticated user and current timestamp.
     return this.dailyLessonXpTrackService.getTrackForUser(

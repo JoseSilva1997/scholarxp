@@ -10,8 +10,6 @@ import type { AuthUser } from '../types/auth-user.type';
 import { EquipCosmeticDto } from './dto/equip-cosmetic.dto';
 import { RewardsService } from './rewards.service';
 
-type RewardsRequest = Request & { user?: AuthUser };
-
 @Controller('rewards')
 @UseGuards(SessionAuthGuard, AuthorizationGuard)
 export class RewardsController {
@@ -20,7 +18,7 @@ export class RewardsController {
   @Put('equipped')
   @Authorize({ capability: features.rewards.equip, scope: 'global' })
   async equipCosmetic(
-    @Req() request: RewardsRequest,
+    @Req() request: Request & { user?: AuthUser },
     @Body() body: EquipCosmeticDto,
   ): Promise<EquipCosmeticResponse> {
     const equippedCosmetics = await this.rewardsService.equipCosmetic({

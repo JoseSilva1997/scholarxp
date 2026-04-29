@@ -92,4 +92,53 @@ describe('ExpLedgerService', () => {
     ).rejects.toThrow(BadRequestException);
     expect(prisma.expLedger.createMany).not.toHaveBeenCalled();
   });
+
+  it('rejects blank idempotency keys', async () => {
+    await expect(
+      service.recordEvent({
+        userId: 7,
+        moduleId: null,
+        moduleUnitId: null,
+        sessionId: null,
+        questId: null,
+        eventType: ExpLedgerEventTypes.COMPLETE_QUEST,
+        awardedExp: 1,
+        idempotencyKey: '   ',
+      }),
+    ).rejects.toThrow(BadRequestException);
+    expect(prisma.expLedger.createMany).not.toHaveBeenCalled();
+  });
+
+  it('counts completed units for the UTC day using the provided transaction client and timestamp', async () => {
+    const tx = createPrismaMock();
+    tx.expLedger.count.mockResolvedValue(3);
+    const timestamp = new Date('2026-04-28T15:30:00.000Z');
+
+    const result = await service.getTodaysNumberOfCompletedUnits(
+      7,
+      tx,
+      timestamp,
+    );
+
+    expect(tx.expLedger.count).toHaveBeenCalledWith({
+      where: {
+        userId: 7,
+        eventType: ExpLedgerEventTypes.COMPLETE_MODULE_UNIT,
+        eventTimestamp: {
+          gte: new Date('2026-04-28T00:00:00.000Z'),
+          lt: new Date('2026-04-29T00:00:00.000Z'),
+        },
+      },
+    });
+    expect(result).toBe(3);
+  });
+
+  it('acquires a per-user UTC-day advisory lock', async () => {
+    await service.acquireDailyCompletionLock(
+      7,
+      new Date('2026-04-28T15:30:00.000Z'),
+    );
+
+    expect(prisma.$executeRaw).toHaveBeenCalled();
+  });
 });

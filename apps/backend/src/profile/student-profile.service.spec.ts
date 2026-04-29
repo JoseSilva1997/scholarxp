@@ -148,4 +148,112 @@ describe('StudentProfileService', () => {
       select: { isCompleted: true, type: true },
     });
   });
+
+  it('builds enrolled module summaries, daily-practice profile statuses, and imperfect quest days', async () => {
+    prisma.avatar.findUnique.mockResolvedValue(null);
+    prisma.userModule.findMany.mockResolvedValue([
+      {
+        moduleId: 10,
+        userModuleLevel: 2,
+        currentExp: 75,
+        module: {
+          id: 10,
+          title: 'Algebra',
+          moduleUnits: [{ id: 100 }, { id: 101 }],
+        },
+      },
+      {
+        moduleId: 11,
+        userModuleLevel: 1,
+        currentExp: 20,
+        module: {
+          id: 11,
+          title: 'Geometry',
+          moduleUnits: [{ id: 110 }],
+        },
+      },
+      {
+        moduleId: 12,
+        userModuleLevel: 1,
+        currentExp: 0,
+        module: {
+          id: 12,
+          title: 'Statistics',
+          moduleUnits: [],
+        },
+      },
+    ] as never);
+    prisma.moduleUnitUserProgress.count
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(0);
+    dailyPracticeService.getDailyPracticeStatus
+      .mockResolvedValueOnce({ status: 'completed' })
+      .mockResolvedValueOnce({ status: 'in_progress' })
+      .mockResolvedValueOnce({ status: 'locked' });
+    prisma.dailyQuest.findMany.mockResolvedValue([
+      { isCompleted: true, type: 'complete_new_unit' },
+      { isCompleted: false, type: 'daily_practice' },
+      { isCompleted: true, type: 'master_daily_quests' },
+    ] as never);
+    prisma.dailyQuest.count.mockResolvedValue(9);
+    prisma.dailyQuest.groupBy
+      .mockResolvedValueOnce([
+        {
+          questDateUtc: new Date('2026-03-24T00:00:00.000Z'),
+          _count: { id: 3 },
+        },
+        {
+          questDateUtc: new Date('2026-03-25T00:00:00.000Z'),
+          _count: { id: 3 },
+        },
+      ] as never)
+      .mockResolvedValueOnce([
+        {
+          questDateUtc: new Date('2026-03-25T00:00:00.000Z'),
+          _count: { id: 1 },
+        },
+      ] as never);
+    questStreakService.getCurrentStreakStatus.mockResolvedValue({
+      currentStreak: 5,
+    });
+    dailyLessonXpTrackService.getTrackForUser.mockResolvedValue({
+      date: '2026-03-25',
+      exp: 20,
+    });
+
+    const profile = await service.getStudentProfile(studentUser);
+
+    expect(profile.accountProgress).toMatchObject({
+      id: 0,
+      totalExp: 0,
+    });
+    expect(profile.modules).toEqual([
+      expect.objectContaining({
+        moduleId: 10,
+        completedLessons: 1,
+        totalLessons: 2,
+        dailyPracticeStatus: 'done',
+      }),
+      expect.objectContaining({
+        moduleId: 11,
+        completedLessons: 0,
+        totalLessons: 1,
+        dailyPracticeStatus: 'available',
+      }),
+      expect.objectContaining({
+        moduleId: 12,
+        completedLessons: 0,
+        totalLessons: 0,
+        dailyPracticeStatus: 'not_available',
+      }),
+    ]);
+    expect(profile.todayQuestProgress).toEqual({ completed: 1, total: 2 });
+    expect(profile.questHistorySummary).toEqual({
+      totalCompleted: 9,
+      perfectDays: 1,
+    });
+    expect(dailyPracticeService.getDailyPracticeStatus).toHaveBeenCalledTimes(
+      3,
+    );
+  });
 });
