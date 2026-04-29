@@ -41,6 +41,7 @@ export class PracticeRoomController {
       user.id,
       query.sessionId,
       query.sessionType,
+      user.globalRole,
     );
   }
 
@@ -58,6 +59,7 @@ export class PracticeRoomController {
       params.moduleUnitId,
       user.id,
       payload,
+      user.globalRole,
     );
   }
 

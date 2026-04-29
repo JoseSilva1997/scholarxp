@@ -3,6 +3,7 @@
  */
 import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { GlobalRole, ModuleUnitStatus } from '@prisma/client';
 import { PracticeSessionTypeValues } from '@scholarxp/api-contracts';
 import { MODULE_UNIT_BASELINE_EXP } from '@scholarxp/constants';
 import { PracticeRoomMapper } from './practice-room.mapper';
@@ -190,6 +191,41 @@ describe('PracticeRoomReadService', () => {
       await expect(
         service.getModuleUnitOrThrow(TEST_MODULE_ID, TEST_MODULE_UNIT_ID),
       ).rejects.toThrow(NotFoundException);
+    });
+
+    it('restricts the lookup to live units for student callers', async () => {
+      prisma.moduleUnit.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.getModuleUnitOrThrow(
+          TEST_MODULE_ID,
+          TEST_MODULE_UNIT_ID,
+          GlobalRole.student,
+        ),
+      ).rejects.toThrow(NotFoundException);
+      expect(prisma.moduleUnit.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: TEST_MODULE_UNIT_ID,
+            moduleId: TEST_MODULE_ID,
+            status: ModuleUnitStatus.live,
+          }),
+        }),
+      );
+    });
+
+    it('does not constrain status for non-student callers', async () => {
+      prisma.moduleUnit.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.getModuleUnitOrThrow(
+          TEST_MODULE_ID,
+          TEST_MODULE_UNIT_ID,
+          GlobalRole.teacher,
+        ),
+      ).rejects.toThrow(NotFoundException);
+      const callArg = prisma.moduleUnit.findFirst.mock.calls[0][0];
+      expect(callArg.where).not.toHaveProperty('status');
     });
   });
 
@@ -466,6 +502,37 @@ describe('PracticeRoomReadService', () => {
           PracticeSessionTypeValues.retry,
         ),
       ).resolves.toBeUndefined();
+    });
+
+    it('blocks student submissions when the unit is not live', async () => {
+      prisma.moduleUnit.findUnique.mockResolvedValue({
+        status: ModuleUnitStatus.draft,
+      } as never);
+
+      await expect(
+        service.assertModuleUnitAllowsSubmissions(
+          TEST_MODULE_UNIT_ID,
+          TEST_STUDENT_ID,
+          PracticeSessionTypeValues.practiceRoom,
+          GlobalRole.student,
+        ),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('lets non-students submit against draft units', async () => {
+      prisma.moduleUnitUserProgress.findFirst.mockResolvedValue({
+        isCompleted: false,
+      } as never);
+
+      await expect(
+        service.assertModuleUnitAllowsSubmissions(
+          TEST_MODULE_UNIT_ID,
+          TEST_STUDENT_ID,
+          PracticeSessionTypeValues.practiceRoom,
+          GlobalRole.teacher,
+        ),
+      ).resolves.toBeUndefined();
+      expect(prisma.moduleUnit.findUnique).not.toHaveBeenCalled();
     });
   });
 });

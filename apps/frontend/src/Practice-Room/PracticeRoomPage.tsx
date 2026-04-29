@@ -1,6 +1,7 @@
 // Module-unit-scoped student practice-room route that renders unit progress, question-unit bars, and a selectable question panel.
+import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { IconContext } from 'react-icons';
 import {
   FaChevronDown,
@@ -25,6 +26,7 @@ import { buildPracticeRoomAnswerFeedback } from '@/Practice-Room/practice-room-a
 
 export default function PracticeRoomPage() {
   const { moduleId, unitId } = useParams<{ moduleId: string; unitId: string }>();
+  const navigate = useNavigate();
 
   const {
     parsedModuleId,
@@ -36,6 +38,7 @@ export default function PracticeRoomPage() {
     isLessonCompleteModalOpen,
     isLoading,
     pageError,
+    isRoomAccessDenied,
     submitErrorMessage,
     isSubmittingAttempt,
     isRoomReadOnly,
@@ -68,6 +71,13 @@ export default function PracticeRoomPage() {
 
   const { cosmetic } = useCosmetics();
   const hasParticleFlair = cosmetic('answerFeedbackAnim') === 'particles';
+
+  // Non-live units are hidden from students at the API; bounce the route so
+  // direct URL access to draft/locked/archived lessons cannot linger on screen.
+  useEffect(() => {
+    if (!isRoomAccessDenied || !moduleId) return;
+    navigate(`/main/modules/${moduleId}`, { replace: true });
+  }, [isRoomAccessDenied, moduleId, navigate]);
 
   // Feedback remains presentation-only and uses local question data so it can be swapped to server-driven feedback later.
   // Revisited questions render prior feedback until the student starts a new

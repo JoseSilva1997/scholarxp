@@ -2,6 +2,7 @@
  collaborators for reads, attempts, and session lifecycle management.
  */
 import { Injectable } from '@nestjs/common';
+import { GlobalRole } from '@prisma/client';
 import {
   PracticeSessionTypeValues,
   type PracticeSessionType,
@@ -44,6 +45,7 @@ export class PracticeRoomService {
     studentId: number,
     existingSessionId?: string,
     requestedSessionType?: PracticeSessionType,
+    globalRole?: GlobalRole,
   ): Promise<ModuleUnitPracticeRoomResponseDto> {
     const roomContext = await this.practiceRoomReadService.loadRoomContext(
       moduleId,
@@ -51,6 +53,7 @@ export class PracticeRoomService {
       studentId,
       requestedSessionType,
       existingSessionId,
+      globalRole,
     );
     const latestAttemptByKey =
       await this.practiceRoomReadService.getLatestAttemptMap(
@@ -120,6 +123,7 @@ export class PracticeRoomService {
     moduleUnitId: number,
     studentId: number,
     payload: SubmitAttemptDto,
+    globalRole?: GlobalRole,
   ): Promise<SubmitAttemptResponseDto> {
     this.practiceRoomAttemptService.validateModuleUnitPayload(
       moduleUnitId,
@@ -138,6 +142,7 @@ export class PracticeRoomService {
       moduleUnitId,
       studentId,
       session.sessionType,
+      globalRole,
     );
 
     const isCorrect =

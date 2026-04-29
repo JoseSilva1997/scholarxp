@@ -6,6 +6,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { GlobalRole, ModuleUnitStatus } from '@prisma/client';
 import {
   PracticeSessionTypeValues,
   type PracticeQuestionRewardState,
@@ -40,8 +41,13 @@ export class PracticeRoomReadService {
     studentId: number,
     requestedSessionType?: PracticeSessionType,
     existingSessionId?: string,
+    globalRole?: GlobalRole,
   ): Promise<RoomContext> {
-    const moduleUnit = await this.getModuleUnitOrThrow(moduleId, moduleUnitId);
+    const moduleUnit = await this.getModuleUnitOrThrow(
+      moduleId,
+      moduleUnitId,
+      globalRole,
+    );
     const isCompleted = await this.isModuleUnitCompleted(
       moduleUnitId,
       studentId,
@@ -67,12 +73,19 @@ export class PracticeRoomReadService {
   }
 
   // Loads module-unit content in one query to avoid round-trips while building the room payload.
+  // Students only see live units; draft/locked/archived stay invisible to prevent URL-direct access bypass.
   async getModuleUnitOrThrow(
     moduleId: number,
     moduleUnitId: number,
+    globalRole?: GlobalRole,
   ): Promise<LoadedModuleUnit> {
+    const restrictToLive = globalRole === GlobalRole.student;
     const moduleUnit = await this.prisma.moduleUnit.findFirst({
-      where: { id: moduleUnitId, moduleId },
+      where: {
+        id: moduleUnitId,
+        moduleId,
+        ...(restrictToLive ? { status: ModuleUnitStatus.live } : {}),
+      },
       select: {
         id: true,
         title: true,
@@ -265,7 +278,18 @@ export class PracticeRoomReadService {
     moduleUnitId: number,
     studentId: number,
     sessionType: string,
+    globalRole?: GlobalRole,
   ) {
+    if (globalRole === GlobalRole.student) {
+      const unit = await this.prisma.moduleUnit.findUnique({
+        where: { id: moduleUnitId },
+        select: { status: true },
+      });
+      if (!unit || unit.status !== ModuleUnitStatus.live) {
+        throw new ForbiddenException('This lesson is not available.');
+      }
+    }
+
     if (sessionType === PracticeSessionTypeValues.retry) {
       return;
     }

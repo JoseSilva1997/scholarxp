@@ -7,6 +7,7 @@ import type {
   PracticeSessionType,
 } from '@scholarxp/api-contracts';
 import { PracticeSessionTypeValues } from '@scholarxp/api-contracts';
+import { ApiError } from '@/shared/api/client';
 import {
   getDisplayErrorMessage,
   shouldLogApiError,
@@ -407,6 +408,17 @@ export function usePracticeRoomPageState({
     return null;
   }, [moduleDetailQuery.error, parsedModuleId, parsedUnitId, practiceRoomQuery.error]);
 
+  // Backend hides non-live units from students by returning 404; 403 covers any
+  // future tightening. Both signal the room is inaccessible — the page should
+  // bounce the student back to the module index instead of dwelling on an error.
+  const isRoomAccessDenied = useMemo(() => {
+    const error = practiceRoomQuery.error;
+    if (!(error instanceof ApiError)) {
+      return false;
+    }
+    return error.status === 404 || error.status === 403;
+  }, [practiceRoomQuery.error]);
+
   // ─── Actions ───────────────────────────────────────────────────────────────
   // Event handlers passed to the page component; declared last so they can
   // close over all derived state above without forward-reference issues.
@@ -431,6 +443,7 @@ export function usePracticeRoomPageState({
       (moduleDetailQuery.isPending && !isProgressInitialized),
     sessionType,
     pageError,
+    isRoomAccessDenied,
     submitErrorMessage,
     isSubmittingAttempt,
     isRoomReadOnly,

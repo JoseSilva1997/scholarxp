@@ -14,7 +14,7 @@ describe('PracticeRoomController', () => {
     closeSession: jest.Mock;
   };
 
-  const request = { user: { id: 99 } } as never;
+  const request = { user: { id: 99, globalRole: 'student' } } as never;
   const params = { moduleId: 4, moduleUnitId: 8 };
 
   beforeEach(async () => {
@@ -59,6 +59,7 @@ describe('PracticeRoomController', () => {
       99,
       'session-1',
       'retry',
+      'student',
     );
     expect(result).toBe(response);
   });
@@ -75,6 +76,7 @@ describe('PracticeRoomController', () => {
       8,
       99,
       payload,
+      'student',
     );
     expect(result).toBe(response);
   });
