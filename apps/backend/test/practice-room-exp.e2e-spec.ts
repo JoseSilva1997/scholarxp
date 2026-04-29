@@ -13,6 +13,7 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { AuthorizationGuard } from '../src/auth/guards/authorization.guard';
 import { SessionAuthGuard } from '../src/auth/guards/session-auth.guard';
+import { DailyPracticeGenerationScheduleService } from '../src/daily-practice/daily-practice-generation-schedule.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { QuestGenerationStartupService } from '../src/quests/quest-generation-startup.service';
 
@@ -61,7 +62,9 @@ describe('Practice room XP policy (e2e)', () => {
       .useClass(TestSessionGuard)
       .overrideGuard(AuthorizationGuard)
       .useClass(TestAuthorizationGuard)
-      // Suppress startup quest generation so this suite's teardown cannot race a background batch against Prisma shutdown.
+      // Suppress startup generation batches so this suite's teardown cannot race them against Prisma shutdown.
+      .overrideProvider(DailyPracticeGenerationScheduleService)
+      .useValue({ onModuleInit: () => {} })
       .overrideProvider(QuestGenerationStartupService)
       .useValue({ onModuleInit: () => {} })
       .compile();

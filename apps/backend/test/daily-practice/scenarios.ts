@@ -600,16 +600,16 @@ export async function seedStudentMaxPressureScenario(
   prisma: PrismaLike,
   base: SeededStudentModuleScenario,
 ) {
-  // 21 due-review questions + 1 reinforcement candidate = 22 review-eligible total.
-  // Math.round(22 * 0.25) = Math.round(5.5) = 6 → hits MAX_DAILY_PRACTICE_QUESTION_COUNT.
-  // The sizing policy then produces quota: 5 due_review + 1 reinforcement.
+  // 39 due-review questions + 2 reinforcement candidates = 41 review-eligible total.
+  // Math.round(41 * 0.25) = Math.round(10.25) = 10 → hits MAX_DAILY_PRACTICE_QUESTION_COUNT.
+  // The sizing policy then produces quota: 8 due_review + 2 reinforcement.
   const heavyLesson = await seedLiveModuleUnitWithMcqQuestions(
     prisma,
     base.moduleId,
     {
       title: 'Heavy review lesson',
       sortOrder: 1,
-      questionCount: 21,
+      questionCount: 39,
     },
   );
   const { dayStartUtc } = DateHelpers.getUtcDayBounds(new Date());
@@ -634,14 +634,14 @@ export async function seedStudentMaxPressureScenario(
     lastSeenAt: completedAt,
   });
 
-  // progressLesson: one reinforcement candidate (Q0, seen with 'again' grade, future due).
+  // progressLesson: two reinforcement candidates (seen with 'again' grade, future due).
   const progressLesson = await seedLiveModuleUnitWithMcqQuestions(
     prisma,
     base.moduleId,
     {
       title: 'In-progress lesson',
       sortOrder: 2,
-      questionCount: 1,
+      questionCount: 2,
     },
   );
   await seedCompletedLessonProgress(prisma, {
@@ -650,20 +650,22 @@ export async function seedStudentMaxPressureScenario(
     completedAt,
   });
 
-  // 'again' grade + lapse means this question is a reinforcement candidate (not yet due).
-  await seedStudentQuestionState(prisma, {
-    studentId: base.studentId,
-    moduleId: base.moduleId,
-    moduleUnitId: progressLesson.moduleUnitId,
-    questionUnitId: progressLesson.questions[0].questionUnitId,
-    fsrsDueAt: new Date(dayStartUtc.getTime() + 48 * 60 * 60 * 1000),
-    lastSeenAt: new Date(dayStartUtc.getTime() - 24 * 60 * 60 * 1000),
-    lastGrade: 'again',
-    lapseCount: 1,
-    firstSeenAt: completedAt,
-    lastCorrectAt: null,
-    reviewCount: 2,
-  });
+  // 'again' grade + lapse means these questions are reinforcement candidates (not yet due).
+  for (const reinforcementQuestion of progressLesson.questions) {
+    await seedStudentQuestionState(prisma, {
+      studentId: base.studentId,
+      moduleId: base.moduleId,
+      moduleUnitId: progressLesson.moduleUnitId,
+      questionUnitId: reinforcementQuestion.questionUnitId,
+      fsrsDueAt: new Date(dayStartUtc.getTime() + 48 * 60 * 60 * 1000),
+      lastSeenAt: new Date(dayStartUtc.getTime() - 24 * 60 * 60 * 1000),
+      lastGrade: 'again',
+      lapseCount: 1,
+      firstSeenAt: completedAt,
+      lastCorrectAt: null,
+      reviewCount: 2,
+    });
+  }
 
   return {
     ...base,

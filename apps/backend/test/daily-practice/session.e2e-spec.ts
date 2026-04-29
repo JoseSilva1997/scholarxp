@@ -1,6 +1,7 @@
 // Role: validates daily-practice set/session stability so refreshes and resumes keep the same persisted module-scoped set all day.
 import { INestApplication } from '@nestjs/common';
 import { PracticeSessionTypeValues } from '@scholarxp/api-contracts';
+import { DateHelpers } from '../../src/helpers/helpers';
 import { PrismaService } from '../../src/prisma/prisma.service';
 import {
   assertSafeE2eDatabaseUrl,
@@ -35,14 +36,14 @@ describe('Daily practice session stability (e2e)', () => {
     await app.close();
   });
 
-  it("generates a fresh set and session on the next UTC day, leaving yesterday's set untouched", async () => {
+  it("generates a fresh set and session on the next local day, leaving yesterday's set untouched", async () => {
     // Scenario: student practiced yesterday (simulated by inserting a DailyPracticeSet directly).
     // Today's fetch must create a brand-new set rather than resuming the stale one.
     const base = await seedStudentModuleScenario(prisma);
     setAuthenticatedUserId(base.studentId);
     const scenario = await seedStudentReviewReadyScenario(prisma, base);
 
-    // Plant a pre-existing set anchored to yesterday's UTC date using the first 3 questions.
+    // Plant a pre-existing set anchored to yesterday's local date using the first 3 questions.
     // These questions are still due today, so today's fetch will include them in the new set.
     const { setId: yesterdaysSetId } = await seedYesterdayDailyPracticeSet(
       prisma,
@@ -59,7 +60,7 @@ describe('Daily practice session stability (e2e)', () => {
 
     const body = await fetchTodayDailyPractice(app, base.moduleId);
 
-    // Today's set must be distinct from yesterday's — the day-boundary must produce a new row.
+    // Today's set must be distinct from yesterday's — the local day-boundary must produce a new row.
     expect(body.setId).not.toBe(yesterdaysSetId);
 
     // Both rows must be preserved: yesterday's is immutable, today's is new.
@@ -243,7 +244,55 @@ describe('Daily practice session stability (e2e)', () => {
     expect(setCountB).toBe(1);
   });
 
-  it('returns the same persisted set and open session when the student reloads daily practice on the same UTC day', async () => {
+  it("keys today's set by the student's local calendar date, not UTC", async () => {
+    // Two students at the same wall-clock instant but in extreme-offset timezones
+    // (+14 Kiritimati vs -11 Niue = 25 h apart) must always land on different local
+    // calendar dates. If the day-key were UTC-derived they would collide.
+    const aheadStudent = await seedStudentModuleScenario(prisma);
+    await prisma.user.update({
+      where: { id: aheadStudent.studentId },
+      data: { timezone: 'Pacific/Kiritimati' },
+    });
+    await seedStudentReviewReadyScenario(prisma, aheadStudent);
+
+    const behindStudent = await seedStudentModuleScenario(prisma);
+    await prisma.user.update({
+      where: { id: behindStudent.studentId },
+      data: { timezone: 'Pacific/Niue' },
+    });
+    await seedStudentReviewReadyScenario(prisma, behindStudent);
+
+    setAuthenticatedUserId(aheadStudent.studentId);
+    const aheadBody = await fetchTodayDailyPractice(
+      app,
+      aheadStudent.moduleId,
+    );
+
+    setAuthenticatedUserId(behindStudent.studentId);
+    const behindBody = await fetchTodayDailyPractice(
+      app,
+      behindStudent.moduleId,
+    );
+
+    // Each set's day-key must equal the local calendar date in that student's timezone.
+    const now = new Date();
+    const expectedAheadKey = DateHelpers.getLocalDateKey(
+      now,
+      'Pacific/Kiritimati',
+    );
+    const expectedBehindKey = DateHelpers.getLocalDateKey(
+      now,
+      'Pacific/Niue',
+    );
+    expect(aheadBody.practiceDateUtc.slice(0, 10)).toBe(expectedAheadKey);
+    expect(behindBody.practiceDateUtc.slice(0, 10)).toBe(expectedBehindKey);
+
+    // Twenty-five hours apart guarantees different local calendar dates regardless of moment.
+    expect(expectedAheadKey).not.toBe(expectedBehindKey);
+    expect(aheadBody.practiceDateUtc).not.toBe(behindBody.practiceDateUtc);
+  });
+
+  it('returns the same persisted set and open session when the student reloads daily practice on the same local day', async () => {
     const base = await seedStudentModuleScenario(prisma);
     setAuthenticatedUserId(base.studentId);
     await seedStudentReviewReadyScenario(prisma, base);
