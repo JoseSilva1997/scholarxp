@@ -155,8 +155,22 @@ function AppLayout() {
                 />
                 <Route path="/main/modules/:moduleId/:unitId/practice-room" element={<PracticeRoomPage />} />
                 <Route path="/main/modules/:moduleId/daily-practice" element={<DailyPracticePage />} />
-                <Route path="/main/quests" element={<QuestsPage />} />
-                <Route path="/main/rewards" element={<RewardsPage />} />
+                <Route
+                  path="/main/quests"
+                  element={
+                    <RequireCapability capability={features.navigation.quests}>
+                      <QuestsPage />
+                    </RequireCapability>
+                  }
+                />
+                <Route
+                  path="/main/rewards"
+                  element={
+                    <RequireCapability capability={features.navigation.rewards}>
+                      <RewardsPage />
+                    </RequireCapability>
+                  }
+                />
                 <Route path="/main/profile" element={<ProfilePage />} />
               </Route>
             </Route>
