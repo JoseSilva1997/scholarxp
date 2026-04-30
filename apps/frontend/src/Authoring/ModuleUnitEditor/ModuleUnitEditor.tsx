@@ -473,6 +473,7 @@ export default function ModuleUnitEditor() {
                   )}
                 </div>
 
+                {selectedQuestion ? (
                 <div className={styles.formSection}>
                   <label className={styles.label}>Question Type</label>
                   <div className={styles.typeToggle}>
@@ -564,6 +565,7 @@ export default function ModuleUnitEditor() {
                     </button>
                   </div>
                 </div>
+                ) : null}
               </div>
             </main>
           </div>

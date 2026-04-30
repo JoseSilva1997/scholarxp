@@ -932,7 +932,7 @@ describe('ModuleSettingsPanel', () => {
       expect(screen.getByText('Practice attempts')).toBeInTheDocument();
       expect(screen.getByText('12')).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('button', { name: /Confirm archive/i }));
+      await userEvent.click(screen.getByRole('button', { name: /Confirm delete/i }));
 
       expect(onConfirmArchiveModule).toHaveBeenCalledTimes(1);
     });
@@ -955,7 +955,7 @@ describe('ModuleSettingsPanel', () => {
       expect(
         screen.getByText('Could not check module impact right now. Please try again.'),
       ).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Confirm archive/i })).toBeDisabled();
+      expect(screen.getByRole('button', { name: /Confirm delete/i })).toBeDisabled();
     });
   });
 

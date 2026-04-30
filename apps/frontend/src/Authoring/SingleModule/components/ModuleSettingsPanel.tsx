@@ -429,7 +429,7 @@ export default function ModuleSettingsPanel({
                     onClick={onConfirmArchiveModule}
                     disabled={isArchivingModule || isArchiveImpactLoading}
                   >
-                    {isArchivingModule ? 'Archiving...' : 'Confirm archive'}
+                    {isArchivingModule ? 'Deleting...' : 'Confirm delete'}
                   </button>
                 </div>
               </div>
