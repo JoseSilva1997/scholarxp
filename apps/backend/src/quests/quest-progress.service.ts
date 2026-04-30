@@ -568,6 +568,14 @@ export class QuestProgressService {
       return false;
     }
 
+    // A quest cannot be satisfied by work that finished before it existed; otherwise
+    // mid-day generation top-ups would auto-complete from prior activity (e.g. a
+    // newly enrolled module's first lesson completed before the lesson quest was
+    // created).
+    if (completedAt < quest.generatedAt) {
+      return false;
+    }
+
     // Completion always targets one known quest row
     await prismaClient.dailyQuest.update({
       where: {
