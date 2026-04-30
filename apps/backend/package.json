@@ -25,6 +25,7 @@
     "test:e2e": "NODE_ENV=test E2E_TEST_RUN=true jest --config ./test/jest-e2e.json",
     "test:e2e:reset": "pnpm run reset:test && pnpm run test:e2e",
     "cleanup:user-learning-data": "ts-node src/scripts/delete-user-learning-data.ts",
+    "advance:user-day": "ts-node src/scripts/advance-user-day.ts",
     "migrate:dev": "pnpm prisma migrate dev",
     "migrate:development": "pnpm dotenv -e .env.development -- pnpm prisma migrate dev",
     "migrate:test": "pnpm exec dotenv -e .env.test -- pnpm prisma migrate deploy",
