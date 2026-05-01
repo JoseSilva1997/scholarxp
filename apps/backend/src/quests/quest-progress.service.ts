@@ -70,6 +70,7 @@ type PersistedQuest = {
   expGranted: number;
   isCompleted: boolean;
   questDateUtc: Date;
+  generatedAt: Date;
 };
 
 @Injectable()
