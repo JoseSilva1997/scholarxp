@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -17,6 +18,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { StorageService } from '../../file-storage/storage.service';
+import { ANON_USER_ID } from './anon-user.constant';
 
 // Magic-byte signatures for the three image formats we accept; checked alongside the declared MIME type
 // so a client cannot smuggle a non-image by setting the Content-Type header.
@@ -211,6 +213,34 @@ export class UsersService {
   async remove(id: number) {
     await this.getUserOrThrow(id);
     return this.prisma.user.delete({ where: { id } });
+  }
+
+  // Self-serve hard delete. Reassigns authored modules/invites to the Anon sentinel so student access is preserved,
+  // then deletes the user; cascading FKs (avatar, user_modules, daily_quests, exp_ledger, auth_identity, etc.) clean the rest.
+  async removeSelf(userId: number, confirmEmail: string) {
+    if (userId === ANON_USER_ID) {
+      throw new ForbiddenException('This account cannot be deleted');
+    }
+    const user = await this.getUserOrThrow(userId);
+    const submitted = confirmEmail.trim().toLowerCase();
+    const stored = user.email?.trim().toLowerCase() ?? '';
+    if (!stored || submitted !== stored) {
+      throw new BadRequestException(
+        'Email confirmation does not match account email',
+      );
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.module.updateMany({
+        where: { createdByUserId: userId },
+        data: { createdByUserId: ANON_USER_ID },
+      });
+      await tx.moduleInvite.updateMany({
+        where: { createdByUserId: userId },
+        data: { createdByUserId: ANON_USER_ID },
+      });
+      await tx.user.delete({ where: { id: userId } });
+    });
   }
 
   private async getUserOrThrow(id: number) {

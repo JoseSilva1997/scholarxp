@@ -1,8 +1,10 @@
 // Profile page shell: reads current user role and renders the appropriate profile view.
+import { canAccess, features } from '@scholarxp/permissions';
 import MainSection from '@/MainApp/MainSection/MainSection';
 import HeroCard from '@/Account/Profile/components/HeroCard';
 import StudentProfile from '@/Account/Profile/components/StudentProfile';
 import TutorProfile from '@/Account/Profile/components/TutorProfile';
+import DeleteAccountSection from '@/Account/Profile/components/DeleteAccountSection';
 import { useProfilePageState } from '@/Account/Profile/page-state/useProfilePageState';
 
 export default function ProfilePage() {
@@ -52,6 +54,10 @@ export default function ProfilePage() {
           profile={tutorProfile}
           isEditing={isEditingProfile}
         />
+      ) : null}
+
+      {canAccess(features.users.deleteOwnAccount, { role: user.globalRole }) ? (
+        <DeleteAccountSection user={user} />
       ) : null}
     </MainSection>
   );

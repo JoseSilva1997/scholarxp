@@ -5,6 +5,7 @@ export const features = {
     updateOwnTimezone: 'users_update_own_timezone',
     updateOwnProfilePicture: 'users_update_own_profile_picture',
     updateOwnName: 'users_update_own_name',
+    deleteOwnAccount: 'users_delete_own_account',
   },
   modules: {
     create: 'modules_create',

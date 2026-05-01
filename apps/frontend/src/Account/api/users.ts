@@ -3,6 +3,7 @@ import { apiFetch } from '@/shared/api/client';
 import {
   PROFILE_PICTURE_UPLOAD_FIELD,
   type AuthUser,
+  type DeleteAccountPayload,
   type GlobalRole,
   type UpdateNamePayload,
   type UpdateNameResponse,
@@ -46,6 +47,14 @@ export async function uploadProfilePicture(userId: number, file: Blob) {
   return apiFetch<UpdateProfilePictureResponse>(`/users/${userId}/profile-picture`, {
     method: 'PUT',
     body: formData,
+  });
+}
+
+export async function deleteOwnAccount(confirmEmail: string) {
+  const payload: DeleteAccountPayload = { confirmEmail };
+  return apiFetch<void>(`/users/me`, {
+    method: 'DELETE',
+    body: JSON.stringify(payload),
   });
 }
 

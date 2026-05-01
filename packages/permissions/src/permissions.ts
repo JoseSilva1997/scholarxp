@@ -36,6 +36,8 @@ export const permissionMatrix: PermissionMatrix = {
     'teacher',
     'student',
   ],
+  // Admins excluded: removing the last admin would orphan platform governance.
+  [features.users.deleteOwnAccount]: ['pending', 'teacher', 'student'],
 
   // ====MODULES====
   [features.modules.create]: ['admin', 'teacher'],

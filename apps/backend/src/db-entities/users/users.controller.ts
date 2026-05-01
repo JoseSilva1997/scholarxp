@@ -2,22 +2,29 @@ import {
   Body,
   Controller,
   Delete,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseIntPipe,
   Patch,
   Put,
+  Req,
+  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import type { Request, Response } from 'express';
 // Side-effect import loads the @types/multer namespace augmentation that adds Express.Multer.File.
 import 'multer';
 import { UsersService } from './users.service';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 import { UpdateTimezoneDto } from './dto/update-timezone.dto';
 import { UpdateNameDto } from './dto/update-name.dto';
+import { DeleteAccountDto } from './dto/delete-account.dto';
 import { AuthService } from '../../auth/auth.service';
+import type { AuthUser } from '../../types/auth-user.type';
 import { SessionAuthGuard } from '../../auth/guards/session-auth.guard';
 import { AuthorizationGuard } from '../../auth/guards/authorization.guard';
 import { Authorize } from '../../auth/decorators/authorize.decorator';
@@ -100,6 +107,21 @@ export class UsersController {
     return this.usersService
       .updateProfilePicture(id, file)
       .then(() => this.authService.getUserById(id));
+  }
+
+  // Self-serve account deletion. Static `me` route declared before any `:id` patterns so Nest matches it first.
+  @Delete('me')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Authorize({ capability: features.users.deleteOwnAccount, scope: 'global' })
+  async deleteOwnAccount(
+    @Body() dto: DeleteAccountDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const user = req.user as AuthUser;
+    await this.usersService.removeSelf(user.id, dto.confirmEmail);
+    // Logout regenerates the session and clears auth cookies so the deleted user cannot continue making requests.
+    await this.authService.logout(req, res);
   }
 
   @Delete(':id/profile-picture')

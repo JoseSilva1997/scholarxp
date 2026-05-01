@@ -29,3 +29,8 @@ export interface UpdateNamePayload {
 }
 
 export type UpdateNameResponse = AuthUser;
+
+// Self-serve account deletion requires the user to retype their email as a confirmation step.
+export interface DeleteAccountPayload {
+  confirmEmail: string;
+}
