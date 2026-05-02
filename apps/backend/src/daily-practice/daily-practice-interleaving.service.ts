@@ -57,6 +57,7 @@ export class DailyPracticeInterleavingService {
     return orderedQuestions;
   }
 
+  // Groups selected questions by lesson (moduleUnitId) and sorts lessons by their curriculum sort order so the interleaver visits them in content sequence.
   private buildLessonQueues(
     selectedQuestions: SelectedDailyPracticeQuestionRecord[],
   ): LessonQueue[] {
@@ -96,6 +97,9 @@ export class DailyPracticeInterleavingService {
     );
   }
 
+  // Picks the next lesson to pull from, preferring a different lesson than the previous one to avoid consecutive same-topic questions.
+  // When all remaining questions are from the same lesson, that lesson is selected anyway to guarantee completion.
+  // Among eligible lessons, the one with the most remaining questions wins — this balances lesson exposure rather than draining one lesson fully before moving on.
   private selectNextLessonQueue(
     lessonQueues: LessonQueue[],
     previousModuleUnitId: number | null,

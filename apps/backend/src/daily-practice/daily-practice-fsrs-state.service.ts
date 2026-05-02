@@ -115,6 +115,7 @@ export class DailyPracticeFsrsStateService {
     );
   }
 
+  // Upsert on create ensures idempotency if two concurrent processes both reach the seed path for the same user/question pair.
   private async persistCreate(
     prismaClient: PrismaClientLike,
     params: ApplyDailyPracticeEncounterParams,
@@ -173,6 +174,7 @@ export class DailyPracticeFsrsStateService {
     });
   }
 
+  // Updates the existing card state while preserving timestamps (firstSeenAt, lastCorrectAt) that must not regress on an incorrect review.
   private async persistUpdate(
     prismaClient: PrismaClientLike,
     params: ApplyDailyPracticeEncounterParams,
@@ -281,6 +283,7 @@ export class DailyPracticeFsrsStateService {
     };
   }
 
+  // Centralises the Prisma select shape so persistCreate and persistUpdate always return an identical StudentQuestionStateRecord.
   private stateSelect() {
     return {
       id: true,

@@ -10,6 +10,7 @@ export const DAILY_PRACTICE_REVIEW_RATIO = 0.4; // Proportion of review-eligible
 export const REINFORCEMENT_RATIO = 0.3;
 
 
+// Guards against generating a set when the module has too few eligible questions to be a meaningful practice session.
 export function hasMinimumEligibleInventory(
   inventory: DailyPracticeSelectionInventory,
 ): boolean {
@@ -19,6 +20,7 @@ export function hasMinimumEligibleInventory(
   );
 }
 
+// Derives quota allocations for each bucket from current inventory. Returns a zero-plan when inventory is below the minimum threshold.
 export function buildDailyPracticeSelectionPlan(
   inventory: DailyPracticeSelectionInventory,
   requestedTargetQuestionCount?: number,
@@ -50,6 +52,7 @@ export function buildDailyPracticeSelectionPlan(
   };
 }
 
+// Scales set size proportionally to eligible inventory, always clamped between MIN and MAX. A caller-supplied override bypasses proportional sizing and only applies the clamp.
 export function deriveDailyPracticeTargetQuestionCount(
   inventory: DailyPracticeSelectionInventory,
   requestedTargetQuestionCount?: number,

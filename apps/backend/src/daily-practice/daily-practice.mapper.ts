@@ -121,6 +121,7 @@ export class DailyPracticeMapper {
     return response;
   }
 
+  // Shared progress shape used by all three response types so completedAt serialization is consistent across endpoints.
   private buildProgressDto(progress: {
     totalQuestions: number;
     answeredQuestions: number;
@@ -134,6 +135,7 @@ export class DailyPracticeMapper {
     return dto;
   }
 
+  // Assembles a single question item including its persisted selection metadata (sourceBucket, position) and the last attempt snapshot for pre-population in the UI.
   private buildQuestionItemDto(
     question: BuildTodayResponseInput['questions'][number],
   ): DailyPracticeQuestionItemDto {

@@ -430,6 +430,7 @@ export class DailyPracticeService {
     });
   }
 
+  // Loads the persisted set for the current local day, throwing the same NotFound for both "never generated" and the empty-sentinel case so the API does not leak generation internals.
   private async getTodaySetOrThrow(
     moduleId: number,
     studentId: number,
@@ -454,6 +455,7 @@ export class DailyPracticeService {
     return existingSet;
   }
 
+  // Hydrates the persisted set with question content, the day's attempts, the latest attempt per question, and the streak so controller responses can be assembled in one pass.
   private async loadHydratedSetState(
     dailyPracticeSet: PersistedDailyPracticeSetRecord,
     studentId: number,
@@ -645,6 +647,7 @@ export class DailyPracticeService {
     return { currentStreak, highestStreak };
   }
 
+  // Recomputes answered count and stamps completedAt exactly once per set so progress writes stay idempotent across resubmissions.
   private async syncProgressForSet(
     dailyPracticeSet: PersistedDailyPracticeSetRecord,
     studentId: number,

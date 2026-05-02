@@ -91,6 +91,8 @@ export class DailyPracticeVariantResolverService {
     }));
   }
 
+  // Variant selection strategy: unseen variants take priority; once all variants have been seen, the least-recently-seen variant is chosen to maintain novelty.
+  // Falls back to coreContentId when no active variants exist.
   private resolveQuestionContentId(
     coreContentId: number,
     activeVariantContentIds: number[],
