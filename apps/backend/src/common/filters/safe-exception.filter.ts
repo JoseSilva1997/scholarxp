@@ -37,6 +37,9 @@ export class SafeExceptionFilter implements ExceptionFilter {
   // Keep a dedicated logger scope so filter logs stay grouped in output.
   private readonly logger = new Logger(SafeExceptionFilter.name);
 
+  // Entry point invoked by Nest for any unhandled exception in the HTTP pipeline.
+  // Classifies the error, writes a server-side log entry with full context, and
+  // emits a sanitized JSON payload so internal details never leak to clients.
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     // Nest's HTTP adapter returns loosely typed values, so we narrow safely through unknown first.
@@ -132,6 +135,9 @@ export class SafeExceptionFilter implements ExceptionFilter {
     response.status(status).json(safeResponse);
   }
 
+  // Translates a NestJS HttpException into the module's stable response contract.
+  // Honours route-supplied `code`/`message`/`details` when present, otherwise falls
+  // back to status-derived defaults so every error shape remains predictable.
   private buildSafeHttpResponse(
     exception: HttpException,
     status: number,
@@ -184,6 +190,10 @@ export class SafeExceptionFilter implements ExceptionFilter {
     };
   }
 
+  // Coerces an arbitrary `details` payload into the strict SafeErrorDetail[] shape.
+  // Accepts either string entries or {message, field?} records; anything else is
+  // discarded to prevent untrusted internal data from reaching the client.
+  // Time complexity: O(n) over entries. Space complexity: O(n) for the filtered output.
   private normalizeDetails(value: unknown): SafeErrorDetail[] | undefined {
     if (!Array.isArray(value)) {
       return undefined;
@@ -215,6 +225,8 @@ export class SafeExceptionFilter implements ExceptionFilter {
     return details.length > 0 ? details : undefined;
   }
 
+  // Provides a generic, user-safe message when the original exception did not supply one.
+  // Server (5xx) errors deliberately reveal nothing about internal state.
   private getDefaultMessageForStatus(status: number): string {
     if (status >= 500) {
       return 'Something went wrong. Please try again.';
@@ -222,6 +234,8 @@ export class SafeExceptionFilter implements ExceptionFilter {
     return 'The request could not be completed.';
   }
 
+  // Maps an HTTP status code to a stable, machine-readable error code that
+  // clients can branch on without parsing free-text messages.
   private getCodeFromStatus(status: number): string {
     switch (status) {
       case 400:
@@ -243,6 +257,7 @@ export class SafeExceptionFilter implements ExceptionFilter {
     }
   }
 
+  // Type guard that narrows an unknown value to a plain object before property access.
   private isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null;
   }
