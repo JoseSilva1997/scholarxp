@@ -44,17 +44,23 @@ const STABILITY_FAIL_WEIGHT = 0.4;
 const STABILITY_HINT_WEIGHT = 0.2;
 const DIFFICULTY_FAIL_BUMP = 0.5;
 const DIFFICULTY_HINT_BUMP = 0.25;
+const REQUEST_RETENTION = 0.94;
+
 // Time-to-first-correct > 30s signals a struggled acquisition that deserves a modest stability penalty.
 const TIME_PENALTY_THRESHOLD_MS = 30_000;
 const TIME_PENALTY_FACTOR = 0.9;
 const STABILITY_FLOOR = 0.1;
 const DIFFICULTY_MIN = 1;
 const DIFFICULTY_MAX = 10;
+ 
 
 @Injectable()
 export class DailyPracticeFsrsPolicyService {
   // enable_short_term=false skips FSRS learning/relearning steps so daily practice stays a day-granularity schedule and first-success values land directly in Review.
-  private readonly scheduler = fsrs({ enable_short_term: false });
+  private readonly scheduler = fsrs({ 
+    enable_short_term: false,
+    request_retention: REQUEST_RETENTION,
+  });
 
   computeSeedStateForFirstCorrect(params: {
     grade: DailyPracticeFsrsGrade;
