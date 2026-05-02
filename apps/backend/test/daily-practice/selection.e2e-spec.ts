@@ -148,7 +148,6 @@ describe('Daily practice selection rules (e2e)', () => {
           correctOptionIndex: 0,
         },
         hint: 'Variant hint',
-        difficultyScore: 1,
         source: 'seeded-daily-practice-e2e',
         isArchived: false,
       },

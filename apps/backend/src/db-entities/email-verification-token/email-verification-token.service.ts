@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import {
   BadRequestException,
   Injectable,
@@ -7,11 +8,17 @@ import {
 import { EmailVerificationToken, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
+// Service for issuing and consuming one-time email verification tokens. Supports two token styles:
+// 'numeric' — short 6-digit code for user transcription; 'url' — long opaque hex token for clickable links.
+// 'numeric' = short 6-digit code transcribed from email; 'url' = long opaque token embedded in a link.
+type TokenStyle = 'numeric' | 'url';
+
 type IssueTokenParams = {
   userId: number;
   reason?: string;
   ttlMinutes?: number;
   reuseExisting?: boolean;
+  tokenStyle?: TokenStyle;
 };
 
 @Injectable()
@@ -35,6 +42,7 @@ export class EmailVerificationTokenService {
     const reason = params.reason ?? 'signup';
     const ttlMinutes = this.clampTtl(params.ttlMinutes);
     const expiresAt = this.addMinutes(now, ttlMinutes);
+    const tokenStyle: TokenStyle = params.tokenStyle ?? 'numeric';
 
     if (params.reuseExisting) {
       const active = await this.findActiveToken(params.userId, reason, now);
@@ -48,24 +56,38 @@ export class EmailVerificationTokenService {
         where: { userId: params.userId, reason, consumedAt: null },
       });
 
-      return this.createWithRetry(tx, {
-        userId: params.userId,
-        reason,
-        expiresAt,
-      });
+      return this.createWithRetry(
+        tx,
+        {
+          userId: params.userId,
+          reason,
+          expiresAt,
+        },
+        tokenStyle,
+      );
     });
   }
 
   /**
    * Marks the token consumed if still valid; otherwise throws a user-facing error.
    * This keeps the caller agnostic to whether the token was missing, expired, or already used.
+   * When `expectedReason` is provided, a token issued for a different reason is rejected without
+   * being consumed so it stays usable for its original flow (e.g., a signup code can't double as a reset code).
    */
-  async consumeToken(token: string): Promise<EmailVerificationToken> {
+  async consumeToken(
+    token: string,
+    expectedReason?: string,
+  ): Promise<EmailVerificationToken> {
     const record = await this.prisma.emailVerificationToken.findUnique({
       where: { token },
     });
 
     if (!record) {
+      throw new BadRequestException('Invalid or expired verification code.');
+    }
+
+    if (expectedReason && record.reason !== expectedReason) {
+      // Reject with the same generic error so callers can't infer that a token exists for a different reason.
       throw new BadRequestException('Invalid or expired verification code.');
     }
 
@@ -101,13 +123,15 @@ export class EmailVerificationTokenService {
       Prisma.EmailVerificationTokenUncheckedCreateInput,
       'userId' | 'reason' | 'expiresAt'
     >,
+    tokenStyle: TokenStyle,
   ): Promise<EmailVerificationToken> {
     for (
       let attempt = 0;
       attempt < this.maxTokenGenerationAttempts;
       attempt += 1
     ) {
-      const token = this.buildNumericToken();
+      const token =
+        tokenStyle === 'url' ? this.buildUrlToken() : this.buildNumericToken();
       try {
         return await tx.emailVerificationToken.create({
           data: { ...data, token },
@@ -142,6 +166,12 @@ export class EmailVerificationTokenService {
       token += Math.floor(Math.random() * 10);
     }
     return token;
+  }
+
+  // 32 random bytes -> 64-char hex; safe for URL query strings and large enough that
+  // brute-forcing a single account in the 30-minute TTL window is computationally infeasible.
+  private buildUrlToken(): string {
+    return randomBytes(32).toString('hex');
   }
 
   private clampTtl(ttlMinutes?: number): number {

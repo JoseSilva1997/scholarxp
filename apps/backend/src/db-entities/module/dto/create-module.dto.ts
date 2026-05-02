@@ -1,3 +1,5 @@
+// Input shape for creating a new module. createdByUserId is optional because the controller
+// sets it from the authenticated session rather than accepting it from the client.
 import {
   IsInt,
   IsNotEmpty,
@@ -8,23 +10,6 @@ import {
 import { CreateModulePayload } from '@scholarxp/api-contracts';
 
 export class CreateModuleDto implements CreateModulePayload {
-  @IsInt()
-  @IsOptional()
-  institutionId?: number;
-
-  @IsString()
-  @IsOptional()
-  ltiContextId?: string;
-
-  @IsString()
-  @IsOptional()
-  resourceLinkId?: string;
-
-  @IsString()
-  @IsOptional()
-  @MaxLength(255)
-  variantContext?: string;
-
   @IsString()
   @IsNotEmpty()
   @MaxLength(60)

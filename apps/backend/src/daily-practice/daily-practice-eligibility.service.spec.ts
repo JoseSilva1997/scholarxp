@@ -87,4 +87,40 @@ describe('DailyPracticeEligibilityService', () => {
       }),
     );
   });
+
+  it('returns locked status from checkEligibilityForToday when no completed lesson exists', async () => {
+    prisma.moduleUnitUserProgress.findFirst.mockResolvedValue(null);
+
+    const result = await service.checkEligibilityForToday(7, 42, NOW);
+
+    expect(result).toEqual({
+      eligible: false,
+      message:
+        'Complete your first lesson in this module to unlock daily practice tomorrow.',
+    });
+  });
+
+  it('returns unlocks-tomorrow status from checkEligibilityForToday for same local-day completion', async () => {
+    prisma.moduleUnitUserProgress.findFirst.mockResolvedValue({
+      completedAt: EARLIER_TODAY,
+    });
+
+    const result = await service.checkEligibilityForToday(7, 42, NOW);
+
+    expect(result).toEqual({
+      eligible: false,
+      message:
+        'Daily practice unlocks tomorrow after you complete your first lesson in this module.',
+    });
+  });
+
+  it('returns eligible status from checkEligibilityForToday after a prior-day completion', async () => {
+    prisma.moduleUnitUserProgress.findFirst.mockResolvedValue({
+      completedAt: YESTERDAY,
+    });
+
+    await expect(service.checkEligibilityForToday(7, 42, NOW)).resolves.toEqual(
+      { eligible: true },
+    );
+  });
 });

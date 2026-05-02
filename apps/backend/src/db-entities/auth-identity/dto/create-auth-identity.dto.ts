@@ -1,3 +1,4 @@
+// Input shape for creating a new auth identity; validates that all required OAuth/local fields are present.
 import { AuthProvider } from '@prisma/client';
 import {
   IsEmail,

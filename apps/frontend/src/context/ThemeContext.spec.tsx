@@ -2,17 +2,17 @@
 import { act, render, screen } from '@testing-library/react';
 import type { AuthUser } from '@scholarxp/api-contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useAuth } from './AuthContext';
-import { CosmeticThemeSync } from './CosmeticThemeSync';
-import { ThemeProvider } from './ThemeContext';
-import { useTheme } from './useTheme';
-import { useCosmetics } from '@/rewards';
+import { useAuth } from '@/context/AuthContext';
+import { CosmeticThemeSync } from '@/context/CosmeticThemeSync';
+import { ThemeProvider } from '@/context/ThemeContext';
+import { useTheme } from '@/context/useTheme';
+import { useCosmetics } from '@/Rewards/cosmetics';
 
-vi.mock('./AuthContext', () => ({
+vi.mock('@/context/AuthContext', () => ({
   useAuth: vi.fn(),
 }));
 
-vi.mock('@/rewards', () => ({
+vi.mock('@/Rewards/cosmetics', () => ({
   useCosmetics: vi.fn(),
 }));
 

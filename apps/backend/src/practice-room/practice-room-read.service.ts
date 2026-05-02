@@ -6,6 +6,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { GlobalRole, ModuleUnitStatus } from '@prisma/client';
 import {
   PracticeSessionTypeValues,
   type PracticeQuestionRewardState,
@@ -40,8 +41,13 @@ export class PracticeRoomReadService {
     studentId: number,
     requestedSessionType?: PracticeSessionType,
     existingSessionId?: string,
+    globalRole?: GlobalRole,
   ): Promise<RoomContext> {
-    const moduleUnit = await this.getModuleUnitOrThrow(moduleId, moduleUnitId);
+    const moduleUnit = await this.getModuleUnitOrThrow(
+      moduleId,
+      moduleUnitId,
+      globalRole,
+    );
     const isCompleted = await this.isModuleUnitCompleted(
       moduleUnitId,
       studentId,
@@ -50,12 +56,12 @@ export class PracticeRoomReadService {
       isCompleted,
       requestedSessionType,
     );
-    const session = await this.practiceRoomSessionService.resolveRoomSession(
+    const session = await this.resolveRoomSessionForEntry({
       moduleId,
       studentId,
-      resolvedSessionType,
+      sessionType: resolvedSessionType,
       existingSessionId,
-    );
+    });
 
     return {
       moduleUnit,
@@ -67,12 +73,19 @@ export class PracticeRoomReadService {
   }
 
   // Loads module-unit content in one query to avoid round-trips while building the room payload.
+  // Students only see live units; draft/locked/archived stay invisible to prevent URL-direct access bypass.
   async getModuleUnitOrThrow(
     moduleId: number,
     moduleUnitId: number,
+    globalRole?: GlobalRole,
   ): Promise<LoadedModuleUnit> {
+    const restrictToLive = globalRole === GlobalRole.student;
     const moduleUnit = await this.prisma.moduleUnit.findFirst({
-      where: { id: moduleUnitId, moduleId },
+      where: {
+        id: moduleUnitId,
+        moduleId,
+        ...(restrictToLive ? { status: ModuleUnitStatus.live } : {}),
+      },
       select: {
         id: true,
         title: true,
@@ -265,7 +278,18 @@ export class PracticeRoomReadService {
     moduleUnitId: number,
     studentId: number,
     sessionType: string,
+    globalRole?: GlobalRole,
   ) {
+    if (globalRole === GlobalRole.student) {
+      const unit = await this.prisma.moduleUnit.findUnique({
+        where: { id: moduleUnitId },
+        select: { status: true },
+      });
+      if (!unit || unit.status !== ModuleUnitStatus.live) {
+        throw new ForbiddenException('This lesson is not available.');
+      }
+    }
+
     if (sessionType === PracticeSessionTypeValues.retry) {
       return;
     }
@@ -366,5 +390,41 @@ export class PracticeRoomReadService {
     }
 
     return PracticeSessionTypeValues.viewAnswers;
+  }
+
+  // Completion can refetch the room while the URL still carries the old
+  // practice-room session id, so mismatched session ids must not override the
+  // newly required room mode.
+  // Recovery pattern: if the caller provided a session id that belongs to a different
+  // session type (e.g. an old practice_room session id arriving when the unit is now
+  // complete and needs a viewAnswers session), the ForbiddenException from type-mismatch
+  // is caught and the lookup retries without the stale id, allowing the correct session
+  // type to be resolved or created. Other errors are re-thrown unchanged.
+  private async resolveRoomSessionForEntry(input: {
+    moduleId: number;
+    studentId: number;
+    sessionType: PracticeSessionType;
+    existingSessionId?: string;
+  }) {
+    try {
+      return await this.practiceRoomSessionService.resolveOwnedSessionByType(
+        input.moduleId,
+        input.studentId,
+        input.sessionType,
+        input.existingSessionId,
+      );
+    } catch (error) {
+      if (
+        error instanceof ForbiddenException &&
+        input.existingSessionId !== undefined
+      ) {
+        return this.practiceRoomSessionService.resolveOwnedSessionByType(
+          input.moduleId,
+          input.studentId,
+          input.sessionType,
+        );
+      }
+      throw error;
+    }
   }
 }

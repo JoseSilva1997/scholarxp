@@ -1,3 +1,5 @@
+// NestJS module exporting UserModuleService to domain modules that need to read rosters
+// or award module-scoped XP (e.g., practice-room, invite redemption).
 import { Module } from '@nestjs/common';
 import { UserModuleService } from './user-module.service';
 

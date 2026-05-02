@@ -32,6 +32,8 @@ const SLOW_QUESTION_MULTIPLIER = 2;
 const VARIANT_DISCREPANCY_THRESHOLD_PP = 15;
 const MAX_STRUGGLING_QUESTIONS = 10;
 
+// Extracts the chronologically first attempt per student from a question attempt set
+// Uses attemptedAt timestamp as primary sort key; id as tiebreaker for same-millisecond attempts
 function firstAttemptsByStudent(attempts: AttemptRow[]): AttemptRow[] {
   const byStudent = new Map<number, AttemptRow>();
 
@@ -52,6 +54,7 @@ function firstAttemptsByStudent(attempts: AttemptRow[]): AttemptRow[] {
   return [...byStudent.values()];
 }
 
+// Computes accuracy percentage rounded to nearest integer
 function percentageFromAttempts(attempts: AttemptRow[]): number {
   return Math.round(
     (attempts.filter((attempt) => attempt.isCorrect).length / attempts.length) *
@@ -59,6 +62,9 @@ function percentageFromAttempts(attempts: AttemptRow[]): number {
   );
 }
 
+// Identifies questions with consistently low first-attempt accuracy
+// Requires minimum attempt threshold to avoid statistical noise from rarely-encountered questions
+// Returns top MAX_STRUGGLING_QUESTIONS ordered by ascending first-attempt accuracy
 export function computeStrugglingQuestions(
   attempts: AttemptRow[],
 ): QuestionAccuracySummary[] {
@@ -89,6 +95,9 @@ export function computeStrugglingQuestions(
   return result.slice(0, MAX_STRUGGLING_QUESTIONS);
 }
 
+// Detects variant questions whose difficulty differs significantly from their core question variant
+// Two-pass algorithm: first establishes accuracy baselines for all core variants, then compares non-core variants
+// Only reports discrepancies that meet or exceed the threshold; negative deltas indicate easier variants
 export function computeVariantDiscrepancies(
   attempts: AttemptRow[],
 ): QuestionVariantDiscrepancy[] {
@@ -146,6 +155,9 @@ export function computeVariantDiscrepancies(
   return result;
 }
 
+// Flags questions where a high proportion of first-attempt solvers relied on hints
+// Indicates questions may benefit from wording clarification or scaffolding improvement
+// Returned in descending order of hint usage rate
 export function computeHighHintUsage(
   attempts: AttemptRow[],
 ): HighHintUsageRow[] {
@@ -182,6 +194,10 @@ export function computeHighHintUsage(
   return result;
 }
 
+// Identifies questions that consume disproportionate time relative to lesson baseline
+// Algorithm: caps extreme outliers (180s+) to reduce skew, identifies session-opening attempts (excluded
+// as they may include navigation/context switching overhead), computes per-question medians, then flags
+// questions exceeding 2x the lesson median time. Returned in descending order of median time.
 export function computeSlowQuestions(
   attempts: AttemptRow[],
 ): SlowQuestionRow[] {
@@ -193,6 +209,7 @@ export function computeSlowQuestions(
     cappedAttempts,
     (attempt) => `${attempt.sessionId}:${attempt.studentId ?? 'null'}`,
   );
+  // Identify the first attempt chronologically in each session—often includes navigation overhead
   const sessionOpeners = new Set<number>();
 
   for (const sessionAttempts of attemptsBySession.values()) {
@@ -204,6 +221,7 @@ export function computeSlowQuestions(
     sessionOpeners.add(sessionAttempts[0].id);
   }
 
+  // Exclude session openers and compute per-question time distributions
   const qualifyingAttempts = cappedAttempts.filter(
     (attempt) => !sessionOpeners.has(attempt.id),
   );
@@ -231,11 +249,13 @@ export function computeSlowQuestions(
 
   if (questionMedians.length === 0) return [];
 
+  // Compute lesson-level baseline as median of all question medians
   const lessonMedianMs = median(
     questionMedians.map((question) => question.medianMs),
   );
   const result: SlowQuestionRow[] = [];
 
+  // Flag questions exceeding 2x baseline; normalizes for lesson difficulty differences
   for (const question of questionMedians) {
     if (question.medianMs > SLOW_QUESTION_MULTIPLIER * lessonMedianMs) {
       result.push({

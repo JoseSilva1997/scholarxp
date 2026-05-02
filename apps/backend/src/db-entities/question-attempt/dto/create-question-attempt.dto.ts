@@ -1,3 +1,5 @@
+// Input shape for recording a single question attempt. The studentAnswer field is typed as
+// Record<string,unknown> at the boundary; the service casts it to Prisma.InputJsonValue for persistence.
 import {
   IsBoolean,
   IsDateString,

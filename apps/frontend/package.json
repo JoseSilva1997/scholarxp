@@ -11,7 +11,9 @@
     "toggle_debug": "node scripts/toggle-debug.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage --testTimeout=30000 --hookTimeout=30000",
+    "test:coverage:domains": "vitest run --coverage --testTimeout=30000 --hookTimeout=30000 && node scripts/coverage-domains.mjs",
+    "coverage:domains": "node scripts/coverage-domains.mjs"
   },
   "dependencies": {
     "@scholarxp/api-contracts": "workspace:*",

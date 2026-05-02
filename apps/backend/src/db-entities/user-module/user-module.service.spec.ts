@@ -10,7 +10,6 @@ describe('UserModuleService', () => {
   const _teacher = {
     id: 1,
     globalRole: GlobalRole.teacher,
-    hasInstitutionMembership: false,
   } as any;
 
   beforeEach(() => {

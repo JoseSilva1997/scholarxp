@@ -4,7 +4,7 @@ import type { FeatureKey } from '@scholarxp/permissions';
  * Auth domain contracts for ScholarXP
  */
 
-export type GlobalRole = 'pending' | 'admin' | 'institution_admin' | 'teacher' | 'student';
+export type GlobalRole = 'pending' | 'admin' | 'teacher' | 'student';
 
 // Account progression view derived from canonical totalExp.
 export interface AccountProgress {
@@ -29,10 +29,6 @@ export interface AuthUser {
   globalRole: GlobalRole;
   isVerified: boolean;
   timezone: string;
-  institutionIds?: number[];
-  hasInstitutionMembership?: boolean;
-  ltiIdentities?: { institutionId: number; ltiUserId: string }[];
-  hasLtiIdentity?: boolean;
   requiresEmailVerification?: boolean;
   avatar?: AccountProgress | null;
   capabilities?: FeatureKey[];
@@ -74,6 +70,26 @@ export interface ResendVerificationPayload {
 export interface ResendVerificationResponse {
   sent: boolean;
   reason?: 'already_verified';
+}
+
+export interface ForgotPasswordPayload {
+  email: string;
+}
+
+// `sent: true` covers both "we emailed a link" and "we hid the absence of an account" so the
+// client cannot tell the two apart. `sent: false` with `reason: 'no_password'` is returned only
+// for OAuth-only accounts so the user gets a clear explanation that they need Google sign-in.
+export type ForgotPasswordResponse =
+  | { sent: true }
+  | { sent: false; reason: 'no_password' };
+
+export interface ResetPasswordPayload {
+  token: string;
+  password: string;
+}
+
+export interface ResetPasswordResponse {
+  ok: true;
 }
 
 export interface UpdateUserRolePayload {

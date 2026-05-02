@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -16,7 +17,12 @@ import { randomUUID } from 'crypto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from '../../prisma/prisma.service';
-import { StorageService } from '../../storage/storage.service';
+import { StorageService } from '../../file-storage/storage.service';
+import { ANON_USER_ID } from './anon-user.constant';
+
+// Service for user account management including profile updates, role changes, and self-service deletion.
+// Profile picture uploads are validated against both declared MIME type and magic bytes to prevent
+// content-type spoofing attacks.
 
 // Magic-byte signatures for the three image formats we accept; checked alongside the declared MIME type
 // so a client cannot smuggle a non-image by setting the Content-Type header.
@@ -101,6 +107,8 @@ export class UsersService {
     }
   }
 
+  // Updates the user's global role. When transitioning to student, creates an avatar record
+  // within the same transaction if one does not already exist.
   async updateRole(id: number, role: GlobalRole) {
     const existingUser = await this.getUserOrThrow(id);
     const shouldCreateAvatar =
@@ -132,6 +140,14 @@ export class UsersService {
     });
   }
 
+  async updateName(id: number, firstName: string, lastName: string) {
+    await this.getUserOrThrow(id);
+    return this.prisma.user.update({
+      where: { id },
+      data: { firstName, lastName },
+    });
+  }
+
   async updateTimezone(id: number, timezone: string) {
     await this.getUserOrThrow(id);
     return this.prisma.user.update({
@@ -140,6 +156,8 @@ export class UsersService {
     });
   }
 
+  // Uploads a new profile picture to cloud storage, updates the user record with the public URL,
+  // and deletes the prior upload if it was owned by this application (not an OAuth provider URL).
   async updateProfilePicture(
     id: number,
     file: { buffer: Buffer; mimetype: string; size: number } | undefined,
@@ -203,6 +221,34 @@ export class UsersService {
   async remove(id: number) {
     await this.getUserOrThrow(id);
     return this.prisma.user.delete({ where: { id } });
+  }
+
+  // Self-serve hard delete. Reassigns authored modules/invites to the Anon sentinel so student access is preserved,
+  // then deletes the user; cascading FKs (avatar, user_modules, daily_quests, exp_ledger, auth_identity, etc.) clean the rest.
+  async removeSelf(userId: number, confirmEmail: string) {
+    if (userId === ANON_USER_ID) {
+      throw new ForbiddenException('This account cannot be deleted');
+    }
+    const user = await this.getUserOrThrow(userId);
+    const submitted = confirmEmail.trim().toLowerCase();
+    const stored = user.email?.trim().toLowerCase() ?? '';
+    if (!stored || submitted !== stored) {
+      throw new BadRequestException(
+        'Email confirmation does not match account email',
+      );
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.module.updateMany({
+        where: { createdByUserId: userId },
+        data: { createdByUserId: ANON_USER_ID },
+      });
+      await tx.moduleInvite.updateMany({
+        where: { createdByUserId: userId },
+        data: { createdByUserId: ANON_USER_ID },
+      });
+      await tx.user.delete({ where: { id: userId } });
+    });
   }
 
   private async getUserOrThrow(id: number) {

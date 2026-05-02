@@ -208,6 +208,7 @@ describe('PracticeRoomService', () => {
         TEST_STUDENT_ID,
         undefined,
         undefined,
+        undefined,
       );
       expect(expStreakService.getSessionStreak).toHaveBeenCalledWith(
         TEST_MODULE_UNIT_ID,
@@ -338,6 +339,7 @@ describe('PracticeRoomService', () => {
         TEST_MODULE_UNIT_ID,
         TEST_STUDENT_ID,
         'practice_room',
+        undefined,
       );
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       expect(
@@ -489,7 +491,12 @@ describe('PracticeRoomService', () => {
 
       expect(
         practiceRoomReadService.assertModuleUnitAllowsSubmissions,
-      ).toHaveBeenCalledWith(TEST_MODULE_UNIT_ID, TEST_STUDENT_ID, 'retry');
+      ).toHaveBeenCalledWith(
+        TEST_MODULE_UNIT_ID,
+        TEST_STUDENT_ID,
+        'retry',
+        undefined,
+      );
       expect(
         studentModuleUnitProgressService.syncFromAttempts,
       ).not.toHaveBeenCalled();

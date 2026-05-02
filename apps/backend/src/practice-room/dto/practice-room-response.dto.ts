@@ -65,7 +65,6 @@ export class PracticeQuestionDto implements PracticeQuestion {
   questionStem!: string;
   questionData!: QuestionData;
   hint!: string | null;
-  difficultyScore!: number;
 }
 
 // Concrete answer DTOs keep typed parity with the shared union and simplify future extension points.

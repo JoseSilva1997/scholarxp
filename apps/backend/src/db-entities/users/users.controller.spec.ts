@@ -11,6 +11,7 @@ describe('UsersController', () => {
   let controller: UsersController;
   const service = {
     updateRole: jest.fn(),
+    updateName: jest.fn(),
     updateProfilePicture: jest.fn(),
     removeProfilePicture: jest.fn(),
   };
@@ -48,6 +49,21 @@ describe('UsersController', () => {
     expect(service.updateRole).toHaveBeenCalledWith(1, GlobalRole.student);
     expect(authService.getUserById).toHaveBeenCalledWith(1);
     expect(result).toEqual(response);
+  });
+
+  it('forwards name updates and returns refreshed auth payload', async () => {
+    const refreshed = { id: 1, firstName: 'New', lastName: 'Name' };
+    service.updateName.mockResolvedValue({ id: 1 });
+    authService.getUserById.mockResolvedValue(refreshed);
+
+    const result = await controller.updateName(1, {
+      firstName: 'New',
+      lastName: 'Name',
+    } as any);
+
+    expect(service.updateName).toHaveBeenCalledWith(1, 'New', 'Name');
+    expect(authService.getUserById).toHaveBeenCalledWith(1);
+    expect(result).toEqual(refreshed);
   });
 
   it('forwards profile-picture uploads and returns refreshed auth payload', async () => {

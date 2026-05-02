@@ -48,7 +48,6 @@ type BuildTodayResponseInput = {
         questionStem: string;
         questionData: QuestionData;
         hint: string | null;
-        difficultyScore: number;
       };
       lastAttempt: DailyPracticeAttemptSnapshot | null;
     };
@@ -122,6 +121,7 @@ export class DailyPracticeMapper {
     return response;
   }
 
+  // Shared progress shape used by all three response types so completedAt serialization is consistent across endpoints.
   private buildProgressDto(progress: {
     totalQuestions: number;
     answeredQuestions: number;
@@ -135,6 +135,7 @@ export class DailyPracticeMapper {
     return dto;
   }
 
+  // Assembles a single question item including its persisted selection metadata (sourceBucket, position) and the last attempt snapshot for pre-population in the UI.
   private buildQuestionItemDto(
     question: BuildTodayResponseInput['questions'][number],
   ): DailyPracticeQuestionItemDto {
@@ -153,7 +154,6 @@ export class DailyPracticeMapper {
         questionStem: question.coreQuestion.questionContent.questionStem,
         questionData: question.coreQuestion.questionContent.questionData,
         hint: question.coreQuestion.questionContent.hint,
-        difficultyScore: question.coreQuestion.questionContent.difficultyScore,
       },
       lastAttempt: question.coreQuestion.lastAttempt
         ? {

@@ -1,14 +1,17 @@
 // Syncs the student-equipped theme family into ThemeProvider while leaving the local light/dark variant intact.
 import { useEffect, useEffectEvent } from 'react';
-import { useTheme } from './useTheme';
-import { useAuth } from './AuthContext';
-import { useCosmetics } from '@/rewards';
-import { isKnownThemeRewardId } from './theme-context';
+import { useTheme } from '@/context/useTheme';
+import { useAuth } from '@/context/AuthContext';
+import { useCosmetics } from '@/Rewards/cosmetics';
+import { isKnownThemeRewardId } from '@/context/theme-context';
 
+// Null component pattern: performs cross-context theme synchronisation without rendering UI.
 export function CosmeticThemeSync() {
   const { user } = useAuth();
   const { cosmetic } = useCosmetics();
   const { resetTheme, syncThemeReward } = useTheme();
+
+  // Captures the latest context values for an effect whose trigger is the auth/cosmetic input change.
   const applyThemeSync = useEffectEvent(() => {
     if (!user || user.globalRole !== 'student') {
       resetTheme();

@@ -58,7 +58,6 @@ export const buildQuestionUnitDraft = (
         correctOptionIndex: 1,
       },
       hint: null,
-      difficultyScore: 2,
     },
   },
   ...overrides,

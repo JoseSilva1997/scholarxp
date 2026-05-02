@@ -1,3 +1,5 @@
+// Input shape for creating a daily quest. The type field drives which of moduleId/moduleUnitId
+// fields are required; service-level validation enforces those structural rules.
 import {
   IsBoolean,
   IsDateString,

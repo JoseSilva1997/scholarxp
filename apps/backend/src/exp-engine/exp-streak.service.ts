@@ -113,6 +113,10 @@ export class ExpStreakService {
     return this.computeHistoricalHighestStreak(attempts);
   }
 
+  // Replays the current session's persisted attempts chronologically to derive both the
+  // running streak and the historical peak. Cross-session solved questions are pre-seeded
+  // so the learner cannot re-earn streak credit by re-answering previously solved questions
+  // in a later session.
   private async computeStreakSnapshot(
     moduleUnitId: number,
     studentId: number,

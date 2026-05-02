@@ -32,6 +32,7 @@ describe('QuestProgressService', () => {
 
   beforeEach(async () => {
     prisma = createPrismaMock();
+    prisma.user.findUnique.mockResolvedValue({ timezone: 'UTC' } as never);
     questGenerationService = {
       ensureQuestDayGeneratedForUser: jest.fn().mockResolvedValue(undefined),
     };
@@ -391,6 +392,73 @@ describe('QuestProgressService', () => {
     expect(prisma.dailyQuest.update).toHaveBeenCalledTimes(1);
     expect(expLedgerService.recordEvent).toHaveBeenCalledTimes(1);
     expect(avatarService.addStudentExp).toHaveBeenCalledWith(42, 50, prisma);
+  });
+
+  it('uses the user local day for quest lookup and module-completion ledger windows', async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      timezone: 'America/Los_Angeles',
+    } as never);
+    prisma.dailyQuest.findMany
+      .mockResolvedValueOnce([
+        {
+          id: 10,
+          userId: 42,
+          moduleId: 1,
+          moduleUnitId: null,
+          type: QuestTypeValues.completeNewUnit,
+          expGranted: 50,
+          isCompleted: false,
+          questDateUtc: new Date('2025-12-31T00:00:00.000Z'),
+        },
+      ] as never)
+      .mockResolvedValueOnce([
+        {
+          id: 10,
+          userId: 42,
+          moduleId: 1,
+          moduleUnitId: null,
+          type: QuestTypeValues.completeNewUnit,
+          expGranted: 50,
+          isCompleted: true,
+          questDateUtc: new Date('2025-12-31T00:00:00.000Z'),
+        },
+      ] as never);
+    prisma.expLedger.findFirst.mockResolvedValue({
+      id: 'ledger-local-1',
+    } as never);
+
+    await service.recordModuleUnitCompletion(
+      {
+        userId: 42,
+        moduleId: 1,
+        completedAt: new Date('2026-01-01T01:30:00.000Z'),
+      },
+      prisma,
+    );
+
+    expect(prisma.dailyQuest.findMany).toHaveBeenCalledWith({
+      where: {
+        userId: 42,
+        questDateUtc: new Date('2025-12-31T00:00:00.000Z'),
+      },
+      orderBy: {
+        id: 'asc',
+      },
+    });
+    expect(prisma.expLedger.findFirst).toHaveBeenCalledWith({
+      where: {
+        userId: 42,
+        moduleId: 1,
+        eventType: ExpLedgerEventTypes.COMPLETE_MODULE_UNIT,
+        eventTimestamp: {
+          gte: new Date('2025-12-31T08:00:00.000Z'),
+          lt: new Date('2026-01-01T08:00:00.000Z'),
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
   });
 
   it('completes the master quest after the only generated daily quest is finished', async () => {
@@ -856,6 +924,118 @@ describe('QuestProgressService', () => {
     });
     expect(expLedgerService.recordEvent).toHaveBeenCalledTimes(1);
     expect(avatarService.addStudentExp).toHaveBeenCalledWith(42, 50, prisma);
+  });
+
+  it('uses the user local day for daily-practice quest and set lookups', async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      timezone: 'America/Los_Angeles',
+    } as never);
+    prisma.dailyQuest.findMany
+      .mockResolvedValueOnce([
+        {
+          id: 31,
+          userId: 42,
+          moduleId: 7,
+          moduleUnitId: null,
+          type: QuestTypeValues.completeDailyPractice,
+          expGranted: 50,
+          isCompleted: false,
+          questDateUtc: new Date('2025-12-31T00:00:00.000Z'),
+        },
+        {
+          id: 32,
+          userId: 42,
+          moduleId: 7,
+          moduleUnitId: null,
+          type: QuestTypeValues.dailyPracticeStreak,
+          expGranted: 50,
+          isCompleted: false,
+          questDateUtc: new Date('2025-12-31T00:00:00.000Z'),
+        },
+      ] as never)
+      .mockResolvedValueOnce([
+        {
+          id: 31,
+          userId: 42,
+          moduleId: 7,
+          moduleUnitId: null,
+          type: QuestTypeValues.completeDailyPractice,
+          expGranted: 50,
+          isCompleted: true,
+          questDateUtc: new Date('2025-12-31T00:00:00.000Z'),
+        },
+        {
+          id: 32,
+          userId: 42,
+          moduleId: 7,
+          moduleUnitId: null,
+          type: QuestTypeValues.dailyPracticeStreak,
+          expGranted: 50,
+          isCompleted: false,
+          questDateUtc: new Date('2025-12-31T00:00:00.000Z'),
+        },
+      ] as never);
+    prisma.dailyPracticeSet.findUnique.mockResolvedValue({
+      completedAt: new Date('2026-01-01T01:30:00.000Z'),
+      items: [{ questionUnitId: 101 }],
+    } as never);
+    prisma.questionAttempt.findMany.mockResolvedValue([
+      {
+        questionId: 101,
+        isCorrect: true,
+        hintsUsed: 0,
+      },
+    ] as never);
+
+    await service.recordDailyPracticeSetProgress(
+      {
+        userId: 42,
+        moduleId: 7,
+        progressedAt: new Date('2026-01-01T01:30:00.000Z'),
+      },
+      prisma,
+    );
+
+    expect(prisma.dailyPracticeSet.findUnique).toHaveBeenCalledWith({
+      where: {
+        userId_moduleId_practiceDateUtc: {
+          userId: 42,
+          moduleId: 7,
+          practiceDateUtc: new Date('2025-12-31T00:00:00.000Z'),
+        },
+      },
+      select: {
+        completedAt: true,
+        items: {
+          select: {
+            questionUnitId: true,
+          },
+        },
+      },
+    });
+    expect(prisma.questionAttempt.findMany).toHaveBeenCalledWith({
+      where: {
+        studentId: 42,
+        questionId: {
+          in: [101],
+        },
+        attemptedAt: {
+          gte: new Date('2025-12-31T08:00:00.000Z'),
+          lt: new Date('2026-01-01T08:00:00.000Z'),
+        },
+        session: {
+          moduleId: 7,
+          userId: 42,
+          sessionType: PracticeSessionTypeValues.dailyPractice,
+        },
+      },
+      orderBy: [{ attemptedAt: 'asc' }, { id: 'asc' }],
+      select: {
+        questionId: true,
+        isCorrect: true,
+        hintsUsed: true,
+      },
+    });
   });
 
   it('completes the daily-practice streak quest from first attempts across the persisted set timeline', async () => {

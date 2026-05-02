@@ -233,7 +233,9 @@ export class PracticeRoomAttemptService {
     };
   }
 
-  // Shared grading protects submit flows from client-side correctness tampering.
+  // Strategy pattern: dispatches grading to a type-specific private method based on the
+  // question type stored in the DB, keeping grading rules isolated and extensible without
+  // modifying this dispatch logic.
   private computeIsCorrectFromContent(
     questionContent: AttemptQuestionContent,
     studentAnswer: StudentAnswer,

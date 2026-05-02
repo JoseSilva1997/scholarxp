@@ -1,3 +1,5 @@
+// Basic CRUD service for question content records. Higher-level operations (scoped update,
+// variant archiving) are handled by QuestionUnitService which has module/unit context.
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateQuestionContentDto } from './dto/create-question-content.dto';
 import { UpdateQuestionContentDto } from './dto/update-question-content.dto';

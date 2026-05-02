@@ -1,3 +1,5 @@
+// Payload for creating a new invite link. Both fields are optional; the service applies
+// system-wide defaults (MODULE_INVITE_DEFAULT_EXPIRY_HOURS, MODULE_INVITE_DEFAULT_MAX_USES) when omitted.
 import { IsInt, IsOptional, Min } from 'class-validator';
 import { CreateInvitePayload } from '@scholarxp/api-contracts';
 

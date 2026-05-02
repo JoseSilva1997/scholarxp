@@ -1,5 +1,5 @@
 // Extends Express Request to carry the hydrated AuthUser added by SessionAuthGuard.
-import type { AuthUser } from './auth-user.type';
+import type { AuthUser } from '@scholarxp/api-contracts';
 
 declare module 'express-serve-static-core' {
   interface Request {

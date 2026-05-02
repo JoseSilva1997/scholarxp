@@ -8,21 +8,18 @@ import {
   Res,
   UseGuards,
   Logger,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import type { Request, Response } from 'express';
-import type { Session, SessionData } from 'express-session';
 import { ThrottlerGuard } from '@nestjs/throttler';
-import { FRONTEND_URL } from '@scholarxp/constants';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
-import type { AuthUser } from '../types/auth-user.type';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import type { AuthUser } from '@scholarxp/api-contracts';
 import { CaptureRedirectGuard } from './guards/capture-redirect.guard';
-import { generateToken } from '../common/security/csrf';
-import type { GoogleProfile } from './strategies/google.strategy';
 
 @Controller('auth')
 @UseGuards(ThrottlerGuard) // coarse guard; per-route limits below fine-tune if needed
@@ -31,6 +28,8 @@ export class AuthController {
 
   constructor(private readonly authService: AuthService) {}
 
+  // POST /auth/register: create a new local-auth account. Session is regenerated to mint a fresh
+  // CSRF secret for the unauthenticated client; the user is intentionally not logged in here.
   @Post('register')
   async register(
     @Body() dto: RegisterDto,
@@ -39,7 +38,7 @@ export class AuthController {
   ) {
     const user = await this.authService.register(dto);
     await this.authService.regenerateSession(req);
-    this.setCsrfHeader(req, res);
+    this.authService.attachCsrfHeader(req, res);
     // We do not log users in until they verify email; keep session unauthenticated.
     return {
       user: this.authService.attachCapabilities(user),
@@ -47,6 +46,8 @@ export class AuthController {
     };
   }
 
+  // POST /auth/login: validate email/password via Passport's local strategy, establish session,
+  // and return the authenticated user with capability list attached.
   @UseGuards(AuthGuard('local'))
   @Post('login')
   async login(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
@@ -58,7 +59,7 @@ export class AuthController {
       } csrfHeader=${(req.headers['x-csrf-token'] as string | undefined)?.slice(0, 8) ?? 'none'}`,
     );
     await this.authService.loginUser(req, user);
-    this.setCsrfHeader(req, res);
+    this.authService.attachCsrfHeader(req, res);
     this.logger.debug(
       `Login success userId=${user.id} session=${
         (req as unknown as { sessionID?: string }).sessionID ?? 'none'
@@ -67,6 +68,8 @@ export class AuthController {
     return { user: this.authService.attachCapabilities(user) };
   }
 
+  // POST /auth/verify-email: confirm ownership of the email via a one-time token and log the
+  // user in immediately so they don't have to re-enter credentials post-verification.
   @Post('verify-email')
   async verifyEmail(
     @Body() dto: VerifyEmailDto,
@@ -75,10 +78,11 @@ export class AuthController {
   ) {
     const user = await this.authService.verifyEmail(dto.token);
     await this.authService.loginUser(req, user);
-    this.setCsrfHeader(req, res);
+    this.authService.attachCsrfHeader(req, res);
     return { user: this.authService.attachCapabilities(user) };
   }
 
+  // POST /auth/resend-verification: re-send the signup verification code to a known email.
   @Post('resend-verification')
   async resendVerification(
     @Body() dto: ResendVerificationDto,
@@ -86,28 +90,56 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.authService.resendVerification(dto.email);
-    this.setCsrfHeader(req, res);
+    this.authService.attachCsrfHeader(req, res);
     return result;
   }
 
+  // POST /auth/forgot-password: trigger a password-reset email. Always returns 200 to avoid
+  // account enumeration; see AuthService.requestPasswordReset for the deliberate exception.
+  @Post('forgot-password')
+  async forgotPassword(
+    @Body() dto: ForgotPasswordDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.requestPasswordReset(dto.email);
+    this.authService.attachCsrfHeader(req, res);
+    return result;
+  }
+
+  // POST /auth/reset-password: complete the reset using the token from the emailed link.
+  @Post('reset-password')
+  async resetPassword(
+    @Body() dto: ResetPasswordDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.resetPassword(
+      dto.token,
+      dto.password,
+    );
+    this.authService.attachCsrfHeader(req, res);
+    return result;
+  }
+
+  // POST /auth/logout: clear the Passport session and rotate to a fresh anonymous one. Idempotent
+  // by design so an unauthenticated client posting here still receives a usable CSRF token back.
   @Post('logout')
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    // Make logout idempotent: clear session when present; otherwise just respond ok.
     if (req.isAuthenticated?.() === true) {
       this.logger.debug(
         `Logout request session=${
           (req as unknown as { sessionID?: string }).sessionID ?? 'none'
         } userId=${(req.user as AuthUser | undefined)?.id ?? 'unknown'}`,
       );
-      const nextToken = await this.authService.logout(req, res);
-      // Return token so client cannot miss the rotation when session is replaced.
-      return { ok: true, csrfToken: nextToken };
     }
-    // CSRF is skipped for logout; still emit a fresh token for the next session/bootstrap even when already logged out.
+    // Logout is idempotent: service rotates the session and emits a fresh CSRF token either way.
     const nextToken = await this.authService.logout(req, res);
     return { ok: true, csrfToken: nextToken };
   }
 
+  // GET /auth/me: identity probe used by the frontend on app boot. Returns null when no session
+  // exists rather than 401 so the public landing flow does not need to swallow errors.
   @Get('me')
   me(@Req() req: Request) {
     const user = req.user as AuthUser | undefined;
@@ -117,32 +149,16 @@ export class AuthController {
     return { user: this.authService.attachCapabilities(user) };
   }
 
+  // GET /auth/csrf: hand the current CSRF token to anonymous clients so they can perform their
+  // first state-changing POST (e.g. login or register).
   @Get('csrf')
   csrf(@Req() req: Request) {
     // Surface the CSRF token so unauthenticated clients can fetch it before posting credentials.
-    try {
-      const csrfToken = generateToken(req);
-      return { csrfToken };
-    } catch {
-      return { csrfToken: null };
-    }
+    return { csrfToken: this.authService.tryGenerateCsrfToken(req) };
   }
 
-  private setCsrfHeader(req: Request, res: Response) {
-    const nextToken = this.getCsrfToken(req);
-    if (nextToken) {
-      res.setHeader('x-csrf-token', nextToken);
-    }
-  }
-
-  private getCsrfToken(req: Request): string | null {
-    try {
-      return generateToken(req);
-    } catch {
-      return null;
-    }
-  }
-
+  // GET /auth/oauth/google: kick off the Google OAuth handshake. CaptureRedirectGuard runs first
+  // to persist any ?redirect= target into the session before Passport issues its 302.
   @Get('oauth/google')
   @UseGuards(CaptureRedirectGuard, AuthGuard('google'))
   // Guards handle redirect; handler exists to satisfy Nest route requirements.
@@ -150,75 +166,11 @@ export class AuthController {
     return { ok: true };
   }
 
+  // GET /auth/oauth/google/callback: terminates the OAuth round-trip; service handles linking,
+  // session creation, and the final redirect back to the SPA.
   @Get('oauth/google/callback')
   @UseGuards(AuthGuard('google'))
   async googleCallback(@Req() req: Request, @Res() res: Response) {
-    // Capture redirect before login regenerates the session.
-    const session = req.session as
-      | (Session & Partial<SessionData> & { postAuthRedirect?: string })
-      | undefined;
-    const sessionRedirect =
-      typeof session?.postAuthRedirect === 'string'
-        ? session.postAuthRedirect
-        : null;
-
-    // Passport's Request typing is broad; narrow before passing to strict service contract.
-    if (!this.isGoogleProfile(req.user)) {
-      throw new UnauthorizedException('Google authentication failed');
-    }
-    const user = await this.authService.loginWithGoogle(req.user);
-    await this.authService.loginUser(req, user, {
-      persistSession: sessionRedirect
-        ? { postAuthRedirect: sessionRedirect }
-        : {},
-    });
-    // Redirect users straight into the authenticated shell instead of the marketing landing page so
-    // OAuth login feels consistent with email/password flows.
-    if (session && 'postAuthRedirect' in (session ?? {})) {
-      delete session.postAuthRedirect;
-    }
-    const redirectTarget = this.resolveOAuthRedirectTarget(
-      process.env.CORS_ORIGIN ?? FRONTEND_URL,
-      sessionRedirect,
-    );
-    res.redirect(redirectTarget);
-  }
-
-  private resolveOAuthRedirectTarget(
-    baseOrigin: string,
-    sessionRedirect?: string | null,
-  ): string {
-    // Some deployments provide a comma-separated list for CORS; pick the first and ensure we land on /main.
-    const primaryOrigin = baseOrigin.split(',')[0]?.trim() ?? baseOrigin;
-    const cleanedSessionRedirect =
-      sessionRedirect && sessionRedirect.startsWith('/')
-        ? sessionRedirect
-        : null;
-    try {
-      const fallback = new URL('/main', primaryOrigin).toString();
-      if (cleanedSessionRedirect) {
-        return new URL(cleanedSessionRedirect, primaryOrigin).toString();
-      }
-      return fallback;
-    } catch {
-      // If the origin is malformed, fall back to a safe string concatenation while still targeting /main.
-      const base = `${primaryOrigin.replace(/\/$/, '')}/main`;
-      if (cleanedSessionRedirect) {
-        return `${primaryOrigin.replace(/\/$/, '')}${cleanedSessionRedirect}`;
-      }
-      return base;
-    }
-  }
-
-  // Keep runtime validation local so AuthService can accept a strongly-typed profile.
-  private isGoogleProfile(value: unknown): value is GoogleProfile {
-    if (!value || typeof value !== 'object') {
-      return false;
-    }
-    const candidate = value as Partial<GoogleProfile>;
-    return (
-      candidate.provider === 'google' &&
-      typeof candidate.providerUserId === 'string'
-    );
+    await this.authService.handleGoogleCallback(req, res);
   }
 }

@@ -1,4 +1,7 @@
-/* 
+// Design document: defines the XP reward rules for the exp-engine in plain language.
+// These rules are the authoritative source of intent; the corresponding calculations are
+// implemented in ExpCalculationService and ExpStreakService.
+/*
     For module unit practice:
     - Every lesson give a baseline 1000 XP
     - Each question gives 1000/number_of_questions XP the first time it is answered correctly, 0 XP on retries

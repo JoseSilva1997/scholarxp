@@ -3,6 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
+import { DailyPracticeGenerationScheduleService } from '../src/daily-practice/daily-practice-generation-schedule.service';
 import { QuestGenerationStartupService } from '../src/quests/quest-generation-startup.service';
 
 describe('App bootstrap (e2e)', () => {
@@ -12,7 +13,9 @@ describe('App bootstrap (e2e)', () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })
-      // App bootstrap assertions are not about startup quest seeding, so suppress the background batch to keep teardown deterministic.
+      // App bootstrap assertions are not about startup generation batches, so suppress them to keep teardown deterministic.
+      .overrideProvider(DailyPracticeGenerationScheduleService)
+      .useValue({ onModuleInit: () => {} })
       .overrideProvider(QuestGenerationStartupService)
       .useValue({ onModuleInit: () => {} })
       .compile();

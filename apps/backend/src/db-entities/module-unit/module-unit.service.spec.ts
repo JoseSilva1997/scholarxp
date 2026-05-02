@@ -11,7 +11,6 @@ runCrudServiceTests({
   entityLabel: 'ModuleUnit',
   createDto: {
     moduleId: 1,
-    variantContext: 'ctx',
     title: 'Unit 1',
     questionCount: 3,
     status: 'draft' as any,
@@ -37,7 +36,6 @@ describe('ModuleUnitService.createForModule', () => {
     const createdUnit = {
       id: 10,
       moduleId,
-      variantContext: '',
       title: 'New Unit',
       questionCount: 0,
       status: ModuleUnitStatus.draft,
@@ -77,7 +75,6 @@ describe('ModuleUnitService.createForModule', () => {
     expect(prisma.moduleUnit.create).toHaveBeenCalledWith({
       data: {
         moduleId,
-        variantContext: '',
         title: 'New Unit',
         questionCount: 0,
         status: ModuleUnitStatus.draft,
@@ -119,7 +116,6 @@ describe('ModuleUnitService.findByModule', () => {
       {
         id: 1,
         moduleId: 77,
-        variantContext: '',
         title: 'Unit A',
         questionCount: 999,
         status: ModuleUnitStatus.draft,
@@ -137,7 +133,6 @@ describe('ModuleUnitService.findByModule', () => {
       {
         id: 2,
         moduleId: 77,
-        variantContext: '',
         title: 'Unit B',
         questionCount: 999,
         status: ModuleUnitStatus.live,
@@ -180,7 +175,6 @@ describe('ModuleUnitService.findByModule', () => {
       {
         id: 1,
         moduleId: 77,
-        variantContext: '',
         title: 'Unit A',
         questionCount: 0,
         status: ModuleUnitStatus.live,
@@ -265,7 +259,6 @@ describe('ModuleUnitService.findByModule', () => {
       {
         id: 1,
         moduleId: 77,
-        variantContext: '',
         title: 'Unit A',
         questionCount: 0,
         status: ModuleUnitStatus.live,
@@ -336,7 +329,6 @@ describe('ModuleUnitService.findEditorPayload', () => {
       id: 3,
       moduleId: 2,
       title: 'Unit',
-      variantContext: '',
       questionGroups: [{ id: 1, name: 'G1', sortOrder: 1, moduleUnitId: 3 }],
       questionUnits: [
         {

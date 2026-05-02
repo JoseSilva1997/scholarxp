@@ -6,9 +6,10 @@ import type {
 
 export const MIN_DAILY_PRACTICE_QUESTION_COUNT = 3; // Minimum viable set size to maintain the "daily practice" experience.
 export const MAX_DAILY_PRACTICE_QUESTION_COUNT = 10; // Cap on set size to maintain a consistent experience and avoid overwhelming learners.
-export const DAILY_PRACTICE_REVIEW_RATIO = 0.25; // Proportion of review-eligible questions to include in a set (e.g. if 10 question are eligible for review, the set will be 3 questions)
-export const REINFORCEMENT_RATIO = 0.2;
+export const DAILY_PRACTICE_REVIEW_RATIO = 0.3; // Proportion of due-review questions to include in a set (e.g. if 10 questions are due, the set target is 3 questions)
+export const REINFORCEMENT_RATIO = 0.3;
 
+// Guards against generating a set when the module has too few eligible questions to be a meaningful practice session.
 export function hasMinimumEligibleInventory(
   inventory: DailyPracticeSelectionInventory,
 ): boolean {
@@ -18,6 +19,7 @@ export function hasMinimumEligibleInventory(
   );
 }
 
+// Derives quota allocations for each bucket from current inventory. Returns a zero-plan when inventory is below the minimum threshold.
 export function buildDailyPracticeSelectionPlan(
   inventory: DailyPracticeSelectionInventory,
   requestedTargetQuestionCount?: number,
@@ -49,6 +51,7 @@ export function buildDailyPracticeSelectionPlan(
   };
 }
 
+// Scales set size proportionally to eligible inventory, always clamped between MIN and MAX. A caller-supplied override bypasses proportional sizing and only applies the clamp.
 export function deriveDailyPracticeTargetQuestionCount(
   inventory: DailyPracticeSelectionInventory,
   requestedTargetQuestionCount?: number,
@@ -57,10 +60,8 @@ export function deriveDailyPracticeTargetQuestionCount(
     return clampDailyPracticeTargetQuestionCount(requestedTargetQuestionCount);
   }
 
-  const reviewEligibleCount =
-    inventory.dueReviewCount + inventory.reinforcementCount;
   const proportional = Math.round(
-    reviewEligibleCount * DAILY_PRACTICE_REVIEW_RATIO,
+    inventory.dueReviewCount * DAILY_PRACTICE_REVIEW_RATIO,
   );
 
   return clampDailyPracticeTargetQuestionCount(

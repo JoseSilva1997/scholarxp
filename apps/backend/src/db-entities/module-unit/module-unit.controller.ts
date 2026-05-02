@@ -17,7 +17,7 @@ import { CreateModuleUnitMinimalDto } from './dto/create-module-unit-minimal.dto
 import { SessionAuthGuard } from '../../auth/guards/session-auth.guard';
 import { AuthorizationGuard } from '../../auth/guards/authorization.guard';
 import { Authorize } from '../../auth/decorators/authorize.decorator';
-import type { AuthUser } from '../../types/auth-user.type';
+import type { AuthUser } from '@scholarxp/api-contracts';
 import { QuestionUnitService } from '../questions/question-unit/question-unit.service';
 import { CreateQuestionWithContentDto } from '../questions/question-unit/dto/create-question-with-content.dto';
 import { CreateVariantWithContentDto } from '../questions/question-unit/dto/create-variant-with-content.dto';
@@ -27,7 +27,8 @@ import { CreateModuleUnitQuestionGroupDto } from '../module-unit-question-group/
 import { UpdateModuleUnitQuestionGroupNameDto } from '../module-unit-question-group/dto/update-module-unit-question-group-name.dto';
 import { features } from '@scholarxp/permissions';
 
-// This controller serves module-scoped authoring/practice routes and unit-status updates.
+// HTTP controller for module unit management. Exposes authoring routes (create unit, manage questions/groups)
+// and a student-facing list route. All routes are protected by session auth and capability-based authorisation.
 @Controller()
 @UseGuards(SessionAuthGuard, AuthorizationGuard)
 export class ModuleUnitController {
@@ -37,7 +38,6 @@ export class ModuleUnitController {
     private readonly moduleUnitQuestionGroupService: ModuleUnitQuestionGroupService,
   ) {}
 
-  // Module-scoped creation aligned with frontend call: POST /module/:moduleId/units
   @Post('module/:moduleId/units')
   @Authorize({ capability: features.modules.manageContent, scope: 'module' })
   createForModule(
@@ -186,7 +186,7 @@ export class ModuleUnitController {
   }
 
   @Get('module/:moduleId/unit/:unitId/editor')
-  @Authorize({ capability: features.navigation.modules, scope: 'module' })
+  @Authorize({ capability: features.modules.manageContent, scope: 'module' })
   async getEditorPayload(
     @Param('moduleId', ParseIntPipe) moduleId: number,
     @Param('unitId', ParseIntPipe) unitId: number,

@@ -1,4 +1,4 @@
-// Role: validates daily-practice unlock timing so the feature only appears after baseline lesson completion and the next UTC day boundary.
+// Role: validates daily-practice unlock timing so the feature only appears after baseline lesson completion and the next local day boundary.
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { PrismaService } from '../../src/prisma/prisma.service';
@@ -48,7 +48,7 @@ describe('Daily practice unlock rules (e2e)', () => {
       });
   });
 
-  it('keeps daily practice locked until the next UTC day after the first lesson completion', async () => {
+  it('keeps daily practice locked until the next local day after the first lesson completion', async () => {
     const base = await seedStudentModuleScenario(prisma);
     setAuthenticatedUserId(base.studentId);
     await seedStudentDay1CompleteScenario(prisma, base);

@@ -1,42 +1,52 @@
 // AuthorizationService evaluates route authorization rules using shared capabilities and resource context.
+// Implements a Strategy pattern over scope kinds (global / module / self): each scope has its own
+// pure evaluator and the public canActivate dispatches based on the metadata supplied by the
+// @Authorize decorator. The service is intentionally side-effect free -- the AuthorizationGuard
+// is responsible for fetching the resource context that feeds these checks.
 import { Injectable } from '@nestjs/common';
 import { GlobalRole } from '@prisma/client';
 import { canAccess } from '@scholarxp/permissions';
 import type {
   AuthorizationEvaluation,
+  AuthorizationOutcome,
   ModuleAuthorizationContext,
 } from './authorization.types';
 
 @Injectable()
 export class AuthorizationService {
-  // Returns true/false so the guard remains the single place that translates policy failures to HTTP errors.
-  canActivate(input: AuthorizationEvaluation): boolean {
+  // Returns a discriminated outcome so the guard can map specific denial reasons to user-facing copy.
+  // Time complexity: O(1) -- capability lookup is a constant-time table hit and scope dispatch
+  // performs at most a handful of field comparisons. Space complexity: O(1).
+  canActivate(input: AuthorizationEvaluation): AuthorizationOutcome {
     const { user, rule } = input;
     const allowedByCapability = canAccess(rule.capability, {
       role: user.globalRole,
-      hasInstitutionMembership: user.hasInstitutionMembership,
     });
     if (!allowedByCapability) {
-      return false;
+      return { allowed: false, reason: 'capability' };
     }
 
     if (!rule.scope || rule.scope === 'global') {
-      return true;
+      return { allowed: true };
     }
 
     if (rule.scope === 'module') {
-      return this.canAccessModuleScope(
+      const allowed = this.canAccessModuleScope(
         user.id,
-        user.globalRole,
+        user.globalRole as GlobalRole,
         input.moduleContext,
       );
+      return allowed
+        ? { allowed: true }
+        : { allowed: false, reason: 'module_membership' };
     }
 
     if (rule.scope === 'self') {
-      return this.canSelfScope(user.id, input.selfTargetUserId);
+      const allowed = this.canSelfScope(user.id, input.selfTargetUserId);
+      return allowed ? { allowed: true } : { allowed: false, reason: 'self' };
     }
 
-    return false;
+    return { allowed: false, reason: 'capability' };
   }
 
   // Module scope rules enforce ownership/membership boundaries after capability checks pass.
@@ -51,13 +61,6 @@ export class AuthorizationService {
 
     if (role === GlobalRole.admin) {
       return true;
-    }
-
-    if (role === GlobalRole.institution_admin) {
-      return (
-        moduleContext.moduleInstitutionId !== null &&
-        moduleContext.hasInstitutionMatch
-      );
     }
 
     if (role === GlobalRole.teacher) {

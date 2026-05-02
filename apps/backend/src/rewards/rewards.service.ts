@@ -11,7 +11,7 @@ import {
   type EquippedCosmetics,
 } from '@scholarxp/progression';
 import { PrismaService } from '../prisma/prisma.service';
-import type { AuthUser } from '../types/auth-user.type';
+import type { AuthUser } from '@scholarxp/api-contracts';
 
 type EquipArgs = {
   user: Pick<AuthUser, 'id' | 'globalRole'>;
@@ -23,6 +23,9 @@ type EquipArgs = {
 export class RewardsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  // Validates that the requested cosmetic is unlocked at the student's current level, then performs
+  // a partial merge into the equippedCosmetics JSON blob. Throws ForbiddenException for non-students
+  // and for rewards above the student's level; throws NotFoundException if no Avatar row exists yet.
   async equipCosmetic(args: EquipArgs): Promise<Record<string, string>> {
     // Cosmetics are attached to the Avatar row which only exists for students; reject earlier roles explicitly
     // so the client sees a clear Forbidden instead of a cryptic "avatar not found" 404.

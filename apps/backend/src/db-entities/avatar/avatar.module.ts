@@ -1,3 +1,4 @@
+// NestJS module exporting AvatarService so domain modules can award global XP to students.
 import { Module } from '@nestjs/common';
 import { AvatarService } from './avatar.service';
 

@@ -1,3 +1,5 @@
+// Records a single question attempt made during a practice session. The studentAnswer field
+// is an untyped JSON blob whose shape is determined by the question type at runtime.
 export class QuestionAttempt {
   id: number;
   moduleUnitId: number;

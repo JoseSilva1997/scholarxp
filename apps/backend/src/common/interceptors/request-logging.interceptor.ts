@@ -21,6 +21,10 @@ export class RequestLoggingInterceptor implements NestInterceptor {
   // Keep a dedicated logger scope to simplify filtering in container logs.
   private readonly logger = new Logger(RequestLoggingInterceptor.name);
 
+  // Wraps each HTTP handler invocation, recording a single structured log line
+  // on successful completion that captures method, path, status, latency, and
+  // the correlation/user identifiers needed to trace a request end-to-end.
+  // Non-HTTP execution contexts (e.g. RPC, scheduled jobs) are passed through untouched.
   intercept(context: ExecutionContext, next: CallHandler) {
     if (context.getType() !== 'http') {
       return next.handle();

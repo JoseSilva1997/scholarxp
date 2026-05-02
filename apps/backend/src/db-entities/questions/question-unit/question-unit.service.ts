@@ -1,3 +1,6 @@
+// Service managing the question unit lifecycle: creation with core content, variant management,
+// and scope-safe deletion. Deletion strategy is hard-delete for draft units with no attempts
+// and soft-archive for live units or any unit that already has student attempt history.
 import {
   BadRequestException,
   Injectable,
@@ -125,8 +128,6 @@ export class QuestionUnitService {
           questionData: payload.questionData as Prisma.InputJsonValue,
           type: payload.type,
           hint: payload.hint ?? null,
-          // Guard against missing client fields so creation remains backwards compatible.
-          difficultyScore: payload.difficultyScore ?? 0.5,
           source: payload.source,
           // Treat missing flag as live to preserve legacy behavior while eliminating string status values.
           isArchived: payload.isArchived ?? false,
@@ -151,7 +152,6 @@ export class QuestionUnitService {
           .questionData as unknown as QuestionData,
         type: result.coreContent.type,
         hint: result.coreContent.hint,
-        difficultyScore: result.coreContent.difficultyScore,
         source: result.coreContent.source as QuestionSource,
         isArchived: result.coreContent.isArchived,
         isCore: result.coreContent.isCore,
@@ -201,8 +201,6 @@ export class QuestionUnitService {
           questionData: payload.questionData as Prisma.InputJsonValue,
           type: payload.type,
           hint: payload.hint ?? null,
-          // Keep variant creation resilient to older clients that do not send difficulty yet.
-          difficultyScore: payload.difficultyScore ?? 0.5,
           source: payload.source,
           // Variants inherit the same archived flag semantics as core content.
           isArchived: payload.isArchived ?? false,
@@ -235,7 +233,6 @@ export class QuestionUnitService {
             .questionData as unknown as QuestionData,
           type: variantResult.variant.content.type,
           hint: variantResult.variant.content.hint,
-          difficultyScore: variantResult.variant.content.difficultyScore,
           source: variantResult.variant.content.source as QuestionSource,
           isArchived: variantResult.variant.content.isArchived,
         },
@@ -289,6 +286,9 @@ export class QuestionUnitService {
     });
   }
 
+  // Resolves the question group to assign a new question to when none is specified. Reuses the
+  // lowest-order existing active group, creating a default Group 1 only when the unit has none.
+  // The creation is race-safe: a P2002 unique constraint collision retries by reading the concurrent winner.
   private async resolveFallbackGroupId(moduleUnitId: number): Promise<number> {
     // Reuse the first existing group for legacy units and only create Group 1 when no groups exist.
     const existingGroup = await this.prisma.moduleUnitQuestionGroup.findFirst({
@@ -434,7 +434,6 @@ export class QuestionUnitService {
       questionData: updatedContent.questionData as unknown as QuestionData,
       type: updatedContent.type,
       hint: updatedContent.hint,
-      difficultyScore: updatedContent.difficultyScore,
       source: updatedContent.source as QuestionSource,
       isArchived: updatedContent.isArchived,
     };

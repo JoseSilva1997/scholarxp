@@ -1,0 +1,82 @@
+/* Danger-zone section pinned to the bottom of the profile page. */
+.divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: 32px 0 24px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.heading {
+  margin: 0;
+  font-size: 16px;
+  color: var(--color-danger);
+  font-weight: 700;
+}
+
+.description {
+  margin: 0 0 8px;
+  color: var(--color-text-soft);
+  line-height: 1.5;
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.input {
+  flex: 1 1 260px;
+  min-width: 200px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 14px;
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--color-accent-light);
+  outline-offset: 2px;
+  border-color: var(--color-accent-light);
+}
+
+.button {
+  background: var(--color-danger);
+  color: var(--color-text-on-primary);
+  border: 1px solid var(--color-danger);
+  border-radius: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.button:hover:not(:disabled) {
+  filter: brightness(0.96);
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--color-accent-light);
+  outline-offset: 2px;
+}
+
+.validation {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: 13px;
+  font-weight: 600;
+  min-height: 18px;
+}

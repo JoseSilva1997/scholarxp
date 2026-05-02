@@ -78,7 +78,6 @@ describe('DailyPracticeMapper', () => {
       expect(cq.questionContent.type).toBe('multiple_choice');
       expect(cq.questionContent.questionStem).toBe('What is 2+2?');
       expect(cq.questionContent.hint).toBe('Think small.');
-      expect(cq.questionContent.difficultyScore).toBe(0.4);
     });
 
     it('maps lastAttempt when present', () => {
@@ -231,7 +230,6 @@ function buildTodayInput(
             questionStem: 'What is 2+2?',
             questionData: { options: [] } as any,
             hint: 'Think small.',
-            difficultyScore: 0.4,
           },
           lastAttempt: overrides.lastAttempt ?? null,
         },

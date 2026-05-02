@@ -14,9 +14,23 @@ export default defineConfig({
   test: {
     // Use browser-like DOM APIs so page-state hooks and route-level units can execute realistically.
     environment: 'jsdom',
-    setupFiles: './src/test/setup.ts',
+    setupFiles: './src/shared/test/setup.ts',
     clearMocks: true,
     restoreMocks: true,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html', 'json'],
+      reportsDirectory: './coverage',
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: [
+        'src/**/*.spec.{ts,tsx}',
+        'src/**/*.test.{ts,tsx}',
+        'src/**/*.d.ts',
+        'src/shared/test/**',
+        'src/**/setup.{ts,tsx}',
+        'src/vite-env.d.ts',
+      ],
+    },
     // Using ‘forks’ pool instead of default ‘threads’ because MSW 2+ patching global fetch
     // in multiple shared-worker threads can lead to worker deadlocks during startup.
     pool: 'forks',

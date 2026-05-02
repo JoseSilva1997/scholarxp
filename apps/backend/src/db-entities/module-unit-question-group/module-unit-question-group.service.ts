@@ -1,3 +1,6 @@
+// Service for question group CRUD within module units. Scoped operations validate module/unit
+// ownership to prevent cross-tenant access. Deletion uses soft-archive for groups with student
+// attempt history to preserve the integrity of historical records.
 import {
   BadRequestException,
   ConflictException,
@@ -211,6 +214,7 @@ export class ModuleUnitQuestionGroupService {
     }
   }
 
+  // Treats archived records as non-existent so callers do not need to check the archive flag themselves.
   private async getOrThrow(id: number) {
     const record = await this.prisma.moduleUnitQuestionGroup.findUnique({
       where: { id },

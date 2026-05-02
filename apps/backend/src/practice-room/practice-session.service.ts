@@ -162,6 +162,9 @@ export class PracticeRoomSessionService {
     const closedAt = session.endTime ?? new Date();
 
     if (!session.endTime) {
+      // updateMany with endTime: null in the where clause makes the close idempotent:
+      // a concurrent close request that races past the guard above will simply match
+      // zero rows rather than overwriting the timestamp set by the first writer.
       await this.prisma.practiceSession.updateMany({
         where: {
           id: sessionId,

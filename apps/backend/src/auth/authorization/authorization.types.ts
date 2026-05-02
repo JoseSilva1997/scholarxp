@@ -1,7 +1,7 @@
 // Types shared for authorization metadata used by decorators, guards, and services.
 // They make the intent of an authorization decorator explicit and reusable.
 import type { FeatureKey } from '@scholarxp/permissions';
-import type { AuthUser } from '../../types/auth-user.type';
+import type { AuthUser } from '@scholarxp/api-contracts';
 
 // Scope shows whether authorization applies globally, to a specific module, or only to the user's own resources.
 export type AuthorizationScope = 'global' | 'module' | 'self';
@@ -12,6 +12,8 @@ export type AuthorizationRule = {
   scope?: AuthorizationScope;
   // For module-scoped checks, this tells the guard where to find the related module context (which related entity to read).
   moduleContextSource?: 'module' | 'user_module' | 'module_unit';
+  // Archive/delete routes opt in because archived modules are hidden from normal app flows.
+  allowArchived?: boolean;
   // When using `self` scope, the target user id is read from the request (route/body/query). Default key is `id`.
   selfUserIdParam?: 'id' | 'userId';
 };
@@ -19,10 +21,9 @@ export type AuthorizationRule = {
 // Data about a module that policies need to evaluate permissions. Only includes necessary fields.
 export type ModuleAuthorizationContext = {
   moduleId: number;
-  moduleInstitutionId: number | null;
   moduleCreatedByUserId: number | null;
+  moduleArchivedAt: Date | null;
   roleInModule: 'student' | 'teacher' | null;
-  hasInstitutionMatch: boolean;
 };
 
 // The shape of data passed into authorization evaluators so guards orchestrate data gathering,
@@ -33,3 +34,12 @@ export type AuthorizationEvaluation = {
   moduleContext?: ModuleAuthorizationContext;
   selfTargetUserId?: number;
 };
+
+// Discriminated outcome so guards can map specific denials to user-facing copy.
+export type AuthorizationDenialReason =
+  | 'capability'
+  | 'module_membership'
+  | 'self';
+export type AuthorizationOutcome =
+  | { allowed: true }
+  | { allowed: false; reason: AuthorizationDenialReason };

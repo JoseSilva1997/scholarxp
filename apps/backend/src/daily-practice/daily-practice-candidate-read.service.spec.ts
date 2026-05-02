@@ -24,10 +24,10 @@ describe('DailyPracticeCandidateReadService', () => {
     prisma.moduleUnit.findMany.mockResolvedValue([
       buildModuleUnit(1, 'Lesson A', 0, [
         buildQuestionUnit(10, 'Q10', 100, { sortOrder: 1 }, [
-          buildContent(1001, 'multiple_choice', 0.4),
+          buildContent(1001, 'multiple_choice'),
         ]),
         buildQuestionUnit(11, 'Q11', 100, { sortOrder: 1 }, [
-          buildContent(1002, 'free_response', 0.6),
+          buildContent(1002, 'free_response'),
         ]),
       ]),
     ]);
@@ -45,13 +45,11 @@ describe('DailyPracticeCandidateReadService', () => {
       questionGroupSortOrder: 1,
       coreContentId: 1001,
       questionType: 'multiple_choice',
-      questionDifficultyScore: 0.4,
     });
     expect(result[1]).toMatchObject({
       questionUnitId: 11,
       coreContentId: 1002,
       questionType: 'free_response',
-      questionDifficultyScore: 0.6,
     });
   });
 
@@ -60,7 +58,7 @@ describe('DailyPracticeCandidateReadService', () => {
       buildModuleUnit(1, 'Lesson A', 0, [
         buildQuestionUnit(10, 'Q10', null, null, []),
         buildQuestionUnit(11, 'Q11', null, null, [
-          buildContent(1001, 'multiple_choice', 0.5),
+          buildContent(1001, 'multiple_choice'),
         ]),
       ]),
     ]);
@@ -95,7 +93,7 @@ describe('DailyPracticeCandidateReadService', () => {
     prisma.moduleUnit.findMany.mockResolvedValue([
       buildModuleUnit(1, 'Lesson A', 0, [
         buildQuestionUnit(10, 'Q10', null, null, [
-          buildContent(1001, 'multiple_choice', 0.5),
+          buildContent(1001, 'multiple_choice'),
         ]),
       ]),
     ]);
@@ -133,12 +131,12 @@ describe('DailyPracticeCandidateReadService', () => {
     prisma.moduleUnit.findMany.mockResolvedValue([
       buildModuleUnit(1, 'Lesson A', 0, [
         buildQuestionUnit(10, 'Q10', null, null, [
-          buildContent(1001, 'multiple_choice', 0.3),
+          buildContent(1001, 'multiple_choice'),
         ]),
       ]),
       buildModuleUnit(2, 'Lesson B', 1, [
         buildQuestionUnit(20, 'Q20', null, null, [
-          buildContent(2001, 'multiple_choice', 0.7),
+          buildContent(2001, 'multiple_choice'),
         ]),
       ]),
     ]);
@@ -153,12 +151,8 @@ describe('DailyPracticeCandidateReadService', () => {
 
 // ── Builders ──────────────────────────────────────────────────────────────────
 
-function buildContent(
-  id: number,
-  type: string,
-  difficultyScore: number,
-): { id: number; type: string; difficultyScore: number } {
-  return { id, type, difficultyScore };
+function buildContent(id: number, type: string): { id: number; type: string } {
+  return { id, type };
 }
 
 function buildQuestionUnit(

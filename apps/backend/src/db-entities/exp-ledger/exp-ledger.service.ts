@@ -1,4 +1,6 @@
-// Service role: records XP reward events with idempotency guarantees so retries do not duplicate rewards.
+// Append-only ledger service for XP reward events. All XP awards across practice sessions,
+// quest completions, and mastery events are written here with idempotency guarantees so that
+// retried requests and concurrent writes never produce duplicate reward entries.
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -65,6 +67,8 @@ export class ExpLedgerService {
     return { created: false, awardedExp: 0 };
   }
 
+  // Counts module unit completion events for the current UTC day, used by the daily-practice
+  // generation pipeline to determine how many units a student has already finished today.
   async getTodaysNumberOfCompletedUnits(
     userId: number,
     tx?: PrismaClientLike,

@@ -1,3 +1,5 @@
+// Input shape for creating a practice session. Date fields are ISO strings here;
+// PracticeSessionService converts them to Date objects before persisting.
 import { IsDateString, IsInt, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class CreatePracticeSessionDto {

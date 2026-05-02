@@ -157,6 +157,12 @@ export interface LessonDrilldownResponse {
   };
 }
 
+// --- Remove student endpoint ---
+
+export interface RemoveRosterStudentResponse {
+  removedStudentId: number;
+}
+
 // --- Student detail endpoint ---
 
 export interface RosterStudentLessonProgress {

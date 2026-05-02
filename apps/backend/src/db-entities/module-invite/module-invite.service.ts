@@ -1,3 +1,5 @@
+// Service for managing module invite links. Token values are hashed on creation and never stored
+// in plaintext. Redemption atomically increments usage and creates the UserModule enrollment record.
 import {
   BadRequestException,
   ForbiddenException,
@@ -17,7 +19,7 @@ import { CreateModuleInviteDto } from './dto/create-module-invite.dto';
 import { UpdateModuleInviteDto } from './dto/update-module-invite.dto';
 import { RedeemModuleInviteDto } from './dto/redeem-module-invite.dto';
 import { PrismaService } from '../../prisma/prisma.service';
-import type { AuthUser } from '../../types/auth-user.type';
+import type { AuthUser } from '@scholarxp/api-contracts';
 import {
   FRONTEND_URL,
   MODULE_INVITE_DEFAULT_EXPIRY_HOURS,
@@ -28,6 +30,8 @@ import {
 export class ModuleInviteService {
   constructor(private readonly prisma: PrismaService) {}
 
+  // Generates a new invite link for the module. The raw token is returned exactly once;
+  // subsequent lookups use the hash stored in the database.
   async create(
     moduleId: number,
     createModuleInviteDto: CreateModuleInviteDto,
@@ -113,6 +117,8 @@ export class ModuleInviteService {
     return this.sanitizeInvite(deleted);
   }
 
+  // Validates the token and atomically enrolls the student. The operation is idempotent at the
+  // unique-constraint level: a second redeem by the same user surfaces a 400 rather than silently creating a duplicate.
   async redeem(dto: RedeemModuleInviteDto, user: AuthUser) {
     // Use shared capability evaluator so backend and frontend stay aligned on who can redeem links.
     const tokenHash = this.hashToken(dto.token);
@@ -129,7 +135,7 @@ export class ModuleInviteService {
     };
   }
 
-  // Finds the invite by token hash and validates it's active and for a non-institution module.
+  // Finds the invite by token hash and validates it is still active for module-based enrollment.
   private async findAndValidateInvite(tokenHash: string) {
     const invite = await this.prisma.moduleInvite.findFirst({
       where: { tokenHash },
@@ -140,10 +146,8 @@ export class ModuleInviteService {
       throw new NotFoundException('Invite not found or expired');
     }
 
-    if (invite.module.institutionId !== null) {
-      throw new ForbiddenException(
-        'Invites are only available for non-institution modules.',
-      );
+    if (invite.module.archivedAt) {
+      throw new NotFoundException('Invite not found or expired');
     }
 
     this.assertInviteIsActive(invite);
@@ -235,14 +239,14 @@ export class ModuleInviteService {
     if (!module) {
       throw new NotFoundException(`Module ${moduleId} not found`);
     }
-    if (module.institutionId !== null) {
-      throw new ForbiddenException(
-        'Invites are only available for non-institution modules.',
-      );
+    if (module.archivedAt) {
+      throw new NotFoundException(`Module ${moduleId} not found`);
     }
     return module;
   }
 
+  // Validates revocation, expiry, and usage cap in one place so both the pre-transaction check
+  // and the in-transaction re-validation call the same rules.
   private assertInviteIsActive(invite: {
     expiresAt: Date | null;
     revokedAt: Date | null;
@@ -261,6 +265,7 @@ export class ModuleInviteService {
     }
   }
 
+  // Strips the tokenHash from any outgoing invite object so the credential is never exposed via the API.
   private sanitizeInvite<T extends { tokenHash?: string }>(invite: T) {
     const { tokenHash: _tokenHash, ...rest } = invite;
     void _tokenHash; // Explicitly ignore the hash so we never leak it outside this service.

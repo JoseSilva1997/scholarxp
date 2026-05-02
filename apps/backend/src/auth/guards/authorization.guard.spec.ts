@@ -22,7 +22,6 @@ describe('AuthorizationGuard', () => {
     module: { findUnique: jest.fn() },
     userModule: { findUnique: jest.fn() },
     moduleUnit: { findUnique: jest.fn() },
-    ltiIdentity: { findFirst: jest.fn() },
   } as unknown as PrismaService;
 
   const authorizationService = {
@@ -66,7 +65,10 @@ describe('AuthorizationGuard', () => {
     (reflector.getAllAndOverride as jest.Mock).mockReturnValue({
       capability: features.modules.create,
     } as AuthorizationRule);
-    (authorizationService.canActivate as jest.Mock).mockReturnValue(false);
+    (authorizationService.canActivate as jest.Mock).mockReturnValue({
+      allowed: false,
+      reason: 'capability',
+    });
 
     await expect(
       guard.canActivate(
@@ -74,11 +76,44 @@ describe('AuthorizationGuard', () => {
           user: {
             id: 1,
             globalRole: GlobalRole.teacher,
-            hasInstitutionMembership: false,
           } as any,
         }),
       ),
-    ).rejects.toBeInstanceOf(ForbiddenException);
+    ).rejects.toMatchObject({
+      message: 'Insufficient permissions',
+      constructor: ForbiddenException,
+    });
+  });
+
+  it('uses module-membership copy when policy denies due to missing enrollment', async () => {
+    (reflector.getAllAndOverride as jest.Mock).mockReturnValue({
+      capability: features.modules.manageContent,
+      scope: 'module',
+    } as AuthorizationRule);
+    (prisma.module.findUnique as jest.Mock).mockResolvedValue({
+      id: 77,
+      createdByUserId: 99,
+      archivedAt: null,
+      userModules: [],
+    });
+    (authorizationService.canActivate as jest.Mock).mockReturnValue({
+      allowed: false,
+      reason: 'module_membership',
+    });
+
+    await expect(
+      guard.canActivate(
+        contextFor({
+          user: {
+            id: 1,
+            globalRole: GlobalRole.teacher,
+          } as any,
+          params: { moduleId: '77' },
+        }),
+      ),
+    ).rejects.toMatchObject({
+      message: "You don't have access to this module.",
+    });
   });
 
   it('throws bad request when module scope is missing module id', async () => {
@@ -93,7 +128,6 @@ describe('AuthorizationGuard', () => {
           user: {
             id: 1,
             globalRole: GlobalRole.teacher,
-            hasInstitutionMembership: false,
           } as any,
         }),
       ),
@@ -113,12 +147,66 @@ describe('AuthorizationGuard', () => {
           user: {
             id: 1,
             globalRole: GlobalRole.teacher,
-            hasInstitutionMembership: false,
           } as any,
           params: { moduleId: '77' },
         }),
       ),
     ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('hides archived modules from normal module-scoped routes', async () => {
+    (reflector.getAllAndOverride as jest.Mock).mockReturnValue({
+      capability: features.navigation.modules,
+      scope: 'module',
+    } as AuthorizationRule);
+    (prisma.module.findUnique as jest.Mock).mockResolvedValue({
+      id: 77,
+      createdByUserId: 1,
+      archivedAt: new Date('2026-04-01T00:00:00.000Z'),
+      userModules: [{ roleInModule: 'teacher' }],
+    });
+
+    await expect(
+      guard.canActivate(
+        contextFor({
+          user: {
+            id: 1,
+            globalRole: GlobalRole.teacher,
+          } as any,
+          params: { moduleId: '77' },
+        }),
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(authorizationService.canActivate).not.toHaveBeenCalled();
+  });
+
+  it('allows archive/delete routes to authorize already archived modules', async () => {
+    (reflector.getAllAndOverride as jest.Mock).mockReturnValue({
+      capability: features.modules.delete,
+      scope: 'module',
+      allowArchived: true,
+    } as AuthorizationRule);
+    (prisma.module.findUnique as jest.Mock).mockResolvedValue({
+      id: 77,
+      createdByUserId: 1,
+      archivedAt: new Date('2026-04-01T00:00:00.000Z'),
+      userModules: [{ roleInModule: 'teacher' }],
+    });
+    (authorizationService.canActivate as jest.Mock).mockReturnValue({
+      allowed: true,
+    });
+
+    await expect(
+      guard.canActivate(
+        contextFor({
+          user: {
+            id: 1,
+            globalRole: GlobalRole.teacher,
+          } as any,
+          params: { moduleId: '77' },
+        }),
+      ),
+    ).resolves.toBe(true);
   });
 
   it('resolves module context from user-module id when requested', async () => {
@@ -132,11 +220,13 @@ describe('AuthorizationGuard', () => {
     });
     (prisma.module.findUnique as jest.Mock).mockResolvedValue({
       id: 55,
-      institutionId: null,
       createdByUserId: 1,
+      archivedAt: null,
       userModules: [{ roleInModule: 'teacher' }],
     });
-    (authorizationService.canActivate as jest.Mock).mockReturnValue(true);
+    (authorizationService.canActivate as jest.Mock).mockReturnValue({
+      allowed: true,
+    });
 
     await expect(
       guard.canActivate(
@@ -144,7 +234,6 @@ describe('AuthorizationGuard', () => {
           user: {
             id: 1,
             globalRole: GlobalRole.teacher,
-            hasInstitutionMembership: false,
           } as any,
           params: { id: '9' },
         }),
@@ -159,8 +248,8 @@ describe('AuthorizationGuard', () => {
       where: { id: 55 },
       select: {
         id: true,
-        institutionId: true,
         createdByUserId: true,
+        archivedAt: true,
         userModules: {
           where: { userId: 1 },
           select: { roleInModule: true },
@@ -182,7 +271,6 @@ describe('AuthorizationGuard', () => {
           user: {
             id: 1,
             globalRole: GlobalRole.teacher,
-            hasInstitutionMembership: false,
           } as any,
           params: { id: 'abc' },
         }),
@@ -204,7 +292,6 @@ describe('AuthorizationGuard', () => {
           user: {
             id: 1,
             globalRole: GlobalRole.teacher,
-            hasInstitutionMembership: false,
           } as any,
           params: { id: '9' },
         }),
@@ -223,11 +310,13 @@ describe('AuthorizationGuard', () => {
     });
     (prisma.module.findUnique as jest.Mock).mockResolvedValue({
       id: 44,
-      institutionId: null,
       createdByUserId: 1,
+      archivedAt: null,
       userModules: [{ roleInModule: 'teacher' }],
     });
-    (authorizationService.canActivate as jest.Mock).mockReturnValue(true);
+    (authorizationService.canActivate as jest.Mock).mockReturnValue({
+      allowed: true,
+    });
 
     await expect(
       guard.canActivate(
@@ -235,7 +324,6 @@ describe('AuthorizationGuard', () => {
           user: {
             id: 1,
             globalRole: GlobalRole.teacher,
-            hasInstitutionMembership: false,
           } as any,
           params: { id: '12' },
         }),
@@ -250,8 +338,8 @@ describe('AuthorizationGuard', () => {
       where: { id: 44 },
       select: {
         id: true,
-        institutionId: true,
         createdByUserId: true,
+        archivedAt: true,
         userModules: {
           where: { userId: 1 },
           select: { roleInModule: true },
@@ -273,7 +361,6 @@ describe('AuthorizationGuard', () => {
           user: {
             id: 1,
             globalRole: GlobalRole.teacher,
-            hasInstitutionMembership: false,
           } as any,
           params: { id: 'abc' },
         }),
@@ -295,7 +382,6 @@ describe('AuthorizationGuard', () => {
           user: {
             id: 1,
             globalRole: GlobalRole.teacher,
-            hasInstitutionMembership: false,
           } as any,
           params: { id: '12' },
         }),
@@ -309,7 +395,9 @@ describe('AuthorizationGuard', () => {
       scope: 'self',
       selfUserIdParam: 'id',
     } as AuthorizationRule);
-    (authorizationService.canActivate as jest.Mock).mockReturnValue(true);
+    (authorizationService.canActivate as jest.Mock).mockReturnValue({
+      allowed: true,
+    });
 
     await expect(
       guard.canActivate(
@@ -317,7 +405,6 @@ describe('AuthorizationGuard', () => {
           user: {
             id: 1,
             globalRole: GlobalRole.pending,
-            hasInstitutionMembership: false,
           } as any,
           params: { id: '1' },
         }),
@@ -344,7 +431,6 @@ describe('AuthorizationGuard', () => {
           user: {
             id: 1,
             globalRole: GlobalRole.pending,
-            hasInstitutionMembership: false,
           } as any,
           params: { id: 'not-a-number' },
         }),
