@@ -16,6 +16,8 @@ export class RewardsController {
     private readonly dailyLessonXpTrackService: DailyLessonXpTrackService,
   ) {}
 
+  // Returns the authenticated student's daily lesson XP progress, including completed lesson count,
+  // next reward tier, and the visual step states shown in the app header.
   @Get('daily-lesson-xp-track')
   @Authorize({ capability: features.navigation.profile, scope: 'global' })
   getMyDailyLessonXpTrack(

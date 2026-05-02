@@ -6,7 +6,7 @@ import type {
 
 export const MIN_DAILY_PRACTICE_QUESTION_COUNT = 3; // Minimum viable set size to maintain the "daily practice" experience.
 export const MAX_DAILY_PRACTICE_QUESTION_COUNT = 10; // Cap on set size to maintain a consistent experience and avoid overwhelming learners.
-export const DAILY_PRACTICE_REVIEW_RATIO = 0.4; // Proportion of review-eligible questions to include in a set (e.g. if 10 question are eligible for review, the set will be 3 questions)
+export const DAILY_PRACTICE_REVIEW_RATIO = 0.3; // Proportion of due-review questions to include in a set (e.g. if 10 questions are due, the set target is 3 questions)
 export const REINFORCEMENT_RATIO = 0.3;
 
 // Guards against generating a set when the module has too few eligible questions to be a meaningful practice session.
@@ -60,10 +60,8 @@ export function deriveDailyPracticeTargetQuestionCount(
     return clampDailyPracticeTargetQuestionCount(requestedTargetQuestionCount);
   }
 
-  const reviewEligibleCount =
-    inventory.dueReviewCount + inventory.reinforcementCount;
   const proportional = Math.round(
-    reviewEligibleCount * DAILY_PRACTICE_REVIEW_RATIO,
+    inventory.dueReviewCount * DAILY_PRACTICE_REVIEW_RATIO,
   );
 
   return clampDailyPracticeTargetQuestionCount(

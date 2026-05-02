@@ -1,3 +1,6 @@
+// Module role: bundles all XP-engine services and the rewards controller into a cohesive feature slice.
+// Exports every service so sibling modules (e.g. daily-practice) can award and query XP without
+// bypassing the engine's idempotency and ledger guarantees.
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
 import { AvatarModule } from '../db-entities/avatar/avatar.module';

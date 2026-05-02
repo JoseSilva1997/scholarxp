@@ -237,6 +237,8 @@ export class ExpAwardingService {
     });
   }
 
+  // Core completion-reward logic extracted so it can run inside either a caller-provided
+  // or internally opened transaction without duplicating the ledger and account-update steps.
   private async awardCompletionExpWithinTx(
     params: AwardCompletionExpParams,
     prismaClient: PrismaClientLike,

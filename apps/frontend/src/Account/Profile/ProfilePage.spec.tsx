@@ -66,6 +66,10 @@ vi.mock('@/Account/Profile/components/TutorProfile', () => ({
   default: () => <div>tutor-profile</div>,
 }));
 
+vi.mock('@/Account/Profile/components/DeleteAccountSection', () => ({
+  default: () => <div>delete-account-section</div>,
+}));
+
 describe('ProfilePage route', () => {
   beforeEach(() => {
     mocks.useProfilePageState.mockReturnValue(createStudentPageState());

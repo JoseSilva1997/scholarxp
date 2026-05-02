@@ -15,6 +15,9 @@ export class DailyLessonXpTrackService {
     private readonly expCalculationService: ExpCalculationService,
   ) {}
 
+  // Builds the complete daily XP track state for one user at the given timestamp.
+  // Passing the timestamp explicitly (rather than calling new Date() internally) keeps
+  // the method deterministic and testable without time-mocking.
   async getTrackForUser(
     userId: number,
     timestamp: Date,
