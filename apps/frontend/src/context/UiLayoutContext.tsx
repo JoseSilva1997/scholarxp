@@ -18,6 +18,7 @@ type UiLayoutContextValue = {
 const UiLayoutContext = createContext<UiLayoutContextValue | undefined>(undefined);
 const SIDEBAR_STORAGE_KEY = 'scholarxp:sidebar-open';
 
+// React Context Provider pattern: centralises sidebar state for layout components mounted in different branches.
 export function UiLayoutProvider({ children }: { children: ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(() => {
     // Start from stored preference; default closed on small screens to avoid covering content on first load.
@@ -36,6 +37,7 @@ export function UiLayoutProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(SIDEBAR_STORAGE_KEY, String(isSidebarOpen));
   }, [isSidebarOpen]);
 
+  // Provides a stable command for controls that only need to invert the current sidebar state.
   const toggleSidebar = useCallback(() => {
     setIsSidebarOpen((open) => !open);
   }, []);
@@ -53,6 +55,7 @@ export function UiLayoutProvider({ children }: { children: ReactNode }) {
 }
 
 // eslint-disable-next-line react-refresh/only-export-components -- hooks alongside providers are fine and used together here.
+// Gives consumers access to layout state and prevents silent fallback values outside UiLayoutProvider.
 export function useUiLayout(): UiLayoutContextValue {
   const ctx = useContext(UiLayoutContext);
   if (!ctx) {

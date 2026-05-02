@@ -211,6 +211,9 @@ export class StudentModuleUnitProgressService {
     );
   }
 
+  // Determines the timestamp to persist for completedAt, preserving the original
+  // completion date once set so historical records accurately reflect when the student
+  // first mastered the unit rather than the date of their most recent attempt.
   private resolveCompletedAt(input: {
     isCompleted: boolean;
     attemptedAt: Date;

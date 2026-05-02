@@ -5,6 +5,7 @@ import type {
 } from '@scholarxp/api-contracts';
 import { apiFetch } from '@/shared/api/client';
 
+// API gateway function for equipping a cosmetic; callers depend on typed contracts rather than route strings.
 export async function putEquippedCosmetic(
   payload: EquipCosmeticRequest,
 ): Promise<EquipCosmeticResponse> {

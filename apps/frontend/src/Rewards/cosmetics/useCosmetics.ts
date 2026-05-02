@@ -23,6 +23,7 @@ type UseCosmeticsResult = {
   isEquipping: boolean;
 };
 
+// Facade hook pattern: presents reward state and equip behaviour through one stable frontend API.
 export function useCosmetics(): UseCosmeticsResult {
   const { user } = useAuth();
   const mutation = useEquipCosmeticMutation();
@@ -43,6 +44,7 @@ export function useCosmetics(): UseCosmeticsResult {
     [equipped],
   );
 
+  // The mutation hook owns cache updates and transport concerns; this facade exposes only the domain action.
   const equipCosmetic = useCallback(
     async (slot: CosmeticSlot, rewardId: string) => {
       await mutation.mutateAsync({ slot, rewardId });

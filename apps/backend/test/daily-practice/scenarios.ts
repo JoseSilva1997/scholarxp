@@ -1,4 +1,6 @@
-// Role: reusable daily-practice e2e scenario builders so unlock, selection, and resume suites share the same deterministic seeded histories.
+// Reusable daily-practice e2e scenario builders providing deterministic test state.
+// Each scenario seeds a specific student state (new, day 1 complete, review-ready, etc.) so unlock/selection/session suites share consistent test data.
+
 import { ModuleUnitStatus, type PrismaClient } from '@prisma/client';
 import { DateHelpers } from '../../src/helpers/helpers';
 import type { SeededModuleUnit, SeededStudentModuleScenario } from './helpers';
@@ -7,6 +9,8 @@ type PrismaLike =
   | PrismaClient
   | import('../../src/prisma/prisma.service').PrismaService;
 
+// Seeds a live module unit with an MCQ question content pool.
+// Generates explicit TypeScript typing to prevent type inference errors across async seeding loops.
 export async function seedLiveModuleUnitWithMcqQuestions(
   prisma: PrismaLike,
   moduleId: number,
@@ -65,6 +69,9 @@ export async function seedLiveModuleUnitWithMcqQuestions(
   };
 }
 
+// Seeds a completed lesson progress record.
+// Completion rows are the source of truth for the next-day unlock rule, so scenarios seed them directly
+// instead of depending on unrelated daily-practice room flows.
 export async function seedCompletedLessonProgress(
   prisma: PrismaLike,
   params: {
@@ -73,7 +80,6 @@ export async function seedCompletedLessonProgress(
     completedAt: Date;
   },
 ) {
-  // Completion rows are the source of truth for the next-day unlock rule, so scenarios seed them directly instead of depending on unrelated room flows.
   await prisma.moduleUnitUserProgress.create({
     data: {
       moduleUnitId: params.moduleUnitId,
@@ -87,6 +93,8 @@ export async function seedCompletedLessonProgress(
   });
 }
 
+// Seeds a student's spaced-repetition state for a specific question.
+// Initializes FSRS tracking fields (difficulty, stability, due date) that drive the selection algorithm.
 export async function seedStudentQuestionState(
   prisma: PrismaLike,
   params: {
@@ -126,6 +134,8 @@ export async function seedStudentQuestionState(
   });
 }
 
+// Batch seeds multiple questions with the same due-review state.
+// Used by scenarios to quickly populate a cohort of questions ready for daily practice.
 export async function seedDueReviewStateForQuestions(
   prisma: PrismaLike,
   params: {
@@ -154,6 +164,8 @@ export async function seedDueReviewStateForQuestions(
   }
 }
 
+// Seeds a new student with no activity: first lesson unlocked but not yet started.
+// Tests the unlock and selection logic when the student has no prior history.
 export async function seedStudentNewScenario(
   prisma: PrismaLike,
   base: SeededStudentModuleScenario,
@@ -174,6 +186,8 @@ export async function seedStudentNewScenario(
   };
 }
 
+// Seeds a student who completed day 1 and now has both a due-review pool and future-due review questions.
+// Tests selection logic when review questions exist but some are not yet due.
 export async function seedStudentDay1CompleteScenario(
   prisma: PrismaLike,
   base: SeededStudentModuleScenario,
@@ -213,6 +227,8 @@ export async function seedStudentDay1CompleteScenario(
   };
 }
 
+// Seeds a student whose reviews are now due (completed yesterday, reviews due today).
+// Tests the core scenario where the selector draws from a due-review cohort.
 export async function seedStudentReviewReadyScenario(
   prisma: PrismaLike,
   base: SeededStudentModuleScenario,
@@ -254,6 +270,8 @@ export async function seedStudentReviewReadyScenario(
   };
 }
 
+// Seeds a mixed history: some questions due today, others not yet due.
+// Tests the selector's ability to prioritize due items while backfilling with reinforcement candidates.
 export async function seedStudentMixedHistoryScenario(
   prisma: PrismaLike,
   base: SeededStudentModuleScenario,
@@ -321,15 +339,11 @@ export async function seedStudentMixedHistoryScenario(
   };
 }
 
-// Seeds a scenario where the due-review bucket falls short of its quota and the selector must
-// backfill with extra reinforcement candidates.
-//
-// Inventory: 1 due-review question (completed lesson) + 2 reinforcement candidates (second completed lesson,
-// both seen with 'again' grade, not yet due).
-// reviewEligible = 1 + 2 = 3 → Math.round(3 × 0.25) = 1 → clamped to MIN = 3.
-// Nominal quota at size 3: 2 due_review, 1 reinforcement.
-// Due shortfall = 1 → backfill draws the second reinforcement candidate.
-// Expected selection: 1 dueReview + 2 reinforcement.
+// Seeds a scenario where the due-review bucket falls short of its quota and the selector must backfill.
+// Inventory: 1 due-review question + 2 reinforcement candidates = 3 review-eligible.
+// Math.round(3 × 0.25) = 1 → clamped to MIN = 3 → quota: 2 due_review, 1 reinforcement.
+// Due shortfall = 1 → backfill draws the extra reinforcement candidate.
+// Expected selection: 1 dueReview + 2 reinforcement (proves backfill logic when reinforcement exceeds quota).
 export async function seedStudentDueShortfallScenario(
   prisma: PrismaLike,
   base: SeededStudentModuleScenario,
@@ -404,8 +418,9 @@ export async function seedStudentDueShortfallScenario(
   };
 }
 
-// This scenario pins the completion gate at the integration level: a lesson with strong prior
-// attempt coverage must still stay out of daily practice until its progress row is completed.
+// Tests the completion gate: a lesson with strong prior attempt coverage must still be excluded
+// from daily practice until its progress row is marked completed.
+// Seeds both a completed lesson and a nearly-completed (80% mastery) lesson.
 export async function seedStudentCompletedAndNearlyCompletedLessonsScenario(
   prisma: PrismaLike,
   base: SeededStudentModuleScenario,
@@ -476,6 +491,8 @@ export async function seedStudentCompletedAndNearlyCompletedLessonsScenario(
   };
 }
 
+// Seeds a daily-practice set for yesterday (used for testing session resume and replay scenarios).
+// Explicitly stores yesterday's UTC date to test the date-boundary logic in practice room flows.
 export async function seedYesterdayDailyPracticeSet(
   prisma: PrismaLike,
   params: {
@@ -594,8 +611,10 @@ export async function seedStudentSizingBoundaryScenario(
     startedLesson,
     completedAt,
   };
-}
-
+}\n\n// Seeds a high-load scenario testing the MAX_DAILY_PRACTICE_QUESTION_COUNT cap.
+// Creates 39 due-review questions + 2 reinforcement candidates = 41 review-eligible total.
+// Math.round(41 × 0.25) = 10 → hits the max cap.
+// Expected quota: 8 due_review + 2 reinforcement (10 total).
 export async function seedStudentMaxPressureScenario(
   prisma: PrismaLike,
   base: SeededStudentModuleScenario,

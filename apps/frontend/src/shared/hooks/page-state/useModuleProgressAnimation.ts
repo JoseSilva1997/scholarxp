@@ -59,6 +59,7 @@ type UseModuleProgressAnimationResult = {
   ) => void;
 };
 
+// Coordinates module progress display state from server snapshots and newly awarded XP.
 export function useModuleProgressAnimation({
   moduleDetail,
   moduleId,
@@ -245,6 +246,7 @@ export function useModuleProgressAnimation({
     };
   }, [moduleProgressAnimation]); // Decoupled from displayedModuleTotalExp to avoid frame-restarts.
 
+  // Derives the display-ready progress model from the animated total so the UI stays presentation-focused.
   const moduleProgress = useMemo<ModuleProgress | null>(() => {
     if (!moduleDetail || moduleDetail.userModuleLevel === undefined) {
       return null;
@@ -260,6 +262,7 @@ export function useModuleProgressAnimation({
     const animatedTotalExp = displayedModuleTotalExp ?? fallbackTotalExp;
     const derivedProgress = fromModuleTotalExp(animatedTotalExp, expMax);
     const currentExp = derivedProgress.currentExp;
+    // Clamp the percentage because the animated total may briefly land at a boundary during level transitions.
     const expPercent = expMax > 0 ? Math.min(100, Math.round((currentExp / expMax) * 100)) : 0;
 
     return {
@@ -350,11 +353,13 @@ export function useModuleProgressAnimation({
 
 // --- Pure utilities ------------------------------------------------------------
 
+// Converts level-relative XP into a single absolute value so animation math can ignore level boundaries.
 function toModuleTotalExp(level: number, currentExp: number, expMax: number): number {
   // Total-exp normalisation lets us animate across level boundaries without special-case branching.
   return Math.max(0, level - 1) * expMax + Math.max(0, currentExp);
 }
 
+// Converts absolute XP back into the level/current-XP pair expected by the progress bar UI.
 function fromModuleTotalExp(
   totalExp: number,
   expMax: number,
@@ -369,6 +374,7 @@ function fromModuleTotalExp(
   };
 }
 
+// Applies a standard easing curve so progress feedback starts quickly and settles smoothly.
 function easeOutCubic(progress: number): number {
   return 1 - Math.pow(1 - progress, 3);
 }

@@ -8,6 +8,7 @@ type CreateModuleUnitModalProps = {
   onCreate: (title: string) => void;
 };
 
+// Presents a modal for creating a lesson shell and resets local form state after close/submit.
 export default function CreateModuleUnitModal({ isOpen, onClose, onCreate }: CreateModuleUnitModalProps) {
   const [title, setTitle] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -23,6 +24,7 @@ export default function CreateModuleUnitModal({ isOpen, onClose, onCreate }: Cre
   }, [isOpen]);
 
   useEffect(() => {
+    // Closes the modal via Escape so keyboard users can abandon the create flow quickly.
     const handleKey = (evt: KeyboardEvent) => {
       if (evt.key === 'Escape') {
         onClose();
@@ -32,6 +34,7 @@ export default function CreateModuleUnitModal({ isOpen, onClose, onCreate }: Cre
     return () => window.removeEventListener('keydown', handleKey);
   }, [onClose]);
 
+  // Clears transient input and validation state before delegating close to the parent.
   const handleClose = () => {
     setTitle('');
     setError(null);
@@ -40,6 +43,7 @@ export default function CreateModuleUnitModal({ isOpen, onClose, onCreate }: Cre
 
   if (!isOpen) return null;
 
+  // Validates the title locally and emits a trimmed value for creation.
   const handleSubmit = (evt: React.FormEvent) => {
     evt.preventDefault();
     const trimmed = title.trim();

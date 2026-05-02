@@ -2,7 +2,7 @@
 // reads as a clearly separate "danger zone" rather than a routine profile control.
 import { useMemo, useState, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { AuthUser } from '@/shared/types/auth';
+import type { AuthUser } from '@scholarxp/api-contracts';
 import { useAuth } from '@/context/AuthContext';
 import { deleteOwnAccount } from '@/Account/api/users';
 import { logError } from '@/utils/logger';
@@ -23,6 +23,7 @@ type Validation =
   | { kind: 'mismatch'; message: string }
   | { kind: 'ok' };
 
+// Classifies the confirmation email so the UI can distinguish incomplete input from actionable errors.
 function validate(input: string, accountEmail: string | null): Validation {
   const trimmed = input.trim();
   if (!trimmed) return { kind: 'empty' };
@@ -35,6 +36,7 @@ function validate(input: string, accountEmail: string | null): Validation {
   return { kind: 'ok' };
 }
 
+// Coordinates email confirmation, final modal state, and the destructive account deletion request.
 export default function DeleteAccountSection({ user }: DeleteAccountSectionProps) {
   const navigate = useNavigate();
   const { logout } = useAuth();
@@ -44,28 +46,33 @@ export default function DeleteAccountSection({ user }: DeleteAccountSectionProps
   const [serverError, setServerError] = useState<string | null>(null);
 
   const validation = useMemo(() => validate(email, user.email), [email, user.email]);
+  // Empty input intentionally shows no error so the section does not look invalid before interaction.
   const validationMessage =
     validation.kind === 'invalid' || validation.kind === 'mismatch'
       ? validation.message
       : '';
   const canSubmit = validation.kind === 'ok' && !isDeleting;
 
+  // Updates the local confirmation draft without normalizing case before display.
   const handleEmailChange = (e: ChangeEvent<HTMLInputElement>) => {
     setEmail(e.target.value);
   };
 
+  // Opens the final confirmation modal only after the typed email matches the authenticated account.
   const handleOpenModal = () => {
     if (!canSubmit) return;
     setServerError(null);
     setIsModalOpen(true);
   };
 
+  // Prevents closing the modal while deletion is in flight to avoid hiding a pending irreversible action.
   const handleCancel = () => {
     if (isDeleting) return;
     setIsModalOpen(false);
     setServerError(null);
   };
 
+  // Performs deletion, then clears auth state and moves the user out of the protected app shell.
   const handleConfirm = async () => {
     if (!canSubmit) return;
     setIsDeleting(true);

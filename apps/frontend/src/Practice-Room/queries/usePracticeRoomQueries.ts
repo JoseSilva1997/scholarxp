@@ -13,6 +13,8 @@ import {
 } from '@/Authoring/api/modules';
 import { queryKeys } from '@/shared/hooks/query-keys';
 
+// Loads a module-unit practice room and opportunistically keeps module progress
+// cache entries aligned with the room response.
 export function useModuleUnitPracticeRoomQuery(
   moduleId: number | null,
   moduleUnitId: number | null,
@@ -55,11 +57,16 @@ export function useModuleUnitPracticeRoomQuery(
   });
 }
 
+// Provides the submit-attempt mutation plus a cache-synchronization strategy
+// used after successful submissions.
 export function useSubmitModuleUnitPracticeAttemptMutation(
   moduleId: number | null,
   moduleUnitId: number | null,
 ) {
   const queryClient = useQueryClient();
+
+  // Synchronizes all UI surfaces affected by an attempt; this is separated from
+  // the mutation so completion flows can defer it until after modal dismissal.
   const syncAttemptSuccessEffects = async (data: SubmitAttemptResponse) => {
     if (moduleId === null || moduleUnitId === null || !data) {
       return;
@@ -129,6 +136,7 @@ export function useSubmitModuleUnitPracticeAttemptMutation(
   };
 }
 
+// Provides a mutation for closing an active practice-room session.
 export function useCloseModuleUnitPracticeSessionMutation(
   moduleId: number | null,
   moduleUnitId: number | null,

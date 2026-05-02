@@ -4,6 +4,7 @@ import { AuthVisual } from '@/Auth/AuthVisual';
 import { useForgotPasswordPageState } from '@/Auth/ForgotPassword/page-state/useForgotPasswordPageState';
 import styles from '@/Auth/Login/Login.module.css';
 
+// Renders the reset-link request form while page state owns validation and submission behavior.
 export default function ForgotPassword() {
   const { email, error, status, isSubmitting, handleChange, handleSubmit } =
     useForgotPasswordPageState();

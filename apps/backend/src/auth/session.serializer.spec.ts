@@ -3,7 +3,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { GlobalRole } from '@prisma/client';
 import { AuthService } from './auth.service';
 import { SessionSerializer } from './session.serializer';
-import type { AuthUser } from '../types/auth-user.type';
+import type { AuthUser } from '@scholarxp/api-contracts';
 
 describe('SessionSerializer', () => {
   let serializer: SessionSerializer;

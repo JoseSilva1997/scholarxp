@@ -1,10 +1,10 @@
 // Profile hero banner: shared by student and tutor roles with role-specific visual additions.
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
-import type { AuthUser } from '@/shared/types/auth';
 import {
   PROFILE_PICTURE_ALLOWED_MIME_TYPES,
   PROFILE_PICTURE_MAX_BYTES,
   type AccountProgress,
+  type AuthUser,
   type ProfilePictureMimeType,
 } from '@scholarxp/api-contracts';
 import { canAccess, features } from '@scholarxp/permissions';
@@ -35,6 +35,7 @@ type HeroCardProps = {
 
 const ACCEPT_ATTR = PROFILE_PICTURE_ALLOWED_MIME_TYPES.join(',');
 
+// Normalizes optional first/last name fields into the single display name used by the hero.
 function formatName(user: AuthUser) {
   return [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
 }
@@ -45,6 +46,7 @@ const RING_RADIUS = 52;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 const RING_CENTER = RING_SIZE / 2;
 
+// Presents the editable profile header and coordinates profile picture/name mutations.
 export default function HeroCard({
   user,
   accountProgress,
@@ -59,6 +61,7 @@ export default function HeroCard({
   const [isMutating, setIsMutating] = useState(false);
   const [pictureError, setPictureError] = useState<string | null>(null);
 
+  // Permission checks keep the component aligned with backend authorization rules without duplicating role logic.
   const canEditPicture = canAccess(features.users.updateOwnProfilePicture, {
     role: user.globalRole,
   });
@@ -81,12 +84,14 @@ export default function HeroCard({
     }
   }, [isEditingProfile, user.firstName, user.lastName]);
 
+  // External URLs are trusted profile pictures; local or missing values fall back to the packaged avatar.
   const avatarSrc =
     user.profilePictureUrl && user.profilePictureUrl.startsWith('http')
       ? user.profilePictureUrl
       : defaultAvatar;
   const hasCustomPicture = avatarSrc !== defaultAvatar;
 
+  // Validates, crops, and uploads the selected image before refreshing the authenticated user snapshot.
   async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const input = event.target;
     const file = input.files?.[0];
@@ -95,6 +100,7 @@ export default function HeroCard({
     if (!file) return;
 
     setPictureError(null);
+    // Client validation gives immediate feedback; the backend remains the source of truth for upload rules.
     if (!PROFILE_PICTURE_ALLOWED_MIME_TYPES.includes(file.type as ProfilePictureMimeType)) {
       setPictureError('Image must be PNG, JPEG, or WebP.');
       return;
@@ -117,6 +123,7 @@ export default function HeroCard({
     }
   }
 
+  // Persists name edits only after matching the shared name validation contract used elsewhere in the app.
   async function handleNameSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const firstName = firstNameDraft.trim();
@@ -135,6 +142,7 @@ export default function HeroCard({
       return;
     }
     if (firstName === user.firstName && lastName === user.lastName) {
+      // A no-op submit should close validation feedback without issuing an unnecessary network mutation.
       setNameError(null);
       return;
     }
@@ -152,6 +160,7 @@ export default function HeroCard({
     }
   }
 
+  // Removes the custom avatar and refreshes auth context so the header and profile stay consistent.
   async function handleRemove() {
     setPictureError(null);
     setIsMutating(true);
@@ -166,6 +175,7 @@ export default function HeroCard({
     }
   }
 
+  // Clamp progress for SVG stroke math so over-levelled server values cannot overdraw the ring.
   const progressPercent = accountProgress
     ? Math.min(100, Math.round(accountProgress.progressPercent))
     : 0;

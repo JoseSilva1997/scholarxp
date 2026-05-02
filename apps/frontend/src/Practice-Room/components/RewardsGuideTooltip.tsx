@@ -5,6 +5,7 @@
 import { FaCircleInfo } from 'react-icons/fa6';
 import styles from '@/Practice-Room/components/RewardsGuideTooltip.module.css';
 
+// Renders the reward-guide tooltip used by the practice-room header indicators.
 export default function RewardsGuideTooltip() {
   return (
     // tabIndex so keyboard users can focus the container and see the tooltip.

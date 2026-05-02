@@ -22,6 +22,7 @@ type ProficiencyBadgeProps = BadgeVariantProps & {
   forceVariant?: string;
 };
 
+// Strategy pattern: selects one badge implementation from the equipped reward id while keeping callers variant-agnostic.
 export function ProficiencyBadge({ forceVariant, ...props }: ProficiencyBadgeProps) {
   const { cosmetic } = useCosmetics();
   const variantId = forceVariant ?? cosmetic('proficiencyBadge');

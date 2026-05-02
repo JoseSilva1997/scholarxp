@@ -1,4 +1,6 @@
-// Mapper for turning raw practice-room query results into stable API payloads while keeping services orchestration-focused.
+// Mapper/Assembler pattern: centralises all transformations from internal query shapes to
+// stable API contract types so services stay orchestration-focused and contract changes are
+// contained to this single class.
 import { Injectable } from '@nestjs/common';
 import type { questionType, QuestionData } from '@scholarxp/question-type-dtos';
 import type {
@@ -134,6 +136,8 @@ export class PracticeRoomMapper {
     );
 
     // Core-only mode: question-unit solved state is driven exclusively by the core question latest attempt.
+    // null (not false) signals "never attempted" — the client uses this to distinguish between
+    // "attempted and wrong" and "not yet started" when rendering completion indicators.
     const hasCorrectAttempt = coreAttempt?.isCorrect === true ? true : null;
 
     return {

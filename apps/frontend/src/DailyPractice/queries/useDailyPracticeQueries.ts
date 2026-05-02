@@ -1,4 +1,4 @@
-// Daily-practice query hooks keep adaptive-session server state out of route components and aligned with shared cache keys.
+// Daily-practice query hooks form a React Query cache-adapter layer for adaptive-session server state.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   SubmitDailyPracticeAttemptPayload,
@@ -11,6 +11,7 @@ import {
 } from '@/DailyPractice/api/daily-practice';
 import { queryKeys } from '@/shared/hooks/query-keys';
 
+// React Query adapter for loading or resuming today's adaptive Daily Practice set.
 export function useTodayDailyPracticeQuery(
   moduleId: number | null,
   sessionId: string | null,
@@ -20,6 +21,7 @@ export function useTodayDailyPracticeQuery(
       moduleId !== null
         ? queryKeys.modules.dailyPractice(moduleId, sessionId ?? undefined)
         : queryKeys.modules.dailyPractice(0),
+    // Query hooks act as a cache facade: components depend on stable keys rather than transport details.
     queryFn: () =>
       getTodayDailyPractice(moduleId!, {
         sessionId: sessionId ?? undefined,
@@ -30,9 +32,11 @@ export function useTodayDailyPracticeQuery(
   });
 }
 
+// Mutation hook for attempt submission plus the cross-feature cache refreshes triggered by a successful grade.
 export function useSubmitDailyPracticeAttemptMutation(moduleId: number | null) {
   const queryClient = useQueryClient();
 
+  // Centralizes post-submit invalidation so the page-state hook can remain focused on local UI updates.
   const syncAttemptSuccessEffects = async (
     data: SubmitDailyPracticeAttemptResponse,
   ) => {
@@ -62,6 +66,7 @@ export function useSubmitDailyPracticeAttemptMutation(moduleId: number | null) {
   };
 
   const mutation = useMutation({
+    // Submits a learner answer through the daily-practice API while guarding against invalid route state.
     mutationFn: (payload: SubmitDailyPracticeAttemptPayload) => {
       if (moduleId === null) {
         throw new Error(
@@ -79,8 +84,10 @@ export function useSubmitDailyPracticeAttemptMutation(moduleId: number | null) {
   };
 }
 
+// Mutation hook for closing a Daily Practice session when the route or browser lifecycle ends.
 export function useCloseDailyPracticeSessionMutation(moduleId: number | null) {
   return useMutation({
+    // Session close is intentionally explicit so the backend can finalize session analytics independently of answer submission.
     mutationFn: (sessionId: string) => {
       if (moduleId === null) {
         throw new Error(

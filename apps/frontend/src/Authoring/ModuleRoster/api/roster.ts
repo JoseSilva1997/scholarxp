@@ -11,6 +11,7 @@ import type {
 } from '@scholarxp/api-contracts';
 import { apiFetch } from '@/shared/api/client';
 
+// Retrieves high-level roster metrics used by the summary cards and tab shortcuts.
 export async function getRosterSummary(moduleId: number): Promise<RosterSummaryResponse> {
   return apiFetch<RosterSummaryResponse>(`/module/${moduleId}/roster/summary`, {
     method: 'GET',
@@ -34,6 +35,7 @@ export async function getRosterStudents(
   );
 }
 
+// Retrieves lesson-level roster analytics for tutor scanning and lesson drilldown entry.
 export async function getRosterLessons(
   moduleId: number,
   query: RosterLessonsQuery = {},
@@ -48,6 +50,7 @@ export async function getRosterLessons(
   );
 }
 
+// Retrieves one student's module progress detail for the side-panel drilldown.
 export async function getRosterStudentDetail(
   moduleId: number,
   studentId: number,
@@ -58,6 +61,7 @@ export async function getRosterStudentDetail(
   );
 }
 
+// Removes a student enrollment from a module after tutor confirmation.
 export async function removeRosterStudent(
   moduleId: number,
   studentId: number,
@@ -68,6 +72,7 @@ export async function removeRosterStudent(
   );
 }
 
+// Retrieves per-question lesson diagnostics that help tutors identify weak content.
 export async function getLessonDrilldown(
   moduleId: number,
   moduleUnitId: number,

@@ -53,6 +53,7 @@ const TAB_CONFIG: Record<Tab, TabConfig> = {
   },
 };
 
+// Renders an explanatory popover for the editor's group/question/variant structure.
 export default function QuestionStructureGuide() {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('groups');
@@ -75,6 +76,7 @@ export default function QuestionStructureGuide() {
   // Close on any click outside both the trigger and the popover.
   useEffect(() => {
     if (!open) return;
+    // Detects outside clicks across both the trigger and portal-rendered popover.
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as Node;
       const outsideTrigger = !triggerRef.current?.contains(target);

@@ -5,7 +5,7 @@ import type { FormEvent } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/shared/api/client';
 import { useModuleInvitesPanelState } from '@/Authoring/SingleModule/page-state/useModuleInvitesPanelState';
-import type { ModuleInvite } from '@/shared/types/module';
+import type { ModuleInviteResponse as ModuleInvite } from '@scholarxp/api-contracts';
 
 const mocks = vi.hoisted(() => ({
   createMutateAsync: vi.fn(),

@@ -7,7 +7,7 @@ import { AuthorizationGuard } from '../auth/guards/authorization.guard';
 import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
 import { DailyLessonXpTrackResponseDto } from './dto/daily-lesson-xp-track-response.dto';
 import { DailyLessonXpTrackService } from './daily-lesson-xp-track.service';
-import type { AuthUser } from '../types/auth-user.type';
+import type { AuthUser } from '@scholarxp/api-contracts';
 
 @Controller('rewards')
 @UseGuards(SessionAuthGuard, AuthorizationGuard)

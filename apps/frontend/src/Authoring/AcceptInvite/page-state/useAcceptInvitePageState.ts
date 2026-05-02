@@ -12,6 +12,7 @@ import { useRedeemInviteQuery } from '@/Authoring/SingleModule/queries/useModule
 const INVITE_REDEEM_PERMISSION_MESSAGE =
   'This invite link can only be used from an eligible student account. If you are a teacher, ask the module owner to share access another way.';
 
+// Provides a student-friendly invite permission message for the one backend error that needs domain context.
 function getInviteRedeemErrorMessage(error: unknown): string | null {
   // Keep the graceful override narrowly scoped so other invite failures still use backend-owned copy.
   if (
@@ -25,8 +26,7 @@ function getInviteRedeemErrorMessage(error: unknown): string | null {
   return null;
 }
 
-// Main hook for AcceptInvite page state
-// Handles all logic for redeeming an invite link, error handling, and redirecting after success.
+// Handles invite redemption, error logging, and post-success navigation for the route component.
 export function useAcceptInvitePageState() {
   // --- Token and navigation setup ---
   // Extracts the invite token from the URL and prepares navigation helpers.

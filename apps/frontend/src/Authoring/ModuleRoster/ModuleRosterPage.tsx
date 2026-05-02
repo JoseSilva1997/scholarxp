@@ -8,6 +8,7 @@ import ConfirmRemoveStudentModal from '@/Authoring/ModuleRoster/components/Confi
 import { useModuleRosterPageState } from '@/Authoring/ModuleRoster/page-state/useModuleRosterPageState';
 import styles from '@/Authoring/ModuleRoster/ModuleRosterPage.module.css';
 
+// Renders the tutor roster workspace and wires page-state outputs into summary, tabs, and modals.
 export default function ModuleRosterPage() {
   const { moduleId } = useParams<{ moduleId: string }>();
   const { user } = useAuth();

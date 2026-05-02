@@ -7,7 +7,7 @@ import { DailyLessonXpTrackService } from '../exp-engine/daily-lesson-xp-track.s
 import { PrismaService } from '../prisma/prisma.service';
 import { QuestStreakService } from '../quests/quest-streak.service';
 import { createPrismaMock, type PrismaMock } from '../test/test-helpers';
-import type { AuthUser } from '../types/auth-user.type';
+import type { AuthUser } from '@scholarxp/api-contracts';
 import { StudentProfileService } from './student-profile.service';
 
 describe('StudentProfileService', () => {

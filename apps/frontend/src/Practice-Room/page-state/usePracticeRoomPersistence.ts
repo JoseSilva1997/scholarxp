@@ -27,6 +27,7 @@ type UsePracticeRoomPersistenceResult = {
   storageKey: string | null;
 };
 
+// Provides validated localStorage persistence for session-specific question selection state.
 export function usePracticeRoomPersistence({
   moduleId,
   unitId,
@@ -56,6 +57,7 @@ export function usePracticeRoomPersistence({
 
 // --- Pure utilities ------------------------------------------------------------
 
+// Builds the versioned localStorage key for one module-unit practice room.
 function buildPracticeRoomQuestionSelectionStorageKey(
   moduleId: number | null,
   unitId: number | null,
@@ -64,6 +66,7 @@ function buildPracticeRoomQuestionSelectionStorageKey(
   return `practice-room-question-selection-v1:${moduleId}:${unitId}`;
 }
 
+// Reads and validates a saved practice-room selection snapshot.
 function readPracticeRoomQuestionSelectionPersistence(
   storageKey: string,
 ): PracticeRoomQuestionSelectionPersistence | null {
@@ -102,6 +105,7 @@ function readPracticeRoomQuestionSelectionPersistence(
   }
 }
 
+// Persists a practice-room selection snapshot using the caller's validated storage key.
 function writePracticeRoomQuestionSelectionPersistence(
   storageKey: string,
   value: PracticeRoomQuestionSelectionPersistence,
@@ -110,6 +114,7 @@ function writePracticeRoomQuestionSelectionPersistence(
   window.localStorage.setItem(storageKey, JSON.stringify(value));
 }
 
+// Validates backend session identifiers before they are accepted from URLs or localStorage.
 export function isUuidString(value: string): boolean {
   // UUID validation keeps URL and local persistence aligned with backend session-id constraints.
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
@@ -117,6 +122,7 @@ export function isUuidString(value: string): boolean {
   );
 }
 
+// Converts persisted object data into a safe number-keyed boolean map.
 function sanitizePersistedBooleanByContentId(value: unknown): Record<number, boolean> {
   if (!value || typeof value !== 'object') return {};
 

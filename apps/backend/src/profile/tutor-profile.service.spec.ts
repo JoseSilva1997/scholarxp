@@ -4,7 +4,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { GlobalRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock, type PrismaMock } from '../test/test-helpers';
-import type { AuthUser } from '../types/auth-user.type';
+import type { AuthUser } from '@scholarxp/api-contracts';
 import { TutorProfileService } from './tutor-profile.service';
 
 describe('TutorProfileService', () => {

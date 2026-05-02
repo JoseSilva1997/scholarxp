@@ -8,6 +8,7 @@ import type {
 } from '@scholarxp/api-contracts';
 import { apiFetch } from '@/shared/api/client';
 
+// Creates a module invitation link with expiry and usage constraints supplied by the tutor.
 export async function createModuleInvite(
   moduleId: number,
   payload: CreateInvitePayload,
@@ -19,6 +20,7 @@ export async function createModuleInvite(
   });
 }
 
+// Lists active and historical invites for the module invite-management panel.
 export async function listModuleInvites(moduleId: number): Promise<ModuleInviteResponse[]> {
   // Listing stays scoped to a module so invite reads use the same authorization path as writes.
   return apiFetch<ModuleInviteResponse[]>(`/modules/${moduleId}/invites`, {
@@ -26,6 +28,7 @@ export async function listModuleInvites(moduleId: number): Promise<ModuleInviteR
   });
 }
 
+// Updates mutable invite controls such as revocation and limits without changing the token.
 export async function updateModuleInvite(
   moduleId: number,
   inviteId: number,
@@ -38,6 +41,7 @@ export async function updateModuleInvite(
   });
 }
 
+// Removes or revokes an invite through the backend so future redemptions are blocked.
 export async function deleteModuleInvite(
   moduleId: number,
   inviteId: number,
@@ -48,6 +52,7 @@ export async function deleteModuleInvite(
   });
 }
 
+// Redeems a student invite token and returns the enrollment outcome for route-level feedback.
 export async function redeemInvite(token: string): Promise<RedeemInviteResponse> {
   // Student join endpoint; keeps token client-side while backend hashes for lookup.
   return apiFetch<RedeemInviteResponse>('/invites/redeem', {

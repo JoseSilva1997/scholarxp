@@ -1,3 +1,4 @@
+// Provides the frontend Auth module's repository-style API boundary for backend authentication endpoints.
 import type {
   AuthResponse,
   LoginPayload,
@@ -14,6 +15,7 @@ import type {
 } from '@scholarxp/api-contracts';
 import { ApiError, apiFetch } from '@/shared/api/client';
 
+// Creates a password-based account and returns the backend's registration outcome.
 export async function registerByEmail(payload: RegisterPayload): Promise<RegisterResponse> {
   return apiFetch<RegisterResponse>('/auth/register', {
     method: 'POST',
@@ -21,6 +23,7 @@ export async function registerByEmail(payload: RegisterPayload): Promise<Registe
   });
 }
 
+// Authenticates an existing email/password account and returns the session user when successful.
 export async function login(payload: LoginPayload): Promise<AuthResponse> {
   return apiFetch<AuthResponse>('/auth/login', {
     method: 'POST',
@@ -28,18 +31,21 @@ export async function login(payload: LoginPayload): Promise<AuthResponse> {
   });
 }
 
+// Retrieves the current session user, allowing app bootstrapping to restore authentication state.
 export async function getCurrentUser(): Promise<AuthResponse> {
   return apiFetch<AuthResponse>('/auth/me', {
     method: 'GET',
   });
 }
 
+// Ends the current server-backed session and returns the backend logout acknowledgement.
 export async function logout(): Promise<LogoutResponse> {
   return apiFetch<LogoutResponse>('/auth/logout', {
     method: 'POST',
   });
 }
 
+// Exchanges an email verification token for an authenticated session when the token is valid.
 export async function verifyEmail(token: string): Promise<AuthResponse> {
   const payload: VerifyEmailPayload = { token };
   return apiFetch<AuthResponse>('/auth/verify-email', {
@@ -48,6 +54,7 @@ export async function verifyEmail(token: string): Promise<AuthResponse> {
   });
 }
 
+// Requests a fresh verification message for users who have not completed email confirmation.
 export async function resendVerification(
   email: string,
 ): Promise<ResendVerificationResponse> {
@@ -58,6 +65,7 @@ export async function resendVerification(
   });
 }
 
+// Starts the password recovery flow without exposing whether the email belongs to an account.
 export async function forgotPassword(
   email: string,
 ): Promise<ForgotPasswordResponse> {
@@ -68,6 +76,7 @@ export async function forgotPassword(
   });
 }
 
+// Completes password recovery by submitting the emailed reset token with the replacement password.
 export async function resetPassword(
   payload: ResetPasswordPayload,
 ): Promise<ResetPasswordResponse> {

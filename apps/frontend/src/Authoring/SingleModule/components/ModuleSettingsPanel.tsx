@@ -1,7 +1,11 @@
 // Component that renders the collapsible module settings rail so the module page stays lean.
 import { useEffect, useMemo } from 'react';
 import styles from '@/Authoring/SingleModule/components/ModuleSettingsPanel.module.css';
-import type { ModuleDeletionImpact, ModuleInvite, ModuleSummary } from '@/shared/types/module';
+import type {
+  ModuleDeletionImpactResponse as ModuleDeletionImpact,
+  ModuleInviteResponse as ModuleInvite,
+  ModuleSummaryResponse as ModuleSummary,
+} from '@scholarxp/api-contracts';
 import { FaRegCopy, FaXmark } from "react-icons/fa6";
 import { IconContext } from 'react-icons';
 import { useModuleInvitesPanelState } from '@/Authoring/SingleModule/page-state/useModuleInvitesPanelState';
@@ -25,6 +29,7 @@ type ModuleSettingsPanelProps = {
   onConfirmArchiveModule?: () => void;
 };
 
+// Renders module metadata, invite management, and archive controls inside a slide-out settings panel.
 export default function ModuleSettingsPanel({
   module,
   isOpen,
@@ -93,6 +98,7 @@ export default function ModuleSettingsPanel({
     handleReset,
   } = useModuleSettingsForm({ module, isOpen, onSaved });
 
+  // Renders the action set for an invite according to whether it is still usable.
   function renderInviteActions(invite: ModuleInvite) {
     const canCopy = canCopyInviteLink(invite);
     const isCopied = isInviteCopied(invite);
@@ -139,6 +145,7 @@ export default function ModuleSettingsPanel({
     );
   }
 
+  // Normalizes backend impact counts into label/value rows for the confirmation summary.
   const archiveImpactRows: [string, number][] = archiveImpact
     ? [
         ['Student enrollments', archiveImpact.counts.studentEnrollments],
@@ -317,7 +324,7 @@ export default function ModuleSettingsPanel({
               ) : (
                 <ul className={styles.inviteList} aria-live="polite">
                   {invites.map((invite) => {
-                    // Determine if invite is in an inactive state
+                    // Treat revoked links and expired links the same in the list because neither can be redeemed.
                     const isInactive = formatExpiry(invite).startsWith('Expired') || invite.revokedAt;
                     return (
                       <li key={invite.id} className={`${styles.inviteItem} ${isInactive ? styles.inviteItemInactive : ''}`}>

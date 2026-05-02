@@ -4,6 +4,7 @@ import type { StudentProfileResponse, TutorProfileResponse } from '@scholarxp/ap
 import { getStudentProfile, getTutorProfile } from '@/Account/Profile/api/profile';
 import { queryKeys } from '@/shared/hooks/query-keys';
 
+// React Query hook for student profile data; the caller controls enablement after role resolution.
 export function useStudentProfileQuery(enabled: boolean, userId?: number) {
   return useQuery<StudentProfileResponse>({
     queryKey: queryKeys.profile.student(userId ?? null),
@@ -13,6 +14,7 @@ export function useStudentProfileQuery(enabled: boolean, userId?: number) {
   });
 }
 
+// React Query hook for tutor profile data; mirrors the student query to keep role-specific fetching symmetric.
 export function useTutorProfileQuery(enabled: boolean, userId?: number) {
   return useQuery<TutorProfileResponse>({
     queryKey: queryKeys.profile.tutor(userId ?? null),

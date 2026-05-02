@@ -1,4 +1,6 @@
-// Role: shared e2e helpers for daily-practice suites so app bootstrapping, auth overrides, and destructive test-db cleanup stay consistent.
+// Shared e2e infrastructure for daily-practice suites: app bootstrapping, request helpers, auth overrides, and destructive cleanup.
+// Centralizes test app setup, session injection, and database state management to keep suites DRY and mutation-consistent.
+
 import {
   CanActivate,
   ExecutionContext,
@@ -22,26 +24,32 @@ import { DAILY_PRACTICE_GENERATION_CRON_NAME } from '../../src/daily-practice/da
 import { PrismaService } from '../../src/prisma/prisma.service';
 import { QuestGenerationStartupService } from '../../src/quests/quest-generation-startup.service';
 
+// Represents a single question created during test data seeding.
 export type SeededQuestion = {
   questionUnitId: number;
   questionContentId: number;
 };
 
+// Represents a lesson unit with associated questions seeded during test data setup.
 export type SeededModuleUnit = {
   moduleUnitId: number;
   sortOrder: number;
   questions: SeededQuestion[];
 };
 
+// Represents a student enrolled in a module during scenario seeding — the base context for all student-specific scenarios.
 export type SeededStudentModuleScenario = {
   studentId: number;
   moduleId: number;
 };
 
+// Holds the user ID for the current test context; modified by setAuthenticatedUserId() to simulate different students.
 const authContext = {
   userId: 0,
 };
 
+// Injects a mock authenticated user into the request context so e2e suites bypass real session middleware.
+// Guards check this request-scoped user instead of validating an actual session.
 class TestSessionGuard implements CanActivate {
   // Request-scoped auth is injected here so e2e suites can exercise real controllers without session middleware.
   canActivate(context: ExecutionContext): boolean {
@@ -53,6 +61,8 @@ class TestSessionGuard implements CanActivate {
   }
 }
 
+// Accepts all authorization checks, allowing tests to focus on feature behavior without mocking role hierarchies.
+// In production, authorization is enforced; here, only authenticated access is verified.
 class TestAuthorizationGuard implements CanActivate {
   // Authorization is not under test here; these suites focus on daily-practice behavior once access is granted.
   canActivate(): boolean {
@@ -60,11 +70,15 @@ class TestAuthorizationGuard implements CanActivate {
   }
 }
 
+// Suppresses startup generation during e2e tests so seeded state is not overwritten by background jobs.
+// E2E suites seed state after app boot and expect it to persist for testing.
 class TestDailyPracticeGenerationScheduleService extends DailyPracticeGenerationScheduleService {
   // E2E suites seed state after app boot, so suppress startup generation to avoid races with cleanup and assertions.
   override onModuleInit() {}
 }
 
+// Creates a test-configured NestApplication with auth/permission mocks, suppressed background jobs, and production validation.
+// The resulting app is ready to receive authenticated e2e requests without needing real sessions or authorization checks.
 export async function createDailyPracticeE2eApp(): Promise<{
   app: INestApplication;
   prisma: PrismaService;
@@ -102,10 +116,14 @@ export async function createDailyPracticeE2eApp(): Promise<{
   };
 }
 
+// Updates the global auth context so subsequent requests appear to come from a specific user.
+// Used by test suites to switch authenticated identity between test cases.
 export function setAuthenticatedUserId(userId: number) {
   authContext.userId = userId;
 }
 
+// Generates today's daily-practice sets (using FSRS algorithm) and fetches them for the authenticated user.
+// Calls the batch generator once because e2e suites seed data after app boot (no automatic startup generation).
 export async function fetchTodayDailyPractice(
   app: INestApplication,
   moduleId: number,
@@ -120,6 +138,7 @@ export async function fetchTodayDailyPractice(
   return response.body as DailyPracticeTodayResponse;
 }
 
+// Triggers the batch generation service to create today's daily-practice sets for all students.
 export async function generateTodayDailyPracticeSets(app: INestApplication) {
   const generationBatchService = app.get(DailyPracticeGenerationBatchService);
 
@@ -128,6 +147,8 @@ export async function generateTodayDailyPracticeSets(app: INestApplication) {
   );
 }
 
+// Triggers the scheduled cron job for daily-practice generation to fire immediately.
+// Allows e2e tests to verify behavior dependent on scheduled background work without waiting.
 export async function fireDailyPracticeGenerationCronJob(
   app: INestApplication,
 ) {
@@ -199,6 +220,8 @@ export async function submitDailyPracticeAttemptIncorrect(
   return response.body as SubmitDailyPracticeAttemptResponse;
 }
 
+// Verifies that DATABASE_URL is defined and appears to be a test database.
+// Fails loudly if run in a non-test environment to prevent accidental data destruction.
 export function assertSafeE2eDatabaseUrl() {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) {
@@ -215,6 +238,9 @@ export function assertSafeE2eDatabaseUrl() {
   }
 }
 
+// Destructively clears all state from the test database in dependency order (respecting foreign key constraints).
+// Called by e2e suites in beforeEach/afterEach to ensure a clean database for each test.
+// NOTE: Deletion order is critical—tables with foreign keys must be cleared before their referenced tables.
 export async function clearDailyPracticeE2eDatabase(prisma: PrismaService) {
   await prisma.dailyPracticeSetItem.deleteMany();
   await prisma.dailyPracticeSet.deleteMany();
@@ -239,6 +265,8 @@ export async function clearDailyPracticeE2eDatabase(prisma: PrismaService) {
   await prisma.user.deleteMany();
 }
 
+// Seeds a minimal student, module, and avatar for e2e test scenarios.
+// Generates unique identifiers to allow parallel test runs without cross-test contamination.
 export async function seedStudentModuleScenario(
   prisma: PrismaService,
 ): Promise<SeededStudentModuleScenario> {

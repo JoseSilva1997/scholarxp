@@ -21,6 +21,7 @@ type UseSessionLifecycleParams = {
   closeSession: CloseSessionFn;
 };
 
+// Registers best-effort teardown behavior for the active practice-room session.
 export function useSessionLifecycle({
   sessionId,
   moduleId,
@@ -52,6 +53,8 @@ export function useSessionLifecycle({
   }, [closeSession]);
 
   useEffect(() => {
+    // Attempts to close the latest active session exactly once, using keepalive
+    // transport during page unload and the normal mutation path otherwise.
     const closeSessionBestEffort = (source: 'unmount' | 'pagehide') => {
       const currentSessionId = latestSessionIdRef.current;
       const currentModuleId = latestModuleIdRef.current;
@@ -89,6 +92,7 @@ export function useSessionLifecycle({
       });
     };
 
+    // Handles browser navigation-away events where React unmount timing is not guaranteed.
     const handlePageHide = () => {
       closeSessionBestEffort('pagehide');
     };

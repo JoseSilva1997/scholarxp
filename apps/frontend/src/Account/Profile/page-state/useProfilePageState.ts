@@ -19,6 +19,7 @@ type UseProfilePageStateResult = {
   setIsEditingProfile: (editing: boolean) => void;
 };
 
+// Page-state hook pattern: combines auth state, role-specific queries, and local UI controls for ProfilePage.
 export function useProfilePageState(): UseProfilePageStateResult {
   const { user, isLoading: isAuthLoading } = useAuth();
   const isStudent = user?.globalRole === 'student';
@@ -28,11 +29,13 @@ export function useProfilePageState(): UseProfilePageStateResult {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
 
   const studentQuery = useStudentProfileQuery(
+    // Query enablement waits for auth to settle so a pending user does not issue the wrong role request.
     !isAuthLoading && isStudent,
     user?.id,
   );
 
   const tutorQuery = useTutorProfileQuery(
+    // Query enablement mirrors the student path and prevents role-mismatched profile endpoints.
     !isAuthLoading && isTutor,
     user?.id,
   );

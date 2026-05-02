@@ -27,6 +27,8 @@ type UsePracticeRoomCompletionFlowResult = {
   dismissLessonCompleteModal: () => void;
 };
 
+// Defers completion rewards behind the lesson-complete modal while leaving the
+// actual award calculation and cache synchronization owned by upstream hooks.
 export function usePracticeRoomCompletionFlow({
   applyExpAward,
   moduleDetail,
@@ -35,6 +37,7 @@ export function usePracticeRoomCompletionFlow({
   const [pendingLessonCompleteReward, setPendingLessonCompleteReward] =
     useState<PendingLessonCompleteReward | null>(null);
 
+  // Stores the reward payload until the learner dismisses the completion modal.
   const deferLessonCompleteRewards = useCallback(
     (reward: PendingLessonCompleteReward) => {
       setPendingLessonCompleteReward(reward);
@@ -42,6 +45,7 @@ export function usePracticeRoomCompletionFlow({
     [],
   );
 
+  // Closes the modal and flushes the deferred reward and cache synchronization effects.
   const dismissLessonCompleteModal = useCallback(() => {
     if (!pendingLessonCompleteReward) {
       return;

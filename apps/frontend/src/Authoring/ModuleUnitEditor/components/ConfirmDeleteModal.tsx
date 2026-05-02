@@ -13,6 +13,7 @@ type ConfirmDeleteModalProps = {
   onCancel: () => void;
 };
 
+// Renders a reusable destructive-action confirmation modal for editor deletions.
 export default function ConfirmDeleteModal({
   isOpen,
   title,

@@ -16,6 +16,7 @@ import {
 } from '@/Authoring/ModuleRoster/api/roster';
 import { queryKeys } from '@/shared/hooks/query-keys';
 
+// Loads top-level roster metrics for the module summary cards.
 export function useRosterSummaryQuery(moduleId: number | null) {
   return useQuery({
     queryKey: moduleId ? queryKeys.roster.summary(moduleId) : queryKeys.roster.summary(0),
@@ -25,6 +26,7 @@ export function useRosterSummaryQuery(moduleId: number | null) {
   });
 }
 
+// Loads student roster rows with server-side filter, sort, and search parameters.
 export function useRosterStudentsQuery(
   moduleId: number | null,
   query: RosterStudentsQuery = {},
@@ -40,6 +42,7 @@ export function useRosterStudentsQuery(
   });
 }
 
+// Loads lesson roster rows with server-side sorting.
 export function useRosterLessonsQuery(
   moduleId: number | null,
   query: RosterLessonsQuery = {},
@@ -55,6 +58,7 @@ export function useRosterLessonsQuery(
   });
 }
 
+// Loads a selected student's detailed progress only after drilldown selection.
 export function useRosterStudentDetailQuery(
   moduleId: number | null,
   studentId: number | null,
@@ -80,6 +84,7 @@ type RemoveStudentMutationContext = {
 // Optimistic update: drop the row from every cached student-list variant (filter/sort permutations)
 // and decrement the summary count immediately so the UI reflects the action without waiting for refetch.
 // Lesson coverage still requires a server roundtrip — invalidated in onSettled.
+// Removes a student with optimistic cache updates and rollback support.
 export function useRemoveRosterStudentMutation(moduleId: number | null) {
   const queryClient = useQueryClient();
 
@@ -153,6 +158,7 @@ export function useRemoveRosterStudentMutation(moduleId: number | null) {
   });
 }
 
+// Loads detailed lesson analytics only for the selected lesson row.
 export function useRosterLessonDrilldownQuery(
   moduleId: number | null,
   moduleUnitId: number | null,

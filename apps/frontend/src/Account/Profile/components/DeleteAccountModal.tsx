@@ -25,6 +25,7 @@ function bodyText(role: GlobalRole): string {
   return 'This action is permanent and cannot be undone.';
 }
 
+// Renders the final destructive-action confirmation dialog for account deletion.
 export default function DeleteAccountModal({
   isOpen,
   role,
@@ -33,6 +34,7 @@ export default function DeleteAccountModal({
   onConfirm,
   onCancel,
 }: DeleteAccountModalProps) {
+  // Returning null keeps the modal out of the accessibility tree when it is closed.
   if (!isOpen) return null;
 
   return (

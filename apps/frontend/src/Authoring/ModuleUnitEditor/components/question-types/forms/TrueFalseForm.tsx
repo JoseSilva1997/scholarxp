@@ -17,6 +17,7 @@ type TrueFalseFormProps = {
   onSelectCorrect: (id: string) => void;
 };
 
+// Renders the binary True/False controls while preserving the parent editor's generic option shape.
 export function TrueFalseForm({
   options,
   onChangeExplanation,
@@ -27,6 +28,7 @@ export function TrueFalseForm({
 
   useEffect(() => {
     if (!popoverOpen) return;
+    // Closes the helper popover when the user clicks outside the info control.
     function handleClickOutside(e: MouseEvent) {
       if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
         setPopoverOpen(false);
@@ -36,6 +38,7 @@ export function TrueFalseForm({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [popoverOpen]);
 
+  // Defensive slice keeps the binary form stable if a cached MCQ-shaped form is switched to True/False.
   const limitedOptions = options.slice(0, 2);
   return (
     <div className={styles.optionsSection}>

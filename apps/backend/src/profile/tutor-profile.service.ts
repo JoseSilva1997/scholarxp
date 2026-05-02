@@ -1,4 +1,5 @@
-// Aggregates tutor-facing profile data from module ownership, enrollment, and invite records.
+// Aggregates tutor-facing profile data from module ownership, enrolment, and invite records.
+// Only depends on PrismaService directly, as tutors have no gamification state to aggregate.
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { GlobalRole } from '@prisma/client';
 import type {
@@ -6,12 +7,16 @@ import type {
   TutorProfileResponse,
 } from '@scholarxp/api-contracts';
 import { PrismaService } from '../prisma/prisma.service';
-import type { AuthUser } from '../types/auth-user.type';
+import type { AuthUser } from '@scholarxp/api-contracts';
 
 @Injectable()
 export class TutorProfileService {
   constructor(private readonly prisma: PrismaService) {}
 
+  // Builds the complete TutorProfileResponse. Module ownership is resolved via a dual OR condition
+  // (creator or teacher role) to support co-teaching. Pending-invite and active-student counts
+  // are fetched in parallel once the module list is known. Falls back to session user data for
+  // the profile card if the database record cannot be found.
   async getTutorProfile(user: AuthUser): Promise<TutorProfileResponse> {
     if (user.globalRole !== GlobalRole.teacher) {
       throw new ForbiddenException('Only tutors can access the tutor profile.');
@@ -98,8 +103,10 @@ export class TutorProfileService {
     };
   }
 
-  // Pending invites: not revoked, not expired, and still has remaining uses.
-  // Prisma can't compare column-to-column in where, so we filter in two steps.
+  // Counts active invites created by this tutor that still have remaining uses.
+  // An invite is "pending" when it is not revoked, not expired, and uses < maxUses (null = unlimited).
+  // The remaining-uses check cannot be expressed in a Prisma WHERE clause because Prisma does not
+  // support column-to-column comparisons, so the exhausted-invite filter runs in application code.
   private async countPendingInvites(userId: number): Promise<number> {
     const invites = await this.prisma.moduleInvite.findMany({
       where: {
@@ -116,7 +123,9 @@ export class TutorProfileService {
     ).length;
   }
 
-  // Students who completed at least one daily practice set in the last 7 days across the tutor's modules.
+  // Counts distinct students who completed at least one daily practice set in the rolling 7-day window
+  // across any of the tutor's modules. Distinct is applied at the database level. Returns 0 immediately
+  // for tutors with no modules to avoid issuing an IN query with an empty list.
   private async countStudentsActiveLast7Days(
     moduleIds: number[],
     since: Date,
@@ -135,6 +144,8 @@ export class TutorProfileService {
     return activeSets.length;
   }
 
+  // Deduplicates enrolled students across modules using a Set, so a student who joins multiple
+  // modules under the same tutor is counted once in the total enrolment figure.
   private countUniqueStudents(
     tutorModules: Array<{ userModules: Array<{ userId: number }> }>,
   ): number {
@@ -147,7 +158,9 @@ export class TutorProfileService {
     return studentIds.size;
   }
 
-  // Use the most recent moduleUnit creation as a proxy for last activity, since event tracking doesn't exist yet.
+  // Returns the ISO timestamp of the most recent creation event within the module (module itself or
+  // any unit) as a proxy for last activity. A dedicated event-log table does not yet exist, so
+  // creation timestamps are the best available signal for recency.
   private deriveLastActivity(module: {
     createdAt: Date;
     moduleUnits: Array<{ createdAt: Date }>;

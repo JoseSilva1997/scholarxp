@@ -1,7 +1,7 @@
 // RoleSelectorOverlay blocks the app until a newly verified user chooses a role, ensuring
 // we collect their context before loading the main experience or rendering header identity.
 import { useState } from 'react';
-import type { AuthUser, GlobalRole } from '@/shared/types/auth';
+import type { AuthUser, GlobalRole } from '@scholarxp/api-contracts';
 import styles from '@/MainApp/RoleSelectorOverlay.module.css';
 import { logError } from '@/utils/logger';
 import { useUpdateUserRoleMutation } from '@/shared/hooks/queries/useUserMutations';

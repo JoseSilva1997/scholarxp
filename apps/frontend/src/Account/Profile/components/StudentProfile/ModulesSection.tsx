@@ -18,6 +18,7 @@ const SORT_OPTIONS: { key: StudentModuleSortKey; label: string }[] = [
   { key: 'recent', label: 'Recently Practiced' },
 ];
 
+// Applies the selected profile sort without mutating the server-provided module array.
 function sortModules(
   modules: StudentProfileModule[],
   sortKey: StudentModuleSortKey,
@@ -26,10 +27,12 @@ function sortModules(
 
   switch (sortKey) {
     case 'strongest':
+      // XP breaks ties between modules with the same proficiency level to give a stable skill ranking.
       return sorted.sort(
         (a, b) => b.proficiencyLevel - a.proficiencyLevel || b.moduleXP - a.moduleXP,
       );
     case 'weakest':
+      // Lower XP breaks ties for weak modules so the least-practiced item appears first.
       return sorted.sort(
         (a, b) => a.proficiencyLevel - b.proficiencyLevel || a.moduleXP - b.moduleXP,
       );
@@ -44,6 +47,7 @@ function sortModules(
   }
 }
 
+// Renders sortable enrolled modules and routes practice actions to the selected module.
 export default function ModulesSection({
   modules,
   sortKey,
@@ -75,6 +79,7 @@ export default function ModulesSection({
       ) : (
         <div className={styles.moduleList}>
           {sortedModules.map((module) => {
+            // Guard against zero-max modules while still showing a deterministic empty progress bar.
             const xpPercent = module.moduleXPMax > 0
               ? Math.min(100, Math.round((module.moduleXP / module.moduleXPMax) * 100))
               : 0;

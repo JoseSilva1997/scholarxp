@@ -1,4 +1,6 @@
 // Coordinates focused roster analytics services so controllers depend on one stable backend entrypoint.
+// Facade pattern: this service owns no data-access logic itself; it routes each operation
+// to the appropriate specialised analytics service.
 import { Injectable } from '@nestjs/common';
 import type {
   RemoveRosterStudentResponse,
@@ -22,10 +24,12 @@ export class RosterService {
     private readonly lessonAnalytics: RosterLessonAnalyticsService,
   ) {}
 
+  // Returns module-level headline statistics: enrolment, activity, and lesson coverage.
   async getSummary(moduleId: number): Promise<RosterSummaryResponse> {
     return this.moduleAnalytics.getSummary(moduleId);
   }
 
+  // Returns the filtered, searched, and sorted student list for the module.
   async getStudents(
     moduleId: number,
     query: RosterStudentsQuery,
@@ -33,6 +37,7 @@ export class RosterService {
     return this.studentAnalytics.getStudents(moduleId, query);
   }
 
+  // Returns lesson-level analytics rows for the module, optionally sorted.
   async getLessons(
     moduleId: number,
     query: RosterLessonsQuery,
@@ -40,6 +45,7 @@ export class RosterService {
     return this.lessonAnalytics.getLessons(moduleId, query);
   }
 
+  // Returns a full analytics profile for a single enrolled student.
   async getStudentDetail(
     moduleId: number,
     studentId: number,
@@ -47,6 +53,8 @@ export class RosterService {
     return this.studentAnalytics.getStudentDetail(moduleId, studentId);
   }
 
+  // Removes a student from the module. Passes requesterUserId so the service can
+  // guard against a tutor accidentally removing themselves.
   async removeStudent(
     moduleId: number,
     studentId: number,
@@ -59,6 +67,7 @@ export class RosterService {
     );
   }
 
+  // Returns per-student progress and question health diagnostics for a specific lesson.
   async getLessonDrilldown(
     moduleId: number,
     moduleUnitId: number,

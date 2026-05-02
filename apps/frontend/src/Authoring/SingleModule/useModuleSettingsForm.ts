@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ApiError } from '@/shared/api/client';
 import { useUpdateModuleMutation } from '@/Authoring/queries/useModulesQueries';
-import type { ModuleSummary } from '@/shared/types/module';
+import type { ModuleSummaryResponse as ModuleSummary } from '@scholarxp/api-contracts';
 import { logError } from '@/utils/logger';
 
 // values passed from the parent panel. `isOpen` drives when to re-init the
@@ -29,6 +29,7 @@ type UseModuleSettingsFormResult = {
   handleReset: () => void;
 };
 
+// Manages controlled form state and persistence for editable module metadata.
 export function useModuleSettingsForm({
   module,
   isOpen,

@@ -7,8 +7,8 @@ type SessionScopedMap<T> = Record<string, T>;
 
 const EMPTY_BOOLEAN_BY_CONTENT_ID: Record<number, boolean> = {};
 
-// Route params are user-controlled strings; this parser guarantees positive-integer ids
-// before those values are used in query keys and API payload wiring.
+// Parses route parameters into positive integer ids before they are used in
+// query keys or API payload wiring.
 export function parsePositiveIntegerParam(rawParam: string | undefined): number | null {
   if (!rawParam) {
     return null;
@@ -20,8 +20,8 @@ export function parsePositiveIntegerParam(rawParam: string | undefined): number 
   return value;
 }
 
-// Session-scoped state maps all share the same "sessionId -> value" shape.
-// This builder keeps the localStorage bootstrap logic in one place.
+
+// Builds the initial session-scoped map from a persisted selection snapshot.
 export function buildInitialSessionScopedState<T>(
   initialSelection: PracticeRoomQuestionSelectionPersistence | null,
   valueSelector: (selection: PracticeRoomQuestionSelectionPersistence) => T,
@@ -34,8 +34,8 @@ export function buildInitialSessionScopedState<T>(
   };
 }
 
-// Reads the current session value from a map with a typed fallback so callers
-// can avoid repeating null-check + index + default patterns.
+
+// Reads the current session value from a map with a typed fallback.
 export function readSessionScopedValue<T>(
   sessionId: string | null,
   valuesBySessionId: SessionScopedMap<T>,
@@ -47,8 +47,7 @@ export function readSessionScopedValue<T>(
   return valuesBySessionId[sessionId] ?? fallbackValue;
 }
 
-// Single assignment helper for session maps. It preserves referential equality when
-// no change is needed, which prevents unnecessary rerenders for identical writes.
+// Assigns one session-scoped value and preserves referential equality for no-op writes.
 export function setSessionScopedValue<T>(
   previousValue: SessionScopedMap<T>,
   sessionId: string,
@@ -63,7 +62,7 @@ export function setSessionScopedValue<T>(
   };
 }
 
-// Functional update helper for session maps where the next value depends on current.
+// Updates one session-scoped value when the next value depends on the current value.
 export function updateSessionScopedValue<T>(
   previousValue: SessionScopedMap<T>,
   sessionId: string,
@@ -73,8 +72,7 @@ export function updateSessionScopedValue<T>(
   return setSessionScopedValue(previousValue, sessionId, nextValue);
 }
 
-// Streak maps are seeded from the first room payload exactly once. Once seeded, the
-// local optimistic updates should remain authoritative for that session lifecycle.
+// Seeds a session-scoped value only once so optimistic updates remain authoritative afterward.
 export function seedSessionScopedValue<T>(
   previousValue: SessionScopedMap<T>,
   sessionId: string,
@@ -89,7 +87,7 @@ export function seedSessionScopedValue<T>(
   };
 }
 
-// Used by the page return object to report whether the session has been initialized.
+// Reports whether the active session has a stored value in the supplied map.
 export function hasSessionScopedValue<T>(
   sessionId: string | null,
   valuesBySessionId: SessionScopedMap<T>,
@@ -100,8 +98,7 @@ export function hasSessionScopedValue<T>(
   return valuesBySessionId[sessionId] !== undefined;
 }
 
-// Nested maps track per-content booleans within each session. This helper centralizes
-// immutable updates and short-circuits no-op writes.
+// Updates nested session/content boolean maps while preserving no-op referential equality.
 export function setSessionScopedBooleanValue(
   previousValue: SessionScopedMap<Record<number, boolean>>,
   sessionId: string,
@@ -120,4 +117,3 @@ export function setSessionScopedBooleanValue(
     },
   };
 }
-

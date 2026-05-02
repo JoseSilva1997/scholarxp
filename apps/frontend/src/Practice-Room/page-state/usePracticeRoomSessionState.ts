@@ -43,6 +43,8 @@ type UsePracticeRoomSessionStateResult = {
 
 const EMPTY_BOOLEAN_BY_CONTENT_ID: Record<number, boolean> = {};
 
+// Manages learner progress values that must remain scoped to the active
+// backend session rather than to the route alone.
 export function usePracticeRoomSessionState({
   initialSelection,
   persistSelection,
@@ -194,6 +196,7 @@ export function usePracticeRoomSessionState({
     unlockedHintByContentIdBySessionId,
   ]);
 
+  // Selects a question unit while clamping to the current room bounds.
   const selectQuestionUnit = (index: number) => {
     if (!room || room.questions.length === 0) {
       return;
@@ -204,6 +207,7 @@ export function usePracticeRoomSessionState({
     );
   };
 
+  // Marks a hint as unlocked for this session/content pair.
   const unlockHintForContent = (contentId: number) => {
     if (!room) {
       return;
@@ -214,6 +218,7 @@ export function usePracticeRoomSessionState({
     );
   };
 
+  // Moves selection to the previous question while preserving lower-bound safety.
   const goToPreviousQuestionUnit = () => {
     if (!room) {
       return;
@@ -225,6 +230,7 @@ export function usePracticeRoomSessionState({
     );
   };
 
+  // Moves selection to the next question while preserving upper-bound safety.
   const goToNextQuestionUnit = () => {
     if (!room) {
       return;
@@ -236,12 +242,14 @@ export function usePracticeRoomSessionState({
     );
   };
 
+  // Records that a content item has been submitted in a specific session.
   const markQuestionSubmitted = (sessionId: string, contentId: number) => {
     setSubmittedByContentIdBySessionId((previousValue) =>
       setSessionScopedBooleanValue(previousValue, sessionId, contentId, true),
     );
   };
 
+  // Applies the latest streak values returned by the backend after a successful submission.
   const updateCurrentStreak = (nextCurrentStreak: number, nextHighestStreak: number) => {
     if (!room) {
       return;

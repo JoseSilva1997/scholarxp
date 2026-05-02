@@ -1,4 +1,4 @@
-// Quests query hooks keep server-state fetch behavior centralized and cache-keyed consistently.
+// Centralizes Quests server-state access, cache keys, and mutation invalidation for React Query consumers.
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type MasterQuestStreakResponse,
@@ -15,6 +15,7 @@ import {
 } from '@/Quests/api/quests';
 import { queryKeys } from '@/shared/hooks/query-keys';
 
+// Implements the React Query infinite-query pattern for day-window pagination of quest history.
 export function useQuestHistoryInfiniteQuery(enabled: boolean, dayLimit: number) {
   return useInfiniteQuery<QuestHistoryResponse>({
     queryKey: queryKeys.quests.history(dayLimit),
@@ -63,6 +64,7 @@ type TodayDailyQuestState = {
   hasDailyQuests: boolean;
 };
 
+// Splits regular daily quests from the master quest so callers can render each tier differently.
 export function partitionQuestViewsByTier(quests: QuestView[]): PartitionedQuestViews {
   // Keeping tier separation in one helper prevents each screen from re-encoding "master quest is special" rules.
   const dailyQuests: QuestView[] = [];
@@ -85,7 +87,9 @@ export function partitionQuestViewsByTier(quests: QuestView[]): PartitionedQuest
   };
 }
 
+// Selects the current local day's daily-quest progress from a broader history response.
 function selectTodayDailyQuestState(quests: QuestView[], userTimezone: string): TodayDailyQuestState {
+  // en-CA produces a stable YYYY-MM-DD key matching the backend quest-date contract.
   const todayLocal = new Intl.DateTimeFormat('en-CA', { timeZone: userTimezone }).format(new Date());
   const allTodayQuests = quests.filter((quest) => quest.questDateUtc === todayLocal);
   const { dailyQuests } = partitionQuestViewsByTier(allTodayQuests);
@@ -103,6 +107,7 @@ function selectTodayDailyQuestState(quests: QuestView[], userTimezone: string): 
   };
 }
 
+// Provides compact current-day progress for header chips and other summary-only UI surfaces.
 export function useTodayQuestSummaryQuery(enabled: boolean, userId?: number, userTimezone = 'UTC') {
   return useQuery<QuestHistoryResponse, Error, TodayQuestSummary>({
     queryKey: queryKeys.quests.todaySummary(userId ?? null),
@@ -127,6 +132,7 @@ export function useTodayQuestSummaryQuery(enabled: boolean, userId?: number, use
   });
 }
 
+// Provides the current day's renderable quest list plus the separate master quest indicator.
 export function useTodayQuestListQuery(enabled: boolean, userId?: number, userTimezone = 'UTC') {
   return useQuery<QuestHistoryResponse, Error, TodayQuestList>({
     queryKey: queryKeys.quests.todayList(userId ?? null),
@@ -139,6 +145,7 @@ export function useTodayQuestListQuery(enabled: boolean, userId?: number, userTi
     enabled,
     staleTime: 30_000,
     select: (response) => {
+      // Filtering by the user's local day prevents late-night UTC boundaries from showing the wrong quest set.
       const todayLocal = new Intl.DateTimeFormat('en-CA', { timeZone: userTimezone }).format(new Date());
       const allToday = response.quests.filter((quest) => quest.questDateUtc === todayLocal);
       const { masterQuest } = partitionQuestViewsByTier(allToday);
@@ -155,6 +162,7 @@ export function useTodayQuestListQuery(enabled: boolean, userId?: number, userTi
   });
 }
 
+// Reads master-quest streak state for header status and related reward affordances.
 export function useMasterQuestStreakQuery(enabled: boolean, userId?: number) {
   return useQuery<MasterQuestStreakResponse>({
     queryKey: queryKeys.quests.masterStreak(userId ?? null),
@@ -165,6 +173,7 @@ export function useMasterQuestStreakQuery(enabled: boolean, userId?: number) {
   });
 }
 
+// Creates the mutation used by practice entry points to credit daily revision quest progress.
 export function useRecordDailyRevisionQuestProgressMutation(moduleId: number | null) {
   const queryClient = useQueryClient();
 
@@ -186,6 +195,7 @@ export function useRecordDailyRevisionQuestProgressMutation(moduleId: number | n
   });
 }
 
+// Creates the mutation used after a completed unit review to credit the relevant quest.
 export function useRecordCompletedUnitReviewQuestProgressMutation(
   moduleId: number | null,
 ) {

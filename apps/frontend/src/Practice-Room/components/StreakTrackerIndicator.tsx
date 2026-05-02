@@ -48,9 +48,8 @@ type StreakIndicatorProps = {
   disabled?: boolean;
 };
 
-// Determines which visual tier to render based on the same percentage thresholds
-// the backend uses for awarding streak XP bonuses. Returns tier 1 (subtle blue)
-// for streaks between 1 and the first bonus tier.
+// Resolves the practice-room streak visual tier using the same percentage
+// thresholds as the backend XP bonus calculation.
 function resolveStreakTier(
   currentStreak: number,
   totalQuestions: number,
@@ -71,10 +70,8 @@ function resolveStreakTier(
   return 1;
 }
 
-// Determines visual tier for daily practice using absolute thresholds rather than
-// question-count-relative ones. Daily practice sets vary in size and carry no XP
-// streak bonuses, so a fixed progression gives useful visual feedback without
-// implying any particular bonus will fire.
+// Resolves the daily-practice streak visual tier using fixed thresholds because
+// daily practice does not award question-count-relative XP bonuses.
 function resolveStreakTierForDailyPractice(currentStreak: number): StreakTier {
   if (currentStreak === 0) return 0;
   if (currentStreak >= 10) return 4;
@@ -83,13 +80,8 @@ function resolveStreakTierForDailyPractice(currentStreak: number): StreakTier {
   return 1;
 }
 
-// Returns the pip state for a single bonus tier threshold.
-// - active:   currentStreak just reached the threshold and highestStreak hasn't yet
-//             → bonus will be awarded on this run (first time hitting this tier)
-// - claimed:  tier is lifetime-claimed (backend idempotency key already used) OR
-//             highestStreak reached the threshold this session; either way the
-//             bonus XP won't be awarded again for this tier.
-// - inactive: threshold not yet reached by the current streak
+// Resolves the display state for one streak-bonus pip, combining current-session
+// progress with lifetime claim state from the backend.
 function resolvePipState(
   currentStreak: number,
   highestStreak: number,
@@ -135,7 +127,7 @@ const PIP_STATE_CLASS: Record<PipState, string> = {
   claimed: styles.pipClaimed,
 };
 
-// Human-readable accessible label for each pip state so screen readers announce bonus status.
+// Builds the accessible label for one pip so screen readers announce bonus status.
 function pipAriaLabel(tierIndex: 1 | 2 | 3, state: PipState): string {
   const tierName = tierIndex === 1 ? '30%' : tierIndex === 2 ? '50%' : '100%';
   if (state === 'active') return `${tierName} streak bonus: will be awarded`;
@@ -143,6 +135,7 @@ function pipAriaLabel(tierIndex: 1 | 2 | 3, state: PipState): string {
   return `${tierName} streak bonus: not reached`;
 }
 
+// Renders the live streak badge and optional XP-bonus pips for practice-room or daily-practice contexts.
 export default function StreakIndicator({
   currentStreak,
   highestStreak,

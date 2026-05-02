@@ -6,12 +6,14 @@ type StatsSectionProps = {
   profile: StudentProfileResponse;
 };
 
+// Presents lifetime student aggregates, combining backend totals with simple derived module counts.
 export default function StatsSection({ profile }: StatsSectionProps) {
   const availableStats = [
     { label: 'Total Quests Completed', value: profile.questHistorySummary.totalCompleted },
     { label: 'Perfect Days', value: profile.questHistorySummary.perfectDays },
     {
       label: 'Lessons Completed',
+      // Completed lessons are derived client-side because the profile contract already carries per-module totals.
       value: profile.modules.reduce((sum, module) => sum + module.completedLessons, 0),
     },
     { label: 'Modules in Progress', value: profile.modules.length },

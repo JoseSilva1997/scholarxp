@@ -32,6 +32,7 @@ const STATE_ARIA_LABEL: Record<BaseXpStatus, string> = {
   claimed: 'Base XP: already earned (cannot contribute to streak)',
 };
 
+// Renders the base-XP reward state for the active question.
 export default function BaseXpIndicator({
   status,
   disabled = false,

@@ -256,10 +256,12 @@ const CATALOG_BY_SLOT: Record<CosmeticSlot, CatalogItem[]> = COSMETIC_SLOTS.redu
   {} as Record<CosmeticSlot, CatalogItem[]>,
 );
 
+// Returns catalog entries for a single slot in unlock order for page and profile rendering.
 export function getCatalogBySlot(slot: CosmeticSlot): readonly CatalogItem[] {
   return CATALOG_BY_SLOT[slot];
 }
 
+// Looks up one catalog item by slot/id when other modules need copy for an equipped reward.
 export function getCatalogItem(
   slot: CosmeticSlot,
   id: string,

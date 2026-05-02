@@ -16,14 +16,17 @@ const PROVIDERS: { key: Provider; label: string; icon: string }[] = [
   },
 ];
 
+// Identifies Auth entry routes that should not become OAuth return targets.
 function isAuthRoute(pathname: string) {
   return pathname === '/login' || pathname === '/register' || pathname === '/verify-email';
 }
 
+// Renders configured OAuth providers and initiates provider-specific redirects.
 export function SocialAuthButtons({ context }: SocialAuthButtonsProps) {
   const apiBase = import.meta.env.VITE_API_URL;
   const disabled = !apiBase;
 
+  // Builds an OAuth URL that preserves the intended post-auth route across a full-page provider round-trip.
   const handleRedirect = (provider: Provider) => {
     if (!apiBase) return;
     const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;

@@ -395,6 +395,11 @@ export class PracticeRoomReadService {
   // Completion can refetch the room while the URL still carries the old
   // practice-room session id, so mismatched session ids must not override the
   // newly required room mode.
+  // Recovery pattern: if the caller provided a session id that belongs to a different
+  // session type (e.g. an old practice_room session id arriving when the unit is now
+  // complete and needs a viewAnswers session), the ForbiddenException from type-mismatch
+  // is caught and the lookup retries without the stale id, allowing the correct session
+  // type to be resolved or created. Other errors are re-thrown unchanged.
   private async resolveRoomSessionForEntry(input: {
     moduleId: number;
     studentId: number;

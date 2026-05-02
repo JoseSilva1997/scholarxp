@@ -24,6 +24,7 @@ import {
 } from '@/Authoring/api/modules';
 import { queryKeys } from '@/shared/hooks/query-keys';
 
+// Provides the module list query, gated by authentication readiness.
 export function useModulesListQuery(enabled: boolean) {
   return useQuery({
     queryKey: queryKeys.modules.all,
@@ -34,6 +35,7 @@ export function useModulesListQuery(enabled: boolean) {
   });
 }
 
+// Creates a module and updates list cache immediately before background invalidation.
 export function useCreateModuleMutation() {
   const queryClient = useQueryClient();
 
@@ -57,6 +59,7 @@ export function useCreateModuleMutation() {
   });
 }
 
+// Updates module metadata and synchronizes both detail and list caches.
 export function useUpdateModuleMutation(moduleId: number | null) {
   const queryClient = useQueryClient();
 
@@ -91,6 +94,7 @@ export function useUpdateModuleMutation(moduleId: number | null) {
   });
 }
 
+// Loads one module summary for the module detail route once the route id is valid.
 export function useModuleDetailQuery(moduleId: number | null) {
   return useQuery({
     queryKey: moduleId ? queryKeys.modules.detail(moduleId) : queryKeys.modules.detail(0),
@@ -101,6 +105,7 @@ export function useModuleDetailQuery(moduleId: number | null) {
   });
 }
 
+// Lazily fetches archive impact so confirmation UI can show real consequences.
 export function useModuleDeletionImpactQuery(moduleId: number | null, enabled: boolean) {
   return useQuery<ModuleDeletionImpactResponse>({
     queryKey: moduleId
@@ -113,6 +118,7 @@ export function useModuleDeletionImpactQuery(moduleId: number | null, enabled: b
   });
 }
 
+// Archives a module and clears module-scoped caches that should no longer be reachable.
 export function useArchiveModuleMutation(moduleId: number | null) {
   const queryClient = useQueryClient();
 
@@ -147,6 +153,7 @@ export function useArchiveModuleMutation(moduleId: number | null) {
   });
 }
 
+// Loads all unit cards for a module detail page after route validation.
 export function useModuleUnitsQuery(moduleId: number | null) {
   return useQuery({
     queryKey: moduleId ? queryKeys.modules.units(moduleId) : queryKeys.modules.units(0),
@@ -157,6 +164,7 @@ export function useModuleUnitsQuery(moduleId: number | null) {
   });
 }
 
+// Creates a unit and patches the unit-list cache to keep tutor flow responsive.
 export function useCreateModuleUnitMutation(moduleId: number | null) {
   const queryClient = useQueryClient();
 
@@ -186,6 +194,7 @@ export function useCreateModuleUnitMutation(moduleId: number | null) {
   });
 }
 
+// Updates module-unit metadata and keeps the unit list in sync with the returned server state.
 export function useUpdateModuleUnitMutation(moduleId: number | null) {
   const queryClient = useQueryClient();
 
@@ -217,6 +226,7 @@ export function useUpdateModuleUnitMutation(moduleId: number | null) {
   });
 }
 
+// Changes a unit's publication status and updates cached cards before refetching.
 export function useUpdateModuleUnitStatusMutation(moduleId: number | null) {
   const queryClient = useQueryClient();
 

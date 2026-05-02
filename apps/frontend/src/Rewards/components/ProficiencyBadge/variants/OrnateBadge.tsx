@@ -2,6 +2,7 @@
 import type { BadgeVariantProps } from '@/Rewards/components/ProficiencyBadge/types';
 import styles from '@/Rewards/components/ProficiencyBadge/variants/OrnateBadge.module.css';
 
+// Renders the early unlock badge with nested layers that create the hexagonal crest effect.
 export default function OrnateBadge({ level, small }: BadgeVariantProps) {
   return (
     <div className={styles.glowWrapper}>

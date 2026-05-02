@@ -20,6 +20,7 @@ type TutorProfileProps = {
 
 // --- Teaching Overview ---
 
+// Displays tutor headline metrics and routes primary teaching actions back into the module workspace.
 function TeachingOverview({ profile }: { profile: TutorProfileResponse }) {
   const navigate = useNavigate();
 
@@ -75,6 +76,7 @@ function TeachingOverview({ profile }: { profile: TutorProfileResponse }) {
 
 // --- Your Modules ---
 
+// Converts backend timestamps into compact relative labels for activity-oriented profile summaries.
 function formatRelativeTime(isoTimestamp: string): string {
   const diff = Date.now() - new Date(isoTimestamp).getTime();
   const minutes = Math.floor(diff / 60_000);
@@ -86,6 +88,7 @@ function formatRelativeTime(isoTimestamp: string): string {
   return new Date(isoTimestamp).toLocaleDateString();
 }
 
+// Lists authored modules with navigation to the module detail route.
 function TutorModules({ profile }: { profile: TutorProfileResponse }) {
   const navigate = useNavigate();
 
@@ -129,12 +132,14 @@ function TutorModules({ profile }: { profile: TutorProfileResponse }) {
 
 // --- Recent Activity ---
 
+// Strategy-map pattern: each backend activity type resolves to a presentation icon without branching in render.
 const ACTIVITY_ICONS: Record<TutorActivityType, React.ReactNode> = {
   publish: <BsRocketTakeoff />,
   invite_accepted: <BsEnvelope />,
   enrollment: <BsPersonPlus />,
 };
 
+// Shows the most recent teaching events while capping the list to keep the profile page scannable.
 function RecentActivity({ profile }: { profile: TutorProfileResponse }) {
   return (
     <section className={styles.activitySection}>
@@ -162,6 +167,7 @@ function RecentActivity({ profile }: { profile: TutorProfileResponse }) {
 
 // --- Profile Details ---
 
+// Renders read-only tutor identity details until the backend supports profile editing.
 function ProfileDetails({
   profile,
   isEditing,
@@ -206,6 +212,7 @@ function ProfileDetails({
 
 // --- Main Export ---
 
+// Composes the tutor profile from focused subsections for metrics, modules, activity, and details.
 export default function TutorProfile({ profile, isEditing }: TutorProfileProps) {
   return (
     <div className={styles.tutorProfile}>

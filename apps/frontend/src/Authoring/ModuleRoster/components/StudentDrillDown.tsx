@@ -15,6 +15,7 @@ type StudentDrillDownProps = {
   onClose: () => void;
 };
 
+// Formats optional timestamps for student activity and lesson completion fields.
 function formatDate(iso: string | null): string {
   if (!iso) return '--';
   return new Date(iso).toLocaleDateString(undefined, {
@@ -24,11 +25,13 @@ function formatDate(iso: string | null): string {
   });
 }
 
+// Converts response-time metrics into seconds for compact display.
 function formatMs(ms: number | null): string {
   if (ms === null) return '--';
   return `${(ms / 1000).toFixed(1)}s`;
 }
 
+// Renders the detail-panel loading skeleton while the selected student query resolves.
 function SkeletonDetail() {
   return (
     <div className={styles.skeleton} aria-hidden="true">
@@ -40,6 +43,7 @@ function SkeletonDetail() {
   );
 }
 
+// Renders detailed progress and recent-performance metrics for a selected roster student.
 export default function StudentDrillDown({
   detail,
   isLoading,

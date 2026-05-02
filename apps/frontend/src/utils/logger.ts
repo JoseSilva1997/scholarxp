@@ -10,6 +10,7 @@ type LoggerInitOptions = {
 
 let isInitialized = false;
 
+// Adapter-style helper that routes local diagnostics through the appropriate console severity.
 function logToDevConsole(
   kind: 'error' | 'message',
   payload: { error?: unknown; message?: string; context?: Record<string, unknown> },
@@ -37,7 +38,7 @@ function logToDevConsole(
 }
 
 /**
- * Initializes Sentry if a DSN is provided; otherwise leaves logging as a no-op to avoid breaking prod.
+ * Initializes Sentry once if a DSN is provided; otherwise leaves logging as a no-op to avoid breaking prod.
  */
 export function initLogger(options: LoggerInitOptions) {
   if (!options.dsn) return;

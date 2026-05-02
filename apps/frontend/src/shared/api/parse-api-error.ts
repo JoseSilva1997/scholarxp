@@ -27,10 +27,12 @@ type ApiErrorPayload = {
   details?: unknown;
 };
 
+// Narrows untrusted response payloads before field extraction to avoid unsafe assumptions about backend shape.
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
+// Converts HTTP status codes into stable application error codes when the backend omits one.
 function statusToCode(status: number): string {
   switch (status) {
     case 400:
@@ -52,6 +54,7 @@ function statusToCode(status: number): string {
   }
 }
 
+// Extracts backend-authored message text while tolerating validation frameworks that return string arrays.
 function extractRawMessage(payload: ApiErrorPayload): string | undefined {
   if (typeof payload.message === 'string' && payload.message.trim().length > 0) {
     return payload.message.trim();
@@ -59,7 +62,9 @@ function extractRawMessage(payload: ApiErrorPayload): string | undefined {
 
   if (Array.isArray(payload.message)) {
     const joined = payload.message
+      // Validation libraries can mix non-string entries into arrays, so only readable messages are kept.
       .filter((entry): entry is string => typeof entry === 'string')
+      // Whitespace-only validation messages should not become visible UI copy.
       .map((entry) => entry.trim())
       .filter((entry) => entry.length > 0)
       .join(', ');
@@ -69,12 +74,14 @@ function extractRawMessage(payload: ApiErrorPayload): string | undefined {
   return undefined;
 }
 
+// Normalizes field-level validation details into a compact shape suitable for form-level rendering.
 function normalizeDetails(value: unknown): ApiErrorDetail[] | undefined {
   if (!Array.isArray(value)) {
     return undefined;
   }
 
   const details = value
+    // Each detail entry is validated independently because backend validation shapes can vary by endpoint.
     .map((entry): ApiErrorDetail | null => {
       if (typeof entry === 'string') {
         const message = entry.trim();
@@ -97,11 +104,13 @@ function normalizeDetails(value: unknown): ApiErrorDetail[] | undefined {
           : {}),
       };
     })
+    // Null entries represent malformed or empty validation details that the UI cannot render usefully.
     .filter((entry): entry is ApiErrorDetail => entry !== null);
 
   return details.length > 0 ? details : undefined;
 }
 
+// Public parser used by the API client to give every caller the same display copy and diagnostics.
 export function parseApiError({
   status,
   data,

@@ -10,6 +10,7 @@ type CreateModuleUnitCardProps = {
   isSaving?: boolean;
 };
 
+// Renders the lesson-creation call-to-action card used in the tutor module workspace.
 export default function CreateModuleUnitCard({ onClick, isSaving }: CreateModuleUnitCardProps) {
   return (
     <div className={styles.wrapper}>

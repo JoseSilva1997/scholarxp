@@ -100,6 +100,7 @@ type UseModuleRosterPageStateResult = {
   removeStudentError: string | null;
 };
 
+// Provides permission-aware roster state, analytics queries, drilldown selection, and removal workflow handlers.
 export function useModuleRosterPageState({
   moduleIdParam,
   user,
@@ -201,6 +202,7 @@ export function useModuleRosterPageState({
   }, [lessonDrilldownQuery.error, parsedId, selectedLessonId]);
 
   // Card click handlers apply preset filter/sort then open the correct tab
+  // Resets the Students tab to the broad enrollment view.
   const handleStudentsEnrolledClick = useCallback(() => {
     setStudentFilter('all');
     setStudentSortBy('name');
@@ -208,6 +210,7 @@ export function useModuleRosterPageState({
     setActiveTab('students');
   }, []);
 
+  // Opens the Students tab focused on recent activity so tutors can inspect engagement.
   const handleActiveLast7DaysClick = useCallback(() => {
     setStudentFilter('active_7d');
     setStudentSortBy('last_activity');
@@ -215,6 +218,7 @@ export function useModuleRosterPageState({
     setActiveTab('students');
   }, []);
 
+  // Opens the Students tab with the risk filter and oldest activity first for intervention triage.
   const handleAtRiskClick = useCallback(() => {
     setStudentFilter('at_risk');
     setStudentSortBy('last_activity');
@@ -222,32 +226,38 @@ export function useModuleRosterPageState({
     setActiveTab('students');
   }, []);
 
+  // Opens Lessons sorted by lowest completion so tutors can spot weak coverage quickly.
   const handleLessonCoverageClick = useCallback(() => {
     setLessonSortBy('completion_rate');
     setLessonSortDirection('asc');
     setActiveTab('lessons');
   }, []);
 
+  // Toggles a student drilldown and clears lesson drilldown to keep the detail panel single-focused.
   const selectStudent = useCallback((studentId: number) => {
     setSelectedStudentId((prev) => (prev === studentId ? null : studentId));
     setSelectedLessonId(null);
   }, []);
 
+  // Clears the currently selected student drilldown.
   const clearSelectedStudent = useCallback(() => {
     setSelectedStudentId(null);
   }, []);
 
+  // Opens the remove-student confirmation flow for a selected roster row.
   const requestRemoveStudent = useCallback((student: RosterStudentRow) => {
     setStudentPendingRemoval(student);
     setRemoveStudentError(null);
   }, []);
 
+  // Cancels removal unless the mutation is already pending.
   const cancelRemoveStudent = useCallback(() => {
     if (removeStudentMutation.isPending) return;
     setStudentPendingRemoval(null);
     setRemoveStudentError(null);
   }, [removeStudentMutation.isPending]);
 
+  // Confirms removal and coordinates local modal/drilldown state around the mutation result.
   const confirmRemoveStudent = useCallback(() => {
     if (!studentPendingRemoval) return;
     const studentId = studentPendingRemoval.studentId;
@@ -276,6 +286,7 @@ export function useModuleRosterPageState({
     });
   }, [studentPendingRemoval, removeStudentMutation, parsedId]);
 
+  // Toggles lesson drilldown and clears student drilldown so panels do not compete for space.
   const selectLesson = useCallback((lessonId: number | null) => {
     setSelectedLessonId((prev) => {
       if (lessonId === null) return null;

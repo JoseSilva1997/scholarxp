@@ -6,7 +6,7 @@ import type { Request } from 'express';
 import { Authorize } from '../auth/decorators/authorize.decorator';
 import { AuthorizationGuard } from '../auth/guards/authorization.guard';
 import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
-import type { AuthUser } from '../types/auth-user.type';
+import type { AuthUser } from '@scholarxp/api-contracts';
 import { EquipCosmeticDto } from './dto/equip-cosmetic.dto';
 import { RewardsService } from './rewards.service';
 
@@ -15,6 +15,8 @@ import { RewardsService } from './rewards.service';
 export class RewardsController {
   constructor(private readonly rewardsService: RewardsService) {}
 
+  // Replaces a single cosmetic slot for the authenticated student. Uses PUT (idempotent) because
+  // repeated calls with the same slot/rewardId are safe — the service overwrites rather than appends.
   @Put('equipped')
   @Authorize({ capability: features.rewards.equip, scope: 'global' })
   async equipCosmetic(

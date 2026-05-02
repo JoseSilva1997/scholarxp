@@ -28,6 +28,7 @@ const ICON_LIST = Array.from({ length: ICON_COUNT }, (_, i) => ({
   Icon: ICONS[i % ICONS.length],
 }));
 
+// Renders the scholar wallpaper as decorative content that remains hidden from assistive technologies.
 export default function ScholarBackground() {
   return (
     <div className={styles.wallpaper} aria-hidden="true">

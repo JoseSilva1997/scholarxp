@@ -4,6 +4,7 @@
 import { useContext } from 'react';
 import { ThemeContext, type ThemeContextValue } from '@/context/theme-context';
 
+// Gives components access to theme controls while enforcing that ThemeProvider is present.
 export function useTheme(): ThemeContextValue {
   const context = useContext(ThemeContext);
   if (!context) {

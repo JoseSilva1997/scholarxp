@@ -4,7 +4,10 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ModuleSettingsPanel from '@/Authoring/SingleModule/components/ModuleSettingsPanel';
-import type { ModuleSummary, ModuleInvite } from '@/shared/types/module';
+import type {
+  ModuleInviteResponse as ModuleInvite,
+  ModuleSummaryResponse as ModuleSummary,
+} from '@scholarxp/api-contracts';
 
 // Hoist variables so they're available for vi.mock() calls
 const { mockUseModuleInvitesPanelState, mockUseModuleSettingsForm, mockInvitesPanelStateValue, mockSettingsFormValue } = vi.hoisted(() => ({

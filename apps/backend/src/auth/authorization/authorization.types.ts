@@ -1,7 +1,7 @@
 // Types shared for authorization metadata used by decorators, guards, and services.
 // They make the intent of an authorization decorator explicit and reusable.
 import type { FeatureKey } from '@scholarxp/permissions';
-import type { AuthUser } from '../../types/auth-user.type';
+import type { AuthUser } from '@scholarxp/api-contracts';
 
 // Scope shows whether authorization applies globally, to a specific module, or only to the user's own resources.
 export type AuthorizationScope = 'global' | 'module' | 'self';

@@ -23,14 +23,21 @@ export class PracticeRoomSessionSweepService
     private readonly practiceRoomSessionService: PracticeRoomSessionService,
   ) {}
 
+  // Starts the recurring sweep timer when the NestJS module is initialized.
+  // Implements OnModuleInit lifecycle hook — NestJS calls this automatically after DI is complete.
   onModuleInit() {
     // A fixed interval keeps stale-session cleanup predictable without requiring external scheduler infrastructure.
     this.sweepTimer = setInterval(() => {
       void this.runSweep();
     }, SESSION_SWEEP_INTERVAL_MS);
+    // unref() prevents the interval from keeping the Node.js process alive when all other
+    // work is done (e.g. during graceful shutdown or in test environments).
     this.sweepTimer.unref?.();
   }
 
+  // Cancels the sweep timer when the NestJS module is torn down, preventing timer leaks
+  // during application shutdown or hot-reloads in development.
+  // Implements OnModuleDestroy lifecycle hook.
   onModuleDestroy() {
     if (!this.sweepTimer) {
       return;
@@ -39,6 +46,8 @@ export class PracticeRoomSessionSweepService
     this.sweepTimer = null;
   }
 
+  // Executes one sweep cycle: delegates to the session service and logs when sessions
+  // are actually closed. Errors are caught and logged so a failing sweep never crashes the process.
   private async runSweep() {
     try {
       // Depend on the lifecycle service directly so the sweep does not route through facade orchestration.

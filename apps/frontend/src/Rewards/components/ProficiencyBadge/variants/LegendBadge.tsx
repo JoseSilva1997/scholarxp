@@ -2,6 +2,7 @@
 import type { BadgeVariantProps } from '@/Rewards/components/ProficiencyBadge/types';
 import styles from '@/Rewards/components/ProficiencyBadge/variants/LegendBadge.module.css';
 
+// Renders the legendary badge variant unlocked near the cap, including the extra wrapper needed for wing styling.
 export default function LegendBadge({ level, small }: BadgeVariantProps) {
   return (
     <div className={styles.wrapper}>

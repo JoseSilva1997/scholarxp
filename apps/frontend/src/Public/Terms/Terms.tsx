@@ -1,7 +1,8 @@
-// Simple Terms of Service page sourcing content from the license agreement
+// Defines the public Terms of Service page that summarizes the project's licensing obligations for unauthenticated users.
 import { RiFileTextLine } from 'react-icons/ri';
 import styles from '@/Public/Terms/Terms.module.css';
 
+// Renders static terms content using the shared public legal-page layout styles.
 export default function Terms() {
   return (
     <div className={styles.scrollWrapper}>

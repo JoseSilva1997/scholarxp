@@ -49,6 +49,7 @@ type StudentsTabProps = {
   onRequestRemoveStudent: (student: RosterStudentRow) => void;
 };
 
+// Formats optional activity dates for dense roster cells.
 function formatDate(iso: string | null): string {
   if (!iso) return '--';
   return new Date(iso).toLocaleDateString(undefined, {
@@ -58,6 +59,7 @@ function formatDate(iso: string | null): string {
   });
 }
 
+// Renders table-shaped loading placeholders while preserving column alignment.
 function SkeletonRows({ columnCount }: { columnCount: number }) {
   return (
     <>
@@ -74,6 +76,7 @@ function SkeletonRows({ columnCount }: { columnCount: number }) {
   );
 }
 
+// Renders student roster rows with filter/sort controls and optional removal actions.
 export default function StudentsTab({
   rows,
   isLoading,

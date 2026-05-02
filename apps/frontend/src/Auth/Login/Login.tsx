@@ -1,9 +1,11 @@
+// Presentational Login route that renders the email/password form and delegates behavior to page state.
 import { Link } from 'react-router-dom';
 import { SocialAuthButtons } from '@/Auth/SocialAuthButtons';
 import { AuthVisual } from '@/Auth/AuthVisual';
 import { useLoginPageState } from '@/Auth/Login/page-state/useLoginPageState';
 import styles from '@/Auth/Login/Login.module.css';
 
+// Renders the login UI while useLoginPageState owns validation, mutation, and navigation side effects.
 export default function Login() {
   const { form, error, info, isSubmitting, handleChange, handleSubmit } =
     useLoginPageState();

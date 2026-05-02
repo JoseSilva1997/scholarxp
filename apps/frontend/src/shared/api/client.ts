@@ -9,6 +9,7 @@ if (!API_BASE) {
   throw new Error('VITE_API_URL is not set. Define it to point at the backend API.');
 }
 
+// Custom error type preserves transport metadata at the boundary between API helpers and UI flows.
 export class ApiError extends Error {
   status: number;
   code: string;
@@ -18,6 +19,7 @@ export class ApiError extends Error {
   path?: string;
   requestId?: string | null;
 
+  // Builds an Error-compatible object while retaining backend diagnostics for logging and display decisions.
   constructor({
     message,
     status,
@@ -91,6 +93,7 @@ export async function ensureCsrfToken(baseUrl?: string) {
   }
 }
 
+// Requests a fresh CSRF token from the backend and accepts both legacy body tokens and header tokens.
 async function fetchCsrfToken(baseUrl: string) {
   const resp = await fetch(`${baseUrl}/auth/csrf`, {
     credentials: 'include',
@@ -116,6 +119,7 @@ async function fetchCsrfToken(baseUrl: string) {
   }
 }
 
+// Template-method style API boundary: applies cross-cutting fetch policy before returning typed endpoint data.
 export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promise<T> {
   const { baseUrl = API_BASE, headers, method = 'GET', ...rest } = options;
 

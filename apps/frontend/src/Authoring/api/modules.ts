@@ -1,3 +1,4 @@
+// Authoring module API client: centralizes module, unit, group, and practice-room HTTP calls for tutor workflows.
 import type { 
   ClosePracticeSessionResponse,
   CreateModulePayload,
@@ -19,18 +20,21 @@ import type {
 } from '@scholarxp/api-contracts';
 import { apiFetch, getApiBaseUrl, getCsrfToken } from '@/shared/api/client';
 
+// Lists modules visible to the current user; API authorization determines tutor/student scope.
 export async function listModules(): Promise<ModuleSummaryResponse[]> {
   return apiFetch<ModuleSummaryResponse[]>('/module', {
     method: 'GET',
   });
 }
 
+// Fetches a single module summary for detail-page rendering and settings edits.
 export async function getModuleById(id: number): Promise<ModuleSummaryResponse> {
   return apiFetch<ModuleSummaryResponse>(`/module/${id}`, {
     method: 'GET',
   });
 }
 
+// Reads archive/deletion impact before a tutor confirms a potentially destructive module action.
 export async function getModuleDeletionImpact(
   id: number,
 ): Promise<ModuleDeletionImpactResponse> {
@@ -39,6 +43,7 @@ export async function getModuleDeletionImpact(
   });
 }
 
+// Creates a tutor-owned module from the modal form payload.
 export async function createModule(
   payload: CreateModulePayload,
 ): Promise<ModuleSummaryResponse> {
@@ -48,6 +53,7 @@ export async function createModule(
   });
 }
 
+// Updates module metadata while preserving server-owned fields in the returned summary.
 export async function updateModule(
   id: number,
   payload: UpdateModulePayload,
@@ -58,12 +64,14 @@ export async function updateModule(
   });
 }
 
+// Archives a module through the delete endpoint; the backend owns the soft-delete semantics.
 export async function archiveModule(id: number): Promise<ModuleSummaryResponse> {
   return apiFetch<ModuleSummaryResponse>(`/module/${id}`, {
     method: 'DELETE',
   });
 }
 
+// Creates a minimal lesson/unit shell that tutors can later populate in the unit editor.
 export async function createModuleUnit(moduleId: number, payload: CreateModuleUnitMinimalPayload): Promise<ModuleUnitResponse> {
   return apiFetch<ModuleUnitResponse>(`/module/${moduleId}/units`, {
     method: 'POST',
@@ -71,6 +79,7 @@ export async function createModuleUnit(moduleId: number, payload: CreateModuleUn
   });
 }
 
+// Updates unit metadata such as title without changing publication status.
 export async function updateModuleUnit(
   moduleUnitId: number,
   payload: UpdateModuleUnitPayload,
@@ -81,6 +90,7 @@ export async function updateModuleUnit(
   });
 }
 
+// Changes a unit's lifecycle status while relying on backend validation for publish constraints.
 export async function updateModuleUnitStatus(
   moduleUnitId: number,
   payload: UpdateModuleUnitStatusPayload,
@@ -91,18 +101,21 @@ export async function updateModuleUnitStatus(
   });
 }
 
+// Loads all units for the module detail page and editor navigation.
 export async function getModuleUnits(moduleId: number): Promise<ModuleUnitResponse[]> {
   return apiFetch<ModuleUnitResponse[]>(`/module/${moduleId}/units`, {
     method: 'GET',
   });
 }
 
+// Fetches the full nested editor model for a unit, including groups, questions, and variants.
 export async function getModuleUnitEditor(moduleId: number, moduleUnitId: number): Promise<ModuleUnitEditorResponse> {
   return apiFetch<ModuleUnitEditorResponse>(`/module/${moduleId}/unit/${moduleUnitId}/editor`, {
     method: 'GET',
   });
 }
 
+// Opens or resumes a practice-room session for a module unit based on optional session routing data.
 export async function getPracticeRoom(
   moduleId: number,
   moduleUnitId: number,
@@ -128,6 +141,7 @@ export async function getPracticeRoom(
   );
 }
 
+// Submits a learner answer attempt and returns the backend-scored result.
 export async function submitPracticeRoomAttempt(
   moduleId: number,
   moduleUnitId: number,
@@ -142,6 +156,7 @@ export async function submitPracticeRoomAttempt(
   );
 }
 
+// Explicitly closes an active practice-room session when normal async requests can complete.
 export async function closePracticeRoomSession(
   moduleId: number,
   moduleUnitId: number,
@@ -155,7 +170,7 @@ export async function closePracticeRoomSession(
   );
 }
 
-// Keepalive close is best-effort for unload/pagehide where async mutation completion is not guaranteed.
+// Sends a best-effort close request during unload/pagehide where async mutation completion is not guaranteed.
 export function closePracticeRoomSessionKeepalive(
   moduleId: number,
   moduleUnitId: number,
@@ -179,6 +194,7 @@ export function closePracticeRoomSessionKeepalive(
   return true;
 }
 
+// Creates a question group inside a unit editor; groups structure questions for tutor authoring.
 export async function createModuleUnitQuestionGroup(
   moduleId: number,
   moduleUnitId: number,
@@ -190,6 +206,7 @@ export async function createModuleUnitQuestionGroup(
   });
 }
 
+// Deletes a persisted question group; local drafts are handled by editor state instead.
 export async function deleteModuleUnitQuestionGroup(
   moduleId: number,
   moduleUnitId: number,
@@ -203,6 +220,7 @@ export async function deleteModuleUnitQuestionGroup(
   );
 }
 
+// Renames a question group while keeping the module/unit route scope explicit.
 export async function updateModuleUnitQuestionGroupName(
   moduleId: number,
   moduleUnitId: number,
@@ -218,6 +236,7 @@ export async function updateModuleUnitQuestionGroupName(
   );
 }
 
+// Builds the shared close-session path so normal and keepalive flows cannot drift apart.
 function buildPracticeRoomSessionClosePath(
   moduleId: number,
   moduleUnitId: number,

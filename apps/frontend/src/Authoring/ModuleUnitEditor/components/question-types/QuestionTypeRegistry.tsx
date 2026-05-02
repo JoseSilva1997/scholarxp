@@ -12,9 +12,9 @@ import type { McqQuestionDto, TrueFalseQuestionDto, questionType, QuestionData }
 import { McqForm } from '@/Authoring/ModuleUnitEditor/components/question-types/forms/McqForm';
 import { TrueFalseForm } from '@/Authoring/ModuleUnitEditor/components/question-types/forms/TrueFalseForm';
 
-// Helper to keep IDs predictable for the UI session
-// These are used for client-side keys and matching until content is persisted to the backend.
+// Helper to keep IDs predictable for the UI session; used for client-side keys until content is persisted.
 let nextId = 1;
+// Creates a local-only id for draft options, questions, and variants.
 export const makeId = () => `local-${nextId++}`;
 
 export type QuestionType = questionType;
@@ -71,8 +71,9 @@ export interface QuestionTypeConfig {
 }
 
 /**
- * The single source of truth for supported question types in the editor.
- * Adding a new type here (along with a Form component) automatically updates the Editor UI.
+ * Strategy pattern: each question type supplies its own form, payload builder, and validator
+ * behind the same QuestionTypeConfig interface. Adding a new type here updates the editor UI
+ * without changing the save flow.
  */
 export const QUESTION_TYPE_CONFIGS: Record<QuestionType, QuestionTypeConfig> = {
   mcq: {

@@ -4,6 +4,7 @@ import RewardsTimeline from '@/Rewards/RewardsPage/components/RewardsTimeline';
 import { useRewardsTimelineState } from '@/Rewards/RewardsPage/page-state/useRewardsTimelineState';
 import styles from '@/Rewards/RewardsPage/RewardsPage.module.css';
 
+// Composes the rewards route by binding timeline state to the presentational timeline component.
 export default function RewardsPage() {
   const { level, timelineItems } = useRewardsTimelineState();
 

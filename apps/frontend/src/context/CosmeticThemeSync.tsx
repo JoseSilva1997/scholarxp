@@ -5,10 +5,13 @@ import { useAuth } from '@/context/AuthContext';
 import { useCosmetics } from '@/Rewards/cosmetics';
 import { isKnownThemeRewardId } from '@/context/theme-context';
 
+// Null component pattern: performs cross-context theme synchronisation without rendering UI.
 export function CosmeticThemeSync() {
   const { user } = useAuth();
   const { cosmetic } = useCosmetics();
   const { resetTheme, syncThemeReward } = useTheme();
+
+  // Captures the latest context values for an effect whose trigger is the auth/cosmetic input change.
   const applyThemeSync = useEffectEvent(() => {
     if (!user || user.globalRole !== 'student') {
       resetTheme();

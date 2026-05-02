@@ -10,7 +10,10 @@ import {
   useModuleInvitesQuery,
   useUpdateModuleInviteMutation,
 } from '@/Authoring/SingleModule/queries/useModuleInvitesQueries';
-import type { ModuleInvite, ModuleSummary } from '@/shared/types/module';
+import type {
+  ModuleInviteResponse as ModuleInvite,
+  ModuleSummaryResponse as ModuleSummary,
+} from '@scholarxp/api-contracts';
 
 // parameters passed in from the panel component; they drive whether we
 // start loading invites and which module context we operate in.
@@ -42,6 +45,7 @@ type UseModuleInvitesPanelStateResult = {
   copyInviteLink: (invite: ModuleInvite) => void;
 };
 
+// Coordinates invite-management UI state with query mutations for the module settings panel.
 export function useModuleInvitesPanelState({
   module,
   isOpen,

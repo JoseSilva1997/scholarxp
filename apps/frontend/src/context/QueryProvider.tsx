@@ -18,6 +18,7 @@ type AppQueryProviderProps = {
   children: ReactNode;
 };
 
+// Provider pattern: installs the singleton QueryClient so all screens share one server-state cache.
 export function AppQueryProvider({ children }: AppQueryProviderProps) {
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 }

@@ -3,7 +3,7 @@
 import { screen } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { renderWithProviders } from '@/shared/test/utils';
-import type { AuthUser } from '@/shared/types/auth';
+import type { AuthUser } from '@scholarxp/api-contracts';
 import Header from '@/MainApp/Header/Header';
 
 vi.mock('@/MainApp/Header/components/StudentQuestHeaderStatus', () => ({

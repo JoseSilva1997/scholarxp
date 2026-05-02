@@ -1,9 +1,10 @@
 // Converts backend module-unit-editor payloads into local editor state with draft-friendly ids.
 import { normalizeQuestionType } from '@/Authoring/ModuleUnitEditor/components/question-types/QuestionTypeRegistry';
-import type { ModuleUnitEditorGroup } from '@/shared/types/module';
+import type { ModuleUnitEditorGroupResponse as ModuleUnitEditorGroup } from '@scholarxp/api-contracts';
 import type { QuestionGroup } from '@/Authoring/ModuleUnitEditor/page-state/helpers/types';
 import { normalizeSource } from '@/Authoring/ModuleUnitEditor/page-state/helpers/source';
 
+// Maps backend editor groups into local state, normalizing ids and question types for draft-compatible editing.
 export const mapEditorGroupsToState = (
   groups: ModuleUnitEditorGroup[] | undefined,
 ): QuestionGroup[] =>

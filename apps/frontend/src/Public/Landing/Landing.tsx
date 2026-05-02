@@ -1,4 +1,4 @@
-// The public marketing landing page - renders at '/' for unauthenticated users via App.tsx.
+// Defines the public marketing landing page shown at '/' before a user enters the authenticated app.
 import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -17,28 +17,33 @@ import {
 } from 'react-icons/ri';
 import styles from '@/Public/Landing/Landing.module.css';
 
-// Triggers a CSS reveal animation when the element scrolls into view.
-// Disconnect after the first intersection - we only animate in once.
+// Custom hook pattern: exposes a DOM ref and triggers a CSS reveal animation once the section enters the viewport.
 function useReveal() {
   const ref = useRef<HTMLDivElement>(null);
+  // Manages the observer lifecycle for the DOM element returned by this hook.
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     const io = new IntersectionObserver(
+      // IntersectionObserver passes the observed entries in an array; this hook observes only one element.
       ([entry]) => {
         if (entry.isIntersecting) {
           el.setAttribute('data-revealed', '');
+          // Reveals are intentionally one-shot so scrolling back up does not repeatedly restart section animations.
           io.disconnect();
         }
       },
+      // Start slightly before the whole section is visible to make long landing-page sections feel responsive.
       { threshold: 0.1, rootMargin: '0px 0px -40px 0px' },
     );
     io.observe(el);
+    // Cleanup prevents the browser observer from surviving component unmounts or route changes.
     return () => io.disconnect();
   }, []);
   return ref;
 }
 
+// Configuration-driven content keeps the tutor journey copy aligned with the repeated step UI.
 const tutorSteps = [
   { icon: <RiBookOpenLine />, label: 'Create a module and build structured lessons with exercises' },
   { icon: <RiShuffleLine />, label: 'Optionaly add question variants to prevent students memorising answer patterns' },
@@ -46,6 +51,7 @@ const tutorSteps = [
   { icon: <RiLineChartLine />, label: 'Monitor progress and performance from your tutor dashboard' },
 ];
 
+// Configuration-driven content mirrors the tutor journey for students without duplicating layout markup.
 const studentSteps = [
   { icon: <RiGraduationCapLine />, label: 'Enrol in your tutor\'s module and work through the lessons' },
   { icon: <RiCalendarCheckLine />, label: 'Each day receive a short personalised set of 3–10 questions' },
@@ -53,6 +59,7 @@ const studentSteps = [
   { icon: <RiFireLine />, label: 'Complete daily quests, build your streak, and earn bonus XP' },
 ];
 
+// Feature cards are declared as data so the visual grid can remain a stable, repeatable component structure.
 const features = [
   {
     icon: <RiBrainLine />,
@@ -86,6 +93,7 @@ const features = [
   },
 ];
 
+// Renders the unauthenticated public landing page and wires reveal refs into each major content section.
 export default function Landing() {
   const howRef = useReveal();
   const featuresRef = useReveal();
@@ -143,6 +151,7 @@ export default function Landing() {
                 <h3 className={styles.howColumnTitle}>For tutors</h3>
               </div>
               <ol className={styles.howSteps}>
+                {/* Data-driven rendering keeps the ordered tutor workflow synchronized with the copy above. */}
                 {tutorSteps.map((step, i) => (
                   <li key={i} className={styles.howStep}>
                     <span className={styles.howStepIcon}>{step.icon}</span>
@@ -160,6 +169,7 @@ export default function Landing() {
                 <h3 className={styles.howColumnTitle}>For students</h3>
               </div>
               <ol className={styles.howSteps}>
+                {/* Data-driven rendering mirrors the tutor workflow while preserving student-specific messaging. */}
                 {studentSteps.map((step, i) => (
                   <li key={i} className={styles.howStep}>
                     <span className={styles.howStepIcon}>{step.icon}</span>
@@ -179,6 +189,7 @@ export default function Landing() {
           <h2 className={styles.sectionTitle}>Everything that makes it stick</h2>
           <div className={styles.featuresGrid}>
             {features.map((f) => (
+              // CSS Modules are indexed dynamically here to bind each content item to its colour variant.
               <article key={f.title} className={`${styles.featureCard} ${styles[`featureCard--${f.color}` as keyof typeof styles]}`}>
                 <div className={styles.featureIcon}>{f.icon}</div>
                 <h3 className={styles.featureTitle}>{f.title}</h3>
@@ -271,6 +282,7 @@ export default function Landing() {
   );
 }
 
+// Renders a static illustrative product mockup for the hero without exposing it as meaningful page content to assistive technology.
 function HeroMockup() {
   return (
     <div className={styles.mockup}>
@@ -286,6 +298,7 @@ function HeroMockup() {
           {[0, 1, 2, 3, 4].map((i) => (
             <span
               key={i}
+              // The fixed index thresholds create a deterministic progress state for the illustrative mockup.
               className={`${styles.mockupDot} ${i < 2 ? styles.mockupDotDone : i === 2 ? styles.mockupDotActive : ''}`}
             />
           ))}

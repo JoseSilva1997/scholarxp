@@ -1,5 +1,6 @@
-/* Service role: orchestrates practice-room workflows by coordinating focused
- collaborators for reads, attempts, and session lifecycle management.
+/* Facade pattern: PracticeRoomService is the single entry point for all practice-room
+ workflows. It coordinates focused collaborators (read, attempt, session, XP, quests)
+ without exposing their internal contracts to the controller or other modules.
  */
 import { Injectable } from '@nestjs/common';
 import { GlobalRole } from '@prisma/client';
@@ -81,6 +82,9 @@ export class PracticeRoomService {
         studentId,
       );
     const sessionType = normalizeSessionType(roomContext.session.sessionType);
+    // Retry and view-answers sessions don't accumulate a new live streak, so the client
+    // needs the historical best streak to correctly render which tier rewards are still
+    // claimable. A live session derives its streak from the active session's attempts.
     const retryReferenceHighestStreak =
       sessionType === PracticeSessionTypeValues.retry ||
       sessionType === PracticeSessionTypeValues.viewAnswers
@@ -195,7 +199,11 @@ export class PracticeRoomService {
         attemptedAt,
         tx,
       );
-      // Always feed encounters into the FSRS service so a late-correct attempt can still seed state after earlier wrong attempts in the same session. The state service guards against double-grading an already-seeded card via priorEncounterExists.
+      // Always feed encounters into the FSRS service regardless of correctness so that a
+      // late-correct attempt within the same session can still seed the spaced-repetition card.
+      // priorEncounterExists tells the FSRS service whether this question was already graded
+      // earlier in the current session; if so, the service skips re-seeding to prevent
+      // double-grading the same review slot.
       const timezoneRow = await tx.user.findUnique({
         where: { id: studentId },
         select: { timezone: true },
@@ -303,6 +311,8 @@ export class PracticeRoomService {
       };
     });
 
+    // Retry sessions re-surface the historical best streak so the client can show correct
+    // tier-claim state without the retry session itself contributing a new streak count.
     const retryReferenceHighestStreak = isRetrySession
       ? await this.expStreakService.getHistoricalHighestPracticeStreak(
           moduleUnitId,
@@ -376,6 +386,8 @@ export class PracticeRoomService {
   }
 }
 
+// Guards the room against unknown session types that could have been written by an
+// older schema migration or an out-of-sync client; fails open to the safest known type.
 function normalizeSessionType(value: string): PracticeSessionType {
   // Unknown persisted values fall back to practice_room so clients can render safely while preserving backward compatibility.
   const knownValues = Object.values(PracticeSessionTypeValues);

@@ -23,6 +23,7 @@ function resolveAvatar(url: string | null): string {
   return url.startsWith('http') ? url : defaultAvatar;
 }
 
+// Formats optional lesson/student activity dates for dense diagnostic tables.
 function formatDate(iso: string | null): string {
   if (!iso) return '--';
   return new Date(iso).toLocaleDateString(undefined, {
@@ -32,19 +33,23 @@ function formatDate(iso: string | null): string {
   });
 }
 
+// Formats percentages with one decimal only when precision is meaningful.
 function formatPercent(value: number): string {
   return `${Number.isInteger(value) ? value : value.toFixed(1)}%`;
 }
 
+// Formats percentage-point deltas with a sign so variant underperformance is visually obvious.
 function formatDelta(value: number): string {
   const formatted = Number.isInteger(value) ? value.toString() : value.toFixed(1);
   return `${value > 0 ? '+' : ''}${formatted}pp`;
 }
 
+// Formats response times in seconds while avoiding unnecessary decimals.
 function formatSeconds(value: number): string {
   return `${Number.isInteger(value) ? value : value.toFixed(1)}s`;
 }
 
+// Renders detail-panel placeholders while lesson diagnostics are loading.
 function SkeletonDetail() {
   return (
     <div className={styles.skeleton} aria-hidden="true">
@@ -56,10 +61,12 @@ function SkeletonDetail() {
   );
 }
 
+// Renders a consistent empty-state message for each diagnostic subsection.
 function EmptyState({ message }: { message: string }) {
   return <p className={styles.emptyText}>{message}</p>;
 }
 
+// Provides reusable expand/collapse control for lesson drilldown sections.
 function SectionToggle({
   title,
   isOpen,
@@ -84,6 +91,7 @@ function SectionToggle({
   );
 }
 
+// Displays question accuracy rows where low first-attempt scores suggest initial difficulty.
 function StrugglingQuestionsTable({ rows }: { rows: QuestionAccuracySummary[] }) {
   if (rows.length === 0) return <EmptyState message="No struggling questions identified." />;
 
@@ -115,6 +123,7 @@ function StrugglingQuestionsTable({ rows }: { rows: QuestionAccuracySummary[] })
   );
 }
 
+// Displays core-vs-variant gaps to expose uneven question variant difficulty.
 function VariantDiscrepancyTable({ rows }: { rows: QuestionVariantDiscrepancy[] }) {
   if (rows.length === 0) {
     return <EmptyState message="No significant core vs. variant discrepancies found." />;
@@ -148,6 +157,7 @@ function VariantDiscrepancyTable({ rows }: { rows: QuestionVariantDiscrepancy[] 
   );
 }
 
+// Displays questions where hint usage suggests unclear wording or insufficient scaffolding.
 function HighHintTable({ rows }: { rows: HighHintUsageRow[] }) {
   if (rows.length === 0) return <EmptyState message="No questions with high hint usage." />;
 
@@ -177,6 +187,7 @@ function HighHintTable({ rows }: { rows: HighHintUsageRow[] }) {
   );
 }
 
+// Displays questions with elevated median response time relative to the lesson.
 function SlowQuestionsTable({ rows }: { rows: SlowQuestionRow[] }) {
   if (rows.length === 0) return <EmptyState message="No unusually slow questions detected." />;
 
@@ -206,6 +217,7 @@ function SlowQuestionsTable({ rows }: { rows: SlowQuestionRow[] }) {
   );
 }
 
+// Renders student completion and question-health diagnostics for one selected lesson.
 export default function LessonDrillDown({
   detail,
   isLoading,

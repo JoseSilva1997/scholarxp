@@ -8,6 +8,7 @@ import type {
   UpdateQuestionContentPayload,
 } from '@scholarxp/api-contracts';
 
+// Creates a persisted question in the current unit and places it in the supplied group/order.
 export async function createQuestionForUnit(
   moduleId: number,
   unitId: number,
@@ -19,6 +20,7 @@ export async function createQuestionForUnit(
   });
 }
 
+// Creates an additional persisted variant for a question so tutors can author alternative prompts.
 export async function createVariantForQuestion(
   moduleId: number,
   unitId: number,
@@ -36,6 +38,7 @@ export async function createVariantForQuestion(
 
 export type UpdateQuestionContentRequest = UpdateQuestionContentPayload;
 
+// Updates question content through a fully scoped route to prevent cross-module edits.
 export async function updateQuestionContentScoped(
   moduleId: number,
   unitId: number,
@@ -49,6 +52,7 @@ export async function updateQuestionContentScoped(
   });
 }
 
+// Deletes a persisted question from the unit; draft-only removals are resolved in local editor state.
 export async function deleteQuestionFromUnit(
   moduleId: number,
   unitId: number,
@@ -59,6 +63,7 @@ export async function deleteQuestionFromUnit(
   });
 }
 
+// Deletes a persisted variant while retaining the parent question and remaining variants.
 export async function deleteVariantFromQuestion(
   moduleId: number,
   unitId: number,

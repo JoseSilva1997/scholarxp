@@ -11,6 +11,7 @@ type RosterSummaryCardsProps = {
   onLessonCoverageClick: () => void;
 };
 
+// Renders one summary-card placeholder during roster summary loading.
 function SkeletonCard() {
   return (
     <div className={`${styles.card} ${styles.skeleton}`} aria-hidden="true">
@@ -20,6 +21,7 @@ function SkeletonCard() {
   );
 }
 
+// Renders clickable roster metrics that double as shortcuts into filtered detail views.
 export default function RosterSummaryCards({
   summary,
   isLoading,
@@ -40,6 +42,7 @@ export default function RosterSummaryCards({
 
   if (!summary) return null;
 
+  // Avoid division-like labels with missing live lessons; 0/0 communicates no eligible lesson coverage.
   const coverageLabel = summary.lessonCoverage.totalLiveLessons > 0
     ? `${summary.lessonCoverage.lessonsCompletedByAtLeastHalfOfStudents}/${summary.lessonCoverage.totalLiveLessons}`
     : '0/0';

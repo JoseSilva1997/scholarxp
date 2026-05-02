@@ -24,6 +24,8 @@ import styles from '@/Practice-Room/PracticeRoomPage.module.css';
 import { getQuestionUnitStatusClass } from '@/Practice-Room/practice-room-status';
 import { buildPracticeRoomAnswerFeedback } from '@/Practice-Room/practice-room-answer-feedback';
 
+// Renders the practice-room route by binding page-state orchestration to the
+// visual question panel, reward indicators, navigation controls, and completion modal.
 export default function PracticeRoomPage() {
   const { moduleId, unitId } = useParams<{ moduleId: string; unitId: string }>();
   const navigate = useNavigate();

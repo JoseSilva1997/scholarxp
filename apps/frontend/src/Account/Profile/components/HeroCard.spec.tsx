@@ -1,7 +1,6 @@
 // Verifies the profile hero handles name editing, profile picture validation, and student progress display.
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { AuthUser } from '@/shared/types/auth';
-import type { AccountProgress } from '@scholarxp/api-contracts';
+import type { AccountProgress, AuthUser } from '@scholarxp/api-contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import HeroCard from '@/Account/Profile/components/HeroCard';
 

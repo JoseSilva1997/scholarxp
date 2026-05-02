@@ -6,6 +6,7 @@ import { useResetPasswordPageState } from '@/Auth/ForgotPassword/page-state/useR
 // the centered Login layout, which pushes a tall form too close to the header.
 import styles from '@/Auth/Register/Register.module.css';
 
+// Renders the password reset form while useResetPasswordPageState owns token and mutation behavior.
 export default function ResetPassword() {
   const {
     hasToken,
@@ -140,6 +141,7 @@ export default function ResetPassword() {
               ) : null}
 
               <div className={styles.actions}>
+                {/* Preventing mouse focus preserves password-meter visibility during click submission. */}
                 <button
                   className={styles.primaryBtn}
                   type="submit"

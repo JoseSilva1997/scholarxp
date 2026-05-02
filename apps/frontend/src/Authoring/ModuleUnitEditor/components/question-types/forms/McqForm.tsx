@@ -7,12 +7,14 @@ import { FiInfo } from 'react-icons/fi';
 
 type McqFormProps = BaseQuestionFormProps;
 
+// Renders the multiple-choice-specific form controls within the generic editor form contract.
 export function McqForm({ options, onChangeOption, onChangeExplanation, onSelectCorrect, onDeleteOption }: McqFormProps) {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!popoverOpen) return;
+    // Closes the helper popover when the user clicks outside the info control.
     function handleClickOutside(e: MouseEvent) {
       if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
         setPopoverOpen(false);

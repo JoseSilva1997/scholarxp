@@ -34,6 +34,7 @@ const BAND_RARITY: Record<number, BandRarity> = {
   75: 'legendary',
 };
 
+// Builds an immutable render model for the alternating timeline, including separator rows and rarity band headers.
 function buildTimeline(level: number): TimelineItem[] {
   // Group non-default items by unlock level — level-1 items ship with every account
   // and don't represent earned rewards, so they're excluded from the discovery view.
@@ -59,6 +60,7 @@ function buildTimeline(level: number): TimelineItem[] {
     const rewards = byLevel.get(milestone);
     if (!rewards?.length) continue;
 
+    // Alternating sides keeps adjacent milestones visually distinct without encoding layout concerns in CSS alone.
     items.push({
       type: 'entry',
       level: milestone,
@@ -77,6 +79,7 @@ export type UseRewardsTimelineStateResult = {
   timelineItems: TimelineItem[];
 };
 
+// Hook boundary for the Rewards timeline; memoisation prevents rebuilding the catalog projection on unrelated renders.
 export function useRewardsTimelineState(): UseRewardsTimelineStateResult {
   const { level } = useCosmetics();
   const timelineItems = useMemo(() => buildTimeline(level), [level]);

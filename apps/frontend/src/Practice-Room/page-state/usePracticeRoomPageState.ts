@@ -45,6 +45,8 @@ type UsePracticeRoomPageStateParams = {
   unitIdParam: string | undefined;
 };
 
+// Facade hook for the practice-room route. It composes query, session,
+// interaction, reward, persistence, and submission hooks into a single view model.
 export function usePracticeRoomPageState({
   moduleIdParam,
   unitIdParam,
@@ -423,6 +425,8 @@ export function usePracticeRoomPageState({
   // Event handlers passed to the page component; declared last so they can
   // close over all derived state above without forward-reference issues.
 
+  // Guards hint unlocking in review-only sessions before delegating to the
+  // session-scoped state map.
   const unlockHintForContent = (contentId: number) => {
     if (isRoomReadOnly) {
       return;

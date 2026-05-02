@@ -26,6 +26,7 @@ type LessonsTabProps = {
   onSelectLesson: (id: number | null) => void;
 };
 
+// Formats optional lesson activity dates for the lessons table.
 function formatDate(iso: string | null): string {
   if (!iso) return '--';
   return new Date(iso).toLocaleDateString(undefined, {
@@ -35,6 +36,7 @@ function formatDate(iso: string | null): string {
   });
 }
 
+// Maps backend status identifiers to readable labels while tolerating newer statuses.
 function formatStatus(status: string): string {
   const labels: Record<string, string> = {
     draft: 'Draft',
@@ -45,6 +47,7 @@ function formatStatus(status: string): string {
   return labels[status] ?? status;
 }
 
+// Renders table-shaped placeholders while lesson analytics are loading.
 function SkeletonRows() {
   return (
     <>
@@ -61,6 +64,7 @@ function SkeletonRows() {
   );
 }
 
+// Renders per-lesson roster analytics and exposes row selection for diagnostic drilldown.
 export default function LessonsTab({
   rows,
   isLoading,

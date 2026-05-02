@@ -12,6 +12,7 @@ interface XpStatCardProps {
   variant?: 'rs' | 'classic';
 }
 
+// Displays one XP category with a bounded percentage bar for student progress summaries.
 export default function XpStatCard({
   label,
   current,
@@ -21,6 +22,7 @@ export default function XpStatCard({
   icon,
   variant = 'rs',
 }: XpStatCardProps) {
+  // Clamp progress so unexpected backend values cannot overflow the visual bar.
   const percent = Math.min(100, Math.max(0, (current / max) * 100));
   const mappedColorClass = colorClass ? styles[colorClass] || colorClass : '';
 

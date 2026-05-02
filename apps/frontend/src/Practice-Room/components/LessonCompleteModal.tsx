@@ -13,6 +13,7 @@ type LessonCompleteModalProps = {
 
 const DISMISS_READY_DELAY_MS = 1800;
 
+// Renders the blocking lesson-complete celebration and delays dismissal until its animation is readable.
 export default function LessonCompleteModal({
   isOpen,
   unitTitle,

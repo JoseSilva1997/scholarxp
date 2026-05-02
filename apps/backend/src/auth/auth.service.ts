@@ -26,7 +26,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { EmailVerificationTokenService } from '../db-entities/email-verification-token/email-verification-token.service';
 import { MailDeliveryError, MailerService } from '../mailer/mailer.service';
 import { RegisterDto } from './dto/register.dto';
-import type { AuthUser } from '../types/auth-user.type';
+import type { AuthUser } from '@scholarxp/api-contracts';
 import type { GoogleProfile } from './strategies/google.strategy';
 import { generateToken } from '../common/security/csrf';
 

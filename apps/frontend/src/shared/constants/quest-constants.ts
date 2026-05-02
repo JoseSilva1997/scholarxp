@@ -1,3 +1,4 @@
+// Maps quest domain types to badge assets and resolves the correct image for quest UI components.
 import { QuestTypeValues } from '@scholarxp/api-contracts'
 import type { QuestView } from '@scholarxp/api-contracts'
 import completeDailyPracticeBadge from '@/assets/quest-badges/daily-practice-complete.png';
@@ -30,6 +31,7 @@ export const QUEST_IMAGE = {
 } as const;
 
 
+// Chooses the badge asset that corresponds to the quest type and completion state.
 export function getQuestBadge(quest: QuestView): string {
     if (quest.type === QuestTypeValues.completeDailyPractice) {
         return quest.isCompleted ? QUEST_IMAGE[QuestTypeValues.completeDailyPractice].complete : QUEST_IMAGE[QuestTypeValues.completeDailyPractice].incomplete;

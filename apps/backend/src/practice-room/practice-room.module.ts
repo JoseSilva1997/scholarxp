@@ -1,3 +1,6 @@
+// Wires the practice-room bounded context: registers every collaborating service under one
+// NestJS module and exports the subset consumed by adjacent modules (e.g. daily-practice).
+// Depends on ExpEngineModule for XP side-effects and QuestsModule for quest-progress hooks.
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
 import { DailyPracticeReviewStateModule } from '../daily-practice/daily-practice-review-state.module';
@@ -12,7 +15,6 @@ import { PracticeRoomSessionSweepService } from './practice-room-session-sweep.s
 import { PracticeRoomService } from './practice-room.service';
 import { StudentModuleUnitProgressService } from './student-module-unit-progress.service';
 
-// This module isolates practice-room read orchestration and keeps route wiring explicit in one place.
 @Module({
   imports: [
     AuthModule,

@@ -465,6 +465,7 @@ export class QuestProgressService {
     }
   }
 
+  // Fetches all quests for the user's current local calendar day using the @db.Date key rather than a UTC range query.
   private async loadTodaysQuests(
     userId: number,
     dayContext: UserLocalDayContext,
@@ -487,6 +488,8 @@ export class QuestProgressService {
     }));
   }
 
+  // Completes the master quest only when every non-master daily quest for the day has been marked complete.
+  // Streak state is consulted here so the bonus XP multiplier is baked into the ledger event, not left to the client.
   private async completeMasterQuestIfEligible(
     userId: number,
     dayContext: UserLocalDayContext,
@@ -534,6 +537,8 @@ export class QuestProgressService {
     );
   }
 
+  // Resolves the user's timezone and derives all date boundary values needed for both @db.Date lookups
+  // and UTC DateTime range queries, keeping timezone handling in one place for each progress event.
   private async getUserLocalDayContext(
     userId: number,
     timestamp: Date,
@@ -558,6 +563,9 @@ export class QuestProgressService {
     };
   }
 
+  // Marks a quest row as completed and posts a ledger event to award XP, then propagates the award to the avatar.
+  // An idempotency key on the ledger event prevents double-awarding if this path is triggered more than once for the same quest.
+  // Returns false without writing if the quest was already completed or if the trigger timestamp precedes the quest's generation time.
   private async completeQuest(
     quest: PersistedQuest,
     completedAt: Date,
@@ -613,6 +621,9 @@ export class QuestProgressService {
     return true;
   }
 
+  // Evaluates whether the student has answered `targetStreak` consecutive questions correctly without hints,
+  // counting only the first attempt per question (attempts are pre-ordered by time so earlier entries win).
+  // A wrong answer or hint use resets the counter — the streak must be unbroken.
   private hasReachedDailyPracticeStreak(
     attempts: Array<{
       questionId: number;

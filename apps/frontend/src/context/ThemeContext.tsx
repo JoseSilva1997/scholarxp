@@ -32,6 +32,7 @@ type StoredThemeState = {
 const DEFAULT_THEME: Theme = 'default';
 const DEFAULT_THEME_VARIANT: ThemeVariant = 'light';
 
+// Reads and normalises persisted theme settings, including legacy reward ids stored before the split family/variant model.
 function readStoredThemeState(): StoredThemeState {
   const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
   const storedVariant = localStorage.getItem(THEME_VARIANT_STORAGE_KEY);
@@ -59,6 +60,7 @@ function readStoredThemeState(): StoredThemeState {
   };
 }
 
+// React Context Provider pattern: coordinates the selected cosmetic theme family with the user's light/dark preference.
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => readStoredThemeState().theme);
   const [themeVariant, setThemeVariantState] = useState<ThemeVariant>(
@@ -78,15 +80,18 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(THEME_VARIANT_STORAGE_KEY, themeVariant);
   }, [theme, themeVariant]);
 
+  // Updates only the cosmetic theme family; variant changes are handled separately to preserve user intent.
   const setTheme = useCallback((next: Theme) => {
     setThemeState(next);
   }, []);
 
+  // Records an explicit light/dark choice so future cosmetic syncs do not silently override it.
   const setThemeVariant = useCallback((next: ThemeVariant) => {
     setHasExplicitVariantPreference(true);
     setThemeVariantState(next);
   }, []);
 
+  // Aligns the theme family with an equipped reward while respecting a locally chosen light/dark variant.
   const syncThemeReward = useCallback((themeRewardId: ThemeRewardId) => {
     const nextTheme = themeFamilyFromRewardId(themeRewardId);
     setThemeState((current) => (current === nextTheme ? current : nextTheme));
@@ -97,6 +102,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   }, [hasExplicitVariantPreference]);
 
+  // Restores the baseline visual theme when there is no student cosmetic source to sync from.
   const resetTheme = useCallback(() => {
     // Sessionless and non-student accounts have no server-backed cosmetic theme, so reset to the app default.
     setHasExplicitVariantPreference(false);
@@ -104,6 +110,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setThemeVariantState(DEFAULT_THEME_VARIANT);
   }, []);
 
+  // Toggles the binary variant used by components that need explicit light/dark styling decisions.
   const toggleTheme = useCallback(() => {
     setHasExplicitVariantPreference(true);
     setThemeVariantState((current) => (current === 'dark' ? 'light' : 'dark'));

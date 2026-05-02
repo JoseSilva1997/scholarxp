@@ -16,6 +16,7 @@ const MEDAL_VARIANTS: Record<string, MedalVariant> = {
 
 const DEFAULT_VARIANT: MedalVariant = MEDAL_VARIANTS.standard;
 
+// Resolves the currently equipped lesson-completion medal for consumers that render the shared medal asset.
 export function useCompletionMedal(): MedalVariant {
   const { cosmetic } = useCosmetics();
   const id = cosmetic('moduleUnitBadge');

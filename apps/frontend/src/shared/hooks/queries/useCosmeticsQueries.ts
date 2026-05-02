@@ -9,17 +9,20 @@ import type {
 import { putEquippedCosmetic } from '@/Rewards/RewardsPage/api/rewards';
 import { queryKeys } from '@/shared/hooks/query-keys';
 
+// Creates the cosmetic-equipping mutation and performs cache synchronization after the backend accepts it.
 export function useEquipCosmeticMutation() {
   const queryClient = useQueryClient();
 
   return useMutation<EquipCosmeticResponse, Error, EquipCosmeticRequest>({
     mutationKey: queryKeys.rewards.equipCosmetic,
     mutationFn: putEquippedCosmetic,
+    // React Query observer pattern: downstream auth consumers update from cache without prop wiring.
     onSuccess: (response) => {
       // Replace the equippedCosmetics slice of the cached auth response so every hook that reads
       // user.avatar.equippedCosmetics observes the server-authoritative value in the same render cycle.
       queryClient.setQueryData<AuthResponse | undefined>(
         queryKeys.auth.me,
+        // Functional cache update preserves unrelated auth fields while replacing only the sanitized avatar slice.
         (previousValue) => {
           if (!previousValue?.user || !previousValue.user.avatar) {
             return previousValue;

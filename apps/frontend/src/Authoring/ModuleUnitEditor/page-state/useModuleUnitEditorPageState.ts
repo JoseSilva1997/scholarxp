@@ -1,5 +1,5 @@
-import { formatQuestionLabel, formatVariantLabel } from '@/Authoring/ModuleUnitEditor/page-state/helpers/formatting';
 // Encapsulates ModuleUnitEditor route orchestration so the route can stay focused on rendering.
+import { formatQuestionLabel, formatVariantLabel } from '@/Authoring/ModuleUnitEditor/page-state/helpers/formatting';
 import {
   useCallback,
   useEffect,
@@ -9,7 +9,6 @@ import {
   type Dispatch,
   type SetStateAction,
 } from 'react';
-// ...existing code...
 import { getModuleUnitGroupName } from '@scholarxp/api-contracts';
 import { normalizeSource } from '@/Authoring/ModuleUnitEditor/page-state/helpers/source';
 import {
@@ -66,16 +65,11 @@ type UseModuleUnitEditorPageStateParams = {
   initialQuestionIdParam?: string;
 };
 
+// Derives the next persisted sort order without coupling order to editable group labels.
 const deriveNextGroupSortOrder = (existingGroups: QuestionGroup[]) =>
-  // Keep order independent from labels so renames do not affect persisted sequencing.
   existingGroups.reduce((maxValue, group) => Math.max(maxValue, group.sortOrder), 0) + 1;
 
-// --- Main Hook: useModuleUnitEditorPageState ---
-// This hook manages all state, data fetching, mutations, and orchestration for the Module Unit Editor page.
-// It keeps the UI component simple and focused on rendering, while all the logic lives here for testability and clarity.
-//
-// Sections below are separated by comments to make navigation and understanding easier.
-// Comments explain why things are done, not just what is happening.
+// Coordinates the unit editor's route scope, local draft state, persistence flows, and selection model.
 export function useModuleUnitEditorPageState({
   moduleIdParam,
   unitIdParam,
@@ -165,6 +159,7 @@ export function useModuleUnitEditorPageState({
 
   const mcqOptionSlots = useMemo(() => emptyMcqTemplate().options.length, []);
 
+  // Builds a clean question form using the shared default type and current MCQ slot template.
   const buildInitialForm = useCallback(
     (): QuestionForm => ({
       stem: '',
@@ -197,6 +192,7 @@ export function useModuleUnitEditorPageState({
     editingGroupIdRef.current = editingGroupId;
   }, [groups, selected, expandedGroups, editingGroupId]);
 
+  // Wraps selection changes from the UI so stale save errors are cleared with the user's new context.
   const setSelectedFromUi = useCallback<
     Dispatch<SetStateAction<SelectionState | null>>
   >((value) => {
@@ -207,11 +203,13 @@ export function useModuleUnitEditorPageState({
 
   // --- Helpers: cache and transform logic for question/variant forms ---
   // These helpers keep the form logic DRY and make it easy to support multiple question types.
+  // Creates type-specific default option/explanation arrays through the question-type strategy registry.
   const resetOptionsForType = useCallback(
     (type: QuestionType) => QUESTION_TYPE_CONFIGS[type].getInitialOptions(mcqOptionSlots),
     [mcqOptionSlots],
   );
 
+  // Resets cached forms for non-saved question types so old shape data cannot leak after saving.
   const clearOtherTypesCache = useCallback(
     (cacheKey: string, savedType: QuestionType) => {
       const existing = questionTypeCacheRef.current.get(cacheKey) ?? {};
@@ -365,6 +363,7 @@ export function useModuleUnitEditorPageState({
   // ===== UI-Level Actions =====
   // All UI event handlers and orchestration logic lives here.
   // This keeps the UI components simple and lets us test logic in isolation.
+  // Moves between the selected core question and its variants while preserving group context.
   const handleNavigate = (direction: -1 | 1) => {
     if (selectedIndex < 0 || !selected) return;
     const nextItem = navigationItems[selectedIndex + direction];
@@ -401,11 +400,13 @@ export function useModuleUnitEditorPageState({
       : selectedQuestion.title;
   }, [groups, selectedQuestion, selected]);
 
+  // Treats a question as saved only when it has both a persisted id and persisted core content.
   const isQuestionSaved = useCallback(
     (question: Question) => !question.isDraft && Boolean(question.coreContent),
     [],
   );
 
+  // Permits a new variant only after the core question and latest variant are both saved.
   const canAddVariant = useCallback(
     (question: Question) => {
       if (!isQuestionSaved(question)) return false;
@@ -415,6 +416,7 @@ export function useModuleUnitEditorPageState({
     [isQuestionSaved],
   );
 
+  // Adds a local draft group unless live-unit constraints block structural changes.
   const handleAddGroup = () => {
     if (isUnitLive) {
       setSaveError('This module unit is live. New groups cannot be added.');
@@ -435,6 +437,7 @@ export function useModuleUnitEditorPageState({
     setSelected({ groupId: newGroup.id, questionId: null, variantId: null });
   };
 
+  // Toggles a group expansion entry without mutating the previous Set instance.
   const handleToggleGroup = (groupId: string) => {
     setExpandedGroups((prev) => {
       const next = new Set(prev);
@@ -447,18 +450,21 @@ export function useModuleUnitEditorPageState({
     });
   };
 
+  // Updates a group title in local editor state.
   const handleUpdateGroupTitle = (groupId: string, newTitle: string) => {
     setGroups((prev) =>
       updateGroupById(prev, groupId, (group) => ({ ...group, title: newTitle })),
     );
   };
 
+  // Starts inline group-title editing using the current title as the cancel baseline.
   const startEditingGroupTitle = (groupId: string, currentTitle: string) => {
     // Keep title edits isolated so cancel can cleanly revert to persisted/current value.
     setEditingGroupId(groupId);
     setEditingGroupTitle(currentTitle);
   };
 
+  // Cancels inline group-title editing and clears browser validation state.
   const cancelEditingGroupTitle = () => {
     setEditingGroupId(null);
     setEditingGroupTitle('');
@@ -467,6 +473,7 @@ export function useModuleUnitEditorPageState({
     }
   };
 
+  // Saves a group title locally for draft groups or through the backend for persisted groups.
   const saveEditingGroupTitle = async (groupId: string) => {
     const inputEl = editingGroupInputRef.current;
     if (inputEl) {
@@ -518,6 +525,7 @@ export function useModuleUnitEditorPageState({
     }
   };
 
+  // Adds a local draft question to a group after ensuring there is no unsaved trailing question.
   const handleAddQuestion = (groupId: string) => {
     if (isUnitLive) {
       setSaveError('This module unit is live. New questions cannot be added.');
@@ -564,6 +572,7 @@ export function useModuleUnitEditorPageState({
     setSaveError(null);
   };
 
+  // Adds a local draft variant to a saved question after enforcing one-unsaved-variant-at-a-time.
   const handleAddVariant = (groupId: string, questionId: string) => {
     if (isUnitLive) {
       setSaveError('This module unit is live. New variants cannot be added.');
@@ -606,6 +615,7 @@ export function useModuleUnitEditorPageState({
     setSaveError(null);
   };
 
+  // Clears all cached forms associated with a question before deletion removes its ids.
   const clearQuestionCaches = (question: Question) => {
     // Remove all cached form variants for deleted questions so no stale data leaks into new drafts.
     // This prevents bugs where old form state appears in new questions.
@@ -615,6 +625,7 @@ export function useModuleUnitEditorPageState({
     });
   };
 
+  // Clears cached form state for one variant after it has been deleted.
   const clearVariantCache = (questionId: string, variantId: string) => {
     // Variant cache entries are scoped by question and variant ids to avoid cross-item leakage.
     // This keeps the form state for each variant isolated and predictable.
@@ -668,6 +679,7 @@ export function useModuleUnitEditorPageState({
     });
   };
 
+  // Marks one answer option as correct, preserving radio-button semantics in form state.
   const setCorrectOption = (id: string) => {
     setForm((prev) => ({
       ...prev,
@@ -678,6 +690,7 @@ export function useModuleUnitEditorPageState({
     }));
   };
 
+  // Updates option text for the controlled question-type form.
   const handleOptionChange = (id: string, value: string) => {
     setForm((prev) => ({
       ...prev,
@@ -687,6 +700,7 @@ export function useModuleUnitEditorPageState({
     }));
   };
 
+  // Updates explanation text by index because DTO payloads store explanations alongside options.
   const handleExplanationChange = (index: number, value: string) => {
     setForm((prev) => {
       const nextExplanations = [...prev.explanations];
@@ -695,6 +709,7 @@ export function useModuleUnitEditorPageState({
     });
   };
 
+  // Switches question type while caching the previous type's option/explanation state.
   const handleTypeChange = (type: QuestionType) => {
     if (!selectedQuestion || !selected) return;
 

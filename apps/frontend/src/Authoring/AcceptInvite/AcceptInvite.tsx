@@ -3,6 +3,7 @@ import MainSection from '@/MainApp/MainSection/MainSection';
 import { useAcceptInvitePageState } from '@/Authoring/AcceptInvite/page-state/useAcceptInvitePageState';
 import styles from '@/Authoring/AcceptInvite/AcceptInvite.module.css';
 
+// Displays invite-redemption progress and recovery actions for the token route.
 export default function AcceptInvite() {
   const { hasToken, isPending, isSuccess, errorMessage, goToModules } =
     useAcceptInvitePageState();

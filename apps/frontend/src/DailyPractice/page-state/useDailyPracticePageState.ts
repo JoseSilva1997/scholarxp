@@ -1,4 +1,4 @@
-// Encapsulates DailyPracticePage orchestration so the route can stay focused on rendering the adaptive set UI.
+// Encapsulates DailyPracticePage orchestration in a presenter-style custom hook so the route can stay focused on rendering.
 import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type {
@@ -77,6 +77,7 @@ const EMPTY_OPTION_OVERRIDE_BY_CONTENT_ID: Record<number, number> = {};
 const EMPTY_QUESTION_OVERRIDE_BY_QUESTION_ID: Record<number, LocalQuestionOverride> =
   {};
 
+// Coordinates Daily Practice data loading, optimistic local state, session lifecycle, and submission side effects for the route.
 export function useDailyPracticePageState({
   moduleIdParam,
 }: UseDailyPracticePageStateParams): UseDailyPracticePageStateResult {
@@ -162,6 +163,7 @@ export function useDailyPracticePageState({
   const currentStreak = isStreakInitialized ? streakState.value.currentStreak : 0;
   const highestStreak = isStreakInitialized ? streakState.value.highestStreak : 0;
   if (!isStreakInitialized && room) {
+    // The set id scopes streak state so a resumed or replaced daily set does not inherit stale local counters.
     setStreakState({
       setId: activeSetId,
       value: {
@@ -170,6 +172,7 @@ export function useDailyPracticePageState({
       },
     });
   }
+  // Chooses the first unanswered item as the initial focus so learners resume at the next useful action.
   const firstUnansweredQuestionIndex = useMemo(() => {
     if (!room || room.questions.length === 0) {
       return 0;
@@ -184,6 +187,7 @@ export function useDailyPracticePageState({
     selectedQuestionIndexState.setId === activeSetId
       ? selectedQuestionIndexState.value
       : firstUnansweredQuestionIndex;
+  // Local overrides are scoped by daily set id to keep resumed sessions isolated from a previous set's UI state.
   const unlockedHintByContentId =
     unlockedHintByContentIdState.setId === activeSetId
       ? unlockedHintByContentIdState.value
@@ -215,6 +219,7 @@ export function useDailyPracticePageState({
     }
   }, [dailyPracticeQuery.error, parsedModuleId]);
 
+  // Resets the queried session when routing changes to a different module.
   useEffect(() => {
     if (previousModuleIdRef.current === parsedModuleId) {
       return;
@@ -228,6 +233,7 @@ export function useDailyPracticePageState({
     });
   }, [parsedModuleId, requestedSessionId]);
 
+  // Tracks externally supplied session ids, such as browser navigation, without reacting to URL writes from this hook.
   useEffect(() => {
     if (isSyncingSearchParamsRef.current) {
       isSyncingSearchParamsRef.current = false;
@@ -240,16 +246,18 @@ export function useDailyPracticePageState({
     });
   }, [requestedSessionId]);
 
+  // Keeps teardown handlers pointed at the latest active session id.
   useEffect(() => {
     latestSessionIdRef.current = room?.sessionId ?? null;
   }, [room?.sessionId]);
 
+  // Keeps teardown handlers pointed at the latest parsed module id.
   useEffect(() => {
     latestModuleIdRef.current = parsedModuleId;
   }, [parsedModuleId]);
 
+  // Keeps the latest mutation callback reachable from teardown handlers without re-registering lifecycle effects.
   useEffect(() => {
-    // Keep the latest mutation callback reachable from teardown handlers without re-registering the effect on every render.
     closeSessionRef.current = closeSessionMutation.mutate;
   }, [closeSessionMutation.mutate]);
 
@@ -277,6 +285,7 @@ export function useDailyPracticePageState({
 
   // Close the active session when the page unmounts or the browser hides the page; the backend close is idempotent.
   useEffect(() => {
+    // Sends the final close request at most once per session id, even if unmount and pagehide both fire.
     const closeSession = () => {
       const sessionId = latestSessionIdRef.current;
       const moduleId = latestModuleIdRef.current;
@@ -302,6 +311,7 @@ export function useDailyPracticePageState({
       });
     };
 
+    // Bridges the browser lifecycle event into the shared close-session routine.
     const handlePageHide = () => {
       closeSession();
     };
@@ -313,6 +323,7 @@ export function useDailyPracticePageState({
     };
   }, []);
 
+  // Applies locally submitted attempts over the server response so feedback appears immediately while cache invalidation runs.
   const roomWithLocalAttempts = useMemo<DailyPracticeTodayResponse | null>(() => {
     if (!room) {
       return null;
@@ -341,6 +352,7 @@ export function useDailyPracticePageState({
     };
   }, [progressOverride, questionOverrideByQuestionUnitId, room]);
 
+  // Selects a valid active question even if a changed set makes the previously selected index out of range.
   const activeQuestionItem = useMemo<DailyPracticeQuestionItem | null>(() => {
     if (!roomWithLocalAttempts || roomWithLocalAttempts.questions.length === 0) {
       return null;
@@ -360,6 +372,7 @@ export function useDailyPracticePageState({
     );
   }, [roomWithLocalAttempts, selectedQuestionIndex]);
 
+  // Narrows the active daily-practice item to the question shape expected by shared practice-room helpers.
   const activeQuestion = useMemo<ActiveDailyPracticeQuestion | null>(() => {
     if (!activeQuestionItem) {
       return null;
@@ -370,6 +383,7 @@ export function useDailyPracticePageState({
     };
   }, [activeQuestionItem]);
 
+  // Extracts displayable options from the question payload through the shared parser used by Practice Room.
   const activeQuestionOptions = useMemo(() => {
     if (!activeQuestion) {
       return [];
@@ -378,6 +392,7 @@ export function useDailyPracticePageState({
     return readQuestionOptions(activeQuestion.question.questionData);
   }, [activeQuestion]);
 
+  // Rehydrates answer selections from persisted attempts so returning learners see their last submitted choice.
   const seededOptionByContentId = useMemo(() => {
     if (!roomWithLocalAttempts) {
       return {};
@@ -397,6 +412,7 @@ export function useDailyPracticePageState({
     return seededSelection;
   }, [roomWithLocalAttempts]);
 
+  // Local selections override persisted selections until submission confirms the new attempt.
   const selectedOptionByContentId = useMemo(
     () => ({
       ...seededOptionByContentId,
@@ -405,6 +421,7 @@ export function useDailyPracticePageState({
     [seededOptionByContentId, selectedOptionOverrideByContentId],
   );
 
+  // Validates stored selections against the current option list to avoid submitting stale indexes after content changes.
   const selectedOptionIndex = useMemo(() => {
     if (!activeQuestion) {
       return null;
@@ -445,9 +462,11 @@ export function useDailyPracticePageState({
     }
 
     activeContentIdRef.current = activeContentId;
+    // View timing restarts only when the question content changes, not on unrelated rerenders.
     activeContentViewStartMsRef.current = Date.now();
   }, [activeQuestion]);
 
+  // Builds navigation affordances with the same bounds logic used by the Practice Room module.
   const questionNav = useMemo(
     () =>
       buildQuestionUnitNav({
@@ -459,6 +478,7 @@ export function useDailyPracticePageState({
 
   const isLoading = parsedModuleId !== null && dailyPracticeQuery.isPending;
 
+  // Converts routing and API failures into user-facing copy while preserving diagnostic logging elsewhere.
   const pageError = useMemo(() => {
     if (parsedModuleId === null) {
       return 'Daily practice not found. Please check the link and try again.';
@@ -478,6 +498,7 @@ export function useDailyPracticePageState({
     selectedOptionIndex !== null &&
     !submitAttemptMutation.isPending;
 
+  // Moves the active question to a bounded index within the current daily set.
   const selectQuestion = (index: number) => {
     if (!roomWithLocalAttempts || roomWithLocalAttempts.questions.length === 0) {
       return;
@@ -493,6 +514,7 @@ export function useDailyPracticePageState({
     });
   };
 
+  // Records an in-progress answer locally so the UI can defer feedback until the learner submits.
   const selectOption = (contentId: number, optionIndex: number) => {
     setSelectedOptionOverrideByContentIdState((previousValue) => ({
       setId: activeSetId,
@@ -505,6 +527,7 @@ export function useDailyPracticePageState({
     }));
   };
 
+  // Persists hint visibility locally for the current set; the submitted attempt later reports whether it was used.
   const unlockHintForContent = (contentId: number) => {
     setUnlockedHintByContentIdState((previousValue) => ({
       setId: activeSetId,
@@ -517,6 +540,7 @@ export function useDailyPracticePageState({
     }));
   };
 
+  // Navigates backward relative to the current set-scoped index, falling back to the first unanswered item on fresh state.
   const goToPreviousQuestion = () => {
     setSelectedQuestionIndexState((previousValue) => ({
       setId: activeSetId,
@@ -529,6 +553,7 @@ export function useDailyPracticePageState({
     }));
   };
 
+  // Navigates forward relative to the current set-scoped index without allowing an out-of-range selection.
   const goToNextQuestion = () => {
     if (!roomWithLocalAttempts) {
       return;
@@ -545,6 +570,7 @@ export function useDailyPracticePageState({
     }));
   };
 
+  // Submits the active answer and folds the response back into local UI state before broader caches refresh.
   const submitActiveQuestionAttempt = async () => {
     if (
       !roomWithLocalAttempts ||
@@ -566,6 +592,7 @@ export function useDailyPracticePageState({
         : nowMs;
 
     try {
+      // Time-on-question is measured client-side from content activation to submission for daily-practice analytics.
       const submitResponse = await submitAttemptMutation.mutateAsync({
         setId: roomWithLocalAttempts.setId,
         moduleUnitId: activeQuestionItem.moduleUnitId,
@@ -577,6 +604,7 @@ export function useDailyPracticePageState({
         studentAnswer,
       });
 
+      // The backend grading vocabulary treats any non-"again" grade as a successful latest attempt for UI feedback.
       const latestAttemptIsCorrect = submitResponse.encounterGrade !== 'again';
 
       setQuestionOverrideByQuestionUnitIdState((previousValue) => ({
@@ -612,6 +640,7 @@ export function useDailyPracticePageState({
       });
 
       if (submitResponse.currentStreak !== undefined) {
+        // Streak values are authoritative only when returned; older responses can omit them without resetting the UI.
         setStreakState({
           setId: activeSetId,
           value: {

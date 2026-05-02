@@ -26,6 +26,7 @@ import ConfirmDeleteModal from '@/Authoring/ModuleUnitEditor/components/ConfirmD
 import QuestionStructureGuide from '@/Authoring/ModuleUnitEditor/components/QuestionStructureGuide';
 import styles from '@/Authoring/ModuleUnitEditor/ModuleUnitEditor.module.css';
 
+// Renders the tutor unit-authoring workspace and delegates state changes to the editor page-state hook.
 export default function ModuleUnitEditor() {
   const { moduleId, unitId } = useParams<{ moduleId: string; unitId: string }>();
   const [searchParams] = useSearchParams();
@@ -91,6 +92,7 @@ export default function ModuleUnitEditor() {
 
   useEffect(() => {
     if (!hintPopoverOpen) return;
+    // Closes the hint popover when the user interacts outside the hint label area.
     function handleClickOutside(e: MouseEvent) {
       if (hintPopoverRef.current && !hintPopoverRef.current.contains(e.target as Node)) {
         setHintPopoverOpen(false);
@@ -402,6 +404,7 @@ export default function ModuleUnitEditor() {
                           );
                         })}
                         {(() => {
+                          // Prevent adding a second draft question until the previous draft is persisted.
                           const lastQuestion = group.questions[group.questions.length - 1];
                           const allowNewQuestion = !lastQuestion || isQuestionSaved(lastQuestion);
                           return (
@@ -502,6 +505,7 @@ export default function ModuleUnitEditor() {
                   </label>
 
                   {(() => {
+                    // Resolve the active question-type strategy into the concrete form component.
                     const Config = QUESTION_TYPE_CONFIGS[activeQuestionType];
                     const FormComponent = Config.component;
                     return (

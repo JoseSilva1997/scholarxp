@@ -7,6 +7,7 @@ import { useForgotPasswordMutation } from '@/Auth/queries/useAuthMutations';
 
 type Status = 'idle' | 'sent' | 'no_password';
 
+// Coordinates forgot-password form state, email validation, and backend feedback mapping.
 export function useForgotPasswordPageState() {
   const forgotPasswordMutation = useForgotPasswordMutation();
 
@@ -14,6 +15,7 @@ export function useForgotPasswordPageState() {
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>('idle');
 
+  // Updates the email field and clears prior outcome messaging when the user changes the target account.
   function handleChange(event: ChangeEvent<HTMLInputElement>) {
     setEmail(event.target.value);
     if (status !== 'idle') {
@@ -21,6 +23,7 @@ export function useForgotPasswordPageState() {
     }
   }
 
+  // Submits a reset-link request while preserving account-enumeration-safe feedback semantics.
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
@@ -48,6 +51,7 @@ export function useForgotPasswordPageState() {
     }
   }
 
+  // Return the page view model consumed by the ForgotPassword route component.
   return {
     email,
     error,

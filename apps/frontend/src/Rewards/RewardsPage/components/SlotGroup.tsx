@@ -13,6 +13,7 @@ type SlotGroupProps = {
   isEquipping: boolean;
 };
 
+// Renders one cosmetic slot section and delegates individual reward presentation to RewardCard.
 export default function SlotGroup({
   display,
   unlocked,
@@ -39,6 +40,7 @@ export default function SlotGroup({
             isEquipping={isEquipping}
           />
         ))}
+        {/* Locked cards are intentionally inert; the card still receives a handler to keep RewardCard's API uniform. */}
         {locked.map((item) => (
           <RewardCard
             key={item.id}

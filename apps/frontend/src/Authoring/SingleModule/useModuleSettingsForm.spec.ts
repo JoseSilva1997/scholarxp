@@ -3,7 +3,7 @@ import { act, renderHook } from '@testing-library/react';
 import type { FormEvent } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/shared/api/client';
-import type { ModuleSummary } from '@/shared/types/module';
+import type { ModuleSummaryResponse as ModuleSummary } from '@scholarxp/api-contracts';
 import { useModuleSettingsForm } from '@/Authoring/SingleModule/useModuleSettingsForm';
 
 const mocks = vi.hoisted(() => ({

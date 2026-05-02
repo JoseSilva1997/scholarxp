@@ -13,6 +13,7 @@ type ConfirmPublishModalProps = {
   confirmLabel: string;
 };
 
+// Renders a reusable confirmation portal for lesson visibility and live-edit warnings.
 export default function ConfirmPublishModal({
   isOpen,
   onCancel,

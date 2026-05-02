@@ -6,6 +6,7 @@ import MainSection from '@/MainApp/MainSection/MainSection';
 import { useModulesPageState } from '@/Authoring/Modules/page-state/useModulesPageState';
 import styles from '@/Authoring/Modules/ModulesPage.module.css';
 
+// Renders the module overview screen and delegates all data mutations to its page-state hook.
 export default function ModulesPage() {
   const {
     user,
@@ -75,6 +76,7 @@ export default function ModulesPage() {
               'var(--module-card-red)',
             ];
             const cardColor = moduleCardColors[moduleSummary.id % moduleCardColors.length];
+            // Captures the current module id for both mouse and keyboard activation of the card.
             const handleOpen = () => openModule(moduleSummary.id);
 
             return (

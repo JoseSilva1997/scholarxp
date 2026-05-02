@@ -61,6 +61,7 @@ const VALID_TRANSITIONS: Record<ModuleUnitStatus, Set<ModuleUnitStatus>> = {
   archived: new Set(),
 };
 
+// Renders tutor-facing unit controls including editing, status transitions, and grouped question shortcuts.
 export default function ModuleUnitCard({ unit, onChangeStatus, onUpdateTitle }: ModuleUnitCardProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
@@ -81,6 +82,7 @@ export default function ModuleUnitCard({ unit, onChangeStatus, onUpdateTitle }: 
 
   useEffect(() => {
     if (!isStatusMenuOpen) return;
+    // Closes the status menu when focus moves outside the dropdown region.
     const handleClickOutside = (e: MouseEvent) => {
       if (statusDropdownRef.current && !statusDropdownRef.current.contains(e.target as Node)) {
         setIsStatusMenuOpen(false);
@@ -100,6 +102,7 @@ export default function ModuleUnitCard({ unit, onChangeStatus, onUpdateTitle }: 
   const statusClass = styles[unit.status] || '';
   const isOverlayOpen = showPublishModal || showEditWarningModal;
 
+  // Builds the editor route from the current module URL and optionally focuses a selected question.
   const navigateToEditor = (questionId: string | null = null) => {
     const moduleId = window.location.pathname.split('/')[3];
     const path = questionId
@@ -133,6 +136,7 @@ export default function ModuleUnitCard({ unit, onChangeStatus, onUpdateTitle }: 
     };
   }, [pendingTargetStatus]);
 
+  // Starts editing immediately for non-live content, or requires warning confirmation for live lessons.
   const onTryEdit = (questionId: string | null = null) => {
     // Skip warning for drafts and locked units; only live content requires confirmation before editing.
     if (unit.status !== 'live') {
@@ -143,6 +147,7 @@ export default function ModuleUnitCard({ unit, onChangeStatus, onUpdateTitle }: 
     setShowEditWarningModal(true);
   };
 
+  // Applies direct status moves or opens confirmation for transitions that affect student visibility.
   const handleStatusSelect = async (targetStatus: ModuleUnitStatus) => {
     setIsStatusMenuOpen(false);
     if (targetStatus === unit.status || !onChangeStatus) return;
@@ -168,6 +173,7 @@ export default function ModuleUnitCard({ unit, onChangeStatus, onUpdateTitle }: 
     }
   };
 
+  // Completes the pending confirmed status transition and clears modal state.
   const handleConfirmModalAction = async () => {
     if (!onChangeStatus || !pendingTargetStatus) return;
     setIsSubmitting(true);
@@ -184,10 +190,7 @@ export default function ModuleUnitCard({ unit, onChangeStatus, onUpdateTitle }: 
     }
   };
 
-  /**
-   * Persists the title change to the server and exits edit mode.
-   * If the title is empty or unchanged, it reverts to the original title.
-   */
+  // Persists a non-empty changed title, otherwise reverts to the current server-backed title.
   const handleSaveTitle = async () => {
     if (!onUpdateTitle || !editedTitle.trim() || editedTitle === unit.title) {
       setIsEditingTitle(false);
@@ -208,9 +211,7 @@ export default function ModuleUnitCard({ unit, onChangeStatus, onUpdateTitle }: 
     }
   };
 
-  /**
-   * Discards title changes and exits edit mode.
-   */
+  // Discards draft title edits and restores the displayed unit title.
   const handleCancelTitle = () => {
     setIsEditingTitle(false);
     setEditedTitle(unit.title);
@@ -365,6 +366,7 @@ export default function ModuleUnitCard({ unit, onChangeStatus, onUpdateTitle }: 
       >
         {unit.questionGroups.length > 0 ? (
           unit.questionGroups.map((group) => {
+            // Count from preview data rather than total unit count so each group badge reflects its own content.
             const groupQuestionCount = (group.questions ?? []).length;
             return (
               <div key={group.id} className={styles.group}>

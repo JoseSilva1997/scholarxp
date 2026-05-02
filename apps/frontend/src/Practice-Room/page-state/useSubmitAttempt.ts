@@ -101,9 +101,8 @@ type UseSubmitAttemptResult = {
 
 const SUBMIT_COOLDOWN_MS = 1_000;
 
-// `hasCorrectAttempt` is historical ("ever correct") and can stay true after a new
-// incorrect retry. For UI that reflects the latest submission, derive correctness
-// from backend-owned award reasons when available.
+// Resolves latest-attempt correctness from backend award reasons because
+// `hasCorrectAttempt` is historical and may remain true after an incorrect retry.
 function resolveLatestAttemptCorrectness(response: SubmitAttemptResponse): boolean {
   const baseReason = response.awardReasons?.baseQuestionExp;
   if (baseReason === 'incorrect') {
@@ -116,8 +115,8 @@ function resolveLatestAttemptCorrectness(response: SubmitAttemptResponse): boole
   return response.hasCorrectAttempt;
 }
 
-// Completion should trigger only when this submission leaves no unsolved questions.
-// rewardState stays authoritative for "already solved before a later retry" cases.
+// Determines whether this attempt completes the unit by combining the current
+// submission result with backend-owned reward state for previously solved questions.
 function didModuleUnitCompleteOnSubmit(input: {
   questions: PracticeQuestionUnit[];
   activeQuestionUnitId: number;
@@ -140,7 +139,7 @@ function didModuleUnitCompleteOnSubmit(input: {
   });
 }
 
-// Converts a stable first-try status into the local override representation.
+// Converts a stable first-try status into the transient local indicator representation.
 function mapFirstTryStatusToLocalResult(
   status: FirstTryBonusStatus,
 ): 'first-try-correct' | 'incorrect' | null {
@@ -185,6 +184,8 @@ function resolveNextFirstTryLocalResult(input: {
   return mapFirstTryStatusToLocalResult(input.currentStatus);
 }
 
+// Owns answer submission for the active question, including payload construction,
+// optimistic UI updates, reward handling, cooldowns, and error reporting.
 export function useSubmitAttempt({
   room,
   activeQuestionUnit,
@@ -210,7 +211,7 @@ export function useSubmitAttempt({
   parsedModuleId,
   parsedUnitId,
 }: UseSubmitAttemptParams): UseSubmitAttemptResult {
-  // Build a structured XP breakdown from the awards payload so `applyExpAward` can
+  // Builds a structured XP breakdown from the awards payload so `applyExpAward` can
   // expose each source (base, first-attempt, streak) to the indicator UI.
   const buildExpBreakdown = (response: SubmitAttemptResponse): ExpBreakdown => {
     const { baseQuestionExp, firstAttemptBonus, streakBonus } = response.awards;
@@ -222,7 +223,7 @@ export function useSubmitAttempt({
     };
   };
 
-  // holds any error returned when the submission fails; surfaced to UI.
+  // Holds any error returned when the submission fails; surfaced to UI.
   const [submitErrorMessage, setSubmitErrorMessage] = useState<string | null>(null);
   // Cooldown blocks rapid repeat submissions after a successful attempt to
   // reduce accidental double-submits and high-frequency spam.
@@ -237,6 +238,7 @@ export function useSubmitAttempt({
     };
   }, []);
 
+  // Starts or restarts the post-submit cooldown used to suppress repeated clicks.
   const startSubmitCooldown = () => {
     setIsSubmitCooldownActive(true);
     if (cooldownTimerRef.current !== null) {
@@ -248,8 +250,8 @@ export function useSubmitAttempt({
     }, SUBMIT_COOLDOWN_MS);
   };
 
-  // derived boolean that encapsulates all guard conditions preventing
-  // a submission; keeps callers simple (no need to recompute this logic
+  // Derived boolean that encapsulates all guard conditions preventing
+  // a submission; keeps callers simple without recomputing this logic
   // themselves when disabling buttons).
   const canSubmitAttempt =
     Boolean(room && activeQuestionUnit && activeQuestion) &&
@@ -258,8 +260,8 @@ export function useSubmitAttempt({
     !isSubmitCooldownActive &&
     !isPending;
 
-  // called when user presses the submit button. it re-checks guard
-  // conditions (defensive in case callers forget) then builds the
+  // Submits the active question after re-checking guard conditions defensively,
+  // then builds the
   // payload including view duration and hint state.
   const submitActiveQuestionAttempt = async () => {
     if (

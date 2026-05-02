@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import type { AuthUser } from '@/shared/types/auth';
+import type { AuthUser } from '@scholarxp/api-contracts';
 import logo from '@/assets/logo.svg';
 import ThemeToggle from '@/MainApp/Header/components/ThemeToggle';
 import StudentQuestHeaderStatus from '@/MainApp/Header/components/StudentQuestHeaderStatus';

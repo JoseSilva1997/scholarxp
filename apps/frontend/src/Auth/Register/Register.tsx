@@ -1,9 +1,11 @@
+// Presentational Register route for email/password account creation and password policy feedback.
 import { Link } from 'react-router-dom';
 import { SocialAuthButtons } from '@/Auth/SocialAuthButtons';
 import { AuthVisual } from '@/Auth/AuthVisual';
 import styles from '@/Auth/Register/Register.module.css';
 import { useRegisterPageState } from '@/Auth/Register/page-state/useRegisterPageState';
 
+// Renders registration controls while useRegisterPageState owns validation and account creation side effects.
 export default function Register() {
   const {
     form,
@@ -179,6 +181,7 @@ export default function Register() {
               ) : null}
 
               <div className={styles.actions}>
+                {/* Preventing mouse focus preserves password-meter visibility during click submission. */}
                 <button className={styles.primaryBtn} type="submit" disabled={isSubmitting} onMouseDown={(e) => e.preventDefault()}>
                   {isSubmitting ? 'Creating account…' : 'Create account'}
                 </button>

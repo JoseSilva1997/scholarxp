@@ -16,7 +16,8 @@ type BuildPracticeRoomAnswerFeedbackParams = {
   optionCount: number;
 };
 
-// This helper centralizes presentation-only grading feedback so we can later replace it with backend-provided feedback.
+// Centralizes presentation-only grading feedback so the UI can later switch to
+// backend-provided feedback without rewriting option rendering.
 export function buildPracticeRoomAnswerFeedback({
   question,
   selectedOptionIndex,
@@ -46,7 +47,7 @@ export function buildPracticeRoomAnswerFeedback({
   return feedback;
 }
 
-// MCQ feedback uses saved option explanations and the configured correct-option index.
+// Applies MCQ feedback using saved option explanations and the configured correct-option index.
 function applyMcqFeedback(
   baseFeedback: PracticeOptionFeedback[],
   question: PracticeQuestion,
@@ -94,7 +95,7 @@ function applyMcqFeedback(
   });
 }
 
-// True/false feedback maps the fixed pair of options to their configured correctness/explanations.
+// Applies true/false feedback by mapping the fixed pair of options to their configured correctness and explanations.
 function applyTrueFalseFeedback(
   baseFeedback: PracticeOptionFeedback[],
   question: PracticeQuestion,

@@ -129,6 +129,8 @@ export class QuestStreakService {
     return rows.map((row) => row.questDateUtc.toISOString().slice(0, 10));
   }
 
+  // Walks backwards day-by-day from the anchor date, counting how many consecutive completed master quest days exist.
+  // The loop terminates as soon as a gap in the sequence is found or the streak cap is reached.
   private countConsecutiveQuestDays(
     recentQuestDayKeys: string[],
     anchorDayUtc: Date,
@@ -152,6 +154,7 @@ export class QuestStreakService {
     return streakCount;
   }
 
+  // Assembles the streak response DTO, deriving the bonus percent from the streak count rather than storing it separately.
   private buildStatus(
     currentStreak: number,
     lastCompletedQuestDateUtc: string | null,
@@ -165,10 +168,12 @@ export class QuestStreakService {
     };
   }
 
+  // Converts a YYYY-MM-DD key to the UTC midnight Date value used by the @db.Date Prisma column.
   private toDbDay(dayKey: string): Date {
     return new Date(`${dayKey}T00:00:00.000Z`);
   }
 
+  // Shifts a YYYY-MM-DD key by dayDelta calendar days using UTC date arithmetic to avoid DST drift.
   private shiftDayKey(dayKey: string, dayDelta: number): string {
     const shiftedDay = this.toDbDay(dayKey);
     shiftedDay.setUTCDate(shiftedDay.getUTCDate() + dayDelta);

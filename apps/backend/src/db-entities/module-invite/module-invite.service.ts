@@ -19,7 +19,7 @@ import { CreateModuleInviteDto } from './dto/create-module-invite.dto';
 import { UpdateModuleInviteDto } from './dto/update-module-invite.dto';
 import { RedeemModuleInviteDto } from './dto/redeem-module-invite.dto';
 import { PrismaService } from '../../prisma/prisma.service';
-import type { AuthUser } from '../../types/auth-user.type';
+import type { AuthUser } from '@scholarxp/api-contracts';
 import {
   FRONTEND_URL,
   MODULE_INVITE_DEFAULT_EXPIRY_HOURS,

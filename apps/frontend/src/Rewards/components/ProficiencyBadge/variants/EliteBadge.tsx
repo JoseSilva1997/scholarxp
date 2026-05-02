@@ -2,6 +2,7 @@
 import type { BadgeVariantProps } from '@/Rewards/components/ProficiencyBadge/types';
 import styles from '@/Rewards/components/ProficiencyBadge/variants/EliteBadge.module.css';
 
+// Renders the mid-game badge variant using the shared badge prop contract.
 export default function EliteBadge({ level, small }: BadgeVariantProps) {
   return (
     <div className={styles.glowWrapper}>

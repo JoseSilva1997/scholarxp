@@ -24,6 +24,7 @@ import styles from '@/Authoring/SingleModule/SingleModulePage.module.css';
 import { ProficiencyBadge } from '@/Rewards/components/ProficiencyBadge';
 import DebugMeta from '@/MainApp/DebugMeta';
 
+// Renders the single-module workspace for tutors and students based on permission-derived state.
 export default function SingleModulePage() {
   const { moduleId } = useParams<{ moduleId: string }>();
   const { user } = useAuth();
@@ -71,6 +72,7 @@ export default function SingleModulePage() {
   } = useSingleModulePageState({ moduleIdParam: moduleId, user });
 
   const canViewRoster = useMemo(() => canUserAccess(features.modules.roster, user), [user]);
+  // Toggles the settings drawer and clears pending archive confirmation when closing it.
   const handleToggleSettings = () => {
     if (isSettingsOpen) {
       handleCancelArchiveModule();

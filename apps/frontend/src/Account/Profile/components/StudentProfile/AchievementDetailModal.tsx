@@ -50,6 +50,7 @@ const TIER_MODAL_CLASS: Record<number, string> = {
   4: styles.achievementModalOuterTier4,
 };
 
+// Renders the animated dialog content and manages keyboard dismissal for accessibility.
 function AchievementModalContent({
   achievement,
   onClose,
@@ -58,6 +59,7 @@ function AchievementModalContent({
   onClose: () => void;
 }) {
   useEffect(() => {
+    // Escape handling is attached globally because focus may be inside animated modal descendants.
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         onClose();
@@ -71,6 +73,7 @@ function AchievementModalContent({
   const titleId = `${achievement.id}-title`;
   const bodyId = `${achievement.id}-body`;
 
+  // Earned achievements receive tier styling, while locked achievements share neutral locked styling.
   const heroClass = achievement.earned
     ? (TIER_HERO_CLASS[achievement.tier] ?? '')
     : styles.achievementModalHeroLocked;
@@ -183,6 +186,7 @@ function AchievementModalContent({
   );
 }
 
+// Mounts the modal into document.body so it is not constrained by profile section layout or stacking context.
 export default function AchievementDetailModal({
   achievement,
   onClose,

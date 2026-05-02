@@ -7,7 +7,9 @@ type OverviewSectionProps = {
   profile: StudentProfileResponse;
 };
 
+// Renders the student's current progress snapshot across account XP, quests, and daily lesson rewards.
 export default function OverviewSection({ profile }: OverviewSectionProps) {
+  // Zero required XP can occur at boundary states; avoid division by zero while preserving an empty bar.
   const xpPercent = profile.accountProgress.nextLevelExpRequired > 0
     ? Math.min(
         100,
@@ -18,6 +20,7 @@ export default function OverviewSection({ profile }: OverviewSectionProps) {
       )
     : 0;
 
+  // The quest bar is only meaningful when the backend generated quests for the current day.
   const questPercent = profile.todayQuestProgress.total > 0
     ? Math.round(
         (profile.todayQuestProgress.completed / profile.todayQuestProgress.total) * 100,

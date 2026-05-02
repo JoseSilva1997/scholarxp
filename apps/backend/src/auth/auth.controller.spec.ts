@@ -10,7 +10,7 @@ import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { AuthenticatedGuard } from './guards/authenticated.guard';
-import type { AuthUser } from '../types/auth-user.type';
+import type { AuthUser } from '@scholarxp/api-contracts';
 import type { Request, Response } from 'express';
 import { GlobalRole } from '@prisma/client';
 import type { FeatureKey } from '@scholarxp/permissions';

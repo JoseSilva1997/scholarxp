@@ -7,6 +7,7 @@ import { ApiError } from '@/Auth/api/auth';
 import { getDisplayErrorMessage } from '@/shared/api/get-display-error';
 import { useResetPasswordMutation } from '@/Auth/queries/useAuthMutations';
 
+// Coordinates reset-token extraction, password policy feedback, submission, and success navigation.
 export function useResetPasswordPageState() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -50,11 +51,13 @@ export function useResetPasswordPageState() {
             ? 'Strong'
             : 'Excellent';
 
+  // Updates either password field through the input name so confirmation stays in the same form object.
   function handlePasswordChange(event: ChangeEvent<HTMLInputElement>) {
     const { name, value } = event.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   }
 
+  // Validates the reset token and password policy locally before sending a credential-changing request.
   function validate() {
     const issues: string[] = [];
     if (!token) {
@@ -80,6 +83,7 @@ export function useResetPasswordPageState() {
     return issues;
   }
 
+  // Completes the reset flow and sends users back to login with a success notice.
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
@@ -104,6 +108,7 @@ export function useResetPasswordPageState() {
       });
     } catch (submitError) {
       if (submitError instanceof ApiError) {
+        // Server validation details are rendered as field-style issues when available.
         const serverMessages =
           submitError.details?.map((detail) => detail.message) ??
           (() => {
@@ -124,11 +129,13 @@ export function useResetPasswordPageState() {
           );
         }
       } else {
+        // Unexpected failures are intentionally generic because they may not be user-actionable.
         setError('Something went wrong. Please try again.');
       }
     }
   }
 
+  // Return the reset-password page view model, including derived password-meter state.
   return {
     token,
     hasToken: token.length > 0,

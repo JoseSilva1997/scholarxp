@@ -1,4 +1,4 @@
-// Quest history route with polished UI, strategic layout, and excellent user experience.
+// Defines the Quests route, combining page-state data with the visual quest-history timeline.
 import { useMemo, useState } from 'react';
 import { BsCheckCircleFill, BsFire, BsStarFill, BsTrophy, BsHexagon } from 'react-icons/bs';
 import { GiLockedChest, GiOpenTreasureChest } from 'react-icons/gi';
@@ -7,12 +7,13 @@ import QuestHistoryCard from '@/Quests/components/quest-history/QuestHistoryCard
 import { useQuestPageState } from '@/Quests/page-state/useQuestPageState';
 import styles from '@/Quests/QuestsPage.module.css';
 
+// Renders the student's quest journey, including summary statistics, daily quest badges, and master quest state.
 export default function QuestsPage() {
   const { daySections, isLoading, isLoadingMore, pageError, canLoadMore, loadMore } =
     useQuestPageState();
   const [activeTooltipId, setActiveTooltipId] = useState<string | null>(null);
 
-  // Calculate session stats for the header summary.
+  // Summary metrics are derived client-side from the loaded sections because they are presentation-only totals.
   const historyStats = useMemo(() => {
     if (!daySections.length) return null;
 
@@ -32,11 +33,10 @@ export default function QuestsPage() {
 
   return (
     <MainSection className={styles.pageContainer}>
-      {/* Decorative background elements */}
+      {/* Background layers are kept in the route so the reusable card components stay presentation-agnostic. */}
       <div className={styles.bgDecoration1} />
       <div className={styles.bgDecoration2} />
 
-      {/* Premium header with title and context. */}
       <div className={styles.header}>
         <div className={styles.headerContent}>
           <div className={styles.titleGroup}>
@@ -74,7 +74,6 @@ export default function QuestsPage() {
       </div>
 
       <div className={styles.contentWrapper}>
-        {/* Loading state with premium visual feedback. */}
         {isLoading ? (
           <div className={styles.loadingState}>
             <div className={styles.spinner} />
@@ -82,14 +81,12 @@ export default function QuestsPage() {
           </div>
         ) : null}
 
-        {/* Error state with accessible messaging. */}
         {pageError ? (
           <p role="alert" className={styles.errorMessage}>
             {pageError}
           </p>
         ) : null}
 
-        {/* Empty state when no quests are found. */}
         {!isLoading && daySections.length === 0 && (
           <div className={styles.emptyState}>
             <div className={styles.emptyIconContainer}>
@@ -100,7 +97,6 @@ export default function QuestsPage() {
           </div>
         )}
 
-        {/* Main content with organized day sections. */}
         {!isLoading && daySections.length > 0 && (
           <div className={styles.dayList}>
             <div className={styles.listHeader}>
@@ -110,11 +106,11 @@ export default function QuestsPage() {
             
             {daySections.map((daySection) => {
               const isPlaceholder = daySection.isPlaceholder;
-              // Check if all quests in the day are complete and count them.
               const completedQuestsCount = daySection.quests.filter(
                 (quest) => quest.isCompleted,
               ).length;
               const dailyQuestCount = daySection.quests.length;
+              // Prefer the explicit master-quest record when present; placeholders and empty days cannot complete it.
               const allQuestsComplete =
                 (!isPlaceholder &&
                   (daySection.masterQuest?.isCompleted ??
@@ -203,7 +199,6 @@ export default function QuestsPage() {
               );
             })}
 
-            {/* Load more button with premium styling. */}
             {canLoadMore && (
               <button
                 type="button"

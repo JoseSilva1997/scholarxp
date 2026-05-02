@@ -10,6 +10,7 @@ type ModuleCreateModalProps = {
   error: string | null;
 };
 
+// Presents the controlled module-create dialog and emits a trimmed creation payload.
 export default function ModuleCreateModal({
   onClose,
   onCreate,
@@ -19,6 +20,7 @@ export default function ModuleCreateModal({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
 
+  // Validates submit state and delegates persistence to the parent mutation owner.
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (isSaving) return;

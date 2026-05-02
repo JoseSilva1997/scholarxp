@@ -34,6 +34,7 @@ const STATE_ARIA_LABEL: Record<FirstTryBonusStatus, string> = {
   lost: 'First-try bonus: lost',
 };
 
+// Renders the first-try bonus state for the active question.
 export default function FirstTryAccuracyIndicator({
   status,
   disabled = false,

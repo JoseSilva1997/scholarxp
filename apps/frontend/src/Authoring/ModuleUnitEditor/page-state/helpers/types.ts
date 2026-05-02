@@ -1,5 +1,9 @@
 // Shared module-unit-editor state types so route-level hooks can compose without type duplication.
-import type { ModuleUnitEditorContent, ModuleUnitEditorGroup, ModuleUnitEditorQuestion } from '@/shared/types/module';
+import type {
+  ModuleUnitEditorContentResponse as ModuleUnitEditorContent,
+  ModuleUnitEditorGroupResponse as ModuleUnitEditorGroup,
+  ModuleUnitEditorQuestionResponse as ModuleUnitEditorQuestion,
+} from '@scholarxp/api-contracts';
 import type { QuestionType } from '@/Authoring/ModuleUnitEditor/components/question-types/QuestionTypeRegistry';
 
 // Local editor content uses string ids so drafts and persisted records can share one state model.

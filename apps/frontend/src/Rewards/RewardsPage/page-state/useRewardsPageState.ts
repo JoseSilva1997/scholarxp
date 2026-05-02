@@ -24,11 +24,13 @@ export type UseRewardsPageStateResult = {
   setActiveSlotFilter: (slot: CosmeticSlot | null) => void;
 };
 
+// Page-state hook pattern: centralises reward browsing state so the route component stays declarative.
 export function useRewardsPageState(): UseRewardsPageStateResult {
   const { level, equipped, equipCosmetic, isEquipping } = useCosmetics();
   const [activeSlotFilter, setActiveSlotFilter] = useState<CosmeticSlot | null>(null);
 
   const slotGroups = useMemo(() => {
+    // Filtering before grouping avoids building hidden slot sections and keeps group ordering deterministic.
     const slots = activeSlotFilter ? [activeSlotFilter] : ORDERED_SLOTS;
     return slots.map((slot) => ({
       ...getSlotGroupedRewards(slot, level),

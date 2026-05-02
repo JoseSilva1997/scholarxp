@@ -3,12 +3,14 @@ import type { Question, QuestionGroup, SelectionState, Variant } from '@/Authori
 
 type QuestionUpdater = (question: Question) => Question;
 
+// Updates one group immutably while preserving group order and references for untouched groups.
 export const updateGroupById = (
   groups: QuestionGroup[],
   groupId: string,
   updater: (group: QuestionGroup) => QuestionGroup,
 ) => groups.map((group) => (group.id === groupId ? updater(group) : group));
 
+// Updates questions matching a predicate inside one group; useful when persisted and draft ids differ.
 export const updateQuestionByPredicate = (
   groups: QuestionGroup[],
   groupId: string,
@@ -22,6 +24,7 @@ export const updateQuestionByPredicate = (
     ),
   }));
 
+// Updates a known set of question ids by converting lookup to a Set for repeated checks.
 export const updateQuestionByIds = (
   groups: QuestionGroup[],
   groupId: string,
@@ -32,6 +35,7 @@ export const updateQuestionByIds = (
   return updateQuestionByPredicate(groups, groupId, (question) => idSet.has(question.id), updater);
 };
 
+// Updates one variant immutably within a question while preserving other variants.
 export const updateVariantById = (
   question: Question,
   variantId: string,
@@ -43,6 +47,7 @@ export const updateVariantById = (
   ),
 });
 
+// Replaces a local draft group id with the persisted backend id after save.
 export const replaceDraftGroupId = (
   groups: QuestionGroup[],
   targetGroupId: string,
@@ -50,6 +55,7 @@ export const replaceDraftGroupId = (
 ) =>
   updateGroupById(groups, targetGroupId, (group) => ({ ...group, id: persistedGroupId }));
 
+// Appends a locally drafted question to the selected group before it is persisted.
 export const appendDraftQuestionToGroup = (
   groups: QuestionGroup[],
   groupId: string,
@@ -60,6 +66,7 @@ export const appendDraftQuestionToGroup = (
     questions: [...group.questions, question],
   }));
 
+// Appends a locally drafted variant to a question before it is persisted.
 export const appendDraftVariantToQuestion = (
   groups: QuestionGroup[],
   groupId: string,
@@ -73,9 +80,11 @@ export const appendDraftVariantToQuestion = (
     (question) => ({ ...question, variants: [...question.variants, variant] }),
   );
 
+// Removes a group from local editor state after deletion or draft cancellation.
 export const removeQuestionGroup = (groups: QuestionGroup[], groupId: string) =>
   groups.filter((group) => group.id !== groupId);
 
+// Removes a question from a specific group while leaving other groups untouched.
 export const removeQuestionFromGroup = (
   groups: QuestionGroup[],
   groupId: string,
@@ -86,6 +95,7 @@ export const removeQuestionFromGroup = (
     questions: group.questions.filter((question) => question.id !== questionId),
   }));
 
+// Removes one variant from a specific question without changing the core question content.
 export const removeVariantFromQuestion = (
   groups: QuestionGroup[],
   groupId: string,
@@ -102,6 +112,7 @@ export const removeVariantFromQuestion = (
     }),
   );
 
+// Chooses the next valid editor selection after deleting the currently selected item.
 export const computeFallbackSelection = (
   nextGroups: QuestionGroup[],
 ): SelectionState | null => {

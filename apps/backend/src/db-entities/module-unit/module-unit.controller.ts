@@ -17,7 +17,7 @@ import { CreateModuleUnitMinimalDto } from './dto/create-module-unit-minimal.dto
 import { SessionAuthGuard } from '../../auth/guards/session-auth.guard';
 import { AuthorizationGuard } from '../../auth/guards/authorization.guard';
 import { Authorize } from '../../auth/decorators/authorize.decorator';
-import type { AuthUser } from '../../types/auth-user.type';
+import type { AuthUser } from '@scholarxp/api-contracts';
 import { QuestionUnitService } from '../questions/question-unit/question-unit.service';
 import { CreateQuestionWithContentDto } from '../questions/question-unit/dto/create-question-with-content.dto';
 import { CreateVariantWithContentDto } from '../questions/question-unit/dto/create-variant-with-content.dto';

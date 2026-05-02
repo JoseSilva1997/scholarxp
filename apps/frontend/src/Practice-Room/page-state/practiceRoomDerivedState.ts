@@ -50,7 +50,7 @@ export type QuestionUnitNav = {
   canGoNext: boolean;
 };
 
-// Apply local submissions over server snapshots so completion bars update instantly while query refetch catches up.
+// Applies local submissions over server snapshots so completion bars update instantly while query refetch catches up.
 export function applySubmittedAttemptOverrides(
   questionUnit: PracticeQuestionUnit,
   submittedAttemptByContentId: Record<number, PracticeAttemptSnapshot | null>,
@@ -78,8 +78,7 @@ export function applySubmittedAttemptOverrides(
   };
 }
 
-// Student-answer payloads differ by question type; this helper safely extracts
-// MCQ/true-false selectedOptionIndex values when available.
+// Extracts the selected option index from supported student-answer payloads.
 export function readSelectedOptionIndex(studentAnswer: unknown): number | null {
   if (!studentAnswer || typeof studentAnswer !== 'object') {
     return null;
@@ -91,7 +90,7 @@ export function readSelectedOptionIndex(studentAnswer: unknown): number | null {
   return candidate.selectedOptionIndex;
 }
 
-// Normalise question data into a flat option list for rendering.
+// Normalizes question data into a flat option list for rendering.
 // Unknown or unsupported question schemas return an empty list safely.
 export function readQuestionOptions(
   questionData: unknown,
@@ -122,7 +121,7 @@ export function readQuestionOptions(
   );
 }
 
-// URL query-param parsers validate user-controlled strings before they become query inputs.
+// Parses the optional session id query parameter and rejects malformed values.
 export function parsePracticeRoomSessionIdQuery(
   sessionIdParam: string | null,
 ): string | null {
@@ -135,6 +134,7 @@ export function parsePracticeRoomSessionIdQuery(
   return sessionIdParam;
 }
 
+// Parses the optional session type query parameter against supported contract values.
 export function parsePracticeRoomSessionTypeQuery(
   sessionTypeParam: string | null,
 ): PracticeSessionType | null {
@@ -148,6 +148,7 @@ export function parsePracticeRoomSessionTypeQuery(
     : null;
 }
 
+// Parses the optional question deep-link query parameter into a positive id.
 export function parsePracticeRoomQuestionUnitIdQuery(
   questionIdParam: string | null,
 ): number | null {
@@ -161,8 +162,7 @@ export function parsePracticeRoomQuestionUnitIdQuery(
   return parsedQuestionId;
 }
 
-// Reward-state defaults keep UI indicator rendering deterministic even when
-// older API responses omit the new rewardState field.
+// Builds deterministic question reward indicators even when older API responses omit rewardState.
 export function buildQuestionRewardIndicator(
   rewardState: PracticeQuestionRewardState | undefined,
 ): QuestionRewardIndicator {
@@ -181,8 +181,7 @@ export function buildQuestionRewardIndicator(
   };
 }
 
-// Mapping once by question-unit id avoids repeated array scans when page code
-// needs both active-question and nav-level indicator lookups.
+// Indexes question reward indicators by question-unit id to avoid repeated room-array scans.
 export function buildQuestionRewardIndicatorMap(
   questions: PracticeQuestionUnit[],
 ): Record<number, QuestionRewardIndicator> {
@@ -195,8 +194,7 @@ export function buildQuestionRewardIndicatorMap(
   return result;
 }
 
-// Keeps prev/next button state derived from the same room-length rules everywhere
-// so navigation UI does not have to duplicate clamping logic.
+// Derives previous/next availability from total question count and selected index.
 export function buildQuestionUnitNav(input: {
   totalQuestions: number;
   selectedQuestionUnitIndex: number;
@@ -211,8 +209,7 @@ export function buildQuestionUnitNav(input: {
   };
 }
 
-// Derives first-try-bonus status from optimistic local state first, then backend
-// reward snapshots, so the UI stays responsive without duplicating reward rules.
+// Derives first-try-bonus status from optimistic local state first, then backend reward snapshots.
 export function resolveFirstTryBonusStatus(input: {
   hasActiveQuestion: boolean;
   lastAttemptResult: LastAttemptResult;
@@ -242,8 +239,7 @@ export function resolveFirstTryBonusStatus(input: {
   return 'available';
 }
 
-// Derives UI-tier state from session streak + lifetime claim state without
-// requiring the UI layer to duplicate reward math.
+// Derives streak reward UI state from session streak and lifetime claim data.
 export function buildStreakRewardIndicators(input: {
   totalQuestions: number;
   currentStreak: number;
@@ -289,8 +285,7 @@ export function buildStreakRewardIndicators(input: {
   };
 }
 
-// Keep thresholds aligned with backend ExpCalculationService so indicator states
-// and reward behavior remain consistent.
+// Resolves streak thresholds aligned with backend ExpCalculationService.
 function resolveStreakThresholds(totalQuestions: number) {
   return {
     tier1: Math.max(3, Math.ceil(totalQuestions * 0.3)),
@@ -299,6 +294,7 @@ function resolveStreakThresholds(totalQuestions: number) {
   };
 }
 
+// Resolves a single streak tier's display state from the current streak and claim status.
 function resolveStreakTierIndicatorState(
   currentStreak: number,
   threshold: number,

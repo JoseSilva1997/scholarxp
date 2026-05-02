@@ -1,6 +1,6 @@
 // Renders user badge dropdown profile summary and menu actions.
 import { useNavigate } from 'react-router-dom';
-import type { AuthUser } from '@/shared/types/auth';
+import type { AuthUser } from '@scholarxp/api-contracts';
 import defaultAvatar from '@/assets/default-profile-pic.png';
 import styles from '@/MainApp/Header/UserBadge/UserBadge.module.css';
 

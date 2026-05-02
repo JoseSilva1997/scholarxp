@@ -48,6 +48,7 @@ type UsePracticeRoomInteractionStateResult = {
   ) => void;
 };
 
+// Manages transient client-only interaction state for the active practice-room session.
 export function usePracticeRoomInteractionState({
   room,
   activeSessionId,
@@ -202,6 +203,7 @@ export function usePracticeRoomInteractionState({
       )
     : false;
 
+  // Records a draft option selection unless the room is in read-only mode.
   const selectOption = (contentId: number, optionIndex: number) => {
     if (isRoomReadOnly) {
       return;
@@ -212,6 +214,7 @@ export function usePracticeRoomInteractionState({
     }));
   };
 
+  // Clears a draft selection after a successful submit so server/latest-attempt state becomes authoritative.
   const clearSelectedOptionOverride = (contentId: number) => {
     setSelectedOptionOverrideByContentId((previous) => {
       if (!Object.prototype.hasOwnProperty.call(previous, contentId)) {
@@ -223,6 +226,7 @@ export function usePracticeRoomInteractionState({
     });
   };
 
+  // Stores the latest submitted attempt snapshot for optimistic rendering.
   const recordSubmittedAttempt = (
     contentId: number,
     attempt: PracticeAttemptSnapshot | null,
@@ -233,6 +237,7 @@ export function usePracticeRoomInteractionState({
     }));
   };
 
+  // Updates the local first-try indicator result for a specific question content item.
   const updateLastAttemptResult = (
     contentId: number,
     result: LastAttemptResult | null,

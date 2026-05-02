@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { getProgressWithinLevel } from '@scholarxp/progression';
-import type { AuthUser } from '@/shared/types/auth';
+import type { AuthUser } from '@scholarxp/api-contracts';
 import { getNewlyUnlockedRewards, type CatalogItem } from '@/Rewards/cosmetics';
 import defaultAvatar from '@/assets/default-profile-pic.png';
 import UnlockToast from '@/Rewards/RewardsPage/components/UnlockToast';

@@ -2,6 +2,7 @@
 import type { BadgeVariantProps } from '@/Rewards/components/ProficiencyBadge/types';
 import styles from '@/Rewards/components/ProficiencyBadge/variants/MasterBadge.module.css';
 
+// Renders the late-game master badge while preserving the same external API as the other variants.
 export default function MasterBadge({ level, small }: BadgeVariantProps) {
   return (
     <div className={styles.glowWrapper}>

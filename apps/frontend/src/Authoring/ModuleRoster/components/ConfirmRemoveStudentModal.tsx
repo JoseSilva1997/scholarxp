@@ -11,6 +11,7 @@ type ConfirmRemoveStudentModalProps = {
   onCancel: () => void;
 };
 
+// Renders the destructive confirmation dialog for removing a student from a module.
 export default function ConfirmRemoveStudentModal({
   isOpen,
   studentName,

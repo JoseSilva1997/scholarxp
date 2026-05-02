@@ -44,6 +44,7 @@ export const AuthVisual: React.FC = () => {
         </ul>
       </div>
 
+      {/* CSS custom properties let one shared shape class render several independently timed accents. */}
       <div className={styles.floatingShapes}>
         <div className={styles.shape} style={{ '--delay': '0s', '--left': '8%', '--top': '15%' } as React.CSSProperties}>✨</div>
         <div className={styles.shape} style={{ '--delay': '3s', '--left': '85%', '--top': '25%' } as React.CSSProperties}>📚</div>

@@ -1,5 +1,5 @@
-// Handles all logic for the Login page so the component can focus on rendering the form UI.
-// Manages form state, authentication, CSRF, error handling, and post-login redirects.
+// Custom hook for Login page state, separating authentication flow control from form rendering.
+// This follows the container/presentational pattern used across Auth route components.
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import type { Location } from 'react-router-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -9,9 +9,8 @@ import { useAuth } from '@/context/AuthContext';
 import { logError } from '@/utils/logger';
 import { useLoginMutation } from '@/Auth/queries/useAuthMutations';
 
-// Main hook for Login page state
+// Coordinates login form state, CSRF preparation, session context updates, and redirect behavior.
 export function useLoginPageState() {
-  // --- Setup navigation, auth context, and form state ---
   const navigate = useNavigate();
   const location = useLocation();
   const { setUser } = useAuth();
@@ -22,7 +21,7 @@ export function useLoginPageState() {
   const initialMessage =
     (location.state as { message?: string } | null)?.message ?? null;
   const [info, setInfo] = useState<string | null>(initialMessage);
-  // Store where the user was headed before login, so we can redirect them after authentication.
+  // Preserve the protected route that sent the user here so successful login returns them to that intent.
   const redirectFrom = (location.state as { from?: Location } | null)?.from;
 
   useEffect(() => {
@@ -42,15 +41,13 @@ export function useLoginPageState() {
     );
   }, []);
 
-  // --- Form input handler ---
-  // Updates form state as the user types.
+  // Updates controlled input state using the field name so the form schema stays centralized.
   function handleChange(event: ChangeEvent<HTMLInputElement>) {
     const { name, value } = event.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   }
 
-  // --- Form submit handler ---
-  // Handles login form submission, including CSRF refresh, authentication, error handling, and redirects.
+  // Submits credentials, handles verification-only accounts, and completes the authenticated redirect.
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
@@ -71,7 +68,7 @@ export function useLoginPageState() {
         return;
       }
 
-      // If user needs email verification, redirect them to the verification page.
+      // Backend can return a partial user for unverified accounts; route them through verification before setting app auth state.
       if (user.requiresEmailVerification || !user.isVerified) {
         navigate('/verify-email', {
           replace: true,
@@ -80,7 +77,7 @@ export function useLoginPageState() {
         return;
       }
 
-      // Set user in context and redirect to intended destination or main page.
+      // Store the authenticated user only after verification checks pass, then return to the intended protected route.
       setUser(user);
       const destination = redirectFrom
         ? `${redirectFrom.pathname}${redirectFrom.search}${redirectFrom.hash}`
@@ -88,7 +85,7 @@ export function useLoginPageState() {
       sessionStorage.removeItem('postAuthRedirect');
       navigate(destination, { replace: true });
     } catch (submitError) {
-      // Show a user-friendly error and redirect to verify page if needed.
+      // Treat "not verified" errors as a recoverable next step rather than a terminal login failure.
       const message = getDisplayErrorMessage(submitError, {
         fallbackMessage: 'Something went wrong. Please try again.',
       });
@@ -107,8 +104,7 @@ export function useLoginPageState() {
     }
   }
 
-  // --- Public API ---
-  // Exposes form state, error, loading, and handlers for the Login page UI.
+  // Return a narrow view-model API so the route component remains presentation-focused.
   return {
     form,
     error,
@@ -118,4 +114,3 @@ export function useLoginPageState() {
     handleSubmit,
   };
 }
-

@@ -14,7 +14,7 @@ import { Authorize } from '../auth/decorators/authorize.decorator';
 import { AuthorizationGuard } from '../auth/guards/authorization.guard';
 import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
 import { GetQuestHistoryQueryDto } from '../db-entities/daily-quest/dto/get-quest-history-query.dto';
-import type { AuthUser } from '../types/auth-user.type';
+import type { AuthUser } from '@scholarxp/api-contracts';
 import { MasterQuestStreakResponseDto } from './dto/master-quest-streak-response.dto';
 import { QuestHistoryService } from './quest-history.service';
 import { QuestProgressService } from './quest-progress.service';
@@ -35,6 +35,7 @@ export class DailyQuestController {
     private readonly questStreakService: QuestStreakService,
   ) {}
 
+  // Returns the authenticated student's paginated quest history, triggering generation for today if it has not run yet.
   @Get('history')
   @UseGuards(SessionAuthGuard, AuthorizationGuard)
   @Authorize({ capability: features.navigation.quests, scope: 'global' })
@@ -49,6 +50,7 @@ export class DailyQuestController {
     );
   }
 
+  // Returns the authenticated student's current master-quest streak status, used to populate the header streak badge.
   @Get('master-streak')
   @UseGuards(SessionAuthGuard, AuthorizationGuard)
   @Authorize({ capability: features.navigation.quests, scope: 'global' })
@@ -62,6 +64,7 @@ export class DailyQuestController {
     );
   }
 
+  // Records a daily-revision button click so the backend can evaluate and complete any relevant practice quests for that module.
   @Post('module/:moduleId/daily-revision-click')
   @UseGuards(SessionAuthGuard, AuthorizationGuard)
   @Authorize({ capability: features.navigation.modules, scope: 'module' })
@@ -79,6 +82,7 @@ export class DailyQuestController {
     return { recorded: true };
   }
 
+  // Records that a student opened a completed unit in review mode; the progress service determines whether a retry quest qualifies.
   @Post('module/:moduleId/unit/:moduleUnitId/completed-review')
   @UseGuards(SessionAuthGuard, AuthorizationGuard)
   @Authorize({ capability: features.navigation.modules, scope: 'module' })

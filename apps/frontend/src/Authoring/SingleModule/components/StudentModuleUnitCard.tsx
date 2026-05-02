@@ -23,6 +23,7 @@ type StudentModuleUnitCardProps = {
   onRetryPracticeRoom?: (unitId: string) => Promise<void> | void;
 };
 
+// Renders learner-facing lesson progress, reward availability, and practice-room entry controls.
 export default function StudentModuleUnitCard({
   unit,
   onOpenPracticeRoom,
@@ -42,11 +43,12 @@ export default function StudentModuleUnitCard({
   const practiceButtonLabel = initialIsCompleted ? 'View answers' : 'Start Practice';
   const [isOpen, setIsOpen] = useState(false);
 
-  // Count successfully completed questions across all groups
+  // Count completed questions from previews because the card does not load full practice-session detail.
   const completedQuestionsCount = unit.questionGroups.reduce((count, group) => {
     return count + (group.questions?.filter(q => q.lastAttemptResult === 'correct').length ?? 0);
   }, 0);
 
+  // Mastered requires both module-unit completion and every previewed question being correct.
   const isFullyMastered = initialIsCompleted && completedQuestionsCount === unit.questionCount;
 
   const statusClass = isLocked 
@@ -57,6 +59,7 @@ export default function StudentModuleUnitCard({
         ? styles.completed 
         : styles.available;
 
+  // Chooses the compact status icon used in the expandable question list.
   const renderQuestionStatusIcon = (lastAttemptResult: QuestionAttemptResult) => {
     if (lastAttemptResult === 'correct') {
       return <FaCheck className={`${styles.questionStatusIcon} ${styles.questionStatusCorrect}`} aria-hidden="true" />;

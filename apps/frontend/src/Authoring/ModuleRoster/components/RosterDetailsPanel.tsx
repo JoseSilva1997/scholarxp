@@ -64,6 +64,7 @@ const TAB_LABELS: { key: RosterTab; label: string }[] = [
   { key: 'lessons', label: 'Lessons' },
 ];
 
+// Coordinates roster tab rendering and mutually exclusive student/lesson drilldown panels.
 export default function RosterDetailsPanel({
   activeTab,
   onTabChange,
@@ -100,6 +101,7 @@ export default function RosterDetailsPanel({
   isStudentDetailLoading,
   studentDetailError,
 }: RosterDetailsPanelProps) {
+  // Keep drilldown visibility tied to active tab so stale selections do not display in the wrong context.
   const showStudentDrillDown = selectedStudentId !== null && activeTab === 'students';
   const showLessonDrillDown = selectedLessonId !== null && activeTab === 'lessons';
 

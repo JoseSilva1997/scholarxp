@@ -4,6 +4,7 @@ import type { DailyLessonXpTrackResponse } from '@scholarxp/api-contracts';
 import { getDailyLessonXpTrack } from '@/shared/api/daily-xp-track';
 import { queryKeys } from '@/shared/hooks/query-keys';
 
+// Wraps the daily XP endpoint in React Query so header components consume cached server state.
 export function useDailyLessonXpTrackQuery(enabled: boolean, userId?: number) {
   return useQuery<DailyLessonXpTrackResponse>({
     queryKey: queryKeys.rewards.dailyLessonXpTrack(userId ?? null),

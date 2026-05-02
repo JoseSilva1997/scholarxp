@@ -1,4 +1,4 @@
-// Daily-practice API helpers keep the frontend aligned with the shared adaptive-session transport contracts.
+// Repository-style Daily Practice API helpers keep the frontend aligned with shared adaptive-session transport contracts.
 import type {
   CloseDailyPracticeSessionResponse,
   GetTodayDailyPracticeQuery,
@@ -8,6 +8,7 @@ import type {
 } from '@scholarxp/api-contracts';
 import { apiFetch } from '@/shared/api/client';
 
+// Data-access helper for fetching today's Daily Practice set, optionally resuming a specific session.
 export async function getTodayDailyPractice(
   moduleId: number,
   query: GetTodayDailyPracticeQuery = {},
@@ -27,6 +28,7 @@ export async function getTodayDailyPractice(
   );
 }
 
+// Data-access helper for posting a learner attempt to the Daily Practice grading endpoint.
 export async function submitDailyPracticeAttempt(
   moduleId: number,
   payload: SubmitDailyPracticeAttemptPayload,
@@ -40,6 +42,7 @@ export async function submitDailyPracticeAttempt(
   );
 }
 
+// Data-access helper for explicitly closing a Daily Practice session once the learner leaves the route.
 export async function closeDailyPracticeSession(
   moduleId: number,
   sessionId: string,

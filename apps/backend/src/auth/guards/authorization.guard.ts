@@ -14,7 +14,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 import { PrismaService } from '../../prisma/prisma.service';
-import type { AuthUser } from '../../types/auth-user.type';
+import type { AuthUser } from '@scholarxp/api-contracts';
 import { AUTHORIZATION_KEY } from '../decorators/authorize.decorator';
 import type {
   AuthorizationRule,

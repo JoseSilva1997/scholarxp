@@ -30,10 +30,12 @@ const TIER_CLASS: Record<number, string> = {
   4: styles.achievementTier4,
 };
 
+// Handles small grammatical differences in progress copy without pulling formatting into render code.
 function pluralize(count: number, singular: string, plural: string): string {
   return count === 1 ? singular : plural;
 }
 
+// Derives profile achievements from aggregate counters returned by the student profile endpoint.
 function buildAchievements(profile: StudentProfileResponse): {
   questMilestones: AchievementDef[];
   streakMilestones: AchievementDef[];
@@ -43,6 +45,7 @@ function buildAchievements(profile: StudentProfileResponse): {
   const perfectDays = profile.questHistorySummary.perfectDays;
   const streak = profile.masterQuestStreak;
 
+  // Threshold arrays keep the milestone rules centralized and easy to compare across categories.
   const questMilestoneThresholds = [10, 25, 50, 100];
   const streakMilestoneThresholds = [3, 5, 7];
   const masteryMilestoneThresholds = [1, 5, 10];
@@ -171,6 +174,7 @@ type AchievementRowProps = {
   onSelect: (achievement: AchievementDef) => void;
 };
 
+// Renders a horizontal achievement category and delegates detail display to the parent selection state.
 function AchievementRow({ title, achievements, onSelect }: AchievementRowProps) {
   return (
     <div className={styles.achievementRow}>
@@ -200,6 +204,7 @@ function AchievementRow({ title, achievements, onSelect }: AchievementRowProps) 
   );
 }
 
+// Presents the student achievement dashboard and owns the selected achievement modal state.
 export default function AchievementsSection({ profile }: AchievementsSectionProps) {
   const [selectedAchievement, setSelectedAchievement] = useState<AchievementDef | null>(null);
   const { questMilestones, streakMilestones, masteryMilestones } = useMemo(

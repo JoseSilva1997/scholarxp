@@ -1,7 +1,8 @@
-// Simple Privacy Policy page describing the data ScholarXP uses to run study features
+// Defines the public Privacy Policy page explaining how ScholarXP uses account and study data.
 import { RiShieldCheckLine } from 'react-icons/ri';
 import styles from '@/Public/Terms/Terms.module.css';
 
+// Renders static privacy content using the same legal-page presentation as the Terms route.
 export default function Privacy() {
   return (
     <div className={styles.scrollWrapper}>

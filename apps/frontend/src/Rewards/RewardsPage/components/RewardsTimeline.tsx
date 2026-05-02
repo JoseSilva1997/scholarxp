@@ -46,6 +46,7 @@ type RewardsTimelineProps = {
   timelineItems: TimelineItem[];
 };
 
+// Renders the vertical rewards timeline and measures the progress fill against rendered milestone positions.
 export default function RewardsTimeline({ level, timelineItems }: RewardsTimelineProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [fillHeight, setFillHeight] = useState('0px');
@@ -53,6 +54,7 @@ export default function RewardsTimeline({ level, timelineItems }: RewardsTimelin
   useEffect(() => {
     if (!containerRef.current) return;
 
+    // Measurement is layout-dependent because timeline rows can change height responsively.
     const measureHeight = () => {
       if (!containerRef.current) return;
       let measuredHeight = '0px';
@@ -66,6 +68,7 @@ export default function RewardsTimeline({ level, timelineItems }: RewardsTimelin
         let lastPassedLevel = 1;
         let nextUpcomingLevel = 100;
 
+        // The catalog only renders milestones with rewards, so progress interpolates between visible ticks.
         for (const el of entries) {
           const itemLevel = parseInt(el.dataset.level || '0', 10);
           if (itemLevel <= level) {
@@ -77,16 +80,19 @@ export default function RewardsTimeline({ level, timelineItems }: RewardsTimelin
           }
         }
 
+        // The tick is 48px high in CSS; adding half places the fill endpoint at the visual centre.
         const getTickCenterY = (el: HTMLElement) => el.offsetTop + 24;
 
         if (!lastPassed && nextUpcoming) {
           const y0 = 0;
           const y1 = getTickCenterY(nextUpcoming);
+          // Levels below the first visible reward still receive proportional progress from the top of the track.
           const fraction = level <= 1 ? 0 : (level - 1) / (nextUpcomingLevel - 1);
           measuredHeight = `${y0 + fraction * (y1 - y0)}px`;
         } else if (lastPassed && nextUpcoming) {
           const y0 = getTickCenterY(lastPassed);
           const y1 = getTickCenterY(nextUpcoming);
+          // Linear interpolation keeps the fill smooth even when unlock milestones are not evenly spaced on screen.
           const fraction = (level - lastPassedLevel) / (nextUpcomingLevel - lastPassedLevel);
           measuredHeight = `${y0 + fraction * (y1 - y0)}px`;
         } else if (lastPassed && !nextUpcoming) {
@@ -125,6 +131,7 @@ export default function RewardsTimeline({ level, timelineItems }: RewardsTimelin
   );
 }
 
+// Renders a rarity band label separating unlock tiers on the timeline.
 function BandHeaderRow({ header }: { header: TimelineBandHeader }) {
   return (
     <div className={styles.bandHeaderRow}>
@@ -135,6 +142,7 @@ function BandHeaderRow({ header }: { header: TimelineBandHeader }) {
   );
 }
 
+// Renders the horizontal divider that marks the transition between rarity tiers.
 function SeparatorRow() {
   return (
     <div className={styles.separatorRow}>
@@ -143,6 +151,7 @@ function SeparatorRow() {
   );
 }
 
+// Renders a single milestone row, including its branch direction and locked/unlocked visual state.
 function EntryRow({ entry }: { entry: TimelineEntry }) {
   const { level, rewards, side, isUnlocked } = entry;
   const isLeft = side === 'left';
@@ -171,6 +180,7 @@ function EntryRow({ entry }: { entry: TimelineEntry }) {
   );
 }
 
+// Renders the slot-specific icon and copy for one reward unlocked at a timeline milestone.
 function RewardItem({ reward }: { reward: CatalogItem }) {
   const SlotIcon = SLOT_ICON[reward.slot];
 

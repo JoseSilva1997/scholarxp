@@ -6,8 +6,9 @@ import {
   type FeatureKey,
   type UserContext,
 } from '@scholarxp/permissions';
-import type { AuthUser } from '@/shared/types/auth';
+import type { AuthUser } from '@scholarxp/api-contracts';
 
+// Adapts the frontend auth shape into the smaller permission package context.
 function toUserContext(user: AuthUser | null | undefined): UserContext | null {
   if (!user) return null;
   return {
@@ -16,6 +17,7 @@ function toUserContext(user: AuthUser | null | undefined): UserContext | null {
 }
 
 // Prefer server-computed capabilities when present; otherwise evaluate locally using shared logic.
+// Adapter pattern: isolates UI callers from the source of permission truth.
 export function canUserAccess(feature: FeatureKey, user: AuthUser | null | undefined): boolean {
   const capabilityList = user?.capabilities;
   if (capabilityList && capabilityList.length > 0) {
@@ -24,6 +26,7 @@ export function canUserAccess(feature: FeatureKey, user: AuthUser | null | undef
   return evaluateAccess(feature, toUserContext(user));
 }
 
+// Exposes the permission package's role lookup through the frontend's AuthUser role type.
 export function listRolePermissions(role: AuthUser['globalRole']): FeatureKey[] {
   return listCapabilities({ role });
 }

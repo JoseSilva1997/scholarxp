@@ -1,6 +1,5 @@
-// This hook bundles all the logic required for the email verification
-// screen. The route component uses its returned state and handlers so
-// it can remain a plain UI layer.
+// Custom hook for the email verification screen, separating token submission and resend flow from rendering.
+// This follows the Auth module's route view-model pattern.
 import { useEffect, useState, type FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getDisplayErrorMessage } from '@/shared/api/get-display-error';
@@ -10,6 +9,7 @@ import {
   useVerifyEmailMutation,
 } from '@/Auth/queries/useAuthMutations';
 
+// Coordinates verification form state, resend cooldowns, authenticated user assignment, and navigation.
 export function useVerifyEmailPageState() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -26,18 +26,14 @@ export function useVerifyEmailPageState() {
   const [info, setInfo] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
 
-  // decrement the cooldown timer each second; the interval clears
-  // itself when it reaches zero. This keeps the resend button disabled
-  // for a short period after being pressed.
+  // The cooldown is client-side throttling for UX; backend rate limits remain the source of enforcement.
   useEffect(() => {
     if (cooldown <= 0) return;
     const timer = setInterval(() => setCooldown((t) => Math.max(0, t - 1)), 1000);
     return () => clearInterval(timer);
   }, [cooldown]);
 
-  // called when the user submits the verification form. we clear any
-  // previous messages, run the mutation, and navigate to the main app on
-  // success. a missing user in the response is interpreted as a bad code.
+  // Submits the verification token and promotes the returned user into app-wide auth state on success.
   async function handleVerify(event: FormEvent) {
     event.preventDefault();
     setError(null);
@@ -59,9 +55,7 @@ export function useVerifyEmailPageState() {
     }
   }
 
-  // triggered when the user asks to resend the code. protects against
-  // double-click spam, requires an email value, and starts the cooldown
-  // regardless of success so users can't hammer the API.
+  // Requests a replacement verification code while preventing duplicate in-flight resend requests.
   async function handleResend() {
     if (resendVerificationMutation.isPending) {
       return;
@@ -72,10 +66,12 @@ export function useVerifyEmailPageState() {
     }
     setError(null);
     setInfo(null);
+    // Start cooldown before the request completes to discourage repeated submits during latency.
     setCooldown(30);
     try {
       const result = await resendVerificationMutation.mutateAsync(email.trim().toLowerCase());
       if ('alreadyVerified' in result && result.alreadyVerified) {
+        // The backend may discover the user is already verified; direct them back to normal login.
         setInfo('Already verified—try logging in.');
         return;
       }
@@ -86,10 +82,12 @@ export function useVerifyEmailPageState() {
           fallbackMessage: 'Unable to resend right now.',
         }),
       );
+      // Retry should be immediately available after a failed resend because no new email was sent.
       setCooldown(0);
     }
   }
 
+  // Return the verification page view model and mutation-derived loading states.
   return {
     email,
     setEmail,
@@ -104,4 +102,3 @@ export function useVerifyEmailPageState() {
     handleResend,
   };
 }
-

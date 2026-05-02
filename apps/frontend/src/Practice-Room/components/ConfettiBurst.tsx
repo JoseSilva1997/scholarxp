@@ -18,6 +18,7 @@ type Particle = {
   rotation: number;
 };
 
+// Generates deterministic particle positions so the render path remains pure.
 function generateParticles(): Particle[] {
   return Array.from({ length: PARTICLE_COUNT }, (_, i) => {
     const angle = (i / PARTICLE_COUNT) * 360 + (i % 3) * 15;
@@ -37,6 +38,7 @@ function generateParticles(): Particle[] {
 
 const PARTICLES = generateParticles();
 
+// Renders a short-lived confetti burst when mounted by answer feedback.
 export default function ConfettiBurst() {
   const [visible, setVisible] = useState(true);
 

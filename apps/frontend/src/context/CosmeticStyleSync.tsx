@@ -11,6 +11,7 @@ const SYNCED_SLOTS = [
   { slot: 'userBadgeOverlay', attr: 'data-badge-overlay' },
 ] as const;
 
+// Null component pattern: bridges equipped cosmetic state into global CSS selectors without rendering markup.
 export function CosmeticStyleSync() {
   const { cosmetic } = useCosmetics();
 

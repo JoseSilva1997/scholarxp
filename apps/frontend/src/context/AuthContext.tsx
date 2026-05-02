@@ -8,14 +8,13 @@ import {
   type ReactNode,
 } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { AuthResponse } from '@scholarxp/api-contracts';
+import type { AuthResponse, AuthUser } from '@scholarxp/api-contracts';
 import { getProgressWithinLevel } from '@scholarxp/progression';
 import { getCurrentUser, logout as apiLogout } from '@/Auth/api/auth';
 import { clearCsrfToken, refreshCsrfToken } from '@/shared/api/client';
 import { updateTimezone } from '@/Account/api/users';
 import { queryKeys } from '@/shared/hooks/query-keys';
 import { logError } from '@/utils/logger';
-import type { AuthUser } from '@/shared/types/auth';
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -32,6 +31,7 @@ type AuthProviderProps = {
   children: ReactNode;
 };
 
+// React Context Provider pattern: exposes the authenticated user and session actions to the whole frontend tree.
 export function AuthProvider({ children }: AuthProviderProps) {
   const queryClient = useQueryClient();
   const authQuery = useQuery<AuthResponse>({
@@ -42,6 +42,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     retry: false,
   });
 
+  // Replaces the cached auth snapshot after login, logout, profile refresh, or local session correction.
   const setUser = useCallback(
     (user: AuthUser | null) => {
       // Keep auth writes in one cache key so all subscribers observe a consistent session snapshot.
@@ -49,6 +50,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     },
     [queryClient],
   );
+
+  // Applies optimistic student EXP updates to the auth cache for UI elements that read avatar progress.
   const applyStudentExpReward = useCallback(
     (expGained: number) => {
       if (expGained <= 0) {
@@ -89,6 +92,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     [queryClient],
   );
 
+  // Refetches the current session from the backend and normalises auth failures to a logged-out state.
   const refreshUser = useCallback(async () => {
     try {
       const result = await authQuery.refetch();
@@ -104,6 +108,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [authQuery, setUser]);
 
+  // Ends the current session, clears role-sensitive cached data, and rebinds CSRF protection to the anonymous session.
   const logout = useCallback(async () => {
     // Clear client session first so UI reacts immediately even if the network call hangs or fails.
     setUser(null);
@@ -168,6 +173,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
+// Gives components access to AuthContext while failing fast when mounted outside AuthProvider.
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) {

@@ -16,6 +16,7 @@ import {
 } from '@/Authoring/api/moduleInvites';
 import { queryKeys } from '@/shared/hooks/query-keys';
 
+// Loads module invites only when the panel needs them, using React Query as a cache-aside boundary.
 export function useModuleInvitesQuery(moduleId: number | null, enabled: boolean) {
   return useQuery({
     queryKey: moduleId ? queryKeys.modules.invites(moduleId) : queryKeys.modules.invites(0),
@@ -26,6 +27,7 @@ export function useModuleInvitesQuery(moduleId: number | null, enabled: boolean)
   });
 }
 
+// Creates an invite and primes the invite-list cache with the returned invite record.
 export function useCreateModuleInviteMutation(moduleId: number | null) {
   const queryClient = useQueryClient();
 
@@ -55,6 +57,7 @@ export function useCreateModuleInviteMutation(moduleId: number | null) {
   });
 }
 
+// Updates an invite and replaces the cached record so revoke state appears immediately.
 export function useUpdateModuleInviteMutation(moduleId: number | null) {
   const queryClient = useQueryClient();
 
@@ -90,6 +93,7 @@ export function useUpdateModuleInviteMutation(moduleId: number | null) {
   });
 }
 
+// Deletes an invite and removes it from the module invite cache before refetch.
 export function useDeleteModuleInviteMutation(moduleId: number | null) {
   const queryClient = useQueryClient();
 
@@ -117,6 +121,7 @@ export function useDeleteModuleInviteMutation(moduleId: number | null) {
   });
 }
 
+// Redeems an invite imperatively for callers that need mutation semantics.
 export function useRedeemInviteMutation() {
   const queryClient = useQueryClient();
 
@@ -133,6 +138,7 @@ export function useRedeemInviteMutation() {
   });
 }
 
+// Redeems an invite as a one-shot query so duplicate route mounts share the same POST result.
 export function useRedeemInviteQuery(token: string, enabled: boolean) {
   const queryClient = useQueryClient();
 

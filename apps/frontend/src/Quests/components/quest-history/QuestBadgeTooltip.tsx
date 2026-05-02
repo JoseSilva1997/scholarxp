@@ -1,4 +1,4 @@
-// Dedicated quest badge tooltip component so card rendering stays focused on slot layout and interactions.
+// Presents detailed quest status, reward, and module context for a badge in the history timeline.
 import { QuestTypeValues, type QuestView } from '@scholarxp/api-contracts';
 import { motion } from 'motion/react';
 import {
@@ -17,6 +17,7 @@ type QuestBadgeTooltipProps = {
   quest: QuestView;
 };
 
+// Renders a motion-enhanced tooltip whose status copy is derived from completion and quest-date rules.
 export default function QuestBadgeTooltip({ quest }: QuestBadgeTooltipProps) {
   const todayUtc = new Date().toISOString().split('T')[0];
   const isPast = quest.questDateUtc < todayUtc;

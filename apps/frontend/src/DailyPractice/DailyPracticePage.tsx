@@ -17,6 +17,7 @@ import { useModuleDetailQuery } from '@/Authoring/queries/useModulesQueries';
 import { buildPracticeRoomAnswerFeedback } from '@/Practice-Room/practice-room-answer-feedback';
 import styles from '@/Practice-Room/PracticeRoomPage.module.css';
 
+// Resolves the visual navigation state for a question without leaking CSS-module details into the JSX.
 function getDailyPracticeQuestionStatusClass(
   question: {
     hasCorrectAttempt: boolean | null;
@@ -39,6 +40,7 @@ function getDailyPracticeQuestionStatusClass(
   return isCurrent ? `${styles.navBarCurrent} ${statusClass}` : statusClass;
 }
 
+// Renders the Daily Practice route, delegating state orchestration to a page-state hook in a presenter-style pattern.
 export default function DailyPracticePage() {
   const { moduleId } = useParams<{ moduleId: string }>();
   const {
@@ -76,6 +78,7 @@ export default function DailyPracticePage() {
   const hasSubmittedFeedback =
     activeQuestionItem?.coreQuestion.lastAttempt !== null &&
     !hasActiveOptionOverride;
+  // Feedback is intentionally hidden while a learner changes a previously submitted answer locally.
   const optionFeedback = activeQuestion
     ? buildPracticeRoomAnswerFeedback({
         question: activeQuestion.question,
@@ -176,6 +179,7 @@ export default function DailyPracticePage() {
               {room.questions.length}
             </div>
             <nav className={styles.beadRow} aria-label="Daily practice question navigation">
+              {/* The bead row mirrors persisted/local attempt state so learners can scan progress across the set. */}
               {room.questions.map((question, index) => (
                 <button
                   key={question.questionUnitId}
@@ -235,6 +239,7 @@ export default function DailyPracticePage() {
                     : ''
                 }`}
               >
+                {/* True/false answers use the same data model but need a tighter layout for two-option presentation. */}
                 {activeQuestionOptions.map((option, optionIndex) => {
                   const isSelected = selectedOptionIndex === optionIndex;
                   const feedback = optionFeedback[optionIndex];
@@ -308,6 +313,7 @@ export default function DailyPracticePage() {
                         (event.key === 'Enter' || event.key === ' ') &&
                         !isActiveHintUnlocked
                       ) {
+                        // Prevent the Space key from scrolling the page when the custom hint control is activated.
                         event.preventDefault();
                         unlockHintForContent(activeQuestion.question.id);
                       }

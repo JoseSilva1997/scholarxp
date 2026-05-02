@@ -10,11 +10,13 @@ type UnlockToastProps = {
   onDismiss: () => void;
 };
 
+// Announces newly unlocked cosmetics after a level-up and provides a shortcut to the Rewards page.
 export default function UnlockToast({ items, onDismiss }: UnlockToastProps) {
   const navigate = useNavigate();
 
   if (items.length === 0) return null;
 
+  // Dismiss before navigation so the toast does not remain mounted after the route transition.
   const handleViewRewards = () => {
     onDismiss();
     navigate('/main/rewards');

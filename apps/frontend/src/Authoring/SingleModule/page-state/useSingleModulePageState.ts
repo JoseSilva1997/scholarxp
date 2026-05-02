@@ -5,10 +5,11 @@ import { useNavigate } from 'react-router-dom';
 import {
   PracticeSessionTypeValues,
   type AuthUser,
+  type ModuleDeletionImpactResponse as ModuleDeletionImpact,
+  type ModuleSummaryResponse as ModuleSummary,
   type ModuleUnitStatus,
   type PracticeSessionType,
 } from '@scholarxp/api-contracts';
-import type { ModuleDeletionImpact, ModuleSummary } from '@/shared/types/module';
 import { MODULE_UNIT_BASELINE_EXP } from '@scholarxp/constants';
 import { features } from '@scholarxp/permissions';
 import type { ModuleUnit } from '@/Authoring/SingleModule/components/ModuleUnitCard';
@@ -76,6 +77,7 @@ type UseSingleModulePageStateResult = {
   handleConfirmArchiveModule: () => Promise<void>;
 };
 
+// Coordinates route parsing, permissions, module queries, unit mutations, and student practice navigation.
 export function useSingleModulePageState({
   moduleIdParam,
   user,
@@ -302,6 +304,7 @@ export function useSingleModulePageState({
     };
   }, [moduleQuery.data?.dailyPractice]);
 
+  // Navigates students into daily practice only when the derived daily-practice state permits entry.
   const handleDailyPracticeClick = async () => {
     if (parsedId === null) {
       return;
@@ -313,6 +316,7 @@ export function useSingleModulePageState({
     window.location.assign(`/main/modules/${parsedId}/daily-practice`);
   };
 
+  // Builds the practice-room URL for direct question entry, retry sessions, or normal lesson entry.
   const openStudentPracticeRoom = async (input: {
     unitId: string,
     questionId?: string,
@@ -338,6 +342,7 @@ export function useSingleModulePageState({
     window.location.assign(practiceRoomPath);
   };
 
+  // Opens the standard student practice room, optionally focused on a specific question.
   const handleOpenStudentPracticeRoom = async (
     unitId: string,
     questionId?: string,
@@ -345,6 +350,7 @@ export function useSingleModulePageState({
     await openStudentPracticeRoom({ unitId, questionId });
   };
 
+  // Opens a retry practice session so completed lessons can be attempted again without altering normal entry.
   const handleRetryStudentPracticeRoom = async (unitId: string) => {
     await openStudentPracticeRoom({
       unitId,
@@ -380,9 +386,7 @@ export function useSingleModulePageState({
     }
   };
 
-  /**
-   * Updates a module unit's title via mutation and handles error logging.
-   */
+  // Updates a module unit title and rethrows failures so the card can restore its edit state.
   const handleUpdateUnitTitle = async (unitId: string, title: string) => {
     try {
       await updateModuleUnitMutation.mutateAsync({
@@ -397,6 +401,7 @@ export function useSingleModulePageState({
     }
   };
 
+  // Applies saved module metadata directly to the detail cache for immediate header refresh.
   const handleModuleSaved = (updated: ModuleSummary) => {
     if (!parsedId) return;
     // Keep detail cache in sync so settings panel saves are immediately visible in the page header.
@@ -409,17 +414,20 @@ export function useSingleModulePageState({
       })
     : null;
 
+  // Opens archive confirmation and clears stale archive errors from earlier attempts.
   const handleRequestArchiveModule = () => {
     setArchiveModuleError(null);
     setIsArchiveConfirmOpen(true);
   };
 
+  // Closes archive confirmation unless an archive request is currently in flight.
   const handleCancelArchiveModule = () => {
     if (archiveModuleMutation.isPending) return;
     setArchiveModuleError(null);
     setIsArchiveConfirmOpen(false);
   };
 
+  // Archives the module, closes local overlays, and returns the tutor to the module list.
   const handleConfirmArchiveModule = async () => {
     if (!module || parsedId === null) return;
     setArchiveModuleError(null);

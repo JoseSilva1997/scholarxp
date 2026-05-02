@@ -36,6 +36,7 @@ type UseModulesPageStateResult = {
   handleCreateModule: (payload: CreateModulePayload) => Promise<void>;
 };
 
+// Supplies ModulesPage with permission-aware list state, modal controls, and create-module side effects.
 export function useModulesPageState(): UseModulesPageStateResult {
   const navigate = useNavigate();
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -121,4 +122,3 @@ export function useModulesPageState(): UseModulesPageStateResult {
     handleCreateModule,
   };
 }
-

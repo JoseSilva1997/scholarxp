@@ -1,4 +1,4 @@
-// Reusable quest history day card that renders a dynamic hex layout based on available quests.
+// Renders one day's daily quest badges and coordinates tooltip interactions for the quest history timeline.
 import { QuestTypeValues, type QuestView } from '@scholarxp/api-contracts';
 import { AnimatePresence } from 'motion/react';
 import { useEffect, useState } from 'react';
@@ -14,6 +14,7 @@ type QuestHistoryCardProps = {
   tooltipIdPrefix?: string;
 };
 
+// Displays quest badges using a controlled/uncontrolled tooltip pattern for reuse in page and isolated contexts.
 export default function QuestHistoryCard({
   quests,
   className,
@@ -27,12 +28,13 @@ export default function QuestHistoryCard({
     ? activeTooltipId !== null
     : openTooltipSlotIndex !== null;
 
-  // Render exactly the number of quests provided; no hardcoded slot count.
+  // Master quests are intentionally excluded because the page renders that tier as a separate chest indicator.
   const slots = quests.filter((q): q is QuestView => !!q && q.type !== QuestTypeValues.masterDailyQuests);
 
   useEffect(() => {
     if (!hasOpenTooltip) return;
 
+    // Closes an open tooltip when the user clicks outside the badge/tooltip interaction boundary.
     const handleDocumentPointerDown = (event: MouseEvent) => {
       const target = event.target;
       if (!(target instanceof Element)) return;

@@ -5,7 +5,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
 import { PrismaService } from '../../prisma/prisma.service';
-import type { AuthUser } from '../../types/auth-user.type';
+import type { AuthUser } from '@scholarxp/api-contracts';
 import { GlobalRole, Prisma } from '@prisma/client';
 import { DailyPracticeService } from '../../daily-practice/daily-practice.service';
 import type { ModuleDeletionImpactResponse } from '@scholarxp/api-contracts';

@@ -1,9 +1,10 @@
+// Presentational route for email verification after registration or an unverified login attempt.
 import { Link } from 'react-router-dom';
 import { AuthVisual } from '@/Auth/AuthVisual';
 import { useVerifyEmailPageState } from '@/Auth/Register/page-state/useVerifyEmailPageState';
 import styles from '@/Auth/Login/Login.module.css';
 
-// Simple verification card that matches the login/register layout; shown after signup or blocked login.
+// Renders verification and resend controls while useVerifyEmailPageState owns auth state changes.
 export default function VerifyEmail() {
   const {
     email,

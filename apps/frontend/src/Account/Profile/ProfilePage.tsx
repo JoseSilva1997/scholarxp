@@ -7,6 +7,7 @@ import TutorProfile from '@/Account/Profile/components/TutorProfile';
 import DeleteAccountSection from '@/Account/Profile/components/DeleteAccountSection';
 import { useProfilePageState } from '@/Account/Profile/page-state/useProfilePageState';
 
+// Composes the Account page by delegating role-specific presentation to student and tutor sections.
 export default function ProfilePage() {
   const {
     user,
@@ -35,6 +36,7 @@ export default function ProfilePage() {
     <MainSection>
       <HeroCard
         user={user}
+        // Students have XP progress from the profile aggregate; other roles intentionally omit the ring.
         accountProgress={isStudent ? (studentProfile?.accountProgress ?? user.avatar) : null}
         masterQuestStreak={isStudent ? studentProfile?.masterQuestStreak : undefined}
         isEditingProfile={isEditingProfile}

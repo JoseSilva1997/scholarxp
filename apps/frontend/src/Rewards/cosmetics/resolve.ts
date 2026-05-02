@@ -8,6 +8,7 @@ export type SlotGroupedRewards = {
   locked: CatalogItem[];
 };
 
+// Returns rewards available at the user's current level for a slot-specific UI section.
 export function getUnlockedRewards(
   slot: CosmeticSlot,
   level: number,
@@ -15,6 +16,7 @@ export function getUnlockedRewards(
   return getCatalogBySlot(slot).filter((item) => item.unlocksAtLevel <= level);
 }
 
+// Returns future rewards for a slot so locked cards can explain their unlock requirement.
 export function getLockedRewards(
   slot: CosmeticSlot,
   level: number,
@@ -22,6 +24,7 @@ export function getLockedRewards(
   return getCatalogBySlot(slot).filter((item) => item.unlocksAtLevel > level);
 }
 
+// Groups a slot's catalog entries into unlocked and locked lists in one pass from the consumer's perspective.
 export function getSlotGroupedRewards(
   slot: CosmeticSlot,
   level: number,

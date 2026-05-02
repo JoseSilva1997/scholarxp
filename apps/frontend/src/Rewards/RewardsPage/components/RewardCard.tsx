@@ -11,6 +11,7 @@ type RewardCardProps = {
   isEquipping: boolean;
 };
 
+// Presents a catalog reward with state-dependent actions for unlocked, equipped, and locked cases.
 export default function RewardCard({
   item,
   isUnlocked,
@@ -32,6 +33,7 @@ export default function RewardCard({
       <p className={styles.cardDescription}>{item.description}</p>
 
       <div className={styles.cardFooter}>
+        {/* The nested conditional mirrors the domain state order: unavailable rewards cannot also be equipped. */}
         {isUnlocked ? (
           isEquipped ? (
             <span className={styles.equippedLabel}>

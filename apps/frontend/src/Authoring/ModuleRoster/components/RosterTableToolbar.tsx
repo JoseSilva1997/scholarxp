@@ -26,6 +26,7 @@ type RosterTableToolbarProps<F extends string, S extends string> = {
   searchPlaceholder?: string;
 };
 
+// Provides a generic, typed control surface for roster table filtering, sorting, and search.
 export default function RosterTableToolbar<F extends string, S extends string>({
   filters,
   activeFilter,

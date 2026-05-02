@@ -1,4 +1,5 @@
-// Aggregates student-facing profile data from multiple domain services into the StudentProfileResponse contract.
+// Aggregates student-facing profile data from multiple domain services into a single StudentProfileResponse.
+// Consumes the quests, XP engine, and daily-practice modules to avoid duplicating domain logic here.
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { GlobalRole } from '@prisma/client';
 import type {
@@ -16,7 +17,7 @@ import { DailyLessonXpTrackService } from '../exp-engine/daily-lesson-xp-track.s
 import { DateHelpers } from '../helpers/helpers';
 import { PrismaService } from '../prisma/prisma.service';
 import { QuestStreakService } from '../quests/quest-streak.service';
-import type { AuthUser } from '../types/auth-user.type';
+import type { AuthUser } from '@scholarxp/api-contracts';
 
 @Injectable()
 export class StudentProfileService {
@@ -27,6 +28,9 @@ export class StudentProfileService {
     private readonly dailyPracticeService: DailyPracticeService,
   ) {}
 
+  // Builds the complete student profile payload by fanning out to independent sub-aggregators in
+  // parallel (streak, XP track, modules, quest summary) to minimise round-trip latency. Throws
+  // ForbiddenException early if the caller is not a student, avoiding unnecessary database work.
   async getStudentProfile(user: AuthUser): Promise<StudentProfileResponse> {
     if (user.globalRole !== GlobalRole.student) {
       throw new ForbiddenException(
@@ -79,6 +83,9 @@ export class StudentProfileService {
     };
   }
 
+  // Fetches all active module enrolments for the student and resolves per-module lesson-completion
+  // counts and daily-practice statuses. Archived modules are excluded so stale content is never
+  // surfaced. Completion counts and practice statuses are resolved in parallel per module.
   private async buildModulesForStudent(
     userId: number,
   ): Promise<StudentProfileModule[]> {
@@ -140,7 +147,9 @@ export class StudentProfileService {
     return moduleResults;
   }
 
-  // Maps the full daily-practice status response down to the simplified profile enum.
+  // Translates the rich DailyPracticeService status into the three-state profile enum
+  // (done | available | not_available) required by the API contract. Decoupling this mapping
+  // means internal practice-engine status changes don't leak into the profile response shape.
   private async resolveDailyPracticeStatus(
     moduleId: number,
     userId: number,
@@ -155,6 +164,12 @@ export class StudentProfileService {
     return 'not_available';
   }
 
+  // Derives today's quest progress and all-time summary stats for the student.
+  // Today's quests are keyed by the student's local calendar day (not UTC midnight) because quests
+  // are generated relative to the student's timezone. Perfect-day counting requires two separate
+  // groupBy queries because Prisma does not support conditional aggregation (e.g. COUNT IF) in a
+  // single call — the first query finds all quest days, the second finds days with incomplete quests,
+  // and perfect days are computed as the set difference.
   private async buildQuestSummary(userId: number, now: Date, timezone: string) {
     const localDateKey = DateHelpers.getLocalDateKey(now, timezone);
     const dayStartDb = new Date(`${localDateKey}T00:00:00.000Z`);

@@ -1,4 +1,4 @@
-// Quests page-state orchestrates paged quest-history fetching, local-day grouping, and load-more actions.
+// Orchestrates the Quests page state: authentication-gated history fetching, date grouping, and load-more behavior.
 import { useEffect, useMemo, useState } from 'react';
 import type { QuestView } from '@scholarxp/api-contracts';
 import {
@@ -12,10 +12,10 @@ import {
   useQuestHistoryInfiniteQuery,
 } from '@/Quests/queries/useQuestsQueries';
 
-// Define the number of days to fetch per page for quest history
+// Keep the client page size aligned with the history UI's two-week paging model.
 const DAY_PAGE_SIZE = 14;
 
-// Type definition for a single day's quest section
+// Represents a rendered calendar day, including placeholders for missed or ungenerated quest days.
 export type QuestDaySection = {
   questDayUtc: string;
   dayLabel: string;
@@ -25,9 +25,7 @@ export type QuestDaySection = {
   masterQuest: QuestView | null;
 };
 
-// The result type returned by the useQuestPageState hook
-// This ensures the hook's return structure is clear and consistent
-// for consumers of this hook.
+// Defines the view-model contract returned to the Quests page component.
 type UseQuestPageStateResult = {
   daySections: QuestDaySection[];
   isLoading: boolean;
@@ -37,7 +35,7 @@ type UseQuestPageStateResult = {
   loadMore: () => void;
 };
 
-// Main hook to manage the state of the quest page
+// Builds the Quests page view model from auth state, paged server data, and local calendar rules.
 export function useQuestPageState(): UseQuestPageStateResult {
   const { user, isLoading: isAuthLoading } = useAuth();
   const isHistoryQueryEnabled = !isAuthLoading && Boolean(user);
@@ -50,13 +48,12 @@ export function useQuestPageState(): UseQuestPageStateResult {
     count: DAY_PAGE_SIZE,
   });
 
-  // Fetch quest history data using an infinite query pattern
+  // The hook follows a page-state pattern: it hides server-state and projection details from the route component.
   const questHistoryQuery = useQuestHistoryInfiniteQuery(
     isHistoryQueryEnabled,
     DAY_PAGE_SIZE,
   );
 
-  // Log errors if the quest history query fails
   useEffect(() => {
     if (!questHistoryQuery.error) return;
     if (shouldLogApiError(questHistoryQuery.error)) {
@@ -64,7 +61,6 @@ export function useQuestPageState(): UseQuestPageStateResult {
     }
   }, [questHistoryQuery.error]);
 
-  // Group quests by their UTC day for easier display and organization
   const groupedQuestDays = useMemo(() => {
     const groupedByDay = new Map<string, QuestView[]>();
     const pages = questHistoryQuery.data?.pages ?? [];
@@ -79,7 +75,7 @@ export function useQuestPageState(): UseQuestPageStateResult {
       }
     }
 
-    // Sort days in descending order (most recent first)
+    // Descending date keys let pagination and timeline rendering share the same newest-first order.
     return Array.from(groupedByDay.entries()).sort(([leftDay], [rightDay]) =>
       leftDay < rightDay ? 1 : -1,
     );
@@ -87,8 +83,8 @@ export function useQuestPageState(): UseQuestPageStateResult {
 
   const timezone = user?.timezone ?? 'UTC';
 
-  // Transform grouped quest days into a format suitable for the UI
   const allDaySections = useMemo(() => {
+    // en-CA produces YYYY-MM-DD, matching the quest date keys used by the API.
     const todayLocal = new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(new Date());
     const groupedQuestDaysWithPlaceholders = fillMissingQuestDays(groupedQuestDays, todayLocal);
 
@@ -115,7 +111,6 @@ export function useQuestPageState(): UseQuestPageStateResult {
     [allDaySections, visibleDayCount],
   );
 
-  // Generate a user-friendly error message if the query fails
   const pageError = questHistoryQuery.error
     ? getDisplayErrorMessage(questHistoryQuery.error, {
         fallbackMessage:
@@ -123,7 +118,7 @@ export function useQuestPageState(): UseQuestPageStateResult {
       })
     : null;
 
-  // Function to load more quest history pages
+  // Expands already-fetched days before requesting another server page to avoid unnecessary network calls.
   const loadMore = () => {
     if (visibleDayCount < allDaySections.length) {
       setVisibleDayState((currentState) => ({
@@ -142,7 +137,6 @@ export function useQuestPageState(): UseQuestPageStateResult {
     }
   };
 
-  // Return the structured state for the quest page
   return {
     daySections,
     isLoading: isHistoryQueryEnabled && questHistoryQuery.isPending,
@@ -154,14 +148,13 @@ export function useQuestPageState(): UseQuestPageStateResult {
   };
 }
 
-// Formats a stored YYYY-MM-DD date key into a display label.
-// questDayUtc represents the user's local calendar date (despite the field name),
-// so parsing it as UTC midnight and formatting in UTC preserves the stored date components.
+// Formats a stored YYYY-MM-DD quest date into the label shown for a history section.
 function formatQuestDayLabel(questDayUtc: string, todayLocal: string): string {
   if (questDayUtc === todayLocal) {
     return 'Today';
   }
 
+  // The field stores a local calendar key; UTC formatting preserves the date without timezone rollover.
   const parsedDate = new Date(`${questDayUtc}T00:00:00.000Z`);
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
@@ -171,6 +164,7 @@ function formatQuestDayLabel(questDayUtc: string, todayLocal: string): string {
   }).format(parsedDate);
 }
 
+// Inserts empty day sections between generated quest days so gaps remain visible in the history timeline.
 function fillMissingQuestDays(
   groupedQuestDays: Array<[string, QuestView[]]>,
   todayLocal: string,
@@ -197,6 +191,7 @@ function fillMissingQuestDays(
   return filledQuestDays;
 }
 
+// Shifts a YYYY-MM-DD quest key by whole UTC days while preserving API-compatible formatting.
 function shiftQuestDay(questDayUtc: string, dayDelta: number): string {
   const parsedDate = new Date(`${questDayUtc}T00:00:00.000Z`);
   parsedDate.setUTCDate(parsedDate.getUTCDate() + dayDelta);

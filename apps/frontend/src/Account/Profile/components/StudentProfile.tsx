@@ -16,6 +16,7 @@ type StudentProfileProps = {
   onModuleSortChange: (key: StudentModuleSortKey) => void;
 };
 
+// Composes the student account dashboard using section components with independent responsibilities.
 export default function StudentProfile({
   profile,
   moduleSortKey,
