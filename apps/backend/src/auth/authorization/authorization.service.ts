@@ -1,4 +1,8 @@
 // AuthorizationService evaluates route authorization rules using shared capabilities and resource context.
+// Implements a Strategy pattern over scope kinds (global / module / self): each scope has its own
+// pure evaluator and the public canActivate dispatches based on the metadata supplied by the
+// @Authorize decorator. The service is intentionally side-effect free -- the AuthorizationGuard
+// is responsible for fetching the resource context that feeds these checks.
 import { Injectable } from '@nestjs/common';
 import { GlobalRole } from '@prisma/client';
 import { canAccess } from '@scholarxp/permissions';
@@ -11,6 +15,8 @@ import type {
 @Injectable()
 export class AuthorizationService {
   // Returns a discriminated outcome so the guard can map specific denial reasons to user-facing copy.
+  // Time complexity: O(1) -- capability lookup is a constant-time table hit and scope dispatch
+  // performs at most a handful of field comparisons. Space complexity: O(1).
   canActivate(input: AuthorizationEvaluation): AuthorizationOutcome {
     const { user, rule } = input;
     const allowedByCapability = canAccess(rule.capability, {

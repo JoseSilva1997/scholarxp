@@ -1,4 +1,7 @@
 // AuthorizationGuard orchestrates metadata lookup, optional resource loading, and policy evaluation.
+// It is the bridge between the @Authorize decorator (declarative rule) and AuthorizationService
+// (pure policy). Resource I/O is deliberately concentrated here so the policy layer stays
+// unit-testable without database fixtures.
 import {
   BadRequestException,
   CanActivate,
@@ -26,6 +29,9 @@ export class AuthorizationGuard implements CanActivate {
     private readonly prisma: PrismaService,
     private readonly authorizationService: AuthorizationService,
   ) {}
+  // Read the @Authorize metadata, optionally resolve module or self context from the request,
+  // and delegate the allow/deny decision to AuthorizationService. Returning true here is a "no
+  // rule attached" pass-through so unannotated routes are never blocked by this guard.
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const rule =
       this.reflector.getAllAndOverride<AuthorizationRule>(AUTHORIZATION_KEY, [
@@ -78,6 +84,8 @@ export class AuthorizationGuard implements CanActivate {
   }
 
   // Resource loading stays in the guard so policy evaluation remains pure and unit-testable.
+  // Complexity: O(1) database queries (one indexed lookup for the module plus a filtered
+  // userModules join restricted to the current user). Space: O(1).
   private async loadModuleContext(
     req: Request,
     user: AuthUser,

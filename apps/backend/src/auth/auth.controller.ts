@@ -28,6 +28,8 @@ export class AuthController {
 
   constructor(private readonly authService: AuthService) {}
 
+  // POST /auth/register: create a new local-auth account. Session is regenerated to mint a fresh
+  // CSRF secret for the unauthenticated client; the user is intentionally not logged in here.
   @Post('register')
   async register(
     @Body() dto: RegisterDto,
@@ -44,6 +46,8 @@ export class AuthController {
     };
   }
 
+  // POST /auth/login: validate email/password via Passport's local strategy, establish session,
+  // and return the authenticated user with capability list attached.
   @UseGuards(AuthGuard('local'))
   @Post('login')
   async login(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
@@ -64,6 +68,8 @@ export class AuthController {
     return { user: this.authService.attachCapabilities(user) };
   }
 
+  // POST /auth/verify-email: confirm ownership of the email via a one-time token and log the
+  // user in immediately so they don't have to re-enter credentials post-verification.
   @Post('verify-email')
   async verifyEmail(
     @Body() dto: VerifyEmailDto,
@@ -76,6 +82,7 @@ export class AuthController {
     return { user: this.authService.attachCapabilities(user) };
   }
 
+  // POST /auth/resend-verification: re-send the signup verification code to a known email.
   @Post('resend-verification')
   async resendVerification(
     @Body() dto: ResendVerificationDto,
@@ -87,6 +94,8 @@ export class AuthController {
     return result;
   }
 
+  // POST /auth/forgot-password: trigger a password-reset email. Always returns 200 to avoid
+  // account enumeration; see AuthService.requestPasswordReset for the deliberate exception.
   @Post('forgot-password')
   async forgotPassword(
     @Body() dto: ForgotPasswordDto,
@@ -98,6 +107,7 @@ export class AuthController {
     return result;
   }
 
+  // POST /auth/reset-password: complete the reset using the token from the emailed link.
   @Post('reset-password')
   async resetPassword(
     @Body() dto: ResetPasswordDto,
@@ -112,6 +122,8 @@ export class AuthController {
     return result;
   }
 
+  // POST /auth/logout: clear the Passport session and rotate to a fresh anonymous one. Idempotent
+  // by design so an unauthenticated client posting here still receives a usable CSRF token back.
   @Post('logout')
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     if (req.isAuthenticated?.() === true) {
@@ -126,6 +138,8 @@ export class AuthController {
     return { ok: true, csrfToken: nextToken };
   }
 
+  // GET /auth/me: identity probe used by the frontend on app boot. Returns null when no session
+  // exists rather than 401 so the public landing flow does not need to swallow errors.
   @Get('me')
   me(@Req() req: Request) {
     const user = req.user as AuthUser | undefined;
@@ -135,12 +149,16 @@ export class AuthController {
     return { user: this.authService.attachCapabilities(user) };
   }
 
+  // GET /auth/csrf: hand the current CSRF token to anonymous clients so they can perform their
+  // first state-changing POST (e.g. login or register).
   @Get('csrf')
   csrf(@Req() req: Request) {
     // Surface the CSRF token so unauthenticated clients can fetch it before posting credentials.
     return { csrfToken: this.authService.tryGenerateCsrfToken(req) };
   }
 
+  // GET /auth/oauth/google: kick off the Google OAuth handshake. CaptureRedirectGuard runs first
+  // to persist any ?redirect= target into the session before Passport issues its 302.
   @Get('oauth/google')
   @UseGuards(CaptureRedirectGuard, AuthGuard('google'))
   // Guards handle redirect; handler exists to satisfy Nest route requirements.
@@ -148,6 +166,8 @@ export class AuthController {
     return { ok: true };
   }
 
+  // GET /auth/oauth/google/callback: terminates the OAuth round-trip; service handles linking,
+  // session creation, and the final redirect back to the SPA.
   @Get('oauth/google/callback')
   @UseGuards(AuthGuard('google'))
   async googleCallback(@Req() req: Request, @Res() res: Response) {

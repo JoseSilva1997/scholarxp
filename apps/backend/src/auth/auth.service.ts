@@ -107,6 +107,9 @@ export class AuthService {
   }
 
   // --- Local auth ---
+  // Create a new local-auth user, persist credential + identity rows in one transaction, and
+  // dispatch a verification email. Returns an AuthUser flagged as requiring verification so the
+  // controller can keep the session unauthenticated until the user confirms ownership of the inbox.
   async register(dto: RegisterDto): Promise<AuthUser> {
     const email = dto.email.trim().toLowerCase();
     const existing = await this.prisma.user.findUnique({ where: { email } });
@@ -152,6 +155,10 @@ export class AuthService {
     return this.toAuthUser(user, null, true);
   }
 
+  // Verify supplied credentials against stored bcrypt hash. Uses a single generic error message
+  // for unknown email, missing password row, and bad password to avoid leaking which factor failed
+  // (a known account-enumeration vector). Verified-email check is intentionally last so an attacker
+  // cannot distinguish "wrong password" from "unverified" by error text.
   async validateLocal(email: string, password: string): Promise<AuthUser> {
     const normalizedEmail = email.trim().toLowerCase();
     const user = await this.prisma.user.findUnique({
@@ -181,6 +188,8 @@ export class AuthService {
     return this.toAuthUser(user, avatar);
   }
 
+  // Consume a one-time verification token, mark the user verified, and return the projection
+  // ready for session login. consumeToken throws if the code is invalid or expired.
   async verifyEmail(token: string): Promise<AuthUser> {
     const record = await this.emailTokens.consumeToken(token);
     const user = await this.prisma.user.update({
@@ -241,6 +250,8 @@ export class AuthService {
     }
   }
 
+  // Apply a password reset using a previously issued reset token. Upsert covers the edge case
+  // where an OAuth-linked user later gains a local password row.
   async resetPassword(
     token: string,
     newPassword: string,
@@ -256,6 +267,10 @@ export class AuthService {
     return { ok: true };
   }
 
+  // Re-issue a signup verification token. Forces a fresh code (reuseExisting: false) so the user
+  // is not stuck with a code they may have lost from a previous email. Returns a structured
+  // result instead of throwing for already-verified accounts so the controller can render a
+  // helpful message rather than an error.
   async resendVerification(email: string) {
     const normalizedEmail = email.trim().toLowerCase();
     const user = await this.prisma.user.findUnique({
@@ -278,6 +293,11 @@ export class AuthService {
   }
 
   // --- Google OAuth ---
+  // Resolve a Google profile to an AuthUser. Order of operations matters:
+  //   1. Look up by (provider, providerUserId) -- the canonical identity link.
+  //   2. Failing that, fall back to email match so a user who first registered locally can still
+  //      sign in via Google with the same address (account linking).
+  //   3. Otherwise create a fresh user. Google-verified emails are trusted, so isVerified=true.
   async loginWithGoogle(profile: GoogleProfile): Promise<AuthUser> {
     const payload = profile;
 
@@ -327,6 +347,8 @@ export class AuthService {
   }
 
   // --- User loading and projection ---
+  // Reload a user from the database for session deserialization. Throwing here forces Passport to
+  // invalidate the session, which is the desired behaviour if the underlying user has been deleted.
   async getUserById(id: number): Promise<AuthUser> {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) {
@@ -336,6 +358,8 @@ export class AuthService {
     return this.toAuthUser(user, avatar);
   }
 
+  // Decorate the AuthUser with the flattened capability list derived from its global role. The
+  // frontend uses this to gate UI affordances without re-deriving permissions from role names.
   attachCapabilities(
     user: AuthUser,
   ): AuthUser & { capabilities: FeatureKey[] } {
@@ -383,6 +407,9 @@ export class AuthService {
     return candidate as GoogleProfile;
   }
 
+  // Drive the post-OAuth flow: validate the strategy payload, materialize the user, regenerate
+  // the session (preserving any previously captured invite redirect), then issue a 302 to the
+  // frontend. Kept in the service so the controller stays a thin HTTP shell.
   async handleGoogleCallback(req: Request, res: Response): Promise<void> {
     // Capture redirect before login regenerates the session.
     const session = req.session as
@@ -410,6 +437,9 @@ export class AuthService {
     res.redirect(redirectTarget);
   }
 
+  // Compute the absolute URL to redirect the user to after a successful Google login. Falls back
+  // to /main when no captured invite redirect is present, and tolerates a malformed CORS_ORIGIN
+  // by switching to string concatenation rather than failing the whole login flow.
   private resolveOAuthRedirectTarget(
     baseOrigin: string,
     sessionRedirect?: string | null,
@@ -434,6 +464,9 @@ export class AuthService {
     }
   }
 
+  // Defensive sanitizer: only same-origin paths are honored, and routes that would loop the user
+  // back through the auth pages are dropped. Any parse failure collapses to null so the caller
+  // falls back to /main.
   private normalizeOAuthRedirectPath(
     sessionRedirect?: string | null,
   ): string | null {
@@ -460,6 +493,8 @@ export class AuthService {
   }
 
   // --- Helpers ---
+  // Apply only changed fields from a Google profile to an existing user; skip the DB write
+  // entirely when nothing differs to avoid pointless updates and updatedAt churn.
   private async refreshUserFromGoogle(
     user: UserRecord,
     incoming: {
@@ -476,6 +511,9 @@ export class AuthService {
     return this.prisma.user.update({ where: { id: user.id }, data: updates });
   }
 
+  // Either link a Google identity to an existing local-auth user found by email, or create a new
+  // user. Wrapped in a transaction so the user and AuthIdentity rows always commit together --
+  // a half-linked account would silently break future Google logins.
   private async linkOrCreateUserForGoogle(
     existingUser: UserRecord | null,
     incoming: {
@@ -516,6 +554,9 @@ export class AuthService {
     });
   }
 
+  // Diff incoming Google profile against persisted user fields and produce a minimal update
+  // payload. Email is only filled if the local record is missing one to avoid silently
+  // overwriting a user-curated address with whatever Google currently returns.
   private buildGoogleProfileUpdates(
     user: UserRecord,
     incoming: {
@@ -544,6 +585,8 @@ export class AuthService {
     return updates;
   }
 
+  // Avatars only exist for student-role users; short-circuiting saves a round-trip for
+  // teacher/admin sessions which never read avatar data.
   private async loadAvatarIfStudent(user: {
     id: number;
     globalRole: GlobalRole;
@@ -557,6 +600,9 @@ export class AuthService {
     });
   }
 
+  // Project a persisted user row (and optional avatar) into the AuthUser DTO consumed by the
+  // frontend. Centralizing the mapping here keeps controllers and Passport callbacks aligned on
+  // a single, sanitized shape -- a lightweight DTO/Mapper pattern.
   private toAuthUser(
     user: {
       id: number;
