@@ -611,7 +611,9 @@ export async function seedStudentSizingBoundaryScenario(
     startedLesson,
     completedAt,
   };
-}\n\n// Seeds a high-load scenario testing the MAX_DAILY_PRACTICE_QUESTION_COUNT cap.
+}
+
+// Seeds a high-load scenario testing the MAX_DAILY_PRACTICE_QUESTION_COUNT cap.
 // Creates 39 due-review questions + 2 reinforcement candidates = 41 review-eligible total.
 // Math.round(41 × 0.25) = 10 → hits the max cap.
 // Expected quota: 8 due_review + 2 reinforcement (10 total).

@@ -54,8 +54,8 @@ export function UiLayoutProvider({ children }: { children: ReactNode }) {
   return <UiLayoutContext.Provider value={value}>{children}</UiLayoutContext.Provider>;
 }
 
-// eslint-disable-next-line react-refresh/only-export-components -- hooks alongside providers are fine and used together here.
 // Gives consumers access to layout state and prevents silent fallback values outside UiLayoutProvider.
+// eslint-disable-next-line react-refresh/only-export-components -- hooks alongside providers are fine and used together here.
 export function useUiLayout(): UiLayoutContextValue {
   const ctx = useContext(UiLayoutContext);
   if (!ctx) {
