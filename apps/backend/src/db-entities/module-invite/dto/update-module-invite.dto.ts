@@ -1,3 +1,5 @@
+// Selective update payload for an existing invite. All fields are optional so callers may
+// revoke, extend expiry, or adjust the usage cap independently without touching other fields.
 import {
   IsBoolean,
   IsDateString,

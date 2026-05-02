@@ -1,3 +1,5 @@
+// CRUD service for practice sessions. ISO date strings in the DTO are converted to Date objects
+// here because Prisma requires Date values while the wire format uses strings throughout.
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreatePracticeSessionDto } from './dto/create-practice-session.dto';
 import { UpdatePracticeSessionDto } from './dto/update-practice-session.dto';
@@ -35,6 +37,7 @@ export class PracticeSessionService {
       data: {
         ...rest,
         startTime: startTime ? new Date(startTime) : undefined,
+        // Explicit undefined check distinguishes "omit the field" from "explicitly set endTime to null".
         endTime:
           endTime !== undefined
             ? endTime

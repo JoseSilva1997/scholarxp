@@ -1,5 +1,5 @@
-// DTO for the module unit editor read endpoint; expanded as nested question/variant payloads are added.
-// DTO returned to the module unit editor screen with nested questions and variants.
+// DTO tree returned by the module unit editor endpoint. Carries the complete question and variant
+// hierarchy needed for the authoring UI to render the full content editor without additional requests.
 import type { QuestionData } from '@scholarxp/question-type-dtos';
 import type {
   ModuleUnitEditorContentResponse,

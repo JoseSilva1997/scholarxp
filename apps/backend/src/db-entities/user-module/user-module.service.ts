@@ -1,4 +1,5 @@
-// UserModuleService handles roster records; it now supports module-scoped listing.
+// Service for module enrollment records. Manages roster reads and handles module-level XP
+// levelling, which uses a modular arithmetic approach (currentExp resets each level-up).
 import {
   BadRequestException,
   Injectable,
@@ -79,6 +80,7 @@ export class UserModuleService {
       );
     }
 
+    // Compute level-ups using integer division; any XP beyond whole levels carries over as remainder.
     const totalExp = membership.currentExp + expGained;
     const levelGain = Math.floor(totalExp / MODULE_UNIT_BASELINE_EXP);
     const remainingExp = totalExp % MODULE_UNIT_BASELINE_EXP;

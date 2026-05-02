@@ -1,4 +1,6 @@
-// ModuleController now enforces session auth, role gating, and module-scoped access checks.
+// HTTP controller for module CRUD. All routes are protected by session auth and capability-based
+// authorisation. The deletion-impact endpoint allows the UI to display a confirmation prompt
+// before the instructor proceeds with archiving or purging a module.
 import {
   Body,
   Controller,

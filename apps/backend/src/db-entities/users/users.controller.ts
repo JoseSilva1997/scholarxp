@@ -34,6 +34,9 @@ import {
   PROFILE_PICTURE_UPLOAD_FIELD,
 } from '@scholarxp/api-contracts';
 
+// HTTP controller for user self-service actions: role selection, name/timezone updates,
+// profile picture management, and account deletion. All routes are self-scoped (scope: 'self')
+// except deleteOwnAccount which uses global scope with its own identity check.
 @Controller('users')
 @UseGuards(SessionAuthGuard, AuthorizationGuard)
 export class UsersController {

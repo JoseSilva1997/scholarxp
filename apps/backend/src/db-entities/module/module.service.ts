@@ -1,4 +1,6 @@
-// ModuleService now enforces creator scoping and role-aware queries to keep module data isolated.
+// Service for module lifecycle management. Access is role-scoped: admins see all modules,
+// teachers see modules they own or are enrolled in as teacher, students see only their enrolled modules.
+// Deletion is a two-stage soft-delete: archive first, then permanent purge after the grace period.
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
@@ -95,6 +97,8 @@ export class ModuleService {
     });
   }
 
+  // Returns a pre-deletion impact summary so the UI can warn the instructor before they confirm.
+  // Also determines whether the module is eligible for immediate hard-delete (no learner data).
   async getDeletionImpact(
     id: number,
     referenceDate: Date = new Date(),
@@ -118,6 +122,8 @@ export class ModuleService {
     };
   }
 
+  // Checks whether an archived module can be permanently deleted: it must be past the grace period
+  // and have zero learner-associated data. Accepts a transaction client for use inside purge loops.
   async isPurgeableArchivedModule(
     id: number,
     referenceDate: Date = new Date(),
@@ -139,6 +145,8 @@ export class ModuleService {
     return this.hasNoLearnerImpact(counts);
   }
 
+  // Iterates all archived modules past the grace period and hard-deletes those with no learner impact.
+  // Each deletion runs in its own transaction so a single failure does not abort the entire sweep.
   async purgeEligibleArchivedModules(
     referenceDate: Date = new Date(),
   ): Promise<{ purgedModuleCount: number }> {
@@ -268,6 +276,9 @@ export class ModuleService {
     );
   }
 
+  // Builds a Prisma `where` fragment that scopes the module list to what the caller is permitted to see.
+  // Strategy pattern: admin returns empty filter (no restriction), teacher returns OR of owned + enrolled,
+  // student returns only their enrolled modules.
   private getModuleAccessFilter(user: AuthUser) {
     if (user.globalRole === GlobalRole.admin) {
       return {};
@@ -290,6 +301,8 @@ export class ModuleService {
     };
   }
 
+  // Combines the role-based access filter with the archivedAt:null guard so all list reads
+  // automatically exclude archived modules without callers having to remember to add the clause.
   private withActiveModuleFilter(filter: object) {
     if (Object.keys(filter).length === 0) {
       return { archivedAt: null };

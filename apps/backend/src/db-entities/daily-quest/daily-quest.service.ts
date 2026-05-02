@@ -1,3 +1,5 @@
+// Service for daily quest lifecycle management and paginated history retrieval.
+// Handles master-quest streak reward projections and per-type target validation.
 import {
   BadRequestException,
   Injectable,
@@ -40,7 +42,8 @@ export class DailyQuestService {
     const dayLimit = normalizeDayLimit(query.dayLimit);
     const dayOffset = normalizeDayOffset(query.dayOffset);
 
-    // ASk the database for only the requested page of distinct quest days (+1 to detect hasMore)
+    // Fetch one extra day beyond the requested limit to determine whether a next page exists.
+    // This avoids a separate COUNT query while keeping pagination accurate.
     const questDayGroups = await this.prisma.dailyQuest.groupBy({
       where: { userId },
       by: ['questDateUtc'],
@@ -223,6 +226,7 @@ export class DailyQuestService {
     };
   }
 
+  // Creates a quest after validating that the type/module/unit combination is structurally valid.
   async create(createDailyQuestDto: CreateDailyQuestDto) {
     await this.assertValidQuestTarget({
       type: createDailyQuestDto.type,
@@ -241,6 +245,8 @@ export class DailyQuestService {
     return this.getOrThrow(id);
   }
 
+  // Merges incoming fields with the persisted state before re-validating the target combination,
+  // so partial updates (e.g., only changing isCompleted) do not incorrectly fail the type check.
   async update(id: number, updateDailyQuestDto: UpdateDailyQuestDto) {
     const existingQuest = await this.getOrThrow(id);
     const nextType = (updateDailyQuestDto.type ??
@@ -268,6 +274,7 @@ export class DailyQuestService {
     return this.prisma.dailyQuest.delete({ where: { id } });
   }
 
+  // Guard clause that surfaces a 404 before any mutation is attempted.
   private async getOrThrow(id: number) {
     const record = await this.prisma.dailyQuest.findUnique({ where: { id } });
     if (!record) {
@@ -276,6 +283,9 @@ export class DailyQuestService {
     return record;
   }
 
+  // Enforces structural constraints driven by the quest type definition: some types require a
+  // module target, others a specific lesson, and the master quest type requires neither.
+  // Also verifies the referenced lesson belongs to the referenced module to prevent mismatched FK pairs.
   private async assertValidQuestTarget(input: {
     type: QuestType;
     moduleId: number | null | undefined;
@@ -332,6 +342,7 @@ export class DailyQuestService {
   }
 }
 
+// Clamps caller-supplied day limit to the allowed range; guards against NaN/Infinity from query params.
 function normalizeDayLimit(value: number | undefined): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
     return DEFAULT_DAY_LIMIT;
@@ -339,6 +350,7 @@ function normalizeDayLimit(value: number | undefined): number {
   return Math.max(1, Math.min(31, Math.floor(value)));
 }
 
+// Clamps the day-based pagination offset; negative or non-finite values are reset to 0.
 function normalizeDayOffset(value: number | undefined): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
     return DEFAULT_DAY_OFFSET;
@@ -346,6 +358,8 @@ function normalizeDayOffset(value: number | undefined): number {
   return Math.max(0, Math.floor(value));
 }
 
+// Builds the reward breakdown for a master quest. For completed quests the actual awarded XP
+// is read from the ledger; for pending quests the streak bonus is projected from prior completed days.
 function buildMasterQuestRewardBreakdown(input: {
   baseExp: number;
   questDayUtc: string;
@@ -374,6 +388,8 @@ function buildMasterQuestRewardBreakdown(input: {
   };
 }
 
+// Walks backwards from the quest day counting consecutive completed master quest days.
+// The streak count determines the percentage bonus applied on top of the base reward.
 function calculateProjectedMasterQuestStreakBonusExp(
   questDayUtc: string,
   completedMasterQuestDayKeys: Set<string>,
@@ -405,6 +421,8 @@ function calculateProjectedMasterQuestStreakBonusExp(
   );
 }
 
+// Returns a server-owned human-readable description for the quest so all clients render
+// identical copy without duplicating localisation logic in the frontend.
 function buildQuestDescription(type: QuestType, moduleTitle: string): string {
   if (type === QuestTypeValues.completeDailyPractice) {
     return `Complete the daily practice set for the ${moduleTitle} module.`;
@@ -425,6 +443,8 @@ function buildQuestDescription(type: QuestType, moduleTitle: string): string {
   return `Complete your quest for the ${moduleTitle} module.`;
 }
 
+// Provides a displayable module title for quest types (e.g., streak quests) that are not
+// tied to a specific module row and therefore have no title in the DB relation.
 function resolveQuestModuleTitle(
   type: QuestType,
   moduleTitle: string | null,

@@ -1,3 +1,5 @@
+// Input shape for creating a new module. createdByUserId is optional because the controller
+// sets it from the authenticated session rather than accepting it from the client.
 import {
   IsInt,
   IsNotEmpty,

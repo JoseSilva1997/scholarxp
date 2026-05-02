@@ -8,6 +8,8 @@ import {
 import { EmailVerificationToken, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
+// Service for issuing and consuming one-time email verification tokens. Supports two token styles:
+// 'numeric' — short 6-digit code for user transcription; 'url' — long opaque hex token for clickable links.
 // 'numeric' = short 6-digit code transcribed from email; 'url' = long opaque token embedded in a link.
 type TokenStyle = 'numeric' | 'url';
 

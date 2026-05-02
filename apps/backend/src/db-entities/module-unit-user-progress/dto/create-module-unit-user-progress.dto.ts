@@ -1,3 +1,4 @@
+// Input shape for creating a new progress record for a student on a module unit.
 import {
   IsBoolean,
   IsInt,

@@ -1,3 +1,5 @@
+// CRUD service for question attempt records. Handles the type boundary between the DTO's
+// unknown-typed studentAnswer and Prisma's InputJsonValue, and converts ISO date strings to Dates.
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { CreateQuestionAttemptDto } from './dto/create-question-attempt.dto';

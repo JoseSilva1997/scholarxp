@@ -1,3 +1,5 @@
+// NestJS module for module CRUD and scheduled archive purging. Imports DailyPracticeModule
+// so ModuleService can attach daily-practice status to module reads for student callers.
 import { Module } from '@nestjs/common';
 import { ModuleService } from './module.service';
 import { ModuleController } from './module.controller';

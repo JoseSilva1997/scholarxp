@@ -1,3 +1,5 @@
+// NestJS module wiring up the module unit controller and its authoring dependencies
+// (QuestionUnitModule for question/variant management, ModuleUnitQuestionGroupModule for groups).
 import { Module } from '@nestjs/common';
 import { ModuleUnitService } from './module-unit.service';
 import { ModuleUnitController } from './module-unit.controller';

@@ -20,6 +20,10 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { StorageService } from '../../file-storage/storage.service';
 import { ANON_USER_ID } from './anon-user.constant';
 
+// Service for user account management including profile updates, role changes, and self-service deletion.
+// Profile picture uploads are validated against both declared MIME type and magic bytes to prevent
+// content-type spoofing attacks.
+
 // Magic-byte signatures for the three image formats we accept; checked alongside the declared MIME type
 // so a client cannot smuggle a non-image by setting the Content-Type header.
 const IMAGE_MAGIC_BYTES: Record<
@@ -103,6 +107,8 @@ export class UsersService {
     }
   }
 
+  // Updates the user's global role. When transitioning to student, creates an avatar record
+  // within the same transaction if one does not already exist.
   async updateRole(id: number, role: GlobalRole) {
     const existingUser = await this.getUserOrThrow(id);
     const shouldCreateAvatar =
@@ -150,6 +156,8 @@ export class UsersService {
     });
   }
 
+  // Uploads a new profile picture to cloud storage, updates the user record with the public URL,
+  // and deletes the prior upload if it was owned by this application (not an OAuth provider URL).
   async updateProfilePicture(
     id: number,
     file: { buffer: Buffer; mimetype: string; size: number } | undefined,

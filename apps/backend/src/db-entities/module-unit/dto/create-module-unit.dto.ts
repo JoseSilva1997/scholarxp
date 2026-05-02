@@ -1,3 +1,5 @@
+// Full creation payload for admin/internal use. The minimal counterpart (CreateModuleUnitMinimalDto)
+// is used by the authoring UI where status and ordering are set by the server.
 import { IsEnum, IsInt, IsNotEmpty, IsString } from 'class-validator';
 import { ModuleUnitStatus } from '@prisma/client';
 import { CreateModuleUnitPayload } from '@scholarxp/api-contracts';

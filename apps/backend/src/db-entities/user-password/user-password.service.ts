@@ -1,3 +1,5 @@
+// CRUD service for user password records. Callers (e.g., AuthService) are responsible for
+// hashing the password with bcrypt before calling create or update; this service stores hashes only.
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateUserPasswordDto } from './dto/create-user-password.dto';
 import { UpdateUserPasswordDto } from './dto/update-user-password.dto';

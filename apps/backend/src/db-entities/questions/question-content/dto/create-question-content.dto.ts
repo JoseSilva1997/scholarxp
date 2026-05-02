@@ -1,3 +1,5 @@
+// Input shape for creating a question content record. The type field must match a known
+// question type, and questionData must conform to that type's Zod schema (validated in the service).
 import {
   IsBoolean,
   IsInt,

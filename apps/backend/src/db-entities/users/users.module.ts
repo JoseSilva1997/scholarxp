@@ -1,3 +1,5 @@
+// NestJS module for user account management. Imports StorageModule for profile picture
+// uploads and AuthModule so the controller can refresh the session after profile changes.
 import { Module } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UsersController } from './users.controller';

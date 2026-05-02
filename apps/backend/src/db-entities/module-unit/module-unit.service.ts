@@ -1,3 +1,5 @@
+// Service for module unit CRUD with two special read paths: a student-aware list that includes
+// per-question attempt history, and an editor payload that includes full question/variant trees.
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ModuleUnitStatus, Prisma } from '@prisma/client';
 import { DEFAULT_QUESTION_TYPE } from '@scholarxp/question-type-dtos';
@@ -29,6 +31,9 @@ export class ModuleUnitService {
     return this.prisma.moduleUnit.findMany();
   }
 
+  // Returns all units for a module with grouped question previews. When studentId is provided,
+  // the response is enriched with per-question last-attempt results and per-unit XP earned,
+  // enabling the student lesson view to render completion medals and attempt badges.
   async findByModule(moduleId: number, studentId?: number) {
     const units = (await this.prisma.moduleUnit.findMany({
       where: { moduleId },
@@ -306,6 +311,7 @@ export class ModuleUnitService {
     };
   }
 
+  // Guard clause; generic message intentional to avoid leaking unit IDs to unauthorized callers.
   private async getOrThrow(id: number) {
     const record = await this.prisma.moduleUnit.findUnique({ where: { id } });
     if (!record) {
@@ -314,6 +320,9 @@ export class ModuleUnitService {
     return record;
   }
 
+  // Builds a map from `moduleUnitId:questionId` to the student's most recent attempt result.
+  // Only practice-room and view-answers sessions are considered; daily-practice sessions are excluded
+  // to keep attempt badges consistent with what the student saw during regular study.
   private async getLatestAttemptByQuestionKey(
     moduleUnitIds: number[],
     studentId: number,
@@ -363,6 +372,7 @@ export class ModuleUnitService {
     return latestAttemptByQuestionKey;
   }
 
+  // Stable composite key used to deduplicate attempts in the result map (first occurrence wins due to desc order).
   private buildQuestionAttemptKey(
     moduleUnitId: number,
     questionId: number,
@@ -370,6 +380,8 @@ export class ModuleUnitService {
     return `${moduleUnitId}:${questionId}`;
   }
 
+  // Aggregates XP broken down by reward category (base, first-attempt, streak, mastery) per unit.
+  // COMPLETE_MODULE_UNIT is deliberately excluded: that event credits the global avatar, not module XP.
   private async getExpEarnedByUnit(
     moduleUnitIds: number[],
     studentId: number,

@@ -1,3 +1,6 @@
+// Service managing the question unit lifecycle: creation with core content, variant management,
+// and scope-safe deletion. Deletion strategy is hard-delete for draft units with no attempts
+// and soft-archive for live units or any unit that already has student attempt history.
 import {
   BadRequestException,
   Injectable,
@@ -283,6 +286,9 @@ export class QuestionUnitService {
     });
   }
 
+  // Resolves the question group to assign a new question to when none is specified. Reuses the
+  // lowest-order existing active group, creating a default Group 1 only when the unit has none.
+  // The creation is race-safe: a P2002 unique constraint collision retries by reading the concurrent winner.
   private async resolveFallbackGroupId(moduleUnitId: number): Promise<number> {
     // Reuse the first existing group for legacy units and only create Group 1 when no groups exist.
     const existingGroup = await this.prisma.moduleUnitQuestionGroup.findFirst({
