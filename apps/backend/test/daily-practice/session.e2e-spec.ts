@@ -263,10 +263,7 @@ describe('Daily practice session stability (e2e)', () => {
     await seedStudentReviewReadyScenario(prisma, behindStudent);
 
     setAuthenticatedUserId(aheadStudent.studentId);
-    const aheadBody = await fetchTodayDailyPractice(
-      app,
-      aheadStudent.moduleId,
-    );
+    const aheadBody = await fetchTodayDailyPractice(app, aheadStudent.moduleId);
 
     setAuthenticatedUserId(behindStudent.studentId);
     const behindBody = await fetchTodayDailyPractice(
@@ -280,10 +277,7 @@ describe('Daily practice session stability (e2e)', () => {
       now,
       'Pacific/Kiritimati',
     );
-    const expectedBehindKey = DateHelpers.getLocalDateKey(
-      now,
-      'Pacific/Niue',
-    );
+    const expectedBehindKey = DateHelpers.getLocalDateKey(now, 'Pacific/Niue');
     expect(aheadBody.practiceDateUtc.slice(0, 10)).toBe(expectedAheadKey);
     expect(behindBody.practiceDateUtc.slice(0, 10)).toBe(expectedBehindKey);
 

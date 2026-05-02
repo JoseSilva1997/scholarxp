@@ -27,8 +27,8 @@ function buildProfile(overrides: Partial<StudentProfileResponse> = {}): StudentP
       nextRewardXp: 25,
       resetsAtUtc: '2026-04-29T00:00:00.000Z',
       steps: [
-        { key: 'first', rewardXp: 100, state: 'earned' },
-        { key: 'second', rewardXp: 25, state: 'active' },
+        { key: 'first_completion', rewardXp: 100, state: 'earned' },
+        { key: 'second_completion', rewardXp: 25, state: 'active' },
       ],
     },
     modules: [],

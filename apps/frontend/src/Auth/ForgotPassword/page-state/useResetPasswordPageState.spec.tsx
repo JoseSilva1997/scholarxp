@@ -116,7 +116,7 @@ describe('useResetPasswordPageState', () => {
         status: 400,
         code: 'VALIDATION',
         data: {},
-        details: [{ path: 'password', message: 'Password was used before.' }],
+        details: [{ field: 'password', message: 'Password was used before.' }],
       }),
     );
     const { result } = renderHook(() => useResetPasswordPageState(), {

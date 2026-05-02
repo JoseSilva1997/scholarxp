@@ -15,6 +15,7 @@ vi.mock('@/Auth/ForgotPassword/page-state/useResetPasswordPageState', () => ({
 
 function baseState() {
   return {
+    token: 'reset-token',
     hasToken: true,
     form: { password: '', confirmPassword: '' },
     error: null,
@@ -30,7 +31,9 @@ function baseState() {
     strengthLabel: 'Weak',
     isSubmitting: false,
     handlePasswordChange: vi.fn(),
-    handleSubmit: vi.fn((event: React.FormEvent) => event.preventDefault()),
+    handleSubmit: vi.fn(async (event: React.FormEvent) => {
+      event.preventDefault();
+    }),
   };
 }
 

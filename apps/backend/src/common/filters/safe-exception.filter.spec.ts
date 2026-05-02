@@ -1,12 +1,10 @@
 // Verifies the global exception filter returns a consistent, sanitized error shape for clients.
 import {
   BadRequestException,
-  ForbiddenException,
   HttpException,
   HttpStatus,
   Logger,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import type { ArgumentsHost } from '@nestjs/common';
 import type { Request, Response } from 'express';

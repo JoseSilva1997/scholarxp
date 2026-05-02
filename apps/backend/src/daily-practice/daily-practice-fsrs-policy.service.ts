@@ -52,12 +52,11 @@ const TIME_PENALTY_FACTOR = 0.9;
 const STABILITY_FLOOR = 0.1;
 const DIFFICULTY_MIN = 1;
 const DIFFICULTY_MAX = 10;
- 
 
 @Injectable()
 export class DailyPracticeFsrsPolicyService {
   // enable_short_term=false skips FSRS learning/relearning steps so daily practice stays a day-granularity schedule and first-success values land directly in Review.
-  private readonly scheduler = fsrs({ 
+  private readonly scheduler = fsrs({
     enable_short_term: false,
     request_retention: REQUEST_RETENTION,
   });

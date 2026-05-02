@@ -48,9 +48,7 @@ describe('Quest generation (e2e)', () => {
     await seedStudentNewScenario(prisma, base);
     setAuthenticatedUserId(base.studentId);
 
-    await questGenerationService.ensureQuestDayGeneratedForUser(
-      base.studentId,
-    );
+    await questGenerationService.ensureQuestDayGeneratedForUser(base.studentId);
 
     const quests = await prisma.dailyQuest.findMany({
       where: { userId: base.studentId },
@@ -64,9 +62,7 @@ describe('Quest generation (e2e)', () => {
     await prisma.userModule.deleteMany({ where: { userId: base.studentId } });
     setAuthenticatedUserId(base.studentId);
 
-    await questGenerationService.ensureQuestDayGeneratedForUser(
-      base.studentId,
-    );
+    await questGenerationService.ensureQuestDayGeneratedForUser(base.studentId);
 
     const quests = await prisma.dailyQuest.findMany({
       where: { userId: base.studentId },
@@ -79,9 +75,7 @@ describe('Quest generation (e2e)', () => {
     await seedStudentReviewReadyScenario(prisma, base);
     setAuthenticatedUserId(base.studentId);
 
-    await questGenerationService.ensureQuestDayGeneratedForUser(
-      base.studentId,
-    );
+    await questGenerationService.ensureQuestDayGeneratedForUser(base.studentId);
 
     const quests = await prisma.dailyQuest.findMany({
       where: { userId: base.studentId },
@@ -135,15 +129,9 @@ describe('Quest generation (e2e)', () => {
     await seedStudentReviewReadyScenario(prisma, base);
     setAuthenticatedUserId(base.studentId);
 
-    await questGenerationService.ensureQuestDayGeneratedForUser(
-      base.studentId,
-    );
-    await questGenerationService.ensureQuestDayGeneratedForUser(
-      base.studentId,
-    );
-    await questGenerationService.ensureQuestDayGeneratedForUser(
-      base.studentId,
-    );
+    await questGenerationService.ensureQuestDayGeneratedForUser(base.studentId);
+    await questGenerationService.ensureQuestDayGeneratedForUser(base.studentId);
+    await questGenerationService.ensureQuestDayGeneratedForUser(base.studentId);
 
     const quests = await prisma.dailyQuest.findMany({
       where: { userId: base.studentId },

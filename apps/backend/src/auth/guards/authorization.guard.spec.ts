@@ -65,7 +65,10 @@ describe('AuthorizationGuard', () => {
     (reflector.getAllAndOverride as jest.Mock).mockReturnValue({
       capability: features.modules.create,
     } as AuthorizationRule);
-    (authorizationService.canActivate as jest.Mock).mockReturnValue({ allowed: false, reason: 'capability' });
+    (authorizationService.canActivate as jest.Mock).mockReturnValue({
+      allowed: false,
+      reason: 'capability',
+    });
 
     await expect(
       guard.canActivate(
@@ -189,7 +192,9 @@ describe('AuthorizationGuard', () => {
       archivedAt: new Date('2026-04-01T00:00:00.000Z'),
       userModules: [{ roleInModule: 'teacher' }],
     });
-    (authorizationService.canActivate as jest.Mock).mockReturnValue({ allowed: true });
+    (authorizationService.canActivate as jest.Mock).mockReturnValue({
+      allowed: true,
+    });
 
     await expect(
       guard.canActivate(
@@ -219,7 +224,9 @@ describe('AuthorizationGuard', () => {
       archivedAt: null,
       userModules: [{ roleInModule: 'teacher' }],
     });
-    (authorizationService.canActivate as jest.Mock).mockReturnValue({ allowed: true });
+    (authorizationService.canActivate as jest.Mock).mockReturnValue({
+      allowed: true,
+    });
 
     await expect(
       guard.canActivate(
@@ -307,7 +314,9 @@ describe('AuthorizationGuard', () => {
       archivedAt: null,
       userModules: [{ roleInModule: 'teacher' }],
     });
-    (authorizationService.canActivate as jest.Mock).mockReturnValue({ allowed: true });
+    (authorizationService.canActivate as jest.Mock).mockReturnValue({
+      allowed: true,
+    });
 
     await expect(
       guard.canActivate(
@@ -386,7 +395,9 @@ describe('AuthorizationGuard', () => {
       scope: 'self',
       selfUserIdParam: 'id',
     } as AuthorizationRule);
-    (authorizationService.canActivate as jest.Mock).mockReturnValue({ allowed: true });
+    (authorizationService.canActivate as jest.Mock).mockReturnValue({
+      allowed: true,
+    });
 
     await expect(
       guard.canActivate(

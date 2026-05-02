@@ -26,7 +26,12 @@ describe('SlotGroup', () => {
     const onEquip = vi.fn();
     render(
       <SlotGroup
-        display={{ slot: 'theme', title: 'Themes', description: 'Choose palette' }}
+        display={{
+          slot: 'theme',
+          title: 'Themes',
+          description: 'Choose palette',
+          displayOrder: 1,
+        }}
         unlocked={[unlocked]}
         locked={[locked]}
         equippedId="light"

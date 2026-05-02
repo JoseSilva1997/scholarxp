@@ -15,7 +15,9 @@ vi.mock('@/Auth/ForgotPassword/page-state/useForgotPasswordPageState', () => ({
 
 describe('ForgotPassword', () => {
   const handleChange = vi.fn();
-  const handleSubmit = vi.fn((event: React.FormEvent) => event.preventDefault());
+  const handleSubmit = vi.fn(async (event: React.FormEvent) => {
+    event.preventDefault();
+  });
 
   beforeEach(() => {
     vi.clearAllMocks();

@@ -9,7 +9,6 @@ export const MAX_DAILY_PRACTICE_QUESTION_COUNT = 10; // Cap on set size to maint
 export const DAILY_PRACTICE_REVIEW_RATIO = 0.4; // Proportion of review-eligible questions to include in a set (e.g. if 10 question are eligible for review, the set will be 3 questions)
 export const REINFORCEMENT_RATIO = 0.3;
 
-
 // Guards against generating a set when the module has too few eligible questions to be a meaningful practice session.
 export function hasMinimumEligibleInventory(
   inventory: DailyPracticeSelectionInventory,
