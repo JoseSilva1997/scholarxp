@@ -12,6 +12,8 @@ export class QuestGenerationStartupService implements OnModuleInit {
     private readonly questGenerationBatchService: QuestGenerationBatchService,
   ) {}
 
+  // NestJS does not await async lifecycle hooks, so the promise is intentionally fire-and-forget here.
+  // Errors are handled inside runStartupGeneration to prevent an unhandled rejection from crashing startup.
   onModuleInit() {
     void this.runStartupGeneration();
   }

@@ -1,3 +1,5 @@
+// Input shape for requesting a new verification token; reason and TTL are optional to support
+// multiple email flows (signup, password reset) without separate DTO classes.
 import { Transform, TransformFnParams } from 'class-transformer';
 import {
   IsBoolean,

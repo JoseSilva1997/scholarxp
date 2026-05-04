@@ -254,6 +254,8 @@ export class QuestGenerationService {
     });
   }
 
+  // Constructs a quest draft with a default XP reward pulled from the shared quest definition, unless an explicit override is provided.
+  // The override is used for master quests whose reward varies with the daily quest count.
   private buildQuestDraft(input: {
     userId: number;
     moduleId: number | null;
@@ -272,6 +274,7 @@ export class QuestGenerationService {
     };
   }
 
+  // Delegates availability checks to the dedicated service so quest generation stays decoupled from daily-practice set rules.
   private async selectAllAvailableDailyPracticeModuleIds(input: {
     userId: number;
     enrolledModuleIds: number[];
@@ -299,6 +302,7 @@ export class QuestGenerationService {
     );
   }
 
+  // Returns only active student memberships — archived modules are excluded so quests are never generated for inaccessible content.
   private async listEnrolledModuleIds(
     userId: number,
     prismaClient: PrismaClientLike,
@@ -307,6 +311,7 @@ export class QuestGenerationService {
       where: {
         userId,
         roleInModule: 'student',
+        module: { archivedAt: null },
       },
       orderBy: {
         moduleId: 'asc',
@@ -319,6 +324,8 @@ export class QuestGenerationService {
     return memberships.map((membership) => membership.moduleId);
   }
 
+  // Finds the module of the student's earliest prior-day completed unit.
+  // Returning null when no qualifying completion exists prevents quests being generated on the day of a student's very first lesson.
   private async selectCompletedUnitTarget(
     userId: number,
     moduleIds: number[],
@@ -357,6 +364,9 @@ export class QuestGenerationService {
     };
   }
 
+  // Selects a lesson quest target using a two-tier priority: a new uncompleted unit is preferred (completeNewUnit),
+  // falling back to a completed unit with active questions (moduleUnitRetry).
+  // The retry branch is suppressed when higher-importance daily practice quests are available.
   private async selectLessonQuestTarget(
     userId: number,
     moduleIds: number[],

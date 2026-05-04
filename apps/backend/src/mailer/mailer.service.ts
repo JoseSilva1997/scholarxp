@@ -136,6 +136,45 @@ export class MailerService {
     await this.sendMail({ to, subject, text, html });
   }
 
+  /**
+   * Helper to send a password-reset link with both text and HTML variants.
+   * The link target carries the opaque token; the recipient never has to transcribe a code.
+   */
+  async sendPasswordResetLink(to: string, link: string): Promise<void> {
+    const subject = 'Reset your ScholarXP password';
+    const text = `Open this link to reset your ScholarXP password: ${link}`;
+    const html = `<!doctype html>
+<html>
+<body style="margin:0;padding:0;background:#0f172a;font-family:'Segoe UI',Arial,sans-serif;">
+  <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#0f172a;padding:24px 0;">
+    <tr>
+      <td align="center">
+        <table role="presentation" cellpadding="0" cellspacing="0" width="520" style="background:#0b1220;border:1px solid #1f2937;border-radius:12px;padding:28px;color:#e5e7eb;">
+          <tr>
+            <td style="text-align:left;">
+              <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#e5e7eb;">Reset your password</p>
+              <p style="margin:0 0 20px;font-size:15px;color:#cbd5e1;">Click the button below to set a new ScholarXP password. This link expires in 30 minutes.</p>
+
+              <p style="margin:0 0 18px;">
+                <a href="${link}" style="display:inline-block;background:#7dd3fc;color:#0b1220;font-weight:700;font-size:15px;padding:12px 18px;border-radius:10px;text-decoration:none;">Reset password</a>
+              </p>
+
+              <p style="margin:0 0 8px;font-size:12px;color:#94a3b8;">Or copy and paste this URL into your browser:</p>
+              <p style="margin:0 0 18px;font-size:12px;color:#7dd3fc;word-break:break-all;">${link}</p>
+
+              <p style="margin:0;font-size:12px;color:#94a3b8;">If you didn't request this reset, you can ignore this email and your password will stay the same.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+    await this.sendMail({ to, subject, text, html });
+  }
+
   private normalizeMailError(error: unknown): {
     reason: 'recipient_unverified' | 'transport_error';
     details: string;

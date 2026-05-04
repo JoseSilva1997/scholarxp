@@ -286,7 +286,6 @@ function buildOrderedQuestion() {
     questionGroupSortOrder: 1,
     coreContentId: 501,
     questionType: 'multiple_choice',
-    questionDifficultyScore: 0.5,
     sourceBucket: DailyPracticeSelectionBucketValues.dueReview,
     selectionScore: 10,
     selectionReason: 'Overdue review item.',

@@ -1,7 +1,12 @@
 // Groups student-centric roster aggregation so roster list and detail views share one source of truth.
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import type {
   DailyPracticeStatus,
+  RemoveRosterStudentResponse,
   RosterStudentDetailResponse,
   RosterStudentRow,
   RosterStudentsQuery,
@@ -32,6 +37,11 @@ export class RosterStudentAnalyticsService {
     private readonly dailyPracticeService: DailyPracticeService,
   ) {}
 
+  // Assembles the student roster table by fanning out into four parallel batch queries
+  // and then merging their results in-memory before applying filter, search, and sort.
+  // All filtering, searching, and sorting is done in application memory rather than SQL
+  // because the roster is expected to stay small enough that the N-row overhead is negligible
+  // compared to the complexity of pushing those operations into the ORM.
   async getStudents(
     moduleId: number,
     query: RosterStudentsQuery,
@@ -58,6 +68,8 @@ export class RosterStudentAnalyticsService {
       this.batchLastDailyPracticeCompletion(moduleId, studentIds),
     ]);
 
+    // Students with no activity record are immediately flagged at-risk; those whose
+    // most recent attempt pre-dates the rolling window are also flagged.
     let rows: RosterStudentRow[] = enrollments.map((enrollment) => {
       const studentId = enrollment.userId;
       const progress = progressByStudent.get(studentId) ?? {
@@ -101,6 +113,8 @@ export class RosterStudentAnalyticsService {
     return { rows };
   }
 
+  // Returns a full per-student profile including lesson-by-lesson progress and
+  // recent performance stats drawn from the last ACTIVITY_WINDOW_DAYS of attempts.
   async getStudentDetail(
     moduleId: number,
     studentId: number,
@@ -120,10 +134,13 @@ export class RosterStudentAnalyticsService {
       },
     });
 
+    // Guard against both a missing record and a non-student role (e.g. a tutor's ID being passed).
     if (!enrollment || enrollment.roleInModule !== 'student') {
       throw new NotFoundException('Student not found in this module.');
     }
 
+    // Lessons are ordered by sortOrder so the lesson-progress array aligns with the
+    // curriculum sequence as the tutor would recognise it.
     const liveLessons = await this.prisma.moduleUnit.findMany({
       where: { moduleId, status: 'live' },
       select: { id: true, title: true },
@@ -141,6 +158,8 @@ export class RosterStudentAnalyticsService {
       this.prisma.moduleUnitUserProgress.findMany({
         where: { studentId, moduleUnitId: { in: liveLessonIds } },
       }),
+      // Only the last 7 days of attempts are fetched here; they feed `recentPerformance`
+      // metrics rather than the per-lesson mastery scores, which use the full ledger.
       this.prisma.questionAttempt.findMany({
         where: {
           studentId,
@@ -227,6 +246,34 @@ export class RosterStudentAnalyticsService {
     };
   }
 
+  // Hard-deletes the membership row; cascades remove derived state. Self-removal is blocked because
+  // staff with roster permissions should not be able to silently revoke their own access here.
+  async removeStudent(
+    moduleId: number,
+    studentId: number,
+    requesterUserId: number,
+  ): Promise<RemoveRosterStudentResponse> {
+    if (studentId === requesterUserId) {
+      throw new BadRequestException(
+        'You cannot remove yourself from the module.',
+      );
+    }
+
+    const enrollment = await this.prisma.userModule.findUnique({
+      where: { moduleId_userId: { moduleId, userId: studentId } },
+      select: { id: true, roleInModule: true },
+    });
+
+    if (!enrollment || enrollment.roleInModule !== 'student') {
+      throw new NotFoundException('Student not found in this module.');
+    }
+
+    await this.prisma.userModule.delete({ where: { id: enrollment.id } });
+
+    return { removedStudentId: studentId };
+  }
+
+  // Only published lessons are eligible for progress tracking.
   private async getLiveLessonIds(moduleId: number): Promise<number[]> {
     const lessons = await this.prisma.moduleUnit.findMany({
       where: { moduleId, status: 'live' },
@@ -252,6 +299,9 @@ export class RosterStudentAnalyticsService {
     });
   }
 
+  // Fetches completion counts and average mastery for all students in a single pair of
+  // parallel queries rather than one query per student, keeping the roster list O(1) in
+  // database round-trips regardless of enrolment size.
   private async batchLessonProgress(
     studentIds: number[],
     liveLessonIds: number[],
@@ -286,6 +336,8 @@ export class RosterStudentAnalyticsService {
       }),
     ]);
 
+    // Build a nested Map<studentId, Map<lessonId, LessonExp>> so per-student mastery
+    // can be computed without additional database queries.
     const ledgerByStudent = buildNestedExpMap(
       ledgerAggregates,
       (entry) => entry.userId,
@@ -314,6 +366,8 @@ export class RosterStudentAnalyticsService {
     return result;
   }
 
+  // Returns the most recent question attempt date for each student, used to determine
+  // at-risk status and sort order on the roster table.
   private async batchLastActivity(
     studentIds: number[],
     liveLessonIds: number[],
@@ -339,6 +393,8 @@ export class RosterStudentAnalyticsService {
     return result;
   }
 
+  // Resolves daily practice status for all students. This issues one request per student
+  // because DailyPracticeService does not expose a batch API; acceptable at current roster sizes.
   private async batchDailyPracticeStatus(
     moduleId: number,
     studentIds: number[],
@@ -358,6 +414,9 @@ export class RosterStudentAnalyticsService {
     return new Map(statuses);
   }
 
+  // Fetches the most recently completed daily practice set per student.
+  // The `distinct` + `orderBy desc` combination efficiently finds the latest record
+  // without a subquery.
   private async batchLastDailyPracticeCompletion(
     moduleId: number,
     studentIds: number[],
@@ -383,6 +442,9 @@ export class RosterStudentAnalyticsService {
     return result;
   }
 
+  // Computes accuracy, average response time, and total hint usage across recent attempts.
+  // Returns null for all metrics when the student has no attempts in the window, so the
+  // caller can distinguish "no data" from "zero accuracy".
   private computeRecentPerformance(
     attempts: { isCorrect: boolean; timeTakenMs: number; hintsUsed: number }[],
   ) {
@@ -412,6 +474,8 @@ export class RosterStudentAnalyticsService {
     };
   }
 
+  // In-memory filter applied after all data is fetched. `inactive_7d` and `at_risk` are
+  // treated as synonyms because both are defined by the same absence-of-activity criterion.
   private applyStudentFilter(
     rows: RosterStudentRow[],
     filter?: string,
@@ -435,6 +499,8 @@ export class RosterStudentAnalyticsService {
     }
   }
 
+  // Case-insensitive full-name substring search. Operates on the pre-formatted fullName
+  // field rather than searching first and last name independently to match the display string.
   private applyStudentSearch(
     rows: RosterStudentRow[],
     search?: string,
@@ -445,6 +511,9 @@ export class RosterStudentAnalyticsService {
     return rows.filter((row) => row.fullName.toLowerCase().includes(term));
   }
 
+  // Sorts the roster rows in application memory. Null dates are converted to 0 so absent
+  // students sort to the bottom of ascending date columns. Falls back to alphabetical when
+  // no sortBy key is supplied.
   private applyStudentSort(
     rows: RosterStudentRow[],
     sortBy?: string,

@@ -1,3 +1,6 @@
+// REST controller for the practice-room feature; delegates all business logic to
+// PracticeRoomService and relies on shared guards for authentication and module-scope
+// authorization so route handlers stay thin and free of access-control details.
 import {
   Body,
   Controller,
@@ -13,7 +16,7 @@ import { PracticeRoomService } from './practice-room.service';
 import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
 import { AuthorizationGuard } from '../auth/guards/authorization.guard';
 import { Authorize } from '../auth/decorators/authorize.decorator';
-import type { AuthUser } from '../types/auth-user.type';
+import type { AuthUser } from '@scholarxp/api-contracts';
 import { GetPracticeRoomParamsDto } from './dto/get-practice-room-params.dto';
 import { ClosePracticeRoomSessionParamsDto } from './dto/close-practice-room-session-params.dto';
 import { GetPracticeRoomQueryDto } from './dto/get-practice-room-query.dto';
@@ -41,6 +44,7 @@ export class PracticeRoomController {
       user.id,
       query.sessionId,
       query.sessionType,
+      user.globalRole,
     );
   }
 
@@ -58,6 +62,7 @@ export class PracticeRoomController {
       params.moduleUnitId,
       user.id,
       payload,
+      user.globalRole,
     );
   }
 

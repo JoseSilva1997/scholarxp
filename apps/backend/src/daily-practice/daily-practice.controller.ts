@@ -14,7 +14,7 @@ import { features } from '@scholarxp/permissions';
 import { Authorize } from '../auth/decorators/authorize.decorator';
 import { AuthorizationGuard } from '../auth/guards/authorization.guard';
 import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
-import type { AuthUser } from '../types/auth-user.type';
+import type { AuthUser } from '@scholarxp/api-contracts';
 import { DailyPracticeService } from './daily-practice.service';
 import { CloseDailyPracticeSessionParamsDto } from './dto/close-daily-practice-session-params.dto';
 import { GetDailyPracticeParamsDto } from './dto/get-daily-practice-params.dto';

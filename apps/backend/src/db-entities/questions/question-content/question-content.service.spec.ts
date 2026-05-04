@@ -13,7 +13,6 @@ runCrudServiceTests({
     questionUnitId: 1,
     isCore: true,
     hint: 'Arithmetic',
-    difficultyScore: 0.5,
     source: 'system',
     isArchived: false,
   },

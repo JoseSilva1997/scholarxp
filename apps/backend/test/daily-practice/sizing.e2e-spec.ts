@@ -88,18 +88,18 @@ describe('Daily practice sizing boundaries (e2e)', () => {
     expect(persistedSet?.items).toHaveLength(4);
   });
 
-  it('builds a six-question set when review pressure reaches the maximum ceiling', async () => {
-    // seedStudentMaxPressureScenario seeds 21 due-review + 1 reinforcement candidate,
-    // all from completed lessons, giving reviewEligible=22.
-    // Math.round(22 * 0.25) = 6 = MAX_DAILY_PRACTICE_QUESTION_COUNT.
-    // Expected quota at size 6: 5 due_review + 1 reinforcement.
+  it('builds a ten-question set when review pressure reaches the maximum ceiling', async () => {
+    // seedStudentMaxPressureScenario seeds 39 due-review + 2 reinforcement candidates,
+    // all from completed lessons, giving reviewEligible=41.
+    // Math.round(41 * 0.25) = 10 = MAX_DAILY_PRACTICE_QUESTION_COUNT.
+    // Expected quota at size 10: 8 due_review + 2 reinforcement.
     const base = await seedStudentModuleScenario(prisma);
     setAuthenticatedUserId(base.studentId);
     await seedStudentMaxPressureScenario(prisma, base);
 
     const body = await fetchTodayDailyPractice(app, base.moduleId);
 
-    expect(body.questions).toHaveLength(6);
+    expect(body.questions).toHaveLength(10);
 
     expect(
       body.questions.filter(
@@ -107,14 +107,14 @@ describe('Daily practice sizing boundaries (e2e)', () => {
           question.sourceBucket ===
           DailyPracticeSelectionBucketValues.dueReview,
       ),
-    ).toHaveLength(5);
+    ).toHaveLength(8);
     expect(
       body.questions.filter(
         (question) =>
           question.sourceBucket ===
           DailyPracticeSelectionBucketValues.reinforcement,
       ),
-    ).toHaveLength(1);
+    ).toHaveLength(2);
 
     const persistedSet = await prisma.dailyPracticeSet.findUnique({
       where: {
@@ -126,19 +126,19 @@ describe('Daily practice sizing boundaries (e2e)', () => {
       },
       include: { items: true },
     });
-    expect(persistedSet?.items).toHaveLength(6);
+    expect(persistedSet?.items).toHaveLength(10);
     expect(
       persistedSet?.items.filter(
         (item) =>
           item.sourceBucket === DailyPracticeSelectionBucketValues.dueReview,
       ),
-    ).toHaveLength(5);
+    ).toHaveLength(8);
     expect(
       persistedSet?.items.filter(
         (item) =>
           item.sourceBucket ===
           DailyPracticeSelectionBucketValues.reinforcement,
       ),
-    ).toHaveLength(1);
+    ).toHaveLength(2);
   });
 });

@@ -1,3 +1,5 @@
+// CRUD service for module unit progress records. Writes originate from the practice-room flow
+// which updates mastery scores and completion state after a session ends.
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateModuleUnitUserProgressDto } from './dto/create-module-unit-user-progress.dto';
 import { UpdateModuleUnitUserProgressDto } from './dto/update-module-unit-user-progress.dto';
@@ -37,6 +39,7 @@ export class ModuleUnitUserProgressService {
     return this.prisma.moduleUnitUserProgress.delete({ where: { id } });
   }
 
+  // Guard clause that surfaces a 404 before any mutation is attempted on a missing progress record.
   private async getOrThrow(id: number) {
     const record = await this.prisma.moduleUnitUserProgress.findUnique({
       where: { id },

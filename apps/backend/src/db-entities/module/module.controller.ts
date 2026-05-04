@@ -1,4 +1,6 @@
-// ModuleController now enforces session auth, role gating, and module-scoped access checks.
+// HTTP controller for module CRUD. All routes are protected by session auth and capability-based
+// authorisation. The deletion-impact endpoint allows the UI to display a confirmation prompt
+// before the instructor proceeds with archiving or purging a module.
 import {
   Body,
   Controller,
@@ -18,7 +20,7 @@ import { UpdateModuleDto } from './dto/update-module.dto';
 import { SessionAuthGuard } from '../../auth/guards/session-auth.guard';
 import { AuthorizationGuard } from '../../auth/guards/authorization.guard';
 import { Authorize } from '../../auth/decorators/authorize.decorator';
-import type { AuthUser } from '../../types/auth-user.type';
+import type { AuthUser } from '@scholarxp/api-contracts';
 import { features } from '@scholarxp/permissions';
 
 @Controller('module')
@@ -39,6 +41,12 @@ export class ModuleController {
     return this.moduleService.findAll(req.user as AuthUser);
   }
 
+  @Get(':id/deletion-impact')
+  @Authorize({ capability: features.modules.delete, scope: 'module' })
+  getDeletionImpact(@Param('id', ParseIntPipe) id: number) {
+    return this.moduleService.getDeletionImpact(id);
+  }
+
   @Get(':id')
   @Authorize({ capability: features.navigation.modules, scope: 'module' })
   findOne(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
@@ -56,7 +64,11 @@ export class ModuleController {
   }
 
   @Delete(':id')
-  @Authorize({ capability: features.modules.settings, scope: 'module' })
+  @Authorize({
+    capability: features.modules.delete,
+    scope: 'module',
+    allowArchived: true,
+  })
   remove(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
     return this.moduleService.remove(id, req.user as AuthUser);
   }

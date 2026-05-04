@@ -150,6 +150,7 @@ export class DailyPracticeMasteryExpService {
     return baseShare + remainder;
   }
 
+  // Idempotency key encodes stage, user, lesson, and question so accidental double-calls to the ledger service do not double-award the same milestone.
   private buildIdempotencyKey(
     stage: MasteryStage,
     userId: number,

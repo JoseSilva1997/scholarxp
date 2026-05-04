@@ -1,4 +1,4 @@
-// Role: batches daily-practice generation across student-module enrollments so UTC rollover stays bounded and testable.
+// Role: batches daily-practice generation across student-module enrollments so rollover stays bounded and testable.
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { DailyPracticeGenerationService } from './daily-practice-generation.service';
@@ -52,6 +52,7 @@ export class DailyPracticeGenerationBatchService {
       const studentMemberships = (await this.prisma.userModule.findMany({
         where: {
           roleInModule: 'student',
+          module: { archivedAt: null },
           ...(lastMembershipId === null
             ? {}
             : { id: { gt: lastMembershipId } }),

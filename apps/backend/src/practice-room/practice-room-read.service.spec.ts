@@ -3,6 +3,7 @@
  */
 import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { GlobalRole, ModuleUnitStatus } from '@prisma/client';
 import { PracticeSessionTypeValues } from '@scholarxp/api-contracts';
 import { MODULE_UNIT_BASELINE_EXP } from '@scholarxp/constants';
 import { PracticeRoomMapper } from './practice-room.mapper';
@@ -29,7 +30,7 @@ describe('PracticeRoomReadService', () => {
     toLatestAttemptMap: jest.Mock;
   };
   let practiceRoomSessionService: {
-    resolveRoomSession: jest.Mock;
+    resolveOwnedSessionByType: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -39,7 +40,7 @@ describe('PracticeRoomReadService', () => {
       toLatestAttemptMap: jest.fn(),
     };
     practiceRoomSessionService = {
-      resolveRoomSession: jest.fn(),
+      resolveOwnedSessionByType: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -67,7 +68,9 @@ describe('PracticeRoomReadService', () => {
       prisma.moduleUnitUserProgress.findFirst.mockResolvedValue({
         isCompleted: false,
       } as never);
-      practiceRoomSessionService.resolveRoomSession.mockResolvedValue(session);
+      practiceRoomSessionService.resolveOwnedSessionByType.mockResolvedValue(
+        session,
+      );
       practiceRoomMapper.toQuestionUnitDrafts.mockReturnValue(drafts);
 
       const result = await service.loadRoomContext(
@@ -77,7 +80,7 @@ describe('PracticeRoomReadService', () => {
       );
 
       expect(
-        practiceRoomSessionService.resolveRoomSession,
+        practiceRoomSessionService.resolveOwnedSessionByType,
       ).toHaveBeenCalledWith(
         TEST_MODULE_ID,
         TEST_STUDENT_ID,
@@ -106,7 +109,9 @@ describe('PracticeRoomReadService', () => {
       prisma.moduleUnitUserProgress.findFirst.mockResolvedValue({
         isCompleted: true,
       } as never);
-      practiceRoomSessionService.resolveRoomSession.mockResolvedValue(session);
+      practiceRoomSessionService.resolveOwnedSessionByType.mockResolvedValue(
+        session,
+      );
       practiceRoomMapper.toQuestionUnitDrafts.mockReturnValue(drafts);
 
       const result = await service.loadRoomContext(
@@ -117,7 +122,7 @@ describe('PracticeRoomReadService', () => {
       );
 
       expect(
-        practiceRoomSessionService.resolveRoomSession,
+        practiceRoomSessionService.resolveOwnedSessionByType,
       ).toHaveBeenCalledWith(
         TEST_MODULE_ID,
         TEST_STUDENT_ID,
@@ -126,6 +131,56 @@ describe('PracticeRoomReadService', () => {
       );
       expect(result.isReadOnly).toBe(false);
       expect(result.session.sessionType).toBe(PracticeSessionTypeValues.retry);
+    });
+
+    it('ignores stale session ids that belong to a different room mode after completion', async () => {
+      const moduleUnit = buildLoadedModuleUnit();
+      const drafts = [buildQuestionUnitDraft()];
+      const viewAnswersSession = buildOwnedPracticeSession({
+        id: '22222222-2222-4222-8222-222222222222',
+        sessionType: PracticeSessionTypeValues.viewAnswers,
+      });
+
+      prisma.moduleUnit.findFirst.mockResolvedValue(moduleUnit as never);
+      prisma.moduleUnitUserProgress.findFirst.mockResolvedValue({
+        isCompleted: true,
+      } as never);
+      practiceRoomSessionService.resolveOwnedSessionByType
+        .mockRejectedValueOnce(
+          new ForbiddenException(
+            'This session does not belong to the requested practice flow.',
+          ),
+        )
+        .mockResolvedValueOnce(viewAnswersSession);
+      practiceRoomMapper.toQuestionUnitDrafts.mockReturnValue(drafts);
+
+      const result = await service.loadRoomContext(
+        TEST_MODULE_ID,
+        TEST_MODULE_UNIT_ID,
+        TEST_STUDENT_ID,
+        undefined,
+        '11111111-1111-4111-8111-111111111111',
+      );
+
+      expect(
+        practiceRoomSessionService.resolveOwnedSessionByType,
+      ).toHaveBeenNthCalledWith(
+        1,
+        TEST_MODULE_ID,
+        TEST_STUDENT_ID,
+        PracticeSessionTypeValues.viewAnswers,
+        '11111111-1111-4111-8111-111111111111',
+      );
+      expect(
+        practiceRoomSessionService.resolveOwnedSessionByType,
+      ).toHaveBeenNthCalledWith(
+        2,
+        TEST_MODULE_ID,
+        TEST_STUDENT_ID,
+        PracticeSessionTypeValues.viewAnswers,
+      );
+      expect(result.isReadOnly).toBe(true);
+      expect(result.session).toBe(viewAnswersSession);
     });
   });
 
@@ -136,6 +191,41 @@ describe('PracticeRoomReadService', () => {
       await expect(
         service.getModuleUnitOrThrow(TEST_MODULE_ID, TEST_MODULE_UNIT_ID),
       ).rejects.toThrow(NotFoundException);
+    });
+
+    it('restricts the lookup to live units for student callers', async () => {
+      prisma.moduleUnit.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.getModuleUnitOrThrow(
+          TEST_MODULE_ID,
+          TEST_MODULE_UNIT_ID,
+          GlobalRole.student,
+        ),
+      ).rejects.toThrow(NotFoundException);
+      expect(prisma.moduleUnit.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: TEST_MODULE_UNIT_ID,
+            moduleId: TEST_MODULE_ID,
+            status: ModuleUnitStatus.live,
+          }),
+        }),
+      );
+    });
+
+    it('does not constrain status for non-student callers', async () => {
+      prisma.moduleUnit.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.getModuleUnitOrThrow(
+          TEST_MODULE_ID,
+          TEST_MODULE_UNIT_ID,
+          GlobalRole.teacher,
+        ),
+      ).rejects.toThrow(NotFoundException);
+      const callArg = prisma.moduleUnit.findFirst.mock.calls[0][0];
+      expect(callArg.where).not.toHaveProperty('status');
     });
   });
 
@@ -412,6 +502,37 @@ describe('PracticeRoomReadService', () => {
           PracticeSessionTypeValues.retry,
         ),
       ).resolves.toBeUndefined();
+    });
+
+    it('blocks student submissions when the unit is not live', async () => {
+      prisma.moduleUnit.findUnique.mockResolvedValue({
+        status: ModuleUnitStatus.draft,
+      } as never);
+
+      await expect(
+        service.assertModuleUnitAllowsSubmissions(
+          TEST_MODULE_UNIT_ID,
+          TEST_STUDENT_ID,
+          PracticeSessionTypeValues.practiceRoom,
+          GlobalRole.student,
+        ),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('lets non-students submit against draft units', async () => {
+      prisma.moduleUnitUserProgress.findFirst.mockResolvedValue({
+        isCompleted: false,
+      } as never);
+
+      await expect(
+        service.assertModuleUnitAllowsSubmissions(
+          TEST_MODULE_UNIT_ID,
+          TEST_STUDENT_ID,
+          PracticeSessionTypeValues.practiceRoom,
+          GlobalRole.teacher,
+        ),
+      ).resolves.toBeUndefined();
+      expect(prisma.moduleUnit.findUnique).not.toHaveBeenCalled();
     });
   });
 });

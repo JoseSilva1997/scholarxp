@@ -69,7 +69,7 @@ describe('Daily practice cron generation (e2e)', () => {
         },
         'getCurrentTimestamp',
       )
-      .mockReturnValue(new Date('2026-04-19T00:05:00.000Z'));
+      .mockReturnValue(getCurrentUtcMidnightWindowTimestamp());
 
     await fireDailyPracticeGenerationCronJob(app);
 
@@ -147,5 +147,12 @@ async function waitForDailyPracticeSetCount(
 
   throw new Error(
     `Timed out waiting for ${params.expectedCount} daily-practice set(s) for user ${params.userId} in module ${params.moduleId}.`,
+  );
+}
+
+function getCurrentUtcMidnightWindowTimestamp(): Date {
+  const now = new Date();
+  return new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 5),
   );
 }

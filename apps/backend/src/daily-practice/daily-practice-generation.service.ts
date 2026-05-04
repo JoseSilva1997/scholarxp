@@ -98,6 +98,7 @@ export class DailyPracticeGenerationService {
     );
   }
 
+  // Runs selector then interleaver in sequence so generation always produces a lesson-varied ordered list without callers managing the two-step pipeline.
   private async buildOrderedSelection(
     moduleId: number,
     studentId: number,
@@ -115,6 +116,7 @@ export class DailyPracticeGenerationService {
     );
   }
 
+  // Persists a set row with no items to record that generation ran but produced nothing. Future reads treat this as "no set" rather than "not generated yet", preventing redundant batch runs.
   private async persistEmptySetSentinel(
     moduleId: number,
     studentId: number,
@@ -146,6 +148,7 @@ export class DailyPracticeGenerationService {
     }
   }
 
+  // Atomically creates the set and all its items. A unique constraint on userId/moduleId/practiceDateUtc prevents duplicate sets when concurrent processes race to generate the same day.
   private async persistResolvedSet(
     moduleId: number,
     studentId: number,
@@ -199,6 +202,7 @@ export class DailyPracticeGenerationService {
     }
   }
 
+  // Re-reads the set after a unique constraint violation so both competing processes return a consistent outcome rather than surfacing a raw DB error.
   private async resolveConcurrentGenerationResult(
     studentId: number,
     moduleId: number,
@@ -223,6 +227,7 @@ export class DailyPracticeGenerationService {
     );
   }
 
+  // Prisma error code P2002 signals a unique constraint violation — used to detect the concurrent-generation race without catching all DB errors.
   private isUniqueConstraintViolation(error: unknown): boolean {
     return (
       error instanceof Prisma.PrismaClientKnownRequestError &&

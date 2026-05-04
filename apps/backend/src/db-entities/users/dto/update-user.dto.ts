@@ -1,3 +1,5 @@
+// Extends PartialType but explicitly redeclares fields with transformers because PartialType
+// does not reliably copy class-transformer decorators, which are needed for trimming and normalisation.
 import { PartialType } from '@nestjs/mapped-types';
 import { Transform, TransformFnParams } from 'class-transformer';
 import {

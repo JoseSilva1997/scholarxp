@@ -21,3 +21,16 @@ export type ProfilePictureMimeType =
 
 // Returned from both upload and remove endpoints so callers can write the refreshed user back into auth state.
 export type UpdateProfilePictureResponse = AuthUser;
+
+// Name update is not auth-scoped (no session reissue), so its contract sits alongside other user-mutating endpoints.
+export interface UpdateNamePayload {
+  firstName: string;
+  lastName: string;
+}
+
+export type UpdateNameResponse = AuthUser;
+
+// Self-serve account deletion requires the user to retype their email as a confirmation step.
+export interface DeleteAccountPayload {
+  confirmEmail: string;
+}

@@ -32,6 +32,9 @@ import {
 export class RosterLessonAnalyticsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  // Retrieves aggregated analytics for all live lessons in a module
+  // Computes per-lesson metrics: completion rate, average mastery, and activity timestamps
+  // Results can be sorted by title, completion rate, mastery, or recency
   async getLessons(
     moduleId: number,
     query: RosterLessonsQuery,
@@ -46,6 +49,7 @@ export class RosterLessonAnalyticsService {
       return { rows: [] };
     }
 
+    // Fetch enrolled students to establish denominator for completion rate calculations
     const lessonIds = liveLessons.map((lesson) => lesson.id);
     const enrolledStudents = await this.prisma.userModule.findMany({
       where: { moduleId, roleInModule: 'student' },
@@ -56,6 +60,8 @@ export class RosterLessonAnalyticsService {
     );
     const enrolledCount = enrolledStudentIds.length;
 
+    // Parallelize queries: progress (any interaction), completion (isCompleted), and exp aggregation
+    // Ledger aggregation filters to correct answers and mastery events to compute normalized mastery scores
     const [progressAggregates, completedAggregates, ledgerAggregates] =
       await Promise.all([
         this.prisma.moduleUnitUserProgress.groupBy({
@@ -130,6 +136,9 @@ export class RosterLessonAnalyticsService {
     };
   }
 
+  // Retrieves detailed per-student analytics for a specific lesson (drilldown view)
+  // Includes individual mastery scores and aggregated question health indicators
+  // Throws NotFoundException if lesson does not exist within the specified module
   async getLessonDrilldown(
     moduleId: number,
     moduleUnitId: number,
@@ -210,6 +219,8 @@ export class RosterLessonAnalyticsService {
     );
     const expByStudent = buildExpMap(lessonLedger, (entry) => entry.userId);
 
+    // Construct student rows by merging enrollment, progress, and exp data
+    // Mastery score is rounded to percentage and set null if no exp records exist
     const students: LessonDrilldownStudentRow[] = enrollments.map(
       (enrollment) => {
         const progress = progressByStudent.get(enrollment.userId);
@@ -242,6 +253,8 @@ export class RosterLessonAnalyticsService {
     };
   }
 
+  // Aggregates question-level health indicators from lesson attempts
+  // Delegates to specialized health computation functions in roster-question-health module
   private buildQuestionHealth(attempts: AttemptRow[]) {
     return {
       strugglingQuestions: computeStrugglingQuestions(attempts),
@@ -251,6 +264,9 @@ export class RosterLessonAnalyticsService {
     };
   }
 
+  // Sorts lesson rows in-place by specified dimension; defaults to original order if sortBy is unrecognized
+  // Direction: -1 for descending, 1 for ascending
+  // Uses numeric comparison for rate/score metrics and locale-aware string comparison for titles
   private applyLessonSort(
     rows: RosterLessonsResponse['rows'],
     sortBy?: string,

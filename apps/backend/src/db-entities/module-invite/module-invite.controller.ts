@@ -19,7 +19,7 @@ import { RedeemModuleInviteDto } from './dto/redeem-module-invite.dto';
 import { SessionAuthGuard } from '../../auth/guards/session-auth.guard';
 import { AuthorizationGuard } from '../../auth/guards/authorization.guard';
 import { Authorize } from '../../auth/decorators/authorize.decorator';
-import type { AuthUser } from '../../types/auth-user.type';
+import type { AuthUser } from '@scholarxp/api-contracts';
 import { features } from '@scholarxp/permissions';
 
 // Controller exposes module-scoped invite management plus a redeem endpoint for students.

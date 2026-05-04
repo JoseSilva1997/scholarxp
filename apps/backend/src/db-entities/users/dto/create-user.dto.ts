@@ -1,3 +1,5 @@
+// Input shape for creating a user account. Name fields are trimmed and validated against the shared
+// NAME_REGEX to enforce consistent formatting. Email is normalised to lowercase at the transform boundary.
 import { GlobalRole } from '@prisma/client';
 import { Transform, TransformFnParams } from 'class-transformer';
 import {

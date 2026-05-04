@@ -1,3 +1,5 @@
+// Service responsible for avatar creation and XP accumulation. All student XP writes
+// should route through this service to keep totalExp updates as a single source of truth.
 import {
   BadRequestException,
   Injectable,
@@ -13,6 +15,7 @@ type PrismaClientLike = Prisma.TransactionClient | PrismaService;
 export class AvatarService {
   constructor(private readonly prisma: PrismaService) {}
 
+  // Creates an avatar for a user after verifying they are a student and do not already have one.
   async create(createAvatarDto: CreateAvatarDto) {
     const user = await this.prisma.user.findUnique({
       where: { id: createAvatarDto.userId },
@@ -86,6 +89,7 @@ export class AvatarService {
     });
   }
 
+  // Guard clause used by findOne to surface a 404 before any downstream logic executes.
   private async getOrThrow(id: number) {
     const avatar = await this.prisma.avatar.findUnique({ where: { id } });
     if (!avatar) {

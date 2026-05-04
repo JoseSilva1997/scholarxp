@@ -1,3 +1,5 @@
+// Basic CRUD service for question variant records. Scoped deletion (with archive-vs-hard-delete
+// logic) is handled by QuestionUnitService.removeVariantScoped which has module/unit context.
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateQuestionVariantDto } from './dto/create-question-variant.dto';
 import { UpdateQuestionVariantDto } from './dto/update-question-variant.dto';

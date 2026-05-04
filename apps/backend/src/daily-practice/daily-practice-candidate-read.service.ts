@@ -57,7 +57,6 @@ export class DailyPracticeCandidateReadService {
               select: {
                 id: true,
                 type: true,
-                difficultyScore: true,
               },
             },
           },
@@ -83,7 +82,6 @@ export class DailyPracticeCandidateReadService {
           questionGroupSortOrder: questionUnit.questionGroup?.sortOrder ?? null,
           coreContentId: coreContent.id,
           questionType: coreContent.type,
-          questionDifficultyScore: coreContent.difficultyScore,
         });
       }
     }

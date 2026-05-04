@@ -1,4 +1,5 @@
-// Role: groups profile aggregation services so the student and tutor profile endpoints share one module boundary.
+// NestJS feature module for the profile domain. Imports cross-cutting feature modules whose services
+// are consumed by the role-specific profile aggregators (quests, XP engine, daily practice, auth).
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
 import { DailyPracticeModule } from '../daily-practice/daily-practice.module';

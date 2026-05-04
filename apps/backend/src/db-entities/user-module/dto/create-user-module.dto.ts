@@ -1,3 +1,5 @@
+// Input shape for creating an enrollment record. Direct creation is used by admin flows;
+// student invite redemption goes through ModuleInviteService which sets these fields explicitly.
 import { EnrollmentSource } from '@prisma/client';
 import {
   IsEnum,

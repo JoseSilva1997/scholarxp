@@ -1,4 +1,4 @@
-import { EmailVerificationToken } from '@prisma/client';
+import { EmailVerificationToken, Prisma } from '@prisma/client';
 import { Test, TestingModule } from '@nestjs/testing';
 import { EmailVerificationTokenService } from './email-verification-token.service';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -119,6 +119,74 @@ describe('EmailVerificationTokenService', () => {
     expect(token.expiresAt.getTime()).toBe(addMinutes(now, 10).getTime());
   });
 
+  it('clamps TTL to the configured maximum and can issue url tokens', async () => {
+    prisma.emailVerificationToken.create.mockImplementation(
+      async ({ data }) =>
+        ({
+          id: 4,
+          userId: data.userId,
+          token: data.token,
+          reason: data.reason,
+          createdAt: now,
+          consumedAt: null,
+          expiresAt: data.expiresAt,
+        }) as EmailVerificationToken,
+    );
+
+    const token = await service.issueToken({
+      userId: 9,
+      reason: 'password_reset',
+      ttlMinutes: 60,
+      tokenStyle: 'url',
+    });
+
+    expect(token.token).toMatch(/^[0-9a-f]{64}$/);
+    expect(token.expiresAt.getTime()).toBe(addMinutes(now, 30).getTime());
+  });
+
+  it('retries token creation after a unique collision', async () => {
+    const collision = new Prisma.PrismaClientKnownRequestError('Duplicate', {
+      code: 'P2002',
+      clientVersion: '5.x',
+    });
+    prisma.emailVerificationToken.create
+      .mockRejectedValueOnce(collision)
+      .mockResolvedValueOnce({
+        id: 5,
+        userId: 9,
+        token: '654321',
+        reason: 'signup',
+        createdAt: now,
+        consumedAt: null,
+        expiresAt: addMinutes(now, 15),
+      } as EmailVerificationToken);
+
+    const token = await service.issueToken({ userId: 9, reason: 'signup' });
+
+    expect(prisma.emailVerificationToken.create).toHaveBeenCalledTimes(2);
+    expect(token.token).toBe('654321');
+  });
+
+  it('fails after repeated token collisions and rethrows non-unique errors', async () => {
+    const collision = new Prisma.PrismaClientKnownRequestError('Duplicate', {
+      code: 'P2002',
+      clientVersion: '5.x',
+    });
+    prisma.emailVerificationToken.create.mockRejectedValue(collision);
+
+    await expect(service.issueToken({ userId: 9 })).rejects.toThrow(
+      'Failed to generate a unique verification token after multiple attempts.',
+    );
+    expect(prisma.emailVerificationToken.create).toHaveBeenCalledTimes(5);
+
+    prisma.emailVerificationToken.create.mockRejectedValueOnce(
+      new Error('database down'),
+    );
+    await expect(service.issueToken({ userId: 9 })).rejects.toThrow(
+      'database down',
+    );
+  });
+
   it('consumes a valid token and stamps consumedAt', async () => {
     const row: EmailVerificationToken = {
       id: 10,
@@ -162,6 +230,45 @@ describe('EmailVerificationTokenService', () => {
     );
     expect(prisma.emailVerificationToken.delete).toHaveBeenCalledWith({
       where: { token: '333333' },
+    });
+  });
+
+  it('rejects missing, wrong-reason, and already-consumed tokens with the same public error', async () => {
+    prisma.emailVerificationToken.findUnique.mockResolvedValueOnce(null);
+    await expect(service.consumeToken('missing')).rejects.toThrow(
+      'Invalid or expired verification code.',
+    );
+
+    prisma.emailVerificationToken.findUnique.mockResolvedValueOnce({
+      id: 12,
+      userId: 30,
+      token: 'reset-token',
+      reason: 'password_reset',
+      createdAt: now,
+      consumedAt: null,
+      expiresAt: addMinutes(now, 15),
+    });
+    await expect(service.consumeToken('reset-token', 'signup')).rejects.toThrow(
+      'Invalid or expired verification code.',
+    );
+    expect(prisma.emailVerificationToken.delete).not.toHaveBeenCalledWith({
+      where: { token: 'reset-token' },
+    });
+
+    prisma.emailVerificationToken.findUnique.mockResolvedValueOnce({
+      id: 13,
+      userId: 30,
+      token: 'used-token',
+      reason: 'signup',
+      createdAt: now,
+      consumedAt: now,
+      expiresAt: addMinutes(now, 15),
+    });
+    await expect(service.consumeToken('used-token')).rejects.toThrow(
+      'Invalid or expired verification code.',
+    );
+    expect(prisma.emailVerificationToken.delete).toHaveBeenCalledWith({
+      where: { token: 'used-token' },
     });
   });
 

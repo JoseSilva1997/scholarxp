@@ -1,30 +1,36 @@
 import { useEffect } from 'react';
 import type { Location } from 'react-router-dom';
-import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import './App.css';
-import Header from './components/Header/Header';
-import Footer from './components/Footer';
-import Landing from './routes/Landing';
-import Login from './routes/Login';
-import Register from './routes/Register';
-import VerifyEmail from './routes/VerifyEmail';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import { CosmeticThemeSync } from './context/CosmeticThemeSync';
-import { CosmeticStyleSync } from './context/CosmeticStyleSync';
-import { useCosmetics } from '@/rewards';
-import ScholarBackground from './components/Rewards/ScholarBackground';
-import RoleSelectorOverlay from './components/RoleSelectorOverlay';
-import AuthedLayout from './layouts/AuthedLayout';
-import ModulesPage from './routes/main/ModulesPage';
-import SingleModulePage from './routes/main/SingleModulePage';
-import ModuleUnitEditor from './routes/main/ModuleUnitEditor';
-import PracticeRoomPage from './routes/main/PracticeRoomPage';
-import DailyPracticePage from './routes/main/DailyPracticePage';
-import QuestsPage from './routes/main/QuestsPage';
-import RewardsPage from './routes/main/RewardsPage';
-import ProfilePage from './routes/main/ProfilePage';
-import AcceptInvite from './routes/main/AcceptInvite';
-import ModuleRosterPage from './routes/main/ModuleRosterPage';
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
+import '@/App.css';
+import Header from '@/MainApp/Header/Header';
+import Footer from '@/MainApp/Footer/Footer';
+import Landing from '@/Public/Landing/Landing';
+import Login from '@/Auth/Login/Login';
+import Register from '@/Auth/Register/Register';
+import VerifyEmail from '@/Auth/Register/VerifyEmail';
+import ForgotPassword from '@/Auth/ForgotPassword/ForgotPassword';
+import ResetPassword from '@/Auth/ForgotPassword/ResetPassword';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { CosmeticThemeSync } from '@/context/CosmeticThemeSync';
+import { CosmeticStyleSync } from '@/context/CosmeticStyleSync';
+import { useCosmetics } from '@/Rewards/cosmetics';
+import ScholarBackground from '@/Rewards/RewardsPage/components/ScholarBackground';
+import RoleSelectorOverlay from '@/MainApp/RoleSelectorOverlay';
+import AuthedLayout from '@/MainApp/AuthedLayout/AuthedLayout';
+import ModulesPage from '@/Authoring/Modules/ModulesPage';
+import SingleModulePage from '@/Authoring/SingleModule/SingleModulePage';
+import ModuleUnitEditor from '@/Authoring/ModuleUnitEditor/ModuleUnitEditor';
+import PracticeRoomPage from '@/Practice-Room/PracticeRoomPage';
+import DailyPracticePage from '@/DailyPractice/DailyPracticePage';
+import QuestsPage from '@/Quests/QuestsPage';
+import RewardsPage from '@/Rewards/RewardsPage/RewardsPage';
+import ProfilePage from '@/Account/Profile/ProfilePage';
+import AcceptInvite from '@/Authoring/AcceptInvite/AcceptInvite';
+import ModuleRosterPage from '@/Authoring/ModuleRoster/ModuleRosterPage';
+import Terms from '@/Public/Terms/Terms';
+import Privacy from '@/Public/Privacy/Privacy';
+import { features, type FeatureKey } from '@scholarxp/permissions';
+import { canUserAccess } from '@/shared/permissions/permission';
 
 function AppLayout() {
   const location = useLocation();
@@ -33,13 +39,15 @@ function AppLayout() {
   const isAuthRoute =
     location.pathname === '/login' ||
     location.pathname === '/register' ||
-    location.pathname === '/verify-email';
+    location.pathname === '/verify-email' ||
+    location.pathname === '/forgot-password' ||
+    location.pathname === '/reset-password';
   const isShellRoute = location.pathname.startsWith('/main');
 
   const { user, isLoading, logout, setUser } = useAuth();
   const { cosmetic } = useCosmetics();
   // Public landing at '/' needs full-width, no padding — its own sections manage layout.
-  const isLandingRoute = location.pathname === '/' && !user && !isLoading;
+  const isLandingRoute = location.pathname === '/';
   const shouldShowRoleSelector =
     !isAuthRoute && !isLoading && user?.isVerified && user.globalRole === 'pending';
   // Shell renders its own header; we skip the global one to avoid double bars.
@@ -47,7 +55,7 @@ function AppLayout() {
   // Outside /main there is no sidebar instance, so the toggle acts as a shell shortcut for signed-in users.
   const shouldShowShellToggleShortcut = !!user && !isAuthRoute && !isShellRoute;
   // Sidebar shell needs the wider canvas so we reuse the auth width treatment.
-  const usesFullWidth = isAuthRoute || isShellRoute;
+  const usesFullWidth = isAuthRoute || isShellRoute || location.pathname === '/terms' || location.pathname === '/privacy';
 
   useEffect(() => {
     if (!user || isLoading) return;
@@ -86,7 +94,7 @@ function AppLayout() {
             <Route
               path="/login"
               element={
-                user && !isLoading ? (
+                isLoading ? null : user ? (
                   // If user hit login while unauthenticated, send them back to their intended page post-login.
                   <Navigate
                     to={
@@ -101,14 +109,16 @@ function AppLayout() {
                 )
               }
             />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
             <Route
               path="/register"
-              element={user && !isLoading ? <Navigate to="/main" replace /> : <Register />}
+              element={isLoading ? null : user ? <Navigate to="/main" replace /> : <Register />}
             />
             <Route
               path="/"
               element={
-                user && !isLoading ? (
+                isLoading ? null : user ? (
                   // Signed-in users should land inside the shell so sidebar/navigation remains available.
                   <Navigate to="/main/landing" replace />
                 ) : (
@@ -117,6 +127,8 @@ function AppLayout() {
               }
             />
             <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route element={<ProtectedRoute isLoading={isLoading} isAuthed={!!user} />}>
               {/* Invite redemption sits outside the shell so it can stay focused and load without sidebar chrome. */}
               <Route path="/invite" element={<AcceptInvite />} />
@@ -125,12 +137,40 @@ function AppLayout() {
                 <Route path="/main/landing" element={<Landing />} />
                 <Route path="/main/modules" element={<ModulesPage />} />
                 <Route path="/main/modules/:moduleId" element={<SingleModulePage />} />
-                <Route path="/main/modules/:moduleId/roster" element={<ModuleRosterPage />} />
-                <Route path="/main/modules/:moduleId/:unitId/editor" element={<ModuleUnitEditor />} />
+                <Route
+                  path="/main/modules/:moduleId/roster"
+                  element={
+                    <RequireCapability capability={features.modules.roster}>
+                      <ModuleRosterPage />
+                    </RequireCapability>
+                  }
+                />
+                <Route
+                  path="/main/modules/:moduleId/:unitId/editor"
+                  element={
+                    <RequireCapability capability={features.modules.manageContent}>
+                      <ModuleUnitEditor />
+                    </RequireCapability>
+                  }
+                />
                 <Route path="/main/modules/:moduleId/:unitId/practice-room" element={<PracticeRoomPage />} />
                 <Route path="/main/modules/:moduleId/daily-practice" element={<DailyPracticePage />} />
-                <Route path="/main/quests" element={<QuestsPage />} />
-                <Route path="/main/rewards" element={<RewardsPage />} />
+                <Route
+                  path="/main/quests"
+                  element={
+                    <RequireCapability capability={features.navigation.quests}>
+                      <QuestsPage />
+                    </RequireCapability>
+                  }
+                />
+                <Route
+                  path="/main/rewards"
+                  element={
+                    <RequireCapability capability={features.navigation.rewards}>
+                      <RewardsPage />
+                    </RequireCapability>
+                  }
+                />
                 <Route path="/main/profile" element={<ProfilePage />} />
               </Route>
             </Route>
@@ -146,6 +186,25 @@ type ProtectedRouteProps = {
   isLoading: boolean;
   isAuthed: boolean;
 };
+
+function RequireCapability({
+  capability,
+  children,
+}: {
+  capability: FeatureKey;
+  children: React.ReactNode;
+}) {
+  const { user, isLoading } = useAuth();
+  const params = useParams();
+  if (isLoading) return null;
+  if (!canUserAccess(capability, user)) {
+    const fallback = params.moduleId
+      ? `/main/modules/${params.moduleId}`
+      : '/main/modules';
+    return <Navigate to={fallback} replace />;
+  }
+  return <>{children}</>;
+}
 
 function ProtectedRoute({ isLoading, isAuthed }: ProtectedRouteProps) {
   const location = useLocation();

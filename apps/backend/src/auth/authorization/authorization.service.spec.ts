@@ -8,7 +8,6 @@ describe('AuthorizationService', () => {
   const teacherUser = {
     id: 10,
     globalRole: GlobalRole.teacher,
-    hasInstitutionMembership: false,
   } as any;
 
   it('allows global capability when shared matrix allows it', () => {
@@ -17,16 +16,19 @@ describe('AuthorizationService', () => {
       rule: { capability: features.modules.create },
     });
 
-    expect(allowed).toBe(true);
+    expect(allowed.allowed).toBe(true);
   });
 
-  it('denies when shared capability check fails', () => {
+  it('denies immediately when the shared capability matrix disallows the role', () => {
     const allowed = service.canActivate({
-      user: teacherUser,
-      rule: { capability: features.modules.setInstitution },
+      user: {
+        id: 11,
+        globalRole: GlobalRole.student,
+      } as any,
+      rule: { capability: features.modules.create },
     });
 
-    expect(allowed).toBe(false);
+    expect(allowed.allowed).toBe(false);
   });
 
   it('allows module scope for teacher when creator', () => {
@@ -35,14 +37,76 @@ describe('AuthorizationService', () => {
       rule: { capability: features.modules.settings, scope: 'module' },
       moduleContext: {
         moduleId: 5,
-        moduleInstitutionId: null,
         moduleCreatedByUserId: 10,
+        moduleArchivedAt: null,
         roleInModule: null,
-        hasInstitutionMatch: false,
       },
     });
 
-    expect(allowed).toBe(true);
+    expect(allowed.allowed).toBe(true);
+  });
+
+  it('allows module scope for admins even without membership', () => {
+    const allowed = service.canActivate({
+      user: {
+        id: 99,
+        globalRole: GlobalRole.admin,
+      } as any,
+      rule: { capability: features.modules.settings, scope: 'module' },
+      moduleContext: {
+        moduleId: 5,
+        moduleCreatedByUserId: 10,
+        moduleArchivedAt: null,
+        roleInModule: null,
+      },
+    });
+
+    expect(allowed.allowed).toBe(true);
+  });
+
+  it('allows module scope for teacher membership even when not creator', () => {
+    const allowed = service.canActivate({
+      user: teacherUser,
+      rule: { capability: features.modules.settings, scope: 'module' },
+      moduleContext: {
+        moduleId: 5,
+        moduleCreatedByUserId: 99,
+        moduleArchivedAt: null,
+        roleInModule: 'teacher',
+      },
+    });
+
+    expect(allowed.allowed).toBe(true);
+  });
+
+  it('allows module scope for enrolled students with a student capability', () => {
+    const allowed = service.canActivate({
+      user: {
+        id: 21,
+        globalRole: GlobalRole.student,
+      } as any,
+      rule: { capability: features.navigation.modules, scope: 'module' },
+      moduleContext: {
+        moduleId: 5,
+        moduleCreatedByUserId: 10,
+        moduleArchivedAt: null,
+        roleInModule: 'student',
+      },
+    });
+
+    expect(allowed.allowed).toBe(true);
+  });
+
+  it('denies unsupported authorization scopes', () => {
+    const allowed = service.canActivate({
+      user: teacherUser,
+      rule: {
+        capability: features.modules.create,
+        scope: 'institution' as never,
+      },
+    });
+
+    expect(allowed.allowed).toBe(false);
   });
 
   it('denies module scope when context is missing', () => {
@@ -51,27 +115,7 @@ describe('AuthorizationService', () => {
       rule: { capability: features.modules.settings, scope: 'module' },
     });
 
-    expect(allowed).toBe(false);
-  });
-
-  it('allows module scope for institution admin with institution match', () => {
-    const allowed = service.canActivate({
-      user: {
-        id: 7,
-        globalRole: GlobalRole.institution_admin,
-        hasInstitutionMembership: true,
-      } as any,
-      rule: { capability: features.modules.settings, scope: 'module' },
-      moduleContext: {
-        moduleId: 9,
-        moduleInstitutionId: 2,
-        moduleCreatedByUserId: 1,
-        roleInModule: null,
-        hasInstitutionMatch: true,
-      },
-    });
-
-    expect(allowed).toBe(true);
+    expect(allowed.allowed).toBe(false);
   });
 
   it('allows self scope when user id matches target id', () => {
@@ -79,13 +123,12 @@ describe('AuthorizationService', () => {
       user: {
         id: 21,
         globalRole: GlobalRole.pending,
-        hasInstitutionMembership: false,
       } as any,
       rule: { capability: features.users.selectOwnRole, scope: 'self' },
       selfTargetUserId: 21,
     });
 
-    expect(allowed).toBe(true);
+    expect(allowed.allowed).toBe(true);
   });
 
   it('denies self scope when user id does not match target id', () => {
@@ -93,12 +136,23 @@ describe('AuthorizationService', () => {
       user: {
         id: 21,
         globalRole: GlobalRole.pending,
-        hasInstitutionMembership: false,
       } as any,
       rule: { capability: features.users.selectOwnRole, scope: 'self' },
       selfTargetUserId: 99,
     });
 
-    expect(allowed).toBe(false);
+    expect(allowed.allowed).toBe(false);
+  });
+
+  it('denies self scope when no target id was resolved', () => {
+    const allowed = service.canActivate({
+      user: {
+        id: 21,
+        globalRole: GlobalRole.pending,
+      } as any,
+      rule: { capability: features.users.selectOwnRole, scope: 'self' },
+    });
+
+    expect(allowed.allowed).toBe(false);
   });
 });

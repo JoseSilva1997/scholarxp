@@ -164,6 +164,7 @@ export class DailyPracticeSetSelectorService {
     };
   }
 
+  // Converts bucket candidate arrays into the count-only inventory shape that the sizing policy operates on.
   private buildSelectionInventory(input: {
     dueReviewCandidates: CandidateWithSelectionMetadata[];
     reinforcementCandidates: CandidateWithSelectionMetadata[];
@@ -174,6 +175,7 @@ export class DailyPracticeSetSelectorService {
     };
   }
 
+  // Filters to questions whose FSRS due date has passed and ranks them by how overdue they are, longest-overdue first.
   private buildDueReviewCandidates(
     candidates: EnrichedCandidate[],
     now: Date,
@@ -214,6 +216,8 @@ export class DailyPracticeSetSelectorService {
       });
   }
 
+  // Filters to questions that are not yet due but showed signs of struggle (Again or Hard grade) within the recent window.
+  // These are surfaced proactively to reinforce weak memories before the FSRS interval formally expires.
   private buildReinforcementCandidates(
     candidates: EnrichedCandidate[],
     now: Date,
@@ -294,6 +298,8 @@ export class DailyPracticeSetSelectorService {
     );
   }
 
+  // Scores reinforcement candidates so harder-graded, more-lapsed, and more recently seen questions rank higher.
+  // Grade penalty uses large prime-spaced weights (1B / 1M / 1) to prevent recency from overriding grade severity.
   private calculateReinforcementScore(
     studentQuestionState: StudentQuestionStateRecord,
     now: Date,
@@ -319,6 +325,7 @@ export class DailyPracticeSetSelectorService {
     );
   }
 
+  // Takes up to `count` candidates from one bucket, updating shared deduplication and per-lesson count state so subsequent bucket fills stay consistent.
   private selectFromBucket(input: {
     bucketCandidates: CandidateWithSelectionMetadata[];
     count: number;
@@ -349,6 +356,7 @@ export class DailyPracticeSetSelectorService {
     );
   }
 
+  // Draws from an ordered list of fallback buckets to fill a shortfall, stopping as soon as the remaining count reaches zero.
   private fillFromBuckets(
     buckets: Array<{
       sourceBucket: SelectedDailyPracticeQuestionRecord['sourceBucket'];
@@ -379,6 +387,7 @@ export class DailyPracticeSetSelectorService {
     return selected;
   }
 
+  // Iterates the pre-sorted candidate list and applies the per-lesson cap. A second pass without the cap ensures the set is filled even when a module only has a small number of active lessons.
   private takeCandidatesWithLessonCap(
     candidates: CandidateWithSelectionMetadata[],
     count: number,
@@ -431,6 +440,7 @@ export class DailyPracticeSetSelectorService {
     return selected;
   }
 
+  // Registers a candidate into the selection and updates both deduplication structures in one place to keep takeCandidatesWithLessonCap readable.
   private acceptCandidate(
     candidate: CandidateWithSelectionMetadata,
     selected: CandidateWithSelectionMetadata[],
@@ -466,6 +476,7 @@ export class DailyPracticeSetSelectorService {
     return new Set(progressRows.map((row) => row.moduleUnitId));
   }
 
+  // Treats null values as greater than any real number so questions without a group sort order appear after grouped ones.
   private compareNullableNumbers(
     left: number | null,
     right: number | null,

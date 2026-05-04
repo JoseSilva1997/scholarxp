@@ -1,4 +1,4 @@
-// Service role: derives the standalone header reward-track view so controllers and the UI do not duplicate pacing rules.
+// Builds the daily-lesson XP progress view shown in the app header. Centralizes the reward rules so controllers and frontend don't re-implement them.
 import { Injectable } from '@nestjs/common';
 import { DateHelpers } from '../helpers/helpers';
 import { ExpLedgerService } from '../db-entities/exp-ledger/exp-ledger.service';
@@ -15,6 +15,9 @@ export class DailyLessonXpTrackService {
     private readonly expCalculationService: ExpCalculationService,
   ) {}
 
+  // Builds the complete daily XP track state for one user at the given timestamp.
+  // Passing the timestamp explicitly (rather than calling new Date() internally) keeps
+  // the method deterministic and testable without time-mocking.
   async getTrackForUser(
     userId: number,
     timestamp: Date,
@@ -31,7 +34,7 @@ export class DailyLessonXpTrackService {
     return {
       dayKeyUtc: dayStartUtc.toISOString().slice(0, 10),
       completedLessonsToday,
-      // Reuse the awarding calculator so the next visible reward can never drift from the actual rule.
+      // Call the same service that actually awards XP, so the preview shown to the user always matches what they'll receive.
       nextRewardXp: this.expCalculationService.resolveDailyCompletionReward(
         completedLessonsToday,
       ),
@@ -40,6 +43,8 @@ export class DailyLessonXpTrackService {
     };
   }
 
+  // Three UI steps the header displays: the two rewarded lessons of the day, then an open-ended "practice" slot.
+  // Each step's `state` tells the frontend how to render it: already done ('earned'), current target ('active'), or not yet reached ('upcoming').
   private buildTrackSteps(
     completedLessonsToday: number,
   ): DailyLessonXpTrackStepDto[] {
@@ -47,11 +52,13 @@ export class DailyLessonXpTrackService {
       {
         key: 'first_completion',
         rewardXp: this.expCalculationService.resolveDailyCompletionReward(0),
+        // Earned once any lesson is done today; otherwise it's the user's current target.
         state: completedLessonsToday >= 1 ? 'earned' : 'active',
       },
       {
         key: 'second_completion',
         rewardXp: this.expCalculationService.resolveDailyCompletionReward(1),
+        // Only becomes 'active' after the first lesson is done — before that it's locked as 'upcoming'.
         state:
           completedLessonsToday >= 2
             ? 'earned'
@@ -62,6 +69,7 @@ export class DailyLessonXpTrackService {
       {
         key: 'practice',
         rewardXp: this.expCalculationService.resolveDailyCompletionReward(2),
+        // Practice slot never reaches 'earned' — it stays active once the two main rewards are collected, signaling further lessons still grant XP at the reduced rate.
         state: completedLessonsToday >= 2 ? 'active' : 'upcoming',
       },
     ];

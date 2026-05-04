@@ -8,17 +8,36 @@ import type { DailyPracticeStatusSummary } from '../daily_practice';
 
 export interface ModuleSummaryResponse {
   id: number;
-  institutionId?: number | null;
-  ltiContextId?: string | null;
-  resourceLinkId?: string | null;
-  variantContext?: string | null;
   title: string;
   description?: string | null;
   createdByUserId?: number | null;
+  createdByName?: string | null;
+  archivedAt?: string | null;
   userModuleLevel?: number;
   currentExp?: number;
   expMax?: number;
   dailyPractice?: DailyPracticeStatusSummary;
+}
+
+export interface ModuleDeletionImpactResponse {
+  moduleId: number;
+  isArchived: boolean;
+  willArchive: true;
+  isPurgeableArchivedModule: boolean;
+  purgeEligibleAt: string | null;
+  counts: {
+    studentEnrollments: number;
+    attempts: number;
+    expLedgerEntries: number;
+    moduleUnitProgress: number;
+    studentQuestionStates: number;
+    dailyPracticeSets: number;
+    dailyPracticeSetItems: number;
+    dailyQuests: number;
+    invites: number;
+    moduleUnits: number;
+    questions: number;
+  };
 }
 
 export type ModuleUnitStatus = 'draft' | 'live' | 'locked' | 'archived';
@@ -71,7 +90,6 @@ export interface ModuleUnitExpEarned {
 export interface ModuleUnitResponse {
   id: number;
   moduleId: number | null;
-  variantContext: string;
   title: string;
   questionCount: number;
   isCompleted: boolean;
@@ -84,10 +102,6 @@ export interface ModuleUnitResponse {
 }
 
 export interface CreateModulePayload {
-  institutionId?: number;
-  ltiContextId?: string;
-  resourceLinkId?: string;
-  variantContext?: string | null;
   title: string;
   description?: string | null;
   createdByUserId?: number;
@@ -101,7 +115,6 @@ export interface CreateModuleUnitMinimalPayload {
 
 export interface CreateModuleUnitPayload {
   moduleId: number;
-  variantContext: string;
   title: string;
   questionCount: number;
   status: ModuleUnitStatus;
@@ -121,7 +134,6 @@ export interface ModuleUnitEditorContentResponse {
   questionData: QuestionData;
   type: string;
   hint: string | null;
-  difficultyScore: number;
   // Keep editor content source aligned with question contracts to prevent frontend/backend drift.
   source: QuestionSource;
   isArchived: boolean;
@@ -154,6 +166,5 @@ export interface ModuleUnitEditorResponse {
   id: number;
   moduleId: number | null;
   title: string;
-  variantContext: string | null;
   questionGroups: ModuleUnitEditorGroupResponse[];
 }

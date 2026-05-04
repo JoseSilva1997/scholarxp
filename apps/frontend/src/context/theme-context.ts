@@ -42,26 +42,33 @@ const DEFAULT_VARIANT_BY_THEME: Record<Theme, ThemeVariant> = {
   celestial: 'dark',
 };
 
+// Type guard for persisted or external values before they are trusted as theme families.
 export function isKnownTheme(value: string | null): value is Theme {
   return value !== null && (THEME_IDS as readonly string[]).includes(value);
 }
 
+// Type guard for persisted or external values before they are trusted as light/dark variants.
 export function isKnownThemeVariant(value: string | null): value is ThemeVariant {
   return value !== null && (THEME_VARIANTS as readonly string[]).includes(value);
 }
 
+// Type guard for backend reward ids so cosmetic payloads cannot introduce unsupported theme selectors.
 export function isKnownThemeRewardId(value: string | null): value is ThemeRewardId {
   return value !== null && (THEME_REWARD_IDS as readonly string[]).includes(value);
 }
 
+// Maps reward ids into the smaller set of CSS theme families used by the frontend.
 export function themeFamilyFromRewardId(themeRewardId: ThemeRewardId): Theme {
+  // Legacy light/dark rewards are variants of the default family rather than separate visual families.
   if (themeRewardId === 'light' || themeRewardId === 'dark') {
     return 'default';
   }
   return themeRewardId;
 }
 
+// Resolves the light/dark variant implied by a reward id when the user has not made an explicit variant choice.
 export function themeVariantFromRewardId(themeRewardId: ThemeRewardId): ThemeVariant {
+  // Explicit variant rewards carry their own answer; richer cosmetic families use their designed default variant.
   if (themeRewardId === 'light' || themeRewardId === 'dark') {
     return themeRewardId;
   }

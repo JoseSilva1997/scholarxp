@@ -35,6 +35,8 @@ import { QuestStreakService } from './quest-streak.service';
     QuestProgressService,
     QuestStreakService,
   ],
+  // These services are exported so cross-cutting modules (e.g. practice-room, daily-practice) can trigger quest
+  // progress events without importing the full quests domain directly into their own service files.
   exports: [
     QuestGenerationBatchService,
     QuestGenerationService,

@@ -1,0 +1,57 @@
+// Groups reward cards under a slot heading; separates unlocked items from locked ones with a visual divider.
+import type { CosmeticSlot } from '@scholarxp/progression';
+import type { CatalogItem, SlotDisplay } from '@/Rewards/cosmetics';
+import RewardCard from '@/Rewards/RewardsPage/components/RewardCard';
+import styles from '@/Rewards/RewardsPage/components/Rewards.module.css';
+
+type SlotGroupProps = {
+  display: SlotDisplay;
+  unlocked: CatalogItem[];
+  locked: CatalogItem[];
+  equippedId: string;
+  onEquip: (slot: CosmeticSlot, rewardId: string) => void;
+  isEquipping: boolean;
+};
+
+// Renders one cosmetic slot section and delegates individual reward presentation to RewardCard.
+export default function SlotGroup({
+  display,
+  unlocked,
+  locked,
+  equippedId,
+  onEquip,
+  isEquipping,
+}: SlotGroupProps) {
+  return (
+    <section className={styles.slotGroup}>
+      <div className={styles.slotHeader}>
+        <h2 className={styles.slotTitle}>{display.title}</h2>
+        <p className={styles.slotDescription}>{display.description}</p>
+      </div>
+
+      <div className={styles.cardGrid}>
+        {unlocked.map((item) => (
+          <RewardCard
+            key={item.id}
+            item={item}
+            isUnlocked
+            isEquipped={item.id === equippedId}
+            onEquip={() => onEquip(display.slot, item.id)}
+            isEquipping={isEquipping}
+          />
+        ))}
+        {/* Locked cards are intentionally inert; the card still receives a handler to keep RewardCard's API uniform. */}
+        {locked.map((item) => (
+          <RewardCard
+            key={item.id}
+            item={item}
+            isUnlocked={false}
+            isEquipped={false}
+            onEquip={() => {}}
+            isEquipping={false}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}

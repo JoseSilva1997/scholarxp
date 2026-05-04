@@ -44,6 +44,8 @@ const STABILITY_FAIL_WEIGHT = 0.4;
 const STABILITY_HINT_WEIGHT = 0.2;
 const DIFFICULTY_FAIL_BUMP = 0.5;
 const DIFFICULTY_HINT_BUMP = 0.25;
+const REQUEST_RETENTION = 0.94;
+
 // Time-to-first-correct > 30s signals a struggled acquisition that deserves a modest stability penalty.
 const TIME_PENALTY_THRESHOLD_MS = 30_000;
 const TIME_PENALTY_FACTOR = 0.9;
@@ -54,8 +56,13 @@ const DIFFICULTY_MAX = 10;
 @Injectable()
 export class DailyPracticeFsrsPolicyService {
   // enable_short_term=false skips FSRS learning/relearning steps so daily practice stays a day-granularity schedule and first-success values land directly in Review.
-  private readonly scheduler = fsrs({ enable_short_term: false });
+  private readonly scheduler = fsrs({
+    enable_short_term: false,
+    request_retention: REQUEST_RETENTION,
+  });
 
+  // Builds the initial FSRS card state for a question the learner has answered correctly for the first time.
+  // Acquisition evidence biases the base values so the seeded card carries forward how hard the question was to learn, not just that it was eventually answered correctly.
   computeSeedStateForFirstCorrect(params: {
     grade: DailyPracticeFsrsGrade;
     reviewedAt: Date;
@@ -85,6 +92,7 @@ export class DailyPracticeFsrsPolicyService {
     };
   }
 
+  // Advances an existing FSRS card after a review encounter. Due date is snapped to local day boundaries rather than using the raw scheduler output, keeping daily-practice on a day-level cadence.
   computeNextStateForExisting(params: {
     existingState: StudentQuestionStateRecord;
     grade: DailyPracticeFsrsGrade;
@@ -109,6 +117,8 @@ export class DailyPracticeFsrsPolicyService {
     };
   }
 
+  // Applies stability and difficulty adjustments to a freshly-scheduled seed card using acquisition evidence.
+  // Each additional failed or hinted attempt reduces stability multiplicatively while adding a flat difficulty bump.
   private adjustBaseWithAcquisitionEvidence(
     base: Card,
     evidence: AcquisitionEvidence,
@@ -163,6 +173,7 @@ export class DailyPracticeFsrsPolicyService {
     return Rating.Good as Grade;
   }
 
+  // Reconstructs a ts-fsrs Card from the persisted state so the scheduler can compute the next interval without access to the raw DB model.
   private toFsrsCard(state: StudentQuestionStateRecord): Card {
     return {
       due: state.fsrsDueAt,
@@ -179,6 +190,7 @@ export class DailyPracticeFsrsPolicyService {
     };
   }
 
+  // Derives scheduled_days from the due/last-reviewed gap; ts-fsrs uses this to weight the next interval calculation.
   private calculateScheduledDays(state: StudentQuestionStateRecord): number {
     if (!state.fsrsLastReviewedAt) {
       return 0;

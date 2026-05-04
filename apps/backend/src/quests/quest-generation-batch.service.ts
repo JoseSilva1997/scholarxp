@@ -37,6 +37,7 @@ export class QuestGenerationBatchService {
       const studentMemberships = (await this.prisma.userModule.findMany({
         where: {
           roleInModule: 'student',
+          module: { archivedAt: null },
           ...(lastUserId === null ? {} : { userId: { gt: lastUserId } }),
         },
         select: {

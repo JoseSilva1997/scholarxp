@@ -6,35 +6,6 @@ datasource db {
   provider = "postgresql"
 }
 
-model Institution {
-  id              Int           @id @default(autoincrement())
-  name            String
-  lmsPlatform     String        @map("lms_platform")
-  lmsIssuerUrl    String        @map("lms_issuer_url")
-  lmsClientId     String        @map("lms_client_id")
-  lmsDeploymentId String        @map("lms_deployment_id")
-  jwksUrl         String        @map("jwks_url")
-  authTokenUrl    String        @map("auth_token_url")
-  authRequestUrl  String        @map("auth_request_url")
-  createdAt       DateTime      @default(now()) @map("created_at")
-  ltiIdentities   LtiIdentity[]
-  modules         Module[]
-
-  @@unique([lmsIssuerUrl, lmsClientId, lmsDeploymentId])
-  @@map("institutions")
-}
-
-model LtiIdentity {
-  id            Int         @id @default(autoincrement())
-  institutionId Int         @map("institution_id")
-  userId        Int         @map("user_id")
-  ltiUserId     String      @map("lti_user_id")
-  institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
-  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("lti_identity")
-}
-
 model User {
   id                      Int                      @id @default(autoincrement())
   firstName               String                   @map("first_name")
@@ -53,7 +24,6 @@ model User {
   createdInvites          ModuleInvite[]
   avatars                 Avatar[]
   dailyQuests             DailyQuest[]
-  ltiIdentities           LtiIdentity[]
   // One daily-practice set per module/day is generated for each learner and linked here for reads and cleanup.
   dailyPracticeSets       DailyPracticeSet[]
   // Adaptive state is tracked per learner per question so selection can read from persisted memory state.
@@ -84,15 +54,11 @@ model Avatar {
 
 model Module {
   id                    Int                    @id @default(autoincrement())
-  institutionId         Int?                   @map("institution_id")
-  ltiContextId          String?                @map("lti_context_id")
-  resourceLinkId        String?                @map("resource_link_id")
-  variantContext        String?                @map("variant_context")
   title                 String
   description           String?
   createdByUserId       Int?                   @map("created_by_user_id")
   createdAt             DateTime               @default(now()) @map("created_at")
-  institution           Institution?           @relation(fields: [institutionId], references: [id], onDelete: SetNull)
+  archivedAt            DateTime?              @map("archived_at")
   createdBy             User?                  @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
   // Module-scoped daily-practice sets stay tied to the module because daily practice is never global.
   dailyPracticeSets     DailyPracticeSet[]
@@ -105,8 +71,6 @@ model Module {
   userModules           UserModule[]
   expLedgerEntries      ExpLedger[]
 
-  @@unique([institutionId, ltiContextId])
-  @@unique([institutionId, resourceLinkId])
   @@map("modules")
 }
 
@@ -196,13 +160,12 @@ model PracticeSession {
 model ModuleUnit {
   id                    Int                       @id @default(autoincrement())
   moduleId              Int?                      @map("module_id")
-  variantContext        String                    @map("variant_context")
   title                 String
   questionCount         Int                       @map("question_count")
   status                ModuleUnitStatus          @default(draft)
   sortOrder             Int                       @map("sort_order")
   createdAt             DateTime                  @default(now()) @map("created_at")
-  module                Module?                   @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+  module                Module?                   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   // Persisted daily-practice items keep their lesson linkage so interleaving can avoid same-lesson adjacency.
   dailyPracticeSetItems DailyPracticeSetItem[]
   questionGroups        ModuleUnitQuestionGroup[]
@@ -363,7 +326,6 @@ model QuestionContent {
   questionStem     String            @map("question_stem")
   questionData     Json              @map("question_data")
   hint             String?
-  difficultyScore  Float             @map("difficulty_score")
   source           String
   isArchived       Boolean           @default(false) @map("is_archived")
   createdAt        DateTime          @default(now()) @map("created_at")
@@ -474,7 +436,6 @@ model ModuleInvite {
 enum GlobalRole {
   pending
   admin
-  institution_admin
   teacher
   student
 }
@@ -483,7 +444,6 @@ enum AuthProvider {
   google
   microsoft
   local
-  lti
 }
 
 enum InviteType {
@@ -492,7 +452,6 @@ enum InviteType {
 }
 
 enum EnrollmentSource {
-  lti
   invite
   admin
   csv

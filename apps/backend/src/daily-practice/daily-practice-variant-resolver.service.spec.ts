@@ -111,7 +111,6 @@ function buildOrderedQuestion(): OrderedDailyPracticeQuestionRecord {
     questionGroupSortOrder: 1,
     coreContentId: 501,
     questionType: 'mcq',
-    questionDifficultyScore: 0.5,
     sourceBucket: DailyPracticeSelectionBucketValues.dueReview,
     selectionScore: 10,
     selectionReason: 'Overdue review item.',

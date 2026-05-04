@@ -1,4 +1,7 @@
 // AuthorizationGuard orchestrates metadata lookup, optional resource loading, and policy evaluation.
+// It is the bridge between the @Authorize decorator (declarative rule) and AuthorizationService
+// (pure policy). Resource I/O is deliberately concentrated here so the policy layer stays
+// unit-testable without database fixtures.
 import {
   BadRequestException,
   CanActivate,
@@ -9,10 +12,9 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { GlobalRole } from '@prisma/client';
 import type { Request } from 'express';
 import { PrismaService } from '../../prisma/prisma.service';
-import type { AuthUser } from '../../types/auth-user.type';
+import type { AuthUser } from '@scholarxp/api-contracts';
 import { AUTHORIZATION_KEY } from '../decorators/authorize.decorator';
 import type {
   AuthorizationRule,
@@ -27,6 +29,9 @@ export class AuthorizationGuard implements CanActivate {
     private readonly prisma: PrismaService,
     private readonly authorizationService: AuthorizationService,
   ) {}
+  // Read the @Authorize metadata, optionally resolve module or self context from the request,
+  // and delegate the allow/deny decision to AuthorizationService. Returning true here is a "no
+  // rule attached" pass-through so unannotated routes are never blocked by this guard.
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const rule =
       this.reflector.getAllAndOverride<AuthorizationRule>(AUTHORIZATION_KEY, [
@@ -46,33 +51,47 @@ export class AuthorizationGuard implements CanActivate {
 
     const moduleContext =
       rule.scope === 'module'
-        ? await this.loadModuleContext(req, user, rule.moduleContextSource)
+        ? await this.loadModuleContext(req, user, rule)
         : undefined;
     const selfTargetUserId =
       rule.scope === 'self'
         ? this.extractSelfTargetUserId(req, rule.selfUserIdParam ?? 'id')
         : undefined;
 
-    const allowed = this.authorizationService.canActivate({
+    const outcome = this.authorizationService.canActivate({
       user,
       rule,
       moduleContext,
       selfTargetUserId,
     });
 
-    if (!allowed) {
-      throw new ForbiddenException('Insufficient permissions');
+    if (!outcome.allowed) {
+      throw new ForbiddenException(this.denialMessage(outcome.reason));
     }
 
     return true;
   }
 
+  // Maps denial reasons to user-facing copy. Capability fallback preserves the legacy string
+  // because some clients (e.g. AcceptInvite) still match on it to render context-specific copy.
+  private denialMessage(
+    reason: 'capability' | 'module_membership' | 'self',
+  ): string {
+    if (reason === 'module_membership') {
+      return "You don't have access to this module.";
+    }
+    return 'Insufficient permissions';
+  }
+
   // Resource loading stays in the guard so policy evaluation remains pure and unit-testable.
+  // Complexity: O(1) database queries (one indexed lookup for the module plus a filtered
+  // userModules join restricted to the current user). Space: O(1).
   private async loadModuleContext(
     req: Request,
     user: AuthUser,
-    source: AuthorizationRule['moduleContextSource'] = 'module',
+    rule: AuthorizationRule,
   ): Promise<ModuleAuthorizationContext> {
+    const source = rule.moduleContextSource ?? 'module';
     const moduleId =
       source === 'user_module'
         ? await this.resolveModuleIdFromUserModule(req)
@@ -87,8 +106,8 @@ export class AuthorizationGuard implements CanActivate {
       where: { id: moduleId },
       select: {
         id: true,
-        institutionId: true,
         createdByUserId: true,
+        archivedAt: true,
         userModules: {
           where: { userId: user.id },
           select: { roleInModule: true },
@@ -99,20 +118,8 @@ export class AuthorizationGuard implements CanActivate {
     if (!module) {
       throw new NotFoundException('Module not found');
     }
-
-    let hasInstitutionMatch = false;
-    if (
-      user.globalRole === GlobalRole.institution_admin &&
-      module.institutionId !== null
-    ) {
-      const membership = await this.prisma.ltiIdentity.findFirst({
-        where: {
-          userId: user.id,
-          institutionId: module.institutionId,
-        },
-        select: { id: true },
-      });
-      hasInstitutionMatch = Boolean(membership);
+    if (module.archivedAt && !rule.allowArchived) {
+      throw new NotFoundException('Module not found');
     }
 
     const membership = module.userModules[0];
@@ -126,10 +133,9 @@ export class AuthorizationGuard implements CanActivate {
 
     return {
       moduleId: module.id,
-      moduleInstitutionId: module.institutionId,
       moduleCreatedByUserId: module.createdByUserId,
+      moduleArchivedAt: module.archivedAt,
       roleInModule,
-      hasInstitutionMatch,
     };
   }
 

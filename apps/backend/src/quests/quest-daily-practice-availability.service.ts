@@ -73,6 +73,9 @@ export class QuestDailyPracticeAvailabilityService {
     return null;
   }
 
+  // Checks availability without creating the set: if today's set already exists, its item count is authoritative;
+  // otherwise, eligibility is asserted then a dry-run question selection is performed to confirm non-empty content is available.
+  // ForbiddenException from the eligibility check is treated as "not available" rather than a hard error.
   private async isDailyPracticeAvailableForModule(
     userId: number,
     moduleId: number,

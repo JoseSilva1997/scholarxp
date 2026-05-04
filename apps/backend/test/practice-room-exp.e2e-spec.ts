@@ -13,6 +13,7 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { AuthorizationGuard } from '../src/auth/guards/authorization.guard';
 import { SessionAuthGuard } from '../src/auth/guards/session-auth.guard';
+import { DailyPracticeGenerationScheduleService } from '../src/daily-practice/daily-practice-generation-schedule.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { QuestGenerationStartupService } from '../src/quests/quest-generation-startup.service';
 
@@ -61,7 +62,9 @@ describe('Practice room XP policy (e2e)', () => {
       .useClass(TestSessionGuard)
       .overrideGuard(AuthorizationGuard)
       .useClass(TestAuthorizationGuard)
-      // Suppress startup quest generation so this suite's teardown cannot race a background batch against Prisma shutdown.
+      // Suppress startup generation batches so this suite's teardown cannot race them against Prisma shutdown.
+      .overrideProvider(DailyPracticeGenerationScheduleService)
+      .useValue({ onModuleInit: () => {} })
       .overrideProvider(QuestGenerationStartupService)
       .useValue({ onModuleInit: () => {} })
       .compile();
@@ -428,7 +431,6 @@ async function seedModuleUnitWithMcqQuestions(
   const moduleUnit = await prisma.moduleUnit.create({
     data: {
       moduleId,
-      variantContext: 'default',
       title: input.title,
       questionCount: input.questionCount,
       status: ModuleUnitStatus.live,
@@ -457,7 +459,6 @@ async function seedModuleUnitWithMcqQuestions(
           correctOptionIndex: 0,
         },
         hint: null,
-        difficultyScore: 1,
         source: 'seeded-e2e',
         isArchived: false,
       },
@@ -568,7 +569,5 @@ async function clearDatabase(prisma: PrismaService) {
   await prisma.userPassword.deleteMany();
   await prisma.authIdentity.deleteMany();
   await prisma.emailVerificationToken.deleteMany();
-  await prisma.ltiIdentity.deleteMany();
   await prisma.user.deleteMany();
-  await prisma.institution.deleteMany();
 }
