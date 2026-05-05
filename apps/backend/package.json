@@ -27,6 +27,7 @@
     "cleanup:user-learning-data": "ts-node src/scripts/delete-user-learning-data.ts",
     "advance:user-day": "ts-node src/scripts/advance-user-day.ts",
     "simulate:daily-practice": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' -r tsconfig-paths/register src/scripts/daily-practice-simulation.ts",
+    "generate": "prisma generate",
     "migrate:dev": "pnpm prisma migrate dev",
     "migrate:development": "pnpm dotenv -e .env.development -- pnpm prisma migrate dev",
     "migrate:test": "pnpm exec dotenv -e .env.test -- pnpm prisma migrate deploy",

@@ -61,7 +61,19 @@ First run takes a few minutes — pnpm is downloading packages for all workspace
 
 ---
 
-### 3. Create the database
+### 3. Build shared packages
+
+The monorepo contains shared packages that the frontend and backend both import. These need to be compiled before the apps can run:
+
+```bash
+pnpm --filter "./packages/*" build
+```
+
+You should see output from `tsup` for each package (`api-contracts`, `constants`, `permissions`, `progression`). If any fail, check the error — it usually means a missing dependency.
+
+---
+
+### 4. Create the database
 
 Prisma manages the schema but won't create the database itself. Connect to PostgreSQL and create an empty one:
 
@@ -76,11 +88,11 @@ CREATE DATABASE scholar_xp;
 \q
 ```
 
-Any name works — just use the same name in step 4 when setting `DATABASE_URL`.
+Any name works — just use the same name in step 5 when setting `DATABASE_URL`.
 
 ---
 
-### 4. Configure backend environment variables
+### 5. Configure backend environment variables
 
 Copy the example file:
 
@@ -98,7 +110,7 @@ Open `apps/backend/.env.development` and fill in these values:
 ```
 DATABASE_URL="postgresql://postgres:<your-password>@localhost:5432/scholar_xp?schema=public"
 ```
-Replace `<your-password>` with your PostgreSQL password. If you used a different database name in step 3, replace `scholar_xp` too.
+Replace `<your-password>` with your PostgreSQL password. If you used a different database name in step 4, replace `scholar_xp` too.
 
 **`SESSION_SECRET`** — any long random string. Generate one with:
 ```bash
@@ -122,27 +134,36 @@ SMTP and Firebase values can be left as placeholders unless you want to test ema
 
 ---
 
-### 5. Configure frontend environment
+### 6. Configure frontend environment
 
-Create `apps/frontend/.env` with:
+Copy the example file:
 
-```env
-VITE_API_URL=http://localhost:3000
+```bash
+# macOS / Linux
+cp apps/frontend/.env.example apps/frontend/.env
+
+# Windows (PowerShell)
+Copy-Item apps\frontend\.env.example apps\frontend\.env
 ```
+
+The defaults work out of the box for local development — `VITE_API_URL` points at the backend on port 3000 and Sentry is disabled. If you skip this step, the app will show a **blank page** with no visible error (the error is in the browser console).
 
 ---
 
-### 6. Apply database migrations
+### 7. Apply database migrations and generate the Prisma client
 
 ```bash
 pnpm --filter backend migrate:dev
+pnpm --filter backend generate
 ```
 
-Prisma will print each migration as it runs. If you get a connection error, double-check `DATABASE_URL` in `.env.development`.
+`migrate:dev` applies all pending migrations. `generate` produces the Prisma client TypeScript types — both the backend build and the dev server need this to compile correctly.
+
+If you get a connection error during migrate, double-check `DATABASE_URL` in `.env.development`.
 
 ---
 
-### 7. Start both servers
+### 8. Start both servers
 
 Open two terminals. In the first, start the backend:
 
@@ -170,8 +191,11 @@ Open `http://localhost:5173` in a browser. The app is live.
 |---------|-----|
 | `psql: command not found` | PostgreSQL's `bin` folder isn't on your PATH. On macOS/Linux add it to your shell profile; on Windows reinstall and tick "Add to PATH". |
 | `pnpm: command not found` | Re-run `npm install -g pnpm` and reopen the terminal. |
-| Prisma `P1003: database does not exist` | Step 3 was skipped, or the database name in `DATABASE_URL` doesn't match. |
+| `Cannot find module '@scholarxp/...'` or many type errors on first run | Step 3 was skipped — the shared packages haven't been built yet. Run `pnpm --filter "./packages/*" build` then retry. |
+| Errors about `@prisma/client` or Prisma types during build | The Prisma client hasn't been generated. Run `pnpm --filter backend generate` then retry. |
+| Prisma `P1003: database does not exist` | Step 4 was skipped, or the database name in `DATABASE_URL` doesn't match. |
 | Google sign-in fails / redirect mismatch | The redirect URI in Google Cloud Console must be exactly `http://localhost:3000/auth/oauth/google/callback`. |
+| Frontend shows a **blank page** with no error on screen | `apps/frontend/.env` is missing or `VITE_API_URL` is not set. The error is only visible in the browser DevTools console. Copy the example file (step 6) and restart `pnpm --filter frontend dev`. |
 | Frontend blank page or network error | Check the backend terminal is still running and shows `Nest application successfully started`. |
 | `pnpm install` fails with permission errors | Don't use `sudo` on macOS/Linux. See [npm's permissions guide](https://docs.npmjs.com/resolving-eacces-permissions-errors-when-installing-packages-globally). |
 
