@@ -29,7 +29,7 @@ const LEVEL_UP_PARTICLE_OFFSETS = [
   { x: -50, y: -5, delay: 0.14 }
 ];
 
-// SVG ring dimensions — sized so the ring adds 6px visual margin around the avatar on each side
+// SVG ring dimensions — viewBox 52×52, wrapper = avatar+12px, so inner edge ≈ avatar edge
 const RING_RADIUS = 22;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS; // ≈ 138.23px
 
@@ -472,7 +472,7 @@ export default function UserBadge({ user, onLogout }: UserBadgeProps) {
               cy="26"
               r={RING_RADIUS}
               fill="none"
-              strokeWidth="3"
+              strokeWidth="4"
             />
             <circle
               className={styles.progressRingFill}
@@ -480,7 +480,7 @@ export default function UserBadge({ user, onLogout }: UserBadgeProps) {
               cy="26"
               r={RING_RADIUS}
               fill="none"
-              strokeWidth="3"
+              strokeWidth="4"
               strokeLinecap="round"
               style={{
                 strokeDasharray: RING_CIRCUMFERENCE,
@@ -497,26 +497,28 @@ export default function UserBadge({ user, onLogout }: UserBadgeProps) {
           </svg>
         ) : null}
 
-        <button
-          type="button"
-          className={styles.avatarButton}
-          onClick={toggleMenu}
-          aria-expanded={isMenuOpen}
-          aria-haspopup="menu"
-          aria-label="Toggle user menu"
-        >
-          <img
-            src={avatarSrc}
-            alt=""
-            className={styles.avatar}
-            referrerPolicy="no-referrer"
-            // Defensive fallback so any bad/expired remote image swaps to our bundled default.
-            onError={(event) => {
-              event.currentTarget.onerror = null;
-              event.currentTarget.src = defaultAvatar;
-            }}
-          />
-        </button>
+        <div className={styles.avatarInner}>
+          <button
+            type="button"
+            className={styles.avatarButton}
+            onClick={toggleMenu}
+            aria-expanded={isMenuOpen}
+            aria-haspopup="menu"
+            aria-label="Toggle user menu"
+          >
+            <img
+              src={avatarSrc}
+              alt=""
+              className={styles.avatar}
+              referrerPolicy="no-referrer"
+              // Defensive fallback so any bad/expired remote image swaps to our bundled default.
+              onError={(event) => {
+                event.currentTarget.onerror = null;
+                event.currentTarget.src = defaultAvatar;
+              }}
+            />
+          </button>
+        </div>
 
         {/* Level badge sits at the bottom of the ring — the number flips in 3D when
             the level changes, using the same motion props as before, just in a tighter container */}

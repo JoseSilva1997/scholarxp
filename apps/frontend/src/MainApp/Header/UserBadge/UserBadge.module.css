@@ -168,20 +168,24 @@
 /* Wrapper is position:relative so the SVG ring and level badge can position
    themselves relative to the avatar without needing a separate stacking context */
 .avatarRingWrapper {
+  --avatar-dim: clamp(32px, 8vw, 40px);
   position: relative;
+  /* 12px extra (6px each side) gives ring its own space — avatar lives in avatarInner */
+  width: calc(var(--avatar-dim) + 12px);
+  height: calc(var(--avatar-dim) + 12px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-/* SVG arc replaces the horizontal bar — sized to bleed 6px beyond the avatar on
-   all sides; rotate(-90deg) starts the fill arc at 12 o'clock */
+/* SVG arc fills the outer wrapper — ring and avatar are in separate containers so
+   they never overlap; rotate(-90deg) starts the fill arc at 12 o'clock */
 .progressRing {
   position: absolute;
-  inset: -7px;
-  width: calc(100% + 14px);
-  height: calc(100% + 14px);
+  inset: 0;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
   z-index: 1;
   transform: rotate(-90deg);
@@ -215,9 +219,15 @@
   100%    { stroke: #ef4444; }
 }
 
+.avatarInner {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+}
+
 .avatar {
-  width: clamp(32px, 8vw, 40px);
-  height: clamp(32px, 8vw, 40px);
+  width: var(--avatar-dim);
+  height: var(--avatar-dim);
   border-radius: 50%;
   object-fit: cover;
   background: var(--btn-primary-dark); /* Slate-800 or deep slate base */
@@ -244,7 +254,7 @@
    so the number feels embedded in the progress indicator rather than floating free */
 .levelBadge {
   position: absolute;
-  bottom: -10px;
+  bottom: -4px;
   left: 0;
   right: 0;
   margin: 0 auto;
